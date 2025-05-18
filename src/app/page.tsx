@@ -94,7 +94,7 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x678.png", alt: "AI Powered Trip Planner Interface", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1200x678.png", alt: "Tablet displaying world map travel route", aiHint: "tablet displaying world map travel route" },
     { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
     { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
