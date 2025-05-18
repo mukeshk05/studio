@@ -16,7 +16,8 @@ import {
   ListChecksIcon,
   HeartIcon,
   LogInIcon,
-  Wand2Icon
+  Wand2Icon,
+  CheckCircleIcon // Added CheckCircleIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -343,3 +344,6 @@ export default function LandingPage() {
   );
 }
  
+
+
+    
