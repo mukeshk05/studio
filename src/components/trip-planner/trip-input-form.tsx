@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { AITripPlannerInput as AITripPlannerInputTypeFromFlow, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
-import React, { useEffect } from "react"; 
+import React, { useEffect } from "react";
 import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon, AlertTriangleIcon, CloudSunIcon } from "lucide-react";
 
 // Local form schema, can include UI-specific refinements or omit fields if needed
@@ -30,22 +30,22 @@ const formSchema = z.object({
     message: "Budget must be a positive number.",
   }),
   desiredMood: z.string().optional(),
-  riskContext: z.string().optional(), 
-  weatherContext: z.string().optional(), // Kept for direct weather input, though Guardian AI will infer too
+  riskContext: z.string().optional(),
+  weatherContext: z.string().optional(),
 });
 
 type TripInputFormProps = {
   onItinerariesFetched: (itineraries: AITripPlannerOutput["itineraries"] | null) => void;
   setIsLoading: (isLoading: boolean) => void;
-  onSubmitProp?: (values: AITripPlannerInputTypeFromFlow) => Promise<void>; // Use type from flow
-  initialValues?: Partial<AITripPlannerInputTypeFromFlow> | null; 
+  onSubmitProp?: (values: AITripPlannerInputTypeFromFlow) => Promise<void>;
+  initialValues?: Partial<AITripPlannerInputTypeFromFlow> | null;
 };
 
 const suggestedPrompts = [
   "7-day romantic getaway to Paris for $2000",
-  "Adventure trip to Costa Rican rainforests, 10 days, budget $3000",
-  "Budget-friendly family vacation to US national parks in California for a week",
-  "Cultural exploration of Kyoto, Japan for 5 days with $1500",
+  "Adventure trip to Costa Rican rainforests, 10 days, budget $3000, focus on wildlife and nature sounds",
+  "Budget-friendly family vacation to US national parks in California for a week, need step-free trails",
+  "Cultural exploration of Kyoto, Japan for 5 days with $1500, interested in quiet temples and traditional tea ceremonies",
 ];
 
 export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: TripInputFormProps) {
@@ -56,7 +56,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
       travelDates: initialValues?.travelDates || "",
       budget: initialValues?.budget || 1000,
       desiredMood: initialValues?.desiredMood || "",
-      riskContext: initialValues?.riskContext || "", 
+      riskContext: initialValues?.riskContext || "",
       weatherContext: initialValues?.weatherContext || "",
     },
   });
@@ -81,9 +81,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
         travelDates: values.travelDates,
         budget: values.budget,
         desiredMood: values.desiredMood || undefined,
-        riskContext: values.riskContext || undefined, 
+        riskContext: values.riskContext || undefined,
         weatherContext: values.weatherContext || undefined,
-        userPersona: initialValues?.userPersona, 
+        userPersona: initialValues?.userPersona,
       };
       await onSubmitProp(plannerInput);
       setIsLoading(false);
@@ -95,43 +95,48 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
     let destinationAndDates = parts[0];
     let budgetStr = parts[1]?.split(" budget $")?.[1] || parts[1]?.split(" $")?.[1];
     let destination = destinationAndDates;
-    let travelDates = "a week"; // Default travel dates if not parsed
+    let travelDates = "a week"; 
 
-    // Attempt to parse destination and travel dates
+    let mood = "";
+    let risk = "";
+
+    if (promptText.toLowerCase().includes("wildlife and nature sounds")) mood = "Wildlife and nature sounds";
+    if (promptText.toLowerCase().includes("step-free trails")) risk = "Needs step-free trails";
+    if (promptText.toLowerCase().includes("quiet temples and traditional tea ceremonies")) mood = "Quiet temples and traditional tea ceremonies";
+
+
     const dateKeywords = [" week", " weeks", " day", " days", " getaway", " trip"];
     let parsedDate = "";
     for (const keyword of dateKeywords) {
         if (destinationAndDates.toLowerCase().includes(keyword)) {
             const splitPoint = destinationAndDates.toLowerCase().lastIndexOf(keyword);
-            // Ensure "to" is not part of date keyword (e.g. "trip to Paris")
             if (destinationAndDates.toLowerCase().substring(0, splitPoint).trim().endsWith(" to")){
                  // "trip to Paris for ..." - date is likely in the original string or default
             } else {
                 parsedDate = destinationAndDates.substring(0, splitPoint + keyword.length).trim();
-                destination = destinationAndDates.substring(splitPoint + keyword.length).replace(/^to\s+/i, '').trim(); // Remove leading "to "
+                destination = destinationAndDates.substring(splitPoint + keyword.length).replace(/^to\s+/i, '').trim(); 
                 break;
             }
         }
     }
     if (parsedDate) travelDates = parsedDate;
-    else if (destinationAndDates.includes(",")) { // Fallback for "Kyoto, Japan for 5 days"
+    else if (destinationAndDates.includes(",")) { 
         const firstComma = destinationAndDates.indexOf(",");
         destination = destinationAndDates.substring(0, firstComma).trim();
         travelDates = destinationAndDates.substring(firstComma + 1).trim();
     }
 
 
-    form.setValue("destination", destination.trim() || "Paris, France"); // Ensure destination has a fallback
+    form.setValue("destination", destination.trim() || "Paris, France"); 
     form.setValue("travelDates", travelDates.trim() || "a week");
     if (budgetStr) {
       form.setValue("budget", parseInt(budgetStr.replace(/,/g, ''), 10) || 1000);
     } else {
-      form.setValue("budget", 1500); // Default budget if not parsed
+      form.setValue("budget", 1500); 
     }
     
-    // Clear mood and risk for general prompts
-    form.setValue("desiredMood", ""); 
-    form.setValue("riskContext", ""); 
+    form.setValue("desiredMood", mood);
+    form.setValue("riskContext", risk);
     form.setValue("weatherContext", "");
   };
 
@@ -146,7 +151,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center"><MapPinIcon className="w-4 h-4 mr-2" />Destination</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} />
+                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-input/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -159,7 +164,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center"><CalendarDaysIcon className="w-4 h-4 mr-2" />Travel Dates</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} />
+                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-input/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -172,7 +177,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2" />Budget (USD)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 1500" {...field} />
+                    <Input type="number" placeholder="e.g., 1500" {...field} className="bg-input/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -183,9 +188,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="desiredMood"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><LightbulbIcon className="w-4 h-4 mr-2" />Desired Mood/Vibe (Optional)</FormLabel>
+                  <FormLabel className="flex items-center"><LightbulbIcon className="w-4 h-4 mr-2" />Desired Mood/Vibe/Sensory Palette (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Relaxing, Adventurous, Romantic, Cultural" {...field} />
+                    <Input placeholder="e.g., Relaxing, Adventurous, Vibrant street food, Quiet nature" {...field} className="bg-input/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,9 +201,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="riskContext"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><AlertTriangleIcon className="w-4 h-4 mr-2" />Specific Concerns or Preferences (Optional)</FormLabel>
+                  <FormLabel className="flex items-center"><AlertTriangleIcon className="w-4 h-4 mr-2" />Specific Concerns or Preferences (e.g., visa, accessibility)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility concerns" {...field} />
+                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility/accessibility needs" {...field} className="bg-input/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -211,13 +216,13 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center"><CloudSunIcon className="w-4 h-4 mr-2" />Specific Weather Context (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} />
+                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} className="bg-input/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full text-lg py-6" disabled={form.formState.isSubmitting}>
+            <Button type="submit" className="w-full text-lg py-6 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (
                 <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
               ) : (
@@ -238,7 +243,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 key={index}
                 variant="outline"
                 size="sm"
-                className="w-full text-left justify-start text-muted-foreground hover:text-primary hover:border-primary/50"
+                className="w-full text-left justify-start text-muted-foreground hover:text-primary hover:border-primary/50 glass-interactive"
                 onClick={() => handleSuggestionClick(prompt)}
               >
                 {prompt}
