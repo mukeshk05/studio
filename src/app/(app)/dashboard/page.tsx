@@ -17,8 +17,9 @@ import { cn } from "@/lib/utils";
 import { SmartBundleGenerator } from "@/components/dashboard/SmartBundleGenerator";
 import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useRouter } from 'next/navigation';
-import { onForegroundMessageListener } from "@/lib/firebaseMessaging"; // Import FCM listener
-import { NotificationSettings } from "@/components/dashboard/NotificationSettings"; // Import NotificationSettings
+import { onForegroundMessageListener } from "@/lib/firebaseMessaging"; 
+import { NotificationSettings } from "@/components/dashboard/NotificationSettings"; 
+import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder"; // Import the new component
 
 
 export default function DashboardPage() {
@@ -81,6 +82,8 @@ export default function DashboardPage() {
 
   const handlePlanTripFromBundle = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
+    // Dispatch a custom event to notify other components or the planner page itself
+    window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
     router.push('/planner');
   };
 
@@ -140,9 +143,15 @@ export default function DashboardPage() {
         <div className={cn("lg:col-span-2", "animate-fade-in-up")} style={{animationDelay: '0.2s'}}>
             <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
         </div>
+        
+        {/* Integrate the Serendipity Engine Placeholder */}
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.25s'}}>
+          <SerendipityEnginePlaceholder />
+        </div>
+
       </div>
       
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
         <NotificationSettings />
       </div>
 
@@ -150,9 +159,9 @@ export default function DashboardPage() {
       <Tabs defaultValue="my-trips" className="w-full">
         <TabsList className={cn(
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
-            "glass-pane border-opacity-50", // Applied glass-pane
+            "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '0.3s'}}>
+          )} style={{animationDelay: '0.35s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -176,4 +185,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
