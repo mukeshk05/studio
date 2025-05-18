@@ -121,7 +121,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         destination: booking.destination,
         travelDates: booking.travelDates,
         tripDuration: duration,
-        // weatherContext: booking.weatherContext, // Future enhancement: pass actual weather if stored
+        weatherContext: booking.weatherContext, // Pass along if available
       };
       const result: PackingListOutput = await getPackingList(input);
       setPackingList(result.packingList);

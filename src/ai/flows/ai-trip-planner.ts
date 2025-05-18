@@ -140,7 +140,7 @@ User Concerns: {{riskContext}} (Address briefly if straightforward, otherwise pr
 {{/if~}}
 
 For each itinerary:
-1.  Provide a 'tripSummary': A concise summary of the trip, including a reminder to check advisories.
+1.  Provide a 'tripSummary': A concise summary of the trip, including a reminder to check advisories and to consider sustainable choices.
 2.  Provide a 'dailyPlan': An array with 'day' and 'activities' for each day.
 3.  Detail 1-2 flight options (name, description, price).
 4.  Detail 1-2 hotel options (name, description, price, rating, amenities, 1-2 rooms with name, features, roomImagePrompt).
