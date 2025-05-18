@@ -17,7 +17,7 @@ import {
   HeartIcon,
   LogInIcon,
   Wand2Icon,
-  CheckCircleIcon // Added CheckCircleIcon
+  CheckCircleIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -122,6 +122,7 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
+      {/* Background Image and Overlay */}
       <div className="absolute inset-0 z-[-1]">
         <Image 
           src="https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg"
@@ -329,7 +330,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="py-8 bg-black/30 dark:bg-background/70 backdrop-blur-sm border-t border-border/30 z-10">
+      <footer className="py-8 bg-black/30 dark:bg-black/50 backdrop-blur-sm border-t border-border/30 z-10">
         <div className="container mx-auto px-4 text-center text-slate-300 dark:text-muted-foreground">
           <div className="flex justify-center mb-2">
             <AppLogo />
@@ -344,6 +345,3 @@ export default function LandingPage() {
   );
 }
  
-
-
-    
