@@ -23,12 +23,12 @@ const nextConfig: NextConfig = {
     if (!isServer) {
       // Ensure config.resolve object exists
       config.resolve = config.resolve || {};
-      // Ensure config.resolve.alias object exists
-      config.resolve.alias = config.resolve.alias || {};
+      // Ensure config.resolve.fallback object exists
+      config.resolve.fallback = config.resolve.fallback || {};
       
-      // Prevent 'async_hooks' from being resolved client-side.
+      // Prevent 'async_hooks' from being resolved client-side by providing an empty module.
       // This addresses issues with libraries like OpenTelemetry's Node.js tracer.
-      config.resolve.alias['async_hooks'] = false;
+      config.resolve.fallback['async_hooks'] = false;
     }
     return config;
   },
