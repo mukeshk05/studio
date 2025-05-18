@@ -9,6 +9,7 @@ import { ArrowRightIcon, Wand2Icon, BellRingIcon, BadgePercentIcon, ClipboardLis
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel"; // Added Carousel imports
 
 // Simple utility for staggered animations.
 const useStaggeredAnimation = (count: number, delayIncrement = 100) => {
@@ -25,6 +26,7 @@ const useStaggeredAnimation = (count: number, delayIncrement = 100) => {
       }, (i + 1) * delayIncrement)
     );
     return () => timers.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count, delayIncrement]);
 
   return visibleItems;
@@ -38,28 +40,28 @@ export default function LandingPage() {
       title: "AI-Powered Trip Planning",
       description: "Enter your destination, dates, and budget. Our AI crafts personalized itineraries in seconds, complete with daily activities and options.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "travel planning map"
+      aiHint: "interactive map trip" // Updated hint
     },
     {
       icon: <BellRingIcon className="w-10 h-10 text-accent mb-4" />,
       title: "Smart Price Tracker",
       description: "Never miss a deal. Track flight and hotel prices, and get alerts when prices drop below your target.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "price alert notification"
+      aiHint: "notification bell graph" // Updated hint
     },
     {
       icon: <BadgePercentIcon className="w-10 h-10 text-primary mb-4" />,
       title: "AI Price Advisor",
       description: "Get intelligent advice on your tracked items. Is your target price realistic? Is it a good time to book? Our AI helps you decide.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "financial graph chart"
+      aiHint: "financial advisor chart" // Updated hint
     },
     {
       icon: <ClipboardListIcon className="w-10 h-10 text-accent mb-4" />,
       title: "Daily Travel Tips",
       description: "Start your day with a fresh travel tip from our AI, covering everything from packing hacks to cultural etiquette.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "travel journal guide"
+      aiHint: "travel notebook tips" // Updated hint
     }
   ];
 
@@ -72,7 +74,6 @@ export default function LandingPage() {
   ];
 
   const [heroVisible, setHeroVisible] = useState(false);
-  const featureCardsVisible = useStaggeredAnimation(features.length, 150);
   const whyChooseUsVisible = useStaggeredAnimation(whyChooseUsPoints.length, 100);
   const [whyChooseUsSectionVisible, setWhyChooseUsSectionVisible] = useState(false);
   const [finalCtaVisible, setFinalCtaVisible] = useState(false);
@@ -88,12 +89,12 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card border-primary/20 hover:border-primary/40"; // Updated for new theme
+  const glassCardClasses = "glass-card border-primary/20 hover:border-primary/40 bg-card/80 dark:bg-card/50";
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
+      <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane backdrop-blur-md">
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
           <AppLogo />
           <nav className="flex items-center space-x-2 sm:space-x-4">
@@ -158,7 +159,7 @@ export default function LandingPage() {
                     alt="BudgetRoam App Screenshot Placeholder" 
                     layout="fill"
                     objectFit="cover"
-                    data-ai-hint="travel app interface"
+                    data-ai-hint="travel planning dashboard" // Updated hint
                     priority
                     className="rounded-lg"
                 />
@@ -166,43 +167,55 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Features Section with Carousel */}
         <section id="features" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
             <h2 className={cn("text-3xl sm:text-4xl font-bold text-center text-foreground mb-4 transition-opacity duration-700", heroVisible ? 'opacity-100' : 'opacity-0')}>Everything You Need to Roam on a Budget</h2>
             <p className={cn("text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto transition-opacity duration-700 delay-200", heroVisible ? 'opacity-100' : 'opacity-0')}>
               BudgetRoam leverages AI to simplify every step of your travel planning.
             </p>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {features.map((feature, index) => (
-                <Card 
-                  key={index} 
-                  className={cn(
-                    glassCardClasses,
-                    "hover:shadow-primary/30 hover:scale-105 transition-all duration-300 flex flex-col transform",
-                    featureCardsVisible[index] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                  )}
-                >
-                  <CardHeader className="items-center text-center">
-                    {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, feature.icon.props.className.includes('text-accent') ? 'text-accent' : 'text-primary') })}
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-grow text-center">
-                    <div className="relative aspect-video w-full rounded-md overflow-hidden mb-4 border border-border/30 group">
-                        <Image 
-                            src={feature.imgSrc} 
-                            alt={feature.title} 
-                            layout="fill" 
-                            objectFit="cover" 
-                            data-ai-hint={feature.aiHint} 
-                            className="rounded-md group-hover:scale-110 transition-transform duration-300"
-                        />
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto"
+            >
+              <CarouselContent className="-ml-2 md:-ml-4">
+                {features.map((feature, index) => (
+                  <CarouselItem key={index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
+                    <div className="p-1 h-full">
+                      <Card 
+                        className={cn(
+                          glassCardClasses,
+                          "hover:shadow-primary/30 hover:scale-105 transition-all duration-300 flex flex-col h-full transform"
+                        )}
+                      >
+                        <CardHeader className="items-center text-center">
+                          {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, feature.icon.props.className.includes('text-accent') ? 'text-accent' : 'text-primary') })}
+                          <CardTitle className="text-xl">{feature.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-grow text-center">
+                          <div className="relative aspect-video w-full rounded-md overflow-hidden mb-4 border border-border/30 group">
+                              <Image 
+                                  src={feature.imgSrc} 
+                                  alt={feature.title} 
+                                  layout="fill" 
+                                  objectFit="cover" 
+                                  data-ai-hint={feature.aiHint} 
+                                  className="rounded-md group-hover:scale-110 transition-transform duration-300"
+                              />
+                          </div>
+                          <p className="text-sm text-muted-foreground">{feature.description}</p>
+                        </CardContent>
+                      </Card>
                     </div>
-                    <p className="text-sm text-muted-foreground">{feature.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="ml-8 sm:ml-0" />
+              <CarouselNext className="mr-8 sm:mr-0" />
+            </Carousel>
           </div>
         </section>
 
@@ -240,7 +253,7 @@ export default function LandingPage() {
                     layout="fill"
                     objectFit="cover"
                     className="rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-500 ease-out"
-                    data-ai-hint="happy traveler destination"
+                    data-ai-hint="joyful travel moment" // Updated hint
                 />
               </div>
             </div>
@@ -268,7 +281,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 bg-background border-t border-border/30">
+      <footer className="py-8 bg-background/80 backdrop-blur-sm border-t border-border/30">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
           <div className="flex justify-center mb-2">
             <AppLogo />
