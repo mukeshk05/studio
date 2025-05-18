@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { PriceTrackerEntry, PriceForecast } from "@/lib/types";
@@ -174,98 +175,99 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
 
   return (
     <>
-    <Card className={cn(glassEffectClasses, "flex flex-col border-primary/20")}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="flex items-center text-md text-card-foreground">
-            <Icon className="w-5 h-5 mr-2 text-primary" />
-            {item.itemName}
-          </CardTitle>
-          <Badge variant={item.alertStatus?.shouldAlert ? "destructive" : "outline"} className={cn("whitespace-nowrap", item.alertStatus?.shouldAlert ? 'bg-destructive text-destructive-foreground shadow-md shadow-destructive/40' : 'bg-card/70 text-muted-foreground border-border/50')}>
-            {item.alertStatus?.shouldAlert ? <><BellIcon className="w-3 h-3 mr-1"/> Alert!</> : "Tracking"}
-          </Badge>
-        </div>
-        <CardDescription className="text-xs text-muted-foreground">
-          Last updated: {item.lastChecked ? formatDistanceToNow(new Date(item.lastChecked), { addSuffix: true }) : 'Never'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="text-sm space-y-2 flex-grow text-card-foreground/90">
-        <p className="flex items-center"><TagIcon className="w-4 h-4 mr-2 text-muted-foreground" />Type: <span className="font-medium ml-1">{item.itemType}</span></p>
-        <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Target: <span className="font-medium ml-1">${item.targetPrice.toLocaleString()}</span></p>
-        <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Current: <span className="font-medium ml-1">${item.currentPrice.toLocaleString()}</span></p>
-        
-        {item.alertStatus && (
-             <Alert variant={item.alertStatus.shouldAlert ? "destructive" : "default"} className={cn("p-2.5 text-xs", item.alertStatus.shouldAlert ? 'bg-destructive/20 border-destructive/50 text-destructive-foreground' : 'bg-primary/10 border-primary/30 text-card-foreground')}>
-                <BellIcon className="h-4 w-4" />
-                <AlertTitle className="text-xs font-semibold mb-0.5">{item.alertStatus.shouldAlert ? "Action Recommended!" : "Status"}</AlertTitle>
-                <AlertDescription className="text-xs">
-                  {item.alertStatus.alertMessage}
-                </AlertDescription>
-              </Alert>
-        )}
-
-        {(isAiAdviceLoading || (isCurrentlyUpdating && !item.aiAdvice && !item.priceForecast)) && (
-          <div className="flex items-center justify-center p-3 bg-muted/30 rounded-md">
-            <Loader2Icon className="w-5 h-5 mr-2 animate-spin text-primary" />
-            <span className="text-xs text-muted-foreground">AI is working...</span>
+      <Card className={cn(glassEffectClasses, "flex flex-col border-primary/20")}>
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <CardTitle className="flex items-center text-md text-card-foreground">
+              <Icon className="w-5 h-5 mr-2 text-primary" />
+              {item.itemName}
+            </CardTitle>
+            <Badge variant={item.alertStatus?.shouldAlert ? "destructive" : "outline"} className={cn("whitespace-nowrap", item.alertStatus?.shouldAlert ? 'bg-destructive text-destructive-foreground shadow-md shadow-destructive/40' : 'bg-card/70 text-muted-foreground border-border/50')}>
+              {item.alertStatus?.shouldAlert ? <><BellIcon className="w-3 h-3 mr-1"/> Alert!</> : "Tracking"}
+            </Badge>
           </div>
-        )}
+          <CardDescription className="text-xs text-muted-foreground">
+            Last updated: {item.lastChecked ? formatDistanceToNow(new Date(item.lastChecked), { addSuffix: true }) : 'Never'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm space-y-2 flex-grow text-card-foreground/90">
+          <p className="flex items-center"><TagIcon className="w-4 h-4 mr-2 text-muted-foreground" />Type: <span className="font-medium ml-1">{item.itemType}</span></p>
+          <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Target: <span className="font-medium ml-1">${item.targetPrice.toLocaleString()}</span></p>
+          <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Current: <span className="font-medium ml-1">${item.currentPrice.toLocaleString()}</span></p>
+          
+          {item.alertStatus && (
+              <Alert variant={item.alertStatus.shouldAlert ? "destructive" : "default"} className={cn("p-2.5 text-xs", item.alertStatus.shouldAlert ? 'bg-destructive/20 border-destructive/50 text-destructive-foreground' : 'bg-primary/10 border-primary/30 text-card-foreground')}>
+                  <BellIcon className="h-4 w-4" />
+                  <AlertTitle className="text-xs font-semibold mb-0.5">{item.alertStatus.shouldAlert ? "Action Recommended!" : "Status"}</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    {item.alertStatus.alertMessage}
+                  </AlertDescription>
+                </Alert>
+          )}
 
-        {item.aiAdvice && !isAiAdviceLoading && (
-          <Alert variant="default" className="p-2.5 text-xs border-accent/30 bg-accent/10 text-card-foreground transition-opacity duration-300">
-            <SparklesIcon className="h-4 w-4 text-accent" />
-            <AlertTitle className="text-xs font-semibold text-accent mb-0.5">AI Price Advisor</AlertTitle>
-            <AlertDescription className="text-xs">
-              {item.aiAdvice}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {isPriceForecastLoading && !item.priceForecast && (
-             <div className="flex items-center justify-center p-3 bg-muted/30 rounded-md mt-2">
-                <Loader2Icon className="w-5 h-5 mr-2 animate-spin text-primary" />
-                <span className="text-xs text-muted-foreground">Generating price forecast...</span>
+          {(isAiAdviceLoading || (isCurrentlyUpdating && !item.aiAdvice && !item.priceForecast)) && (
+            <div className="flex items-center justify-center p-3 bg-muted/30 rounded-md">
+              <Loader2Icon className="w-5 h-5 mr-2 animate-spin text-primary" />
+              <span className="text-xs text-muted-foreground">AI is working...</span>
             </div>
-        )}
+          )}
 
-        {item.priceForecast && !isPriceForecastLoading && (
-            <Alert variant="default" className="mt-2 p-2.5 text-xs border-purple-500/30 bg-purple-500/10 text-card-foreground transition-opacity duration-300">
-                <TrendingUpIcon className="h-4 w-4 text-purple-400" />
-                <AlertTitle className="text-xs font-semibold text-purple-400 mb-0.5">AI Price Forecast <span className="text-muted-foreground text-xs">({formatDistanceToNow(new Date(item.priceForecast.forecastedAt), { addSuffix: true })})</span></AlertTitle>
-                <AlertDescription className="text-xs">
-                {item.priceForecast.forecast}
-                {item.priceForecast.confidence && <span className="capitalize text-muted-foreground/80"> (Confidence: {item.priceForecast.confidence})</span>}
-                </AlertDescription>
+          {item.aiAdvice && !isAiAdviceLoading && (
+            <Alert variant="default" className="p-2.5 text-xs border-accent/30 bg-accent/10 text-card-foreground transition-opacity duration-300">
+              <SparklesIcon className="h-4 w-4 text-accent" />
+              <AlertTitle className="text-xs font-semibold text-accent mb-0.5">AI Price Advisor</AlertTitle>
+              <AlertDescription className="text-xs">
+                {item.aiAdvice}
+              </AlertDescription>
             </Alert>
-        )}
+          )}
 
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
-        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:flex-row gap-2 mb-2 sm:mb-0">
-            <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-accent/20 border-border/70 text-accent hover:text-accent-foreground" disabled={isCurrentlyUpdating}>
-                {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-                Advice
-            </Button>
-            <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-purple-500/20 border-border/70 text-purple-400 hover:text-purple-300" disabled={isCurrentlyUpdating}>
-                {isPriceForecastLoading ? <Loader2Icon className="animate-spin" /> : <TrendingUpIcon />}
-                Forecast
-            </Button>
-             {simulatedChartData.length > 0 && item.priceForecast && (
-                <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-teal-500/20 border-border/70 text-teal-400 hover:text-teal-300" disabled={isCurrentlyUpdating}>
-                    <LineChartIcon />
-                    Trend
-                </Button>
-            )}
-        </div>
-        <div className="flex w-full sm:w-auto gap-2">
-            <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="flex-1 bg-card/70 hover:bg-primary/20 border-border/70 text-primary hover:text-primary-foreground" disabled={isCurrentlyUpdating}>
-              <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
-            </Button>
-            <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive-foreground px-2" disabled={isRemoving || isCurrentlyUpdating}>
-              {isRemoving ? <Loader2Icon className="animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
-            </Button>
-        </div>
-      </CardFooter>
+          {isPriceForecastLoading && !item.priceForecast && (
+              <div className="flex items-center justify-center p-3 bg-muted/30 rounded-md mt-2">
+                  <Loader2Icon className="w-5 h-5 mr-2 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">Generating price forecast...</span>
+              </div>
+          )}
+
+          {item.priceForecast && !isPriceForecastLoading && (
+              <Alert variant="default" className="mt-2 p-2.5 text-xs border-purple-500/30 bg-purple-500/10 text-card-foreground transition-opacity duration-300">
+                  <TrendingUpIcon className="h-4 w-4 text-purple-400" />
+                  <AlertTitle className="text-xs font-semibold text-purple-400 mb-0.5">AI Price Forecast <span className="text-muted-foreground text-xs">({formatDistanceToNow(new Date(item.priceForecast.forecastedAt), { addSuffix: true })})</span></AlertTitle>
+                  <AlertDescription className="text-xs">
+                  {item.priceForecast.forecast}
+                  {item.priceForecast.confidence && <span className="capitalize text-muted-foreground/80"> (Confidence: {item.priceForecast.confidence})</span>}
+                  </AlertDescription>
+              </Alert>
+          )}
+
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:flex-row gap-2 mb-2 sm:mb-0">
+              <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-accent/20 border-border/70 text-accent hover:text-accent-foreground" disabled={isCurrentlyUpdating}>
+                  {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+                  Advice
+              </Button>
+              <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-purple-500/20 border-border/70 text-purple-400 hover:text-purple-300" disabled={isCurrentlyUpdating}>
+                  {isPriceForecastLoading ? <Loader2Icon className="animate-spin" /> : <TrendingUpIcon />}
+                  Forecast
+              </Button>
+              {simulatedChartData.length > 0 && item.priceForecast && (
+                  <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-teal-500/20 border-border/70 text-teal-400 hover:text-teal-300" disabled={isCurrentlyUpdating}>
+                      <LineChartIcon />
+                      Trend
+                  </Button>
+              )}
+          </div>
+          <div className="flex w-full sm:w-auto gap-2">
+              <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="flex-1 bg-card/70 hover:bg-primary/20 border-border/70 text-primary hover:text-primary-foreground" disabled={isCurrentlyUpdating}>
+                <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
+              </Button>
+              <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive-foreground px-2" disabled={isRemoving || isCurrentlyUpdating}>
+                {isRemoving ? <Loader2Icon className="animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
+              </Button>
+          </div>
+        </CardFooter>
+      </Card> {/* This is the corrected closing tag */}
 
       <Dialog open={isRecheckDialogOpen} onOpenChange={setIsRecheckDialogOpen}>
         <DialogContent className={cn(glassEffectClasses, "border-primary/30")}>
@@ -289,7 +291,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
                 placeholder={item.currentPrice.toString()}
               />
             </div>
-             {recheckDialogAiAlert && (
+            {recheckDialogAiAlert && (
               <Alert className={`mt-2 ${recheckDialogAiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400'} bg-card/80 backdrop-blur-sm`}>
                 <BellIcon className={`h-4 w-4 ${recheckDialogAiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500'}`} />
                 <AlertTitle className="text-card-foreground">{recheckDialogAiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>

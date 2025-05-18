@@ -64,10 +64,10 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
           <Wand2Icon className="w-6 h-6 mr-2 text-primary" />
-          Ask Aura: Natural Language Trip Search
+          Aura AI: Predictive Trip Ideas
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Type your travel ideas in natural language below (e.g., "a week in Italy focusing on food and history"). Aura AI will use your profile and history to craft personalized trip suggestions. Or leave blank for general inspiration!
+          Tell Aura AI your travel dreams, or leave blank for inspiration! It fuses your travel persona, history, and current wishes to predict & suggest ideal trips.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -93,13 +93,13 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
         </div>
         <Button onClick={handleGenerateBundle} disabled={isLoading || !currentUser} className="w-full shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
           {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-          Get Aura's Suggestions
+          Let Aura AI Suggest Ideas
         </Button>
 
         {isLoading && !suggestions && (
           <div className="text-center py-4 text-muted-foreground">
             <Loader2Icon className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
-            <p>Aura AI is crafting some amazing trip ideas for you...</p>
+            <p>Aura AI is fusing preferences and crafting ideas...</p>
           </div>
         )}
 

@@ -36,18 +36,19 @@ Consider the following inputs to personalize the trip:
 The user you are planning for has the following travel persona:
 - Name: {{{userPersona.name}}}
 - Description: {{{userPersona.description}}}
-Please prioritize suggestions, activities, and accommodation styles that align strongly with this persona.
-If the persona suggests luxury, try to find high-value luxury. If it suggests adventure, focus on relevant activities.
-The overall tone and suggestions should reflect their travel DNA. The first itinerary suggested should be the best match for their persona.
+Please prioritize suggestions, activities, and accommodation styles that fuse seamlessly with this persona.
+The overall tone and suggestions should reflect their travel DNA. The first itinerary suggested should be the best match.
+Make sure the trip summary and daily plan reflect how this persona was fused with the current request.
 {{/if}}
 
 {{#if desiredMood}}
 The user is looking for a trip with a specific mood: {{{desiredMood}}}.
 Please ensure the suggested activities, the tone of the trip summary, and the daily plan strongly reflect this.
-For example, if the mood is 'romantic', suggest activities like sunset views, fine dining. If 'adventurous', suggest hiking or unique local experiences.
+Fuse this mood with the user's persona (if available) and the core trip request.
+For example, if the mood is 'romantic' and persona is 'Adventurer', suggest adventurous yet romantic activities.
 {{/if}}
 
-**AI Guardian Instructions:**
+**AI Guardian Instructions (Fuse these with all other preferences):**
 1.  **Weather:**
     {{#if weatherContext}}
     The user has provided specific weather context: {{{weatherContext}}}.
@@ -71,7 +72,7 @@ For example, if the mood is 'romantic', suggest activities like sunset views, fi
 
 You will generate a range of possible itineraries (usually 2-3) based on the user's budget, destination and travel dates.
 For each itinerary:
-1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa reminders.
+1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa reminders and reflect how preferences were fused.
 2.  Provide a 'dailyPlan' as an array of objects. Each object in the array should represent one day and have two fields:
     - 'day': A string for the day's label (e.g., "Day 1", "Arrival Day").
     - 'activities': A string describing the activities for that day in detail. Be engaging and descriptive. You can suggest morning, afternoon, and evening activities. Ensure this is a comprehensive plan.
@@ -256,23 +257,26 @@ const aiTripPlannerFlow = ai.defineFlow(
     if (wasBackupPlannerUsed) {
         personalizationNoteParts.push("Suggestions provided by our backup planner.");
     }
+    
+    let fusionMessages: string[] = [];
     if (input.userPersona?.name) {
-      personalizationNoteParts.push(`Tailored for the '${input.userPersona.name}' persona.`);
+      fusionMessages.push(`your '${input.userPersona.name}' persona`);
     }
     if (input.desiredMood) {
-        personalizationNoteParts.push(`Focused on a '${input.desiredMood}' vibe.`);
+        fusionMessages.push(`your desire for a '${input.desiredMood}' vibe`);
     }
-    
-    // General "AI Guardian" note
-    let guardianNote = "General planning factors (weather, common risks, visa reminders) considered.";
-    if (input.weatherContext && input.riskContext) {
-        guardianNote = "Specific weather & user concerns considered.";
-    } else if (input.weatherContext) {
-        guardianNote = "Specific weather context considered; general risk factors & visa reminders included.";
-    } else if (input.riskContext) {
-        guardianNote = "User-specified concerns considered; general weather & visa reminders included.";
+     if (input.riskContext || input.weatherContext) {
+        let riskWeatherParts = [];
+        if (input.riskContext) riskWeatherParts.push("your specific concerns");
+        if (input.weatherContext) riskWeatherParts.push("the weather context");
+        fusionMessages.push(riskWeatherParts.join(' and '));
     }
-    personalizationNoteParts.push(guardianNote);
+
+    if (fusionMessages.length > 0) {
+        personalizationNoteParts.push(`Plans were crafted by fusing ${fusionMessages.join(', ')} with your core request.`);
+    } else {
+        personalizationNoteParts.push("General planning factors (weather, common risks, visa reminders) considered.");
+    }
     
     const personalizationNote = personalizationNoteParts.length > 0 ? personalizationNoteParts.join(' ') : undefined;
 
@@ -283,3 +287,4 @@ const aiTripPlannerFlow = ai.defineFlow(
     };
   }
 );
+
