@@ -14,7 +14,7 @@ import {
   AITripPlannerOutputSchema,
   type AITripPlannerOutput,
   AITripPlannerTextOutputSchema,
-  ItineraryTextOnlySchema, // Keep if used, or ensure it's covered by AITripPlannerTextOutputSchema
+  ItineraryTextOnlySchema, 
 } from '@/ai/types/trip-planner-types';
 
 
@@ -35,6 +35,12 @@ Please prioritize suggestions, activities, and accommodation styles that align s
 If the persona suggests luxury, try to find high-value luxury. If it suggests adventure, focus on relevant activities.
 The overall tone and suggestions should reflect their travel DNA.
 The first itinerary suggested should be the best match for their persona.
+{{/if}}
+
+{{#if desiredMood}}
+The user is looking for a trip with a specific mood: {{{desiredMood}}}.
+Please ensure the suggested activities, the tone of the trip summary, and the daily plan strongly reflect this.
+For example, if the mood is 'romantic', suggest activities like sunset views, fine dining. If 'adventurous', suggest hiking or unique local experiences.
 {{/if}}
 
 You will generate a range of possible itineraries based on the user's budget, destination and travel dates.
@@ -167,6 +173,14 @@ const aiTripPlannerFlow = ai.defineFlow(
     if (input.userPersona?.name) {
       personalizationNote = `Tailored for the '${input.userPersona.name}' travel style.`;
     }
+    if (input.desiredMood) {
+        if(personalizationNote) {
+            personalizationNote += ` Focused on a '${input.desiredMood}' vibe.`
+        } else {
+            personalizationNote = `Focused on a '${input.desiredMood}' vibe.`
+        }
+    }
+
 
     return { 
       itineraries: itinerariesWithImages,

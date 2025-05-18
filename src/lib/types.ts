@@ -1,7 +1,5 @@
 
 import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal } from "@/ai/types/trip-planner-types";
-// For persona in input, we use the specific type from firestoreHooks to avoid circular dependencies if types.ts is imported by firestoreHooks too early
-// import type { UserTravelPersona as UserTravelPersonaFromHook } from "./firestoreHooks"; 
 
 // This effectively takes the type of a single itinerary object from the array
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
@@ -10,7 +8,6 @@ type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
 export type Itinerary = SingleItineraryFromAI & { id: string };
 
 // Type for a single hotel option, derived from the itinerary type
-// Ensure all nested types like RoomSchema are also exported or correctly inferred if used directly.
 export type HotelOption = Itinerary["hotelOptions"][0];
 export type Room = NonNullable<HotelOption["rooms"]>[0]; // Gets the type of a single room if rooms array exists
 
@@ -36,7 +33,7 @@ export interface PriceTrackerEntry {
     alertMessage: string;
   };
   aiAdvice?: string; 
-  priceForecast?: PriceForecast; // New field for AI-generated price forecast
+  priceForecast?: PriceForecast; 
 }
 
 export interface SearchHistoryEntry {
@@ -55,14 +52,13 @@ export interface UserTravelPersona {
 
 
 // Re-export AITripPlannerOutput from here if needed by UI components
-// This centralizes type exports if preferred over direct imports from @/ai/types
 export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
-// Augment AITripPlannerInput to include the optional userPersona
+// Augment AITripPlannerInput to include the optional userPersona and desiredMood
 export type AITripPlannerInput = AITripPlannerInputOriginal & {
   userPersona?: {
     name: string;
     description: string;
-  } | null; // Allow null or undefined
+  } | null; 
+  desiredMood?: string | null; // Add desiredMood here to ensure it's part of the extended type
 };
-

@@ -12,6 +12,7 @@ export const AITripPlannerInputSchema = z.object({
   destination: z.string().describe('The destination for the trip.'),
   budget: z.number().describe('The budget for the trip in USD.'),
   userPersona: UserPersonaSchema.describe("Optional: The user's travel persona to help tailor the trip plan."),
+  desiredMood: z.string().optional().describe("Optional: The desired mood or vibe for the trip (e.g., 'relaxing', 'adventurous', 'romantic')."),
 });
 export type AITripPlannerInput = z.infer<typeof AITripPlannerInputSchema>;
 
