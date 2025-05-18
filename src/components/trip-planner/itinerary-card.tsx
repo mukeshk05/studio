@@ -1,12 +1,13 @@
 
 "use client";
 
+import React, { useState } from "react"; // Added useState
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon } from "lucide-react";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, EyeIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -14,6 +15,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils";
+import { HotelDetailDialog } from "./HotelDetailDialog"; // Import the new dialog
 
 type ItineraryCardProps = {
   itinerary: Itinerary; 
@@ -23,12 +25,19 @@ type ItineraryCardProps = {
   isDetailedView?: boolean; 
 };
 
-function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
-  const hintWords = hotel.name.toLowerCase().split(/[\s,]+/);
-  const aiHint = hintWords.slice(0, 2).join(" ");
+// Updated HotelOptionDisplay to be clickable and more visually distinct
+function HotelOptionDisplay({ hotel, onClick }: { hotel: HotelOption; onClick: () => void; }) {
+  const hintWords = hotel.name.toLowerCase().split(/[\s,]+/).slice(0, 2).join(" ");
+  const aiHint = hintWords.length > 0 ? hintWords : "hotel building";
 
   return (
-    <div className="p-2 rounded-md border border-border/50 bg-card/50 flex gap-3">
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full p-2 rounded-lg border border-border/50 bg-card/50 hover:bg-accent/10 hover:border-accent/40 focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all duration-150 flex gap-3 text-left group"
+      )}
+      aria-label={`View details for ${hotel.name}`}
+    >
       <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden border border-border/30">
         {hotel.hotelImageUri && hotel.hotelImageUri !== "" ? (
            <Image
@@ -45,11 +54,15 @@ function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
           </div>
         )}
       </div>
-      <div>
-        <p className="font-semibold text-card-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
-        <p className="text-xs text-muted-foreground line-clamp-3">{hotel.description}</p>
+      <div className="flex-grow">
+        <p className="font-semibold text-card-foreground group-hover:text-accent">{hotel.name}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-1">{hotel.description}</p>
+        <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
+            <DollarSignIcon className="w-3 h-3 mr-1"/> ${hotel.price.toLocaleString()}
+        </Badge>
       </div>
-    </div>
+      <EyeIcon className="w-5 h-5 text-muted-foreground self-center ml-auto shrink-0 group-hover:text-accent transition-colors" />
+    </button>
   );
 }
 
@@ -67,6 +80,8 @@ function DailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
 
 
 export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDetailedView = false }: ItineraryCardProps) {
+  const [selectedHotel, setSelectedHotel] = useState<HotelOption | null>(null);
+  const [isHotelDetailOpen, setIsHotelDetailOpen] = useState(false);
 
   const handleSaveClick = () => {
     const { id, ...dataToSave } = itinerary; 
@@ -85,7 +100,13 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
   const hintWords = itinerary.destination.toLowerCase().split(/[\s,]+/);
   const aiHint = hintWords.slice(0, 2).join(" ");
 
+  const openHotelDetailDialog = (hotel: HotelOption) => {
+    setSelectedHotel(hotel);
+    setIsHotelDetailOpen(true);
+  };
+
   return (
+    <>
     <Card className={cn("shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden glass-card border-primary/20")}>
       {itinerary.destinationImageUri && (
         <div className="relative w-full h-48 group">
@@ -176,7 +197,11 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-2 space-y-2">
                 {itinerary.hotelOptions.map((hotel, index) => (
-                  <HotelOptionDisplay key={`hotel-${itinerary.id}-${index}`} hotel={hotel} />
+                  <HotelOptionDisplay 
+                    key={`hotel-${itinerary.id}-${index}`} 
+                    hotel={hotel} 
+                    onClick={() => openHotelDetailDialog(hotel)}
+                  />
                 ))}
               </AccordionContent>
             </AccordionItem>
@@ -204,5 +229,18 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         </Button>
       </CardFooter>
     </Card>
+
+    {selectedHotel && (
+      <HotelDetailDialog
+        isOpen={isHotelDetailOpen}
+        onClose={() => {
+          setIsHotelDetailOpen(false);
+          setSelectedHotel(null); // Clear selected hotel on close
+        }}
+        hotel={selectedHotel}
+        destinationName={itinerary.destination}
+      />
+    )}
+    </>
   );
 }
