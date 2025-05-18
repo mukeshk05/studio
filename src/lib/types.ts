@@ -23,6 +23,7 @@ export interface PriceTrackerEntry {
   targetPrice: number;
   currentPrice: number; // Last known current price
   lastChecked: string; // ISO date string
+  createdAt?: any; // Firestore ServerTimestamp
   alertStatus?: {
     shouldAlert: boolean;
     alertMessage: string;
@@ -30,3 +31,10 @@ export interface PriceTrackerEntry {
   aiAdvice?: string; // New field for AI-generated price advice
 }
 
+export interface SearchHistoryEntry {
+  id: string; // Document ID from Firestore
+  destination: string;
+  travelDates: string;
+  budget: number;
+  searchedAt: any; // Firestore ServerTimestamp
+}

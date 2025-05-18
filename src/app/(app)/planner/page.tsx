@@ -12,7 +12,7 @@ import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
 import { MessageSquarePlusIcon, SparklesIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSavedTrips, useAddSavedTrip } from "@/lib/firestoreHooks";
+import { useSavedTrips, useAddSavedTrip, useAddSearchHistory } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -33,11 +33,12 @@ export default function TripPlannerPage() {
   const { toast } = useToast();
   const { data: savedTrips, isLoading: isLoadingSavedTrips } = useSavedTrips();
   const addSavedTripMutation = useAddSavedTrip();
+  const addSearchHistoryMutation = useAddSearchHistory();
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (chatHistory.length === 0 && currentUser) { // Only show welcome if user is logged in
+    if (chatHistory.length === 0 && currentUser) { 
       setChatHistory([
         {
           id: crypto.randomUUID(),
@@ -46,7 +47,7 @@ export default function TripPlannerPage() {
           timestamp: new Date(),
         },
       ]);
-    } else if (chatHistory.length === 0 && !currentUser && !isLoadingSavedTrips) { // isLoadingSavedTrips check prevents premature message
+    } else if (chatHistory.length === 0 && !currentUser && !isLoadingSavedTrips) { 
         setChatHistory([
         {
           id: crypto.randomUUID(),
@@ -57,7 +58,7 @@ export default function TripPlannerPage() {
       ]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, isLoadingSavedTrips]); // Add isLoadingSavedTrips to prevent race condition with auth loading
+  }, [currentUser, isLoadingSavedTrips]); 
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -74,6 +75,20 @@ export default function TripPlannerPage() {
       setIsInputSheetOpen(false);
       return;
     }
+
+    // Log search history
+    try {
+      await addSearchHistoryMutation.mutateAsync({
+        destination: input.destination,
+        travelDates: input.travelDates,
+        budget: input.budget,
+      });
+    } catch (error) {
+      // Non-critical error, log and continue
+      console.warn("Failed to save search history:", error);
+    }
+
+
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       type: "user",
@@ -198,7 +213,7 @@ export default function TripPlannerPage() {
               onClick={() => setIsInputSheetOpen(true)}
               className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
               size="lg"
-              disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing}
+              disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing || addSearchHistoryMutation.isPending}
             >
               <MessageSquarePlusIcon className="w-6 h-6 mr-2" />
               {isAiProcessing ? "AI is thinking..." : "Plan New Trip"}
