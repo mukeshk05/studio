@@ -1,13 +1,13 @@
 
 "use client";
 
-import React, { useState } from "react"; // Added useState
+import React, { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, EyeIcon } from "lucide-react";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, EyeIcon, CloudSunIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -15,7 +15,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils";
-import { HotelDetailDialog } from "./HotelDetailDialog"; // Import the new dialog
+import { HotelDetailDialog } from "./HotelDetailDialog";
 
 type ItineraryCardProps = {
   itinerary: Itinerary; 
@@ -25,7 +25,6 @@ type ItineraryCardProps = {
   isDetailedView?: boolean; 
 };
 
-// Updated HotelOptionDisplay to be clickable and more visually distinct
 function HotelOptionDisplay({ hotel, onClick }: { hotel: HotelOption; onClick: () => void; }) {
   const hintWords = hotel.name.toLowerCase().split(/[\s,]+/).slice(0, 2).join(" ");
   const aiHint = hintWords.length > 0 ? hintWords : "hotel building";
@@ -145,6 +144,10 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
             </Badge>
           )}
         </div>
+         <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
+            <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
+            <span className="italic">AI considered general weather patterns in planning.</span>
+        </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2 text-card-foreground">
         {itinerary.tripSummary && (
@@ -235,7 +238,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         isOpen={isHotelDetailOpen}
         onClose={() => {
           setIsHotelDetailOpen(false);
-          setSelectedHotel(null); // Clear selected hotel on close
+          setSelectedHotel(null); 
         }}
         hotel={selectedHotel}
         destinationName={itinerary.destination}
@@ -244,3 +247,4 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
     </>
   );
 }
+

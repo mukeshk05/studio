@@ -7,14 +7,12 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
 import {
   AITripPlannerInputSchema,
   type AITripPlannerInput,
   AITripPlannerOutputSchema,
   type AITripPlannerOutput,
   AITripPlannerTextOutputSchema,
-  ItineraryTextOnlySchema, 
 } from '@/ai/types/trip-planner-types';
 
 
@@ -42,6 +40,16 @@ The user is looking for a trip with a specific mood: {{{desiredMood}}}.
 Please ensure the suggested activities, the tone of the trip summary, and the daily plan strongly reflect this.
 For example, if the mood is 'romantic', suggest activities like sunset views, fine dining. If 'adventurous', suggest hiking or unique local experiences.
 {{/if}}
+
+{{#if weatherContext}}
+The user has provided the following weather context for their trip: {{{weatherContext}}}.
+Use this information to tailor activities. For example, if rain is expected, suggest more indoor activities or alternatives. If sunny, emphasize outdoor options.
+{{else}}
+When planning activities, assume you have access to a general weather forecast for the destination and travel dates. 
+If rain is likely for typically outdoor activities, suggest indoor alternatives or note this possibility. If the weather is expected to be pleasant, emphasize outdoor activities.
+This consideration should be subtly woven into the daily plan.
+{{/if}}
+
 
 You will generate a range of possible itineraries based on the user's budget, destination and travel dates.
 For each itinerary:
@@ -180,6 +188,14 @@ const aiTripPlannerFlow = ai.defineFlow(
             personalizationNote = `Focused on a '${input.desiredMood}' vibe.`
         }
     }
+    if (input.weatherContext) {
+        const weatherNote = "Weather context considered in planning.";
+         if(personalizationNote) {
+            personalizationNote += ` ${weatherNote}`
+        } else {
+            personalizationNote = weatherNote;
+        }
+    }
 
 
     return { 
@@ -188,3 +204,4 @@ const aiTripPlannerFlow = ai.defineFlow(
     };
   }
 );
+

@@ -13,6 +13,7 @@ export const AITripPlannerInputSchema = z.object({
   budget: z.number().describe('The budget for the trip in USD.'),
   userPersona: UserPersonaSchema.describe("Optional: The user's travel persona to help tailor the trip plan."),
   desiredMood: z.string().optional().describe("Optional: The desired mood or vibe for the trip (e.g., 'relaxing', 'adventurous', 'romantic')."),
+  weatherContext: z.string().optional().describe("Optional: General weather context or forecast summary for the destination and dates. If not provided, AI should infer based on typical conditions."),
 });
 export type AITripPlannerInput = z.infer<typeof AITripPlannerInputSchema>;
 
@@ -59,7 +60,7 @@ export const ItineraryItemSchema = z.object({
 
 export const AITripPlannerOutputSchema = z.object({
   itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including generated images for destination, hotels, and hotel rooms, and a structured daily plan.'),
-  personalizationNote: z.string().optional().describe("A note indicating if and how the results were personalized based on the user's travel persona.")
+  personalizationNote: z.string().optional().describe("A note indicating if and how the results were personalized based on the user's travel persona or desired mood.")
 });
 export type AITripPlannerOutput = z.infer<typeof AITripPlannerOutputSchema>;
 
@@ -77,3 +78,4 @@ export const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationIma
 export const AITripPlannerTextOutputSchema = z.object({
  itineraries: z.array(ItineraryTextOnlySchema)
 });
+

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -84,7 +84,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
   const { toast } = useToast();
   const [isPackingListDialogOpen, setIsPackingListDialogOpen] = useState(false);
   const [isFactDialogOpen, setIsFactDialogOpen] = useState(false);
-  const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false); // New state for AR/VR dialog
+  const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false);
   const [packingList, setPackingList] = useState<string[] | null>(null);
   const [destinationFact, setDestinationFact] = useState<string | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
@@ -105,6 +105,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         destination: booking.destination,
         travelDates: booking.travelDates,
         tripDuration: duration,
+        // We don't have specific weather context here, so AI will infer.
       };
       const result: PackingListOutput = await getPackingList(input);
       setPackingList(result.packingList);
@@ -173,6 +174,10 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
                 {booking.estimatedCost.toLocaleString()}
              </Badge>
           )}
+        </div>
+         <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
+            <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
+            <span className="italic">AI considered general weather patterns in planning.</span>
         </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2 pb-3 text-card-foreground">
@@ -256,7 +261,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center text-card-foreground"><BriefcaseIcon className="w-5 h-5 mr-2 text-primary"/>AI Packing List for {booking.destination}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-                Here's a suggested packing list. Remember to adjust based on your specific needs!
+                Here's a suggested packing list. Remember to adjust based on your specific needs and check a detailed forecast!
             </AlertDialogDescription>
             </AlertDialogHeader>
             <ScrollArea className="max-h-60 my-4">
@@ -341,3 +346,4 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     </>
   );
 }
+
