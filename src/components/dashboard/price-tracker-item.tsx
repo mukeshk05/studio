@@ -1,22 +1,22 @@
-
 "use client";
 
 import type { PriceTrackerEntry, PriceForecast } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon, TrendingUpIcon } from "lucide-react";
+import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon, TrendingUpIcon, LineChartIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import { getPriceAdvice, PriceAdvisorInput, PriceAdvisorOutput } from "@/ai/flows/price-advisor-flow"; 
-import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow"; // New import
+import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow";
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { PriceForecastChart } from "./PriceForecastChart"; // Import the new chart component
 
 type PriceTrackerItemProps = {
   item: PriceTrackerEntry;
@@ -26,6 +26,8 @@ type PriceTrackerItemProps = {
   isRemoving?: boolean;
 };
 
+type SimulatedChartDataPoint = { time: string; price: number | null };
+
 const glassEffectClasses = "glass-card";
 
 export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating, isRemoving }: PriceTrackerItemProps) {
@@ -34,8 +36,12 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   const [newCurrentPrice, setNewCurrentPrice] = React.useState<string>(item.currentPrice.toString());
   const [isRecheckDialogOpen, setIsRecheckDialogOpen] = React.useState(false);
   const [recheckDialogAiAlert, setRecheckDialogAiAlert] = React.useState<PriceTrackerOutput | null>(null);
+  
   const [isAiAdviceLoading, setIsAiAdviceLoading] = React.useState(false);
-  const [isPriceForecastLoading, setIsPriceForecastLoading] = React.useState(false); // New state for forecast
+  
+  const [isPriceForecastLoading, setIsPriceForecastLoading] = React.useState(false);
+  const [isForecastChartDialogOpen, setIsForecastChartDialogOpen] = React.useState(false);
+  const [simulatedChartData, setSimulatedChartData] = React.useState<SimulatedChartDataPoint[]>([]);
 
 
   const handleRecheckPriceSubmit = async () => {
@@ -106,14 +112,39 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     }
   };
 
+  const generateSimulatedChartData = (currentPrice: number, forecastText: string | undefined): SimulatedChartDataPoint[] => {
+    const data: SimulatedChartDataPoint[] = [
+      { time: "Past 2W", price: currentPrice * (1 + (Math.random() - 0.5) * 0.1) }, // +/- 10%
+      { time: "Past 1W", price: currentPrice * (1 + (Math.random() - 0.5) * 0.05) }, // +/- 5%
+      { time: "Now", price: currentPrice },
+    ];
+
+    let trendFactor = 0; // 0 for stable, >0 for up, <0 for down
+    if (forecastText) {
+        if (forecastText.toLowerCase().includes("rise") || forecastText.toLowerCase().includes("increase")) trendFactor = 0.03;
+        else if (forecastText.toLowerCase().includes("drop") || forecastText.toLowerCase().includes("decrease")) trendFactor = -0.03;
+        else if (forecastText.toLowerCase().includes("stable") || forecastText.toLowerCase().includes("moderate")) trendFactor = 0.005;
+    }
+    
+    for (let i = 1; i <= 3; i++) { // Simulate 3 future points
+        const prevPrice = data[data.length -1].price ?? currentPrice;
+        let nextPrice = prevPrice * (1 + trendFactor * i + (Math.random() - 0.5) * 0.02); // Add small randomness
+        nextPrice = Math.max(0, nextPrice); // Ensure price doesn't go below 0
+        data.push({ time: `Future ${i}W`, price: Math.round(nextPrice * 100) / 100});
+    }
+    return data;
+  };
+
+
   const handleGetPriceForecast = async () => {
     setIsPriceForecastLoading(true);
+    setSimulatedChartData([]); // Clear previous chart data
     try {
       const forecastInput: AIPFInput = {
         itemType: item.itemType,
         itemName: item.itemName,
         currentPrice: item.currentPrice,
-        travelDates: item.itemName, // Using itemName as a proxy for dates, might need refinement
+        travelDates: item.itemName, 
       };
       const result = await getPriceForecast(forecastInput);
       const newForecast: PriceForecast = {
@@ -122,9 +153,13 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         forecastedAt: new Date().toISOString(),
       };
       await onUpdateItem(item.id, { priceForecast: newForecast, lastChecked: new Date().toISOString() });
+      
+      const chartData = generateSimulatedChartData(item.currentPrice, result.forecast);
+      setSimulatedChartData(chartData);
+
       toast({
         title: "AI Price Forecast Received",
-        description: "Check the forecast below.",
+        description: "Check the forecast below. Click 'View Trend' for a visual.",
       });
     } catch (error) {
       console.error("Error getting AI price forecast:", error);
@@ -138,6 +173,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   const isCurrentlyUpdating = isUpdating || isRecheckingPriceAI || isAiAdviceLoading || isPriceForecastLoading;
 
   return (
+    <>
     <Card className={cn(glassEffectClasses, "flex flex-col border-primary/20")}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
@@ -205,15 +241,21 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
 
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
-        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2 mb-2 sm:mb-0">
-            <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full sm:w-auto flex-1 bg-card/70 hover:bg-accent/20 border-border/70 text-accent hover:text-accent-foreground" disabled={isCurrentlyUpdating}>
+        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:flex-row gap-2 mb-2 sm:mb-0">
+            <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-accent/20 border-border/70 text-accent hover:text-accent-foreground" disabled={isCurrentlyUpdating}>
                 {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-                AI Advice
+                Advice
             </Button>
-            <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full sm:w-auto flex-1 bg-card/70 hover:bg-purple-500/20 border-border/70 text-purple-400 hover:text-purple-300" disabled={isCurrentlyUpdating}>
+            <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-purple-500/20 border-border/70 text-purple-400 hover:text-purple-300" disabled={isCurrentlyUpdating}>
                 {isPriceForecastLoading ? <Loader2Icon className="animate-spin" /> : <TrendingUpIcon />}
-                Get Forecast
+                Forecast
             </Button>
+             {simulatedChartData.length > 0 && item.priceForecast && (
+                <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-teal-500/20 border-border/70 text-teal-400 hover:text-teal-300" disabled={isCurrentlyUpdating}>
+                    <LineChartIcon />
+                    Trend
+                </Button>
+            )}
         </div>
         <div className="flex w-full sm:w-auto gap-2">
             <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="flex-1 bg-card/70 hover:bg-primary/20 border-border/70 text-primary hover:text-primary-foreground" disabled={isCurrentlyUpdating}>
@@ -268,6 +310,47 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+
+      {/* Dialog for Price Forecast Chart */}
+      <Dialog open={isForecastChartDialogOpen} onOpenChange={setIsForecastChartDialogOpen}>
+        <DialogContent className={cn(glassEffectClasses, "sm:max-w-xl md:max-w-2xl border-purple-500/30")}>
+          <DialogHeader>
+            <DialogTitle className="text-card-foreground flex items-center">
+              <LineChartIcon className="mr-2 h-5 w-5 text-purple-400" />
+              Price Trend for {item.itemName}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Illustrative trend based on AI forecast. Current: ${item.currentPrice.toLocaleString()}, Target: ${item.targetPrice.toLocaleString()}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {item.priceForecast?.forecast && (
+                <Alert variant="default" className="mb-4 p-2.5 text-xs border-purple-500/30 bg-purple-500/10 text-card-foreground">
+                    <TrendingUpIcon className="h-4 w-4 text-purple-400" />
+                    <AlertTitle className="text-xs font-semibold text-purple-400 mb-0.5">AI Forecast ({formatDistanceToNow(new Date(item.priceForecast.forecastedAt), { addSuffix: true })})</AlertTitle>
+                    <AlertDescription className="text-xs">
+                        {item.priceForecast.forecast}
+                        {item.priceForecast.confidence && <span className="capitalize"> (Confidence: {item.priceForecast.confidence})</span>}
+                    </AlertDescription>
+                </Alert>
+            )}
+            {simulatedChartData.length > 0 ? (
+              <PriceForecastChart
+                chartData={simulatedChartData}
+                currentPrice={item.currentPrice}
+                targetPrice={item.targetPrice}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">No chart data available. Generate a forecast first.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" className="bg-card/70 hover:bg-muted/20 border-border/70">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
