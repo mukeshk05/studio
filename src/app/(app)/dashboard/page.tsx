@@ -14,7 +14,7 @@ import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 
-const EMPTY_TRACKED_ITEMS: PriceTrackerEntry[] = [];
+const EMPTY_TRACKED_ITEMS: PriceTrackerEntry[] = []; // Moved constant out
 
 export default function DashboardPage() {
   const [trackedItems, setTrackedItems] = useLocalStorage<PriceTrackerEntry[]>("trackedItems", EMPTY_TRACKED_ITEMS);
@@ -24,7 +24,7 @@ export default function DashboardPage() {
 
   const fetchNewTravelTip = async () => {
     setIsTipLoading(true);
-    setTravelTip(null); // Clear previous tip
+    setTravelTip(null); 
     try {
       const result: TravelTipOutput = await getTravelTip();
       setTravelTip(result.tip);
@@ -44,21 +44,24 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchNewTravelTip();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Fetch initial tip on mount
+  }, []); 
 
   const handleTrackerAdded = (newEntry: PriceTrackerEntry) => {
     setTrackedItems([...trackedItems, newEntry]);
   };
+  
+  const glassEffectClasses = "bg-card/60 dark:bg-card/40 backdrop-blur-lg border border-white/20 shadow-xl";
+
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Your Dashboard</h1>
+      <h1 className="text-3xl font-bold tracking-tight mb-6 text-foreground">Your Dashboard</h1>
 
-      <Card className="mb-8 shadow-md bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+      <Card className={`mb-8 ${glassEffectClasses}`}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center text-lg">
-              <LightbulbIcon className="w-6 h-6 mr-2 text-yellow-500" />
+            <CardTitle className="flex items-center text-lg text-foreground">
+              <LightbulbIcon className="w-6 h-6 mr-2 text-yellow-400" />
               AI Travel Tip of the Day
             </CardTitle>
             <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:text-primary/80">
@@ -75,7 +78,7 @@ export default function DashboardPage() {
             </div>
           )}
           {travelTip && (
-            <p className="text-sm text-foreground transition-opacity duration-500">{travelTip}</p>
+            <p className="text-sm text-foreground/90 transition-opacity duration-500">{travelTip}</p>
           )}
           {!isTipLoading && !travelTip && (
              <p className="text-sm text-muted-foreground">Loading travel tip...</p>
@@ -84,23 +87,29 @@ export default function DashboardPage() {
       </Card>
 
       <Tabs defaultValue="my-trips" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6">
-          <TabsTrigger value="my-trips" className="flex items-center gap-2">
+        <TabsList className={`grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 ${glassEffectClasses.replace('bg-card','bg-muted')} p-1.5 rounded-lg`}>
+          <TabsTrigger value="my-trips" className="flex items-center gap-2 data-[state=active]:bg-background/70 data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
           </TabsTrigger>
-          <TabsTrigger value="price-tracker" className="flex items-center gap-2">
+          <TabsTrigger value="price-tracker" className="flex items-center gap-2 data-[state=active]:bg-background/70 data-[state=active]:shadow-md">
             <BellRingIcon className="w-5 h-5" />
             Price Tracker
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="my-trips">
-          <BookingList />
-        </TabsContent>
-        <TabsContent value="price-tracker">
-          <PriceTrackerForm onTrackerAdded={handleTrackerAdded} />
-          <PriceTrackerList />
-        </TabsContent>
+        
+        {/* Apply glass effect to the container of TabsContent if needed, or individual cards within them */}
+        <div className={`p-0 sm:p-2 rounded-xl ${glassEffectClasses} `}>
+          <TabsContent value="my-trips" className="mt-0">
+            <BookingList />
+          </TabsContent>
+          <TabsContent value="price-tracker" className="mt-0">
+            {/* PriceTrackerForm already is a Card, so it will inherit from its own styling if we modify Card component globally or pass props */}
+            {/* For this example, I'm applying glass effect classes directly to PriceTrackerForm if needed or its internal Card */}
+            <PriceTrackerForm onTrackerAdded={handleTrackerAdded} />
+            <PriceTrackerList />
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
