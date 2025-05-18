@@ -58,6 +58,7 @@ export const ItineraryItemSchema = z.object({
 
 export const AITripPlannerOutputSchema = z.object({
   itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including generated images for destination, hotels, and hotel rooms, and a structured daily plan.'),
+  personalizationNote: z.string().optional().describe("A note indicating if and how the results were personalized based on the user's travel persona.")
 });
 export type AITripPlannerOutput = z.infer<typeof AITripPlannerOutputSchema>;
 
@@ -69,4 +70,9 @@ export const HotelOptionTextOnlySchema = HotelOptionSchema.omit({ hotelImageUri:
 
 export const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true }).extend({
   hotelOptions: z.array(HotelOptionTextOnlySchema),
+});
+
+// Schema for the text-only output of the AI, used before image generation
+export const AITripPlannerTextOutputSchema = z.object({
+ itineraries: z.array(ItineraryTextOnlySchema)
 });

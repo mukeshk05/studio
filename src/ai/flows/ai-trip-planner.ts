@@ -13,9 +13,8 @@ import {
   type AITripPlannerInput,
   AITripPlannerOutputSchema,
   type AITripPlannerOutput,
-  ItineraryTextOnlySchema,
-  // type HotelOption, // No longer directly used from here
-  // type Room         // No longer directly used from here
+  AITripPlannerTextOutputSchema,
+  ItineraryTextOnlySchema, // Keep if used, or ensure it's covered by AITripPlannerTextOutputSchema
 } from '@/ai/types/trip-planner-types';
 
 
@@ -26,7 +25,7 @@ export async function aiTripPlanner(input: AITripPlannerInput): Promise<AITripPl
 const aiTripPlannerTextPrompt = ai.definePrompt({
   name: 'aiTripPlannerTextPrompt',
   input: {schema: AITripPlannerInputSchema},
-  output: {schema: z.object({ itineraries: z.array(ItineraryTextOnlySchema) }) },
+  output: {schema: AITripPlannerTextOutputSchema },
   prompt: `You are a travel agent specializing in budget travel.
 {{#if userPersona}}
 The user you are planning for has the following travel persona:
@@ -35,6 +34,7 @@ The user you are planning for has the following travel persona:
 Please prioritize suggestions, activities, and accommodation styles that align strongly with this persona.
 If the persona suggests luxury, try to find high-value luxury. If it suggests adventure, focus on relevant activities.
 The overall tone and suggestions should reflect their travel DNA.
+The first itinerary suggested should be the best match for their persona.
 {{/if}}
 
 You will generate a range of possible itineraries based on the user's budget, destination and travel dates.
@@ -67,9 +67,6 @@ Each hotel option must include:
 The 'estimatedCost' for the overall itinerary should be a sum of a representative flight option and a representative hotel option.
 Consider a variety of options for flights, accommodations, and activities that would fit within the budget.
 Provide multiple itineraries with varying levels of luxury and activity so the user has multiple choices.
-{{#if userPersona}}
-Ensure the options and their ranking/order reflect the user's persona. The first itinerary suggested should be the best match for their persona.
-{{/if}}
 
 Travel Dates: {{{travelDates}}}
 Destination: {{{destination}}}
@@ -165,6 +162,15 @@ const aiTripPlannerFlow = ai.defineFlow(
         };
       })
     );
-    return { itineraries: itinerariesWithImages };
+
+    let personalizationNote: string | undefined = undefined;
+    if (input.userPersona?.name) {
+      personalizationNote = `Tailored for the '${input.userPersona.name}' travel style.`;
+    }
+
+    return { 
+      itineraries: itinerariesWithImages,
+      personalizationNote: personalizationNote
+    };
   }
 );

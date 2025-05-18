@@ -2,12 +2,12 @@
 "use client";
 
 import type { ChatMessage } from "@/app/(app)/planner/page";
-import type { AITripPlannerInput } from "@/ai/flows/ai-trip-planner";
+import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import type { Itinerary } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CardContent } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
-import { BotIcon, UserIcon, AlertTriangleIcon, SparklesIcon, Loader2Icon } from "lucide-react";
+import { BotIcon, UserIcon, AlertTriangleIcon, SparklesIcon, Loader2Icon, InfoIcon } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 
@@ -35,12 +35,22 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
           </div>
         );
       case "ai":
-        const itineraries = message.payload as Itinerary[];
+        const aiOutput = message.payload as AITripPlannerOutput;
+        const itineraries = aiOutput.itineraries as Itinerary[];
         if (!itineraries || itineraries.length === 0) {
           return <p>No trip options found for your request.</p>;
         }
         return (
           <div className="space-y-3">
+            {aiOutput.personalizationNote && (
+              <div className={cn(
+                "p-2 mb-3 rounded-md text-xs italic",
+                "bg-primary/10 text-primary border border-primary/20 flex items-center gap-2"
+              )}>
+                <InfoIcon className="w-4 h-4 shrink-0" />
+                <span>{aiOutput.personalizationNote}</span>
+              </div>
+            )}
             {itineraries.map((itinerary) => (
               <CompactItineraryCard
                 key={itinerary.id}
