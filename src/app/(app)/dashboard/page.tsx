@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { SmartBundleGenerator } from "@/components/dashboard/SmartBundleGenerator";
 import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useRouter } from 'next/navigation';
+import { onForegroundMessageListener } from "@/lib/firebaseMessaging"; // Import FCM listener
+import { NotificationSettings } from "@/components/dashboard/NotificationSettings"; // Import NotificationSettings
 
 
 export default function DashboardPage() {
@@ -28,6 +30,24 @@ export default function DashboardPage() {
 
   const { data: savedTrips, isLoading: isLoadingTrips } = useSavedTrips();
   const { data: trackedItems, isLoading: isLoadingTrackedItems } = useTrackedItems();
+
+  // Effect for FCM foreground messages
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentUser) {
+      // Check if notifications are enabled before setting up listener
+      if (Notification.permission === 'granted' && localStorage.getItem('fcmToken')) {
+        onForegroundMessageListener()
+          .then((payload) => {
+            console.log("Foreground message received in DashboardPage: ", payload);
+            // Toast is already handled in onForegroundMessageListener
+          })
+          .catch((err) =>
+            console.error("Failed to listen for foreground messages: ", err)
+          );
+      }
+    }
+  }, [currentUser]);
+
 
   const fetchNewTravelTip = async () => {
     setIsTipLoading(true);
@@ -120,6 +140,10 @@ export default function DashboardPage() {
         <div className={cn("lg:col-span-2", "animate-fade-in-up")} style={{animationDelay: '0.2s'}}>
             <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
         </div>
+      </div>
+      
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.25s' }}>
+        <NotificationSettings />
       </div>
 
 

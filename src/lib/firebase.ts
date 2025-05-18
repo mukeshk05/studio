@@ -2,6 +2,7 @@
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getMessaging } from "firebase/messaging"; // Import getMessaging
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -24,4 +25,18 @@ const auth = getAuth(app);
 const firestore = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-export { app, auth, firestore, googleProvider };
+// Initialize Firebase Messaging and export it
+// Check for window object to ensure it's client-side for messaging
+let messaging = null;
+if (typeof window !== 'undefined') {
+  try {
+    messaging = getMessaging(app);
+  } catch (error) {
+    console.error("Firebase Messaging could not be initialized:", error);
+    // Potentially means it's not supported or misconfigured,
+    // but app should still run other Firebase services.
+  }
+}
+
+
+export { app, auth, firestore, googleProvider, messaging };
