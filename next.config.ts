@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
-    // IMPORTANT: This Webpack configuration correctly handles the 'async_hooks', 'fs', 'tls', and 'net' issues
+    // IMPORTANT: This Webpack configuration correctly handles the 'async_hooks', 'fs', 'tls', 'net', and 'http2' issues
     // for client-side bundles when Next.js uses Webpack as its bundler.
     // If you are using `next dev --turbopack`, Turbopack (which is experimental)
     // may not respect this webpack configuration, leading to persistent errors.
@@ -39,6 +39,8 @@ const nextConfig: NextConfig = {
       config.resolve.fallback['tls'] = false;
       // Prevent 'net' from being resolved client-side by providing an empty module.
       config.resolve.fallback['net'] = false;
+      // Prevent 'http2' from being resolved client-side by providing an empty module.
+      config.resolve.fallback['http2'] = false;
 
       // Ensure config.resolve.alias object exists
       config.resolve.alias = config.resolve.alias || {};
@@ -47,6 +49,7 @@ const nextConfig: NextConfig = {
       config.resolve.alias['fs'] = false;
       config.resolve.alias['tls'] = false;
       config.resolve.alias['net'] = false;
+      config.resolve.alias['http2'] = false;
     }
     return config;
   },
