@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon, BookOpenTextIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -28,8 +28,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { getPackingList, PackingListInput, PackingListOutput } from "@/ai/flows/packing-list-flow";
 import { getDestinationFact, DestinationFactInput, DestinationFactOutput } from "@/ai/flows/destination-fact-flow";
+import { generateTripMemory, GenerateTripMemoryInput, GenerateTripMemoryOutput } from "@/ai/flows/generate-trip-memory-flow";
 import { cn } from "@/lib/utils";
-import { GroupSyncDialog } from "./GroupSyncDialog"; // Import new dialog
+import { GroupSyncDialog } from "./GroupSyncDialog"; 
 
 type BookingCardProps = {
   booking: Itinerary;
@@ -86,14 +87,21 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
   const [isPackingListDialogOpen, setIsPackingListDialogOpen] = useState(false);
   const [isFactDialogOpen, setIsFactDialogOpen] = useState(false);
   const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false);
-  const [isGroupSyncDialogOpen, setIsGroupSyncDialogOpen] = useState(false); // State for new dialog
+  const [isGroupSyncDialogOpen, setIsGroupSyncDialogOpen] = useState(false);
+  const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
   const [packingList, setPackingList] = useState<string[] | null>(null);
   const [destinationFact, setDestinationFact] = useState<string | null>(null);
+  const [tripMemoryText, setTripMemoryText] = useState<string | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   const hintWords = booking.destination.toLowerCase().split(/[\s,]+/);
   const aiHint = hintWords.slice(0, 2).join(" ");
   const panoramicAiHint = `panoramic view ${aiHint}`;
+
+  const formatDailyPlanForAI = (dailyPlan: Itinerary['dailyPlan']): string => {
+    if (!dailyPlan || dailyPlan.length === 0) return "No detailed daily plan available for this trip.";
+    return dailyPlan.map(day => `${day.day}: ${day.activities.substring(0, 150)}...`).join('\n');
+  };
 
   const handleFetchPackingList = async () => {
     setIsLoadingAI(true);
@@ -107,7 +115,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         destination: booking.destination,
         travelDates: booking.travelDates,
         tripDuration: duration,
-        weatherContext: booking.weatherContext, // Pass existing weather context if available
+        weatherContext: booking.weatherContext, 
       };
       const result: PackingListOutput = await getPackingList(input);
       setPackingList(result.packingList);
@@ -131,6 +139,27 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
       console.error("Error fetching fun fact:", error);
       toast({ title: "Error", description: "Could not fetch fun fact.", variant: "destructive" });
       setDestinationFact("Failed to load fun fact.");
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
+  const handleGenerateMemory = async () => {
+    setIsLoadingAI(true);
+    setTripMemoryText(null);
+    try {
+      const input: GenerateTripMemoryInput = {
+        destination: booking.destination,
+        travelDates: booking.travelDates,
+        tripSummary: booking.tripSummary,
+        dailyPlanActivities: formatDailyPlanForAI(booking.dailyPlan),
+      };
+      const result: GenerateTripMemoryOutput = await generateTripMemory(input);
+      setTripMemoryText(result.memoryText);
+    } catch (error) {
+      console.error("Error generating trip memory:", error);
+      toast({ title: "Error", description: "Could not generate trip memory.", variant: "destructive" });
+      setTripMemoryText("Failed to generate a memory for this trip.");
     } finally {
       setIsLoadingAI(false);
     }
@@ -177,17 +206,23 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
              </Badge>
           )}
         </div>
-         {(booking.weatherContext || booking.riskContext) && (
-          <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
-             {booking.weatherContext && <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400" /> }
-             {booking.riskContext && !booking.weatherContext && <InfoIcon className="w-3.5 h-3.5 mr-1.5 text-orange-400" /> }
-            <span className="italic">
-              {booking.weatherContext && "AI considered weather. "}
-              {booking.riskContext && "AI considered risks."}
-              {!booking.weatherContext && !booking.riskContext && "AI considered general patterns."}
-            </span>
+         <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
+           {(booking.weatherContext || booking.riskContext) ? (
+             <>
+              {booking.weatherContext && <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400" />}
+              {booking.riskContext && !booking.weatherContext && <InfoIcon className="w-3.5 h-3.5 mr-1.5 text-orange-400" />}
+              <span className="italic">
+                {booking.weatherContext && "AI considered weather. "}
+                {booking.riskContext && "AI considered risks."}
+              </span>
+             </>
+           ) : (
+             <>
+              <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400 opacity-70" /> 
+              <span className="italic opacity-70">AI considered general patterns.</span>
+             </>
+           )}
         </div>
-         )}
       </CardHeader>
       <CardContent className="flex-grow pt-2 pb-3 text-card-foreground">
          {booking.tripSummary && (
@@ -247,7 +282,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
           )}
         </Accordion>
       </CardContent>
-      <CardFooter className="pt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <CardFooter className="pt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full text-primary border-primary/50 hover:bg-primary/10">
           <BriefcaseIcon className="mr-2 h-4 w-4" />List
         </Button>
@@ -260,9 +295,12 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         <Button onClick={() => setIsGroupSyncDialogOpen(true)} variant="outline" size="sm" className="w-full text-green-400 border-green-400/50 hover:bg-green-400/10">
           <UsersIcon className="mr-2 h-4 w-4" />Sync
         </Button>
+        <Button onClick={() => { setIsMemoryDialogOpen(true); handleGenerateMemory(); }} variant="outline" size="sm" className="w-full text-orange-400 border-orange-400/50 hover:bg-orange-400/10">
+          <BookOpenTextIcon className="mr-2 h-4 w-4" />Memory
+        </Button>
         <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
           {isRemoving ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
-          {isRemoving ? '' : 'Remove'}
+          <span className="hidden md:inline">{isRemoving ? '' : 'Remove'}</span>
         </Button>
       </CardFooter>
     </Card>
@@ -356,7 +394,34 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         </AlertDialogContent>
     </AlertDialog>
 
-    {/* Group Sync Dialog */}
+    {/* AI Trip Memory Dialog */}
+    <AlertDialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+        <AlertDialogContent className={cn(glassEffectClasses)}>
+            <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center text-card-foreground">
+                    <BookOpenTextIcon className="w-5 h-5 mr-2 text-orange-400"/>AI Generated Memory for {booking.destination}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-muted-foreground">
+                    A nostalgic snippet of your trip!
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="my-4 min-h-[60px]">
+                {isLoadingAI && !tripMemoryText ? (
+                    <div className="flex items-center justify-center p-4 text-muted-foreground">
+                        <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Generating memory...
+                    </div>
+                ) : tripMemoryText ? (
+                    <p className="text-sm text-card-foreground/90 whitespace-pre-line">{tripMemoryText}</p>
+                ) : (
+                    <p className="text-sm text-muted-foreground">No memory snippet generated or an error occurred.</p>
+                )}
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setIsMemoryDialogOpen(false)} className="bg-primary hover:bg-primary/90">Nice!</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
     {trip && (
       <GroupSyncDialog
         isOpen={isGroupSyncDialogOpen}
