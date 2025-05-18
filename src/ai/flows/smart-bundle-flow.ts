@@ -129,7 +129,7 @@ export const smartBundleFlow = ai.defineFlow(
   },
   async (input) => {
     // Add a log to see the exact input received by the flow
-    console.log('SmartBundleFlow (Aura AI) received input:', JSON.stringify(input, null, 2));
+    console.log('Aura AI (SmartBundleFlow) received input:', JSON.stringify(input, null, 2));
 
     const { output } = await smartBundlePrompt(input);
     if (!output || !output.suggestions || output.suggestions.length === 0) {
