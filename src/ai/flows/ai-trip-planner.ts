@@ -6,12 +6,13 @@
  * - aiTripPlanner - A function that handles the trip planning process.
  * - AITripPlannerInput - The input type for the aiTripPlanner function.
  * - AITripPlannerOutput - The return type for the aiTripPlanner function.
+ * - AITripPlannerInputSchema - The Zod schema for the input.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const AITripPlannerInputSchema = z.object({
+export const AITripPlannerInputSchema = z.object({
   travelDates: z.string().describe('The desired travel dates (e.g., MM/DD/YYYY-MM/DD/YYYY).'),
   destination: z.string().describe('The destination for the trip.'),
   budget: z.number().describe('The budget for the trip in USD.'),
