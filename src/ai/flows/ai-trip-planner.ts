@@ -24,17 +24,28 @@ const FlightOptionSchema = z.object({
   price: z.number().describe('Estimated price of the flight in USD.')
 });
 
+const RoomSchema = z.object({
+  name: z.string().describe("Name of the room type (e.g., 'Deluxe King Room', 'Standard Twin Room with City View')."),
+  description: z.string().optional().describe("A brief description of the room type."),
+  features: z.array(z.string()).optional().describe("Key features of the room (e.g., ['Ocean view', 'Balcony', 'Sleeps 2', 'Mini-fridge'])."),
+  pricePerNight: z.number().optional().describe("Estimated price per night for this room type in USD, if available. This is optional."),
+  roomImagePrompt: z.string().optional().describe("A concise text prompt suitable for generating a representative image of this room type (e.g., 'Modern hotel room king bed city view', 'Cozy twin room with balcony')."),
+  roomImageUri: z.string().optional().describe("A data URI of a generated image representing this room type. Expected format: 'data:image/png;base64,<encoded_data>'. This will be populated by the flow."),
+});
+
 const HotelOptionSchema = z.object({
   name: z.string().describe('Name of the hotel or accommodation type (e.g., "City Center Hotel", "Boutique Guesthouse").'),
   description: z.string().describe('Details about the hotel (e.g., amenities, location rating, type). This description will be used to generate a representative image.'),
   price: z.number().describe('Estimated price for the hotel for the duration of the stay in USD.'),
   hotelImageUri: z.string().describe("A data URI of a generated image representing the hotel. Expected format: 'data:image/png;base64,<encoded_data>'."),
+  rating: z.number().min(0).max(5).optional().describe("Overall guest rating out of 5 (e.g., 4.5)."),
+  amenities: z.array(z.string()).optional().describe("List of key amenities (e.g., ['Free WiFi', 'Pool', 'Restaurant', 'Pet-friendly', 'Gym', 'Spa', 'Parking']). Provide 3-7 important amenities."),
+  rooms: z.array(RoomSchema).optional().describe("A list of 2-3 available room types with their details. For each room, include name, description, features, and a 'roomImagePrompt' for image generation."),
 });
 
 const DailyPlanItemSchema = z.object({
   day: z.string().describe('The day number or label (e.g., "Day 1", "Arrival Day").'),
   activities: z.string().describe('A detailed description of activities planned for this day, including potential morning, afternoon, and evening segments if applicable. Be descriptive and engaging.'),
-  // Optional: activityImagePrompt: z.string().optional().describe('A short, descriptive prompt for generating an image representing an activity of this day (e.g., "Eiffel Tower view Paris", "Kyoto golden temple"). This will be used for image generation.')
 });
 
 const ItineraryItemSchema = z.object({
@@ -44,12 +55,12 @@ const ItineraryItemSchema = z.object({
   tripSummary: z.string().describe('A concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details.'),
   dailyPlan: z.array(DailyPlanItemSchema).describe('A detailed day-by-day plan of potential activities. Each item should clearly state the day and the activities for that day.'),
   flightOptions: z.array(FlightOptionSchema).describe('A list of flight options for this itinerary. Aim for 2-3 distinct options.'),
-  hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary, each including a generated image. Aim for 2-3 distinct options.'),
+  hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary, each including a generated image for the hotel and its rooms. Aim for 2-3 distinct options.'),
   destinationImageUri: z.string().describe("A data URI of a generated image representing the destination. Expected format: 'data:image/png;base64,<encoded_data>'."),
 });
 
 const AITripPlannerOutputSchema = z.object({
-  itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including a generated image for each destination and each hotel option, and a structured daily plan.'),
+  itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including generated images for destination, hotels, and hotel rooms, and a structured daily plan.'),
 });
 export type AITripPlannerOutput = z.infer<typeof AITripPlannerOutputSchema>;
 
@@ -57,10 +68,13 @@ export async function aiTripPlanner(input: AITripPlannerInput): Promise<AITripPl
   return aiTripPlannerFlow(input);
 }
 
-// Schema for the text-only part of the itinerary, before hotel images are generated
+// Schema for the text-only part of the itinerary, before images are generated
+const HotelOptionTextOnlySchema = HotelOptionSchema.omit({ hotelImageUri: true }).extend({
+  rooms: z.array(RoomSchema.omit({ roomImageUri: true })).optional(),
+});
+
 const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true }).extend({
-  hotelOptions: z.array(HotelOptionSchema.omit({ hotelImageUri: true })),
-  // dailyPlan structure remains the same as in ItineraryItemSchema
+  hotelOptions: z.array(HotelOptionTextOnlySchema),
 });
 
 
@@ -77,20 +91,27 @@ For each itinerary:
     - 'day': A string for the day's label (e.g., "Day 1", "Arrival Day").
     - 'activities': A string describing the activities for that day in detail. Be engaging and descriptive. You can suggest morning, afternoon, and evening activities. Ensure this is a comprehensive plan.
 3.  Detail 2-3 distinct flight options.
-4.  Detail 2-3 distinct hotel options. An image will be generated for each hotel based on its description, so make hotel descriptions evocative (e.g., "Charming boutique hotel with a rooftop terrace", "Modern business hotel near the convention center").
+4.  Detail 2-3 distinct hotel options.
 
 Each flight option must include:
-- name: Flight carrier and number, or a general description (e.g., "Budget Airline Option 1", "Premium Economy Choice").
-- description: Details about the flight (e.g., layovers, direct, departure/arrival times, airline if not in name).
+- name: Flight carrier and number, or a general description.
+- description: Details about the flight.
 - price: Estimated price of the flight in USD.
 
 Each hotel option must include:
-- name: Name of the hotel or accommodation type (e.g., "City Center Hotel", "Riverside Boutique Guesthouse", "Hostel Pods").
-- description: Details about the hotel (e.g., key amenities like free breakfast or pool, general location, star rating if applicable, room type). This description should be suitable for image generation.
-- price: Estimated price for the hotel for the entire duration of the stay in USD.
+- name: Name of the hotel or accommodation type.
+- description: Details about the hotel (e.g., general location, type, overall vibe). This description should be suitable for generating a main hotel image.
+- price: Estimated total price for the hotel for the entire duration of the stay in USD.
+- rating: Overall guest rating out of 5 (e.g., 4.2).
+- amenities: An array of 3-7 key amenities (e.g., ["Free WiFi", "Pool", "Gym"]).
+- rooms: An array of 2-3 available room types. For each room:
+    - name: Name of the room type (e.g., "Deluxe King Room").
+    - description: A brief description of the room.
+    - features: An array of key features (e.g., ["Ocean view", "Sleeps 2"]).
+    - pricePerNight: (Optional) Estimated price per night for this room type in USD.
+    - roomImagePrompt: A concise text prompt suitable for generating a representative image of THIS SPECIFIC ROOM TYPE (e.g., "Modern hotel room king bed large window city view", "Cozy twin room with balcony and garden view").
 
-The 'estimatedCost' for the overall itinerary should be a sum of a representative flight option and a representative hotel option (e.g., the cheapest combination, or a balanced recommendation).
-
+The 'estimatedCost' for the overall itinerary should be a sum of a representative flight option and a representative hotel option.
 Consider a variety of options for flights, accommodations, and activities that would fit within the budget.
 Provide multiple itineraries with varying levels of luxury and activity so the user has multiple choices.
 
@@ -98,7 +119,7 @@ Travel Dates: {{{travelDates}}}
 Destination: {{{destination}}}
 Budget: {{{budget}}}
 
-Return the itineraries in JSON format according to the defined output schema. Ensure all fields are populated, especially the 'dailyPlan' with rich, detailed content for each day.
+Return the itineraries in JSON format according to the defined output schema. Ensure all fields are populated.
 `,
 });
 
@@ -125,11 +146,11 @@ const generateImage = async (promptText: string, fallbackDataAiHint: string): Pr
       imageUri = media.url;
     } else {
       console.warn(`Image generation for prompt "${promptText}" did not return a media URL. Using placeholder.`);
-      imageUri = `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackDataAiHint)}`;
+      imageUri = `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackDataAiHint.substring(0,20))}`;
     }
   } catch (imageError) {
     console.error(`Failed to generate image for prompt "${promptText}":`, imageError);
-    imageUri = `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackDataAiHint)}`;
+    imageUri = `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackDataAiHint.substring(0,20))}`;
   }
   return imageUri;
 };
@@ -152,7 +173,6 @@ const aiTripPlannerFlow = ai.defineFlow(
       console.warn("Some itineraries are missing daily plans. Check AI prompt and output structure.", textPromptOutput.itineraries);
     }
 
-
     const itinerariesWithImages = await Promise.all(
       textPromptOutput.itineraries.map(async (itinerary) => {
         const destinationImagePrompt = `A vibrant, high-quality travel photograph representing ${itinerary.destination}. Focus on its most iconic visual elements or overall atmosphere. Style: photorealistic. Aspect ratio: 16:9.`;
@@ -163,19 +183,29 @@ const aiTripPlannerFlow = ai.defineFlow(
             const hotelImagePrompt = `Photorealistic image of a ${hotel.description}, hotel name: ${hotel.name}, in ${itinerary.destination}. Aspect ratio: 16:9.`;
             const fallbackHotelHint = `${hotel.name.substring(0,15)} ${hotel.description.split(' ')[0].substring(0,10)}`
             const hotelImageUri = await generateImage(hotelImagePrompt, fallbackHotelHint);
-            return { ...hotel, hotelImageUri };
+            
+            const roomsWithImages = hotel.rooms ? await Promise.all(
+              hotel.rooms.map(async (room) => {
+                if (room.roomImagePrompt) {
+                  const fallbackRoomHint = `${room.name.substring(0,15)} room`
+                  const roomImageUri = await generateImage(room.roomImagePrompt, fallbackRoomHint);
+                  return { ...room, roomImageUri };
+                }
+                return { ...room, roomImageUri: `https://placehold.co/300x200.png?text=${encodeURIComponent(room.name.substring(0,10))}` };
+              })
+            ) : [];
+
+            return { ...hotel, hotelImageUri, rooms: roomsWithImages };
           })
         );
         
-        // Ensure dailyPlan is at least an empty array if undefined from the AI
         const dailyPlan = itinerary.dailyPlan || [];
-
 
         return {
           ...itinerary,
           destinationImageUri,
           hotelOptions: hotelOptionsWithImages,
-          dailyPlan: dailyPlan, // Ensure dailyPlan is part of the final object
+          dailyPlan: dailyPlan, 
         };
       })
     );

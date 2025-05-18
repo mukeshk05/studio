@@ -6,18 +6,60 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import type { HotelOption } from "@/lib/types";
-import { XIcon, InfoIcon, ImageIcon, MapPinIcon, DollarSignIcon, ImageOffIcon } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { HotelOption, Room } from "@/lib/types";
+import { XIcon, InfoIcon, ImageIcon, MapPinIcon, DollarSignIcon, ImageOffIcon, BedDoubleIcon, SparklesIcon, StarIcon, BathIcon, CheckSquareIcon, HotelIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type HotelDetailDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   hotel: HotelOption | null;
-  destinationName: string; // To help with map query
+  destinationName: string; 
 };
 
-const glassEffectClasses = "glass-card"; // From globals.css
+const glassEffectClasses = "glass-card"; 
+
+function RoomCard({ room }: { room: Room }) {
+  const roomImageHint = room.name.toLowerCase().split(/[\s,]+/).slice(0, 2).join(" ");
+  return (
+    <div className={cn(glassEffectClasses, "p-3 rounded-lg mb-3 border border-border/40")}>
+      <h4 className="text-md font-semibold text-card-foreground mb-1.5 flex items-center">
+        <BedDoubleIcon className="w-5 h-5 mr-2 text-primary" />
+        {room.name}
+      </h4>
+      {room.roomImageUri && (
+        <div className="relative aspect-video w-full rounded-md overflow-hidden mb-2 border border-border/30 shadow-sm">
+          <Image
+            src={room.roomImageUri}
+            alt={`Image of ${room.name}`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 80vw, 300px"
+            data-ai-hint={room.roomImageUri.startsWith('https://placehold.co') ? roomImageHint : undefined}
+          />
+        </div>
+      )}
+      {room.description && <p className="text-xs text-muted-foreground mb-1.5">{room.description}</p>}
+      {room.features && room.features.length > 0 && (
+        <div>
+          <h5 className="text-xs font-medium text-card-foreground mb-1">Features:</h5>
+          <div className="flex flex-wrap gap-1.5">
+            {room.features.map((feature, idx) => (
+              <Badge key={idx} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{feature}</Badge>
+            ))}
+          </div>
+        </div>
+      )}
+      {room.pricePerNight && (
+        <p className="text-sm font-semibold text-primary mt-2">
+          ${room.pricePerNight.toLocaleString()}/night (est.)
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: HotelDetailDialogProps) {
   if (!hotel) return null;
@@ -34,64 +76,119 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className={cn(glassEffectClasses, "sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[90vh] flex flex-col p-0 border-primary/30")}>
         <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 backdrop-blur-sm">
-          <div className="flex justify-between items-center">
-            <div>
-              <DialogTitle className="text-xl font-semibold text-foreground">{hotel.name}</DialogTitle>
+          <div className="flex justify-between items-start">
+            <div className="flex-grow min-w-0">
+              <DialogTitle className="text-xl font-semibold text-foreground truncate" title={hotel.name}>
+                <HotelIcon className="w-6 h-6 mr-2 inline-block text-primary" />
+                {hotel.name}
+              </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
-                Details for your stay at {hotel.name} in {destinationName}.
+                in {destinationName}
               </DialogDescription>
             </div>
             <DialogClose asChild>
-              <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground shrink-0">
                 <XIcon className="h-5 w-5" />
               </Button>
             </DialogClose>
           </div>
         </DialogHeader>
 
+        {hotel.hotelImageUri && (
+          <div className="relative aspect-[16/7] w-full max-h-60 sm:max-h-72 border-b border-border/30">
+            <Image
+              src={hotel.hotelImageUri}
+              alt={`Image of ${hotel.name}`}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 1000px"
+              priority
+              data-ai-hint={hotel.hotelImageUri.startsWith('https://placehold.co') ? hotelImageHint : undefined}
+            />
+          </div>
+        )}
+        {!hotel.hotelImageUri && (
+            <div className={cn("h-40 bg-muted/30 flex items-center justify-center text-muted-foreground border-b border-border/30", glassEffectClasses, "rounded-none")}>
+                <ImageOffIcon className="w-12 h-12"/>
+            </div>
+        )}
+
+
         <div className="flex-grow overflow-y-auto p-4 sm:p-6">
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className={cn("grid w-full grid-cols-3 mb-4 glass-pane p-1", "border border-border/50")}>
-              <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-                <InfoIcon className="w-4 h-4" /> Overview
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className={cn("grid w-full grid-cols-2 sm:grid-cols-4 mb-4 glass-pane p-1", "border border-border/50")}>
+              <TabsTrigger value="details" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+                <InfoIcon className="w-4 h-4" /> Details
               </TabsTrigger>
-              <TabsTrigger value="image" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-                <ImageIcon className="w-4 h-4" /> Image
+              <TabsTrigger value="rooms" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.rooms || hotel.rooms.length === 0}>
+                <BedDoubleIcon className="w-4 h-4" /> Rooms
               </TabsTrigger>
+              <TabsTrigger value="amenities" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.amenities || hotel.amenities.length === 0}>
+                <CheckSquareIcon className="w-4 h-4" /> Amenities
+              </TabsTrigger>
+              {/* <TabsTrigger value="rating" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={hotel.rating === undefined}>
+                <StarIcon className="w-4 h-4" /> Rating
+              </TabsTrigger> */}
               <TabsTrigger value="map" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
                 <MapPinIcon className="w-4 h-4" /> Map
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className={cn(glassEffectClasses, "p-4 rounded-md")}>
+            <TabsContent value="details" className={cn(glassEffectClasses, "p-4 rounded-md")}>
               <h3 className="text-lg font-semibold text-card-foreground mb-2">About {hotel.name}</h3>
               <p className="text-sm text-muted-foreground mb-3">{hotel.description}</p>
               <div className="flex items-center text-lg font-semibold text-primary">
                 <DollarSignIcon className="w-5 h-5 mr-2" />
                 Price: ${hotel.price.toLocaleString()} (for the stay)
               </div>
+               {hotel.rating !== undefined && (
+                 <div className="mt-3 flex items-center text-md font-medium text-amber-400">
+                    <StarIcon className="w-5 h-5 mr-1.5 fill-amber-400 text-amber-400" />
+                    Rating: {hotel.rating.toFixed(1)} / 5.0
+                 </div>
+                )}
             </TabsContent>
 
-            <TabsContent value="image" className={cn(glassEffectClasses, "p-4 rounded-md")}>
-              <h3 className="text-lg font-semibold text-card-foreground mb-3">Hotel Image</h3>
-              <div className="relative aspect-video w-full max-w-xl mx-auto rounded-lg overflow-hidden border border-border/50 shadow-lg">
-                {hotel.hotelImageUri && hotel.hotelImageUri !== "" ? (
-                  <Image
-                    src={hotel.hotelImageUri}
-                    alt={`Image of ${hotel.name}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 90vw, (max-width: 1200px) 70vw, 50vw"
-                    data-ai-hint={hotel.hotelImageUri.startsWith('https://placehold.co') ? hotelImageHint : undefined}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted/50 flex flex-col items-center justify-center text-muted-foreground">
-                    <ImageOffIcon className="w-16 h-16 mb-2" />
-                    <p>No image available</p>
-                  </div>
-                )}
-              </div>
+            <TabsContent value="rooms" className={cn(glassEffectClasses, "p-4 rounded-md")}>
+              <h3 className="text-lg font-semibold text-card-foreground mb-3">Available Rooms</h3>
+              {hotel.rooms && hotel.rooms.length > 0 ? (
+                <ScrollArea className="max-h-96 pr-3">
+                  {hotel.rooms.map((room, idx) => (
+                    <RoomCard key={idx} room={room} />
+                  ))}
+                </ScrollArea>
+              ) : (
+                <p className="text-sm text-muted-foreground">Room information not available.</p>
+              )}
             </TabsContent>
+            
+            <TabsContent value="amenities" className={cn(glassEffectClasses, "p-4 rounded-md")}>
+                <h3 className="text-lg font-semibold text-card-foreground mb-3">Amenities</h3>
+                {hotel.amenities && hotel.amenities.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {hotel.amenities.map((amenity, idx) => (
+                        <Badge key={idx} variant="outline" className="text-sm py-1 px-2 border-primary/40 text-primary/90 bg-primary/5 flex items-center gap-1.5">
+                            <SparklesIcon className="w-3 h-3 text-accent" />
+                            {amenity}
+                        </Badge>
+                    ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">Amenity information not available.</p>
+                )}
+            </TabsContent>
+
+            {/* <TabsContent value="rating" className={cn(glassEffectClasses, "p-4 rounded-md")}>
+              <h3 className="text-lg font-semibold text-card-foreground mb-3">Guest Rating</h3>
+              {hotel.rating !== undefined ? (
+                <div className="flex items-center text-2xl font-bold text-primary">
+                  <StarIcon className="w-7 h-7 mr-2 fill-amber-400 text-amber-400" />
+                  {hotel.rating.toFixed(1)} / 5.0
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Rating information not available.</p>
+              )}
+            </TabsContent> */}
 
             <TabsContent value="map" className={cn(glassEffectClasses, "p-4 rounded-md")}>
               <h3 className="text-lg font-semibold text-card-foreground mb-3">Location of {hotel.name}</h3>

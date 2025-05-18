@@ -4,11 +4,13 @@ import type { AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 // This effectively takes the type of a single itinerary object from the array
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
 
-// Add the 'id' field that we add manually in ItineraryList
+// Add the 'id' field that we add manually
 export type Itinerary = SingleItineraryFromAI & { id: string };
 
 // Type for a single hotel option, derived from the itinerary type
+// Ensure all nested types like RoomSchema are also exported or correctly inferred if used directly.
 export type HotelOption = Itinerary["hotelOptions"][0];
+export type Room = NonNullable<HotelOption["rooms"]>[0]; // Gets the type of a single room if rooms array exists
 
 // Type for a single daily plan item, derived from the itinerary type
 export type DailyPlanItem = Itinerary["dailyPlan"][0];
