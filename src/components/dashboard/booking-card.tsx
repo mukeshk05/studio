@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -84,12 +84,14 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
   const { toast } = useToast();
   const [isPackingListDialogOpen, setIsPackingListDialogOpen] = useState(false);
   const [isFactDialogOpen, setIsFactDialogOpen] = useState(false);
+  const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false); // New state for AR/VR dialog
   const [packingList, setPackingList] = useState<string[] | null>(null);
   const [destinationFact, setDestinationFact] = useState<string | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   const hintWords = booking.destination.toLowerCase().split(/[\s,]+/);
   const aiHint = hintWords.slice(0, 2).join(" ");
+  const panoramicAiHint = `panoramic view ${aiHint}`;
 
   const handleFetchPackingList = async () => {
     setIsLoadingAI(true);
@@ -97,7 +99,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     try {
       const duration = booking.dailyPlan && booking.dailyPlan.length > 0 
         ? `${booking.dailyPlan.length} day${booking.dailyPlan.length !== 1 ? 's' : ''}` 
-        : "a few days"; // Fallback duration
+        : "a few days"; 
       
       const input: PackingListInput = {
         destination: booking.destination,
@@ -231,16 +233,19 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
           )}
         </Accordion>
       </CardContent>
-      <CardFooter className="pt-3 flex flex-col sm:flex-row gap-2">
-        <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full sm:flex-1 text-primary border-primary/50 hover:bg-primary/10">
-          <BriefcaseIcon className="mr-2 h-4 w-4" />Suggest Packing List
+      <CardFooter className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full text-primary border-primary/50 hover:bg-primary/10">
+          <BriefcaseIcon className="mr-2 h-4 w-4" />List
         </Button>
-        <Button onClick={() => { setIsFactDialogOpen(true); handleFetchFunFact(); }} variant="outline" size="sm" className="w-full sm:flex-1 text-accent border-accent/50 hover:bg-accent/10">
-          <LightbulbIcon className="mr-2 h-4 w-4" />Fun Fact
+        <Button onClick={() => { setIsFactDialogOpen(true); handleFetchFunFact(); }} variant="outline" size="sm" className="w-full text-accent border-accent/50 hover:bg-accent/10">
+          <LightbulbIcon className="mr-2 h-4 w-4" />Fact
         </Button>
-        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full sm:w-auto sm:flex-none text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
+        <Button onClick={() => setIsArVrDialogOpen(true)} variant="outline" size="sm" className="w-full text-purple-400 border-purple-400/50 hover:bg-purple-400/10">
+          <ScanEyeIcon className="mr-2 h-4 w-4" />Preview
+        </Button>
+        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
           {isRemoving ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
-          <span className="sm:hidden ml-2">Remove</span>
+          Remove
         </Button>
       </CardFooter>
     </Card>
@@ -255,7 +260,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             </AlertDialogDescription>
             </AlertDialogHeader>
             <ScrollArea className="max-h-60 my-4">
-                {isLoadingAI ? (
+                {isLoadingAI && !packingList ? (
                     <div className="flex items-center justify-center p-4 text-muted-foreground">
                         <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Generating list...
                     </div>
@@ -283,7 +288,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="my-4 min-h-[50px]">
-            {isLoadingAI ? (
+            {isLoadingAI && !destinationFact ? (
                 <div className="flex items-center justify-center p-4 text-muted-foreground">
                 <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Discovering fact...
                 </div>
@@ -295,6 +300,41 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             </div>
             <AlertDialogFooter>
             <AlertDialogAction onClick={() => setIsFactDialogOpen(false)} className="bg-primary hover:bg-primary/90">Got it!</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    {/* AR/VR Preview Dialog Placeholder */}
+    <AlertDialog open={isArVrDialogOpen} onOpenChange={setIsArVrDialogOpen}>
+        <AlertDialogContent className={cn(glassEffectClasses, "sm:max-w-lg")}>
+            <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center text-card-foreground">
+                    <ScanEyeIcon className="w-5 h-5 mr-2 text-purple-400"/>Immersive AR/VR Preview
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-muted-foreground">
+                    Get a glimpse of {booking.destination}!
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="my-4 space-y-4">
+                <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/30 shadow-lg">
+                    <Image
+                        src={`https://placehold.co/800x450.png`}
+                        alt={`Conceptual AR/VR Preview for ${booking.destination}`}
+                        fill
+                        className="object-cover"
+                        data-ai-hint={panoramicAiHint}
+                    />
+                </div>
+                <p className="text-sm text-card-foreground/90 text-center">
+                    Imagine stepping into the vibrant streets and landscapes of <strong>{booking.destination}</strong>. 
+                    A full AR/VR experience could bring your travel dreams to life before you even pack your bags!
+                </p>
+                <p className="text-xs text-muted-foreground text-center">
+                    (Full AR/VR feature coming soon. This is a conceptual placeholder.)
+                </p>
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setIsArVrDialogOpen(false)} className="bg-primary hover:bg-primary/90">Awesome!</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
