@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { AppLogo } from "./app-logo";
 import { MainNav } from "./main-nav";
-import { Button, buttonVariants } from "@/components/ui/button"; // Import buttonVariants
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -15,9 +15,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserIcon, LogOutIcon, LogInIcon, UserPlusIcon } from "lucide-react"; // Removed Loader2Icon as Skeleton is used
+import { UserIcon, LogOutIcon, LogInIcon, UserPlusIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils"; // Import cn
+import { cn } from "@/lib/utils";
 
 export function Header() {
   const { currentUser, logout, loading } = useAuth();
@@ -76,10 +76,10 @@ export function Header() {
                 href="/login" 
                 className={cn(
                   buttonVariants({ variant: "outline", size: "sm" }),
-                  "hidden sm:inline-flex"
+                  "hidden sm:inline-flex items-center" // Added items-center
                 )}
               >
-                <LogInIcon /> Login
+                <LogInIcon className="mr-1 h-4 w-4" /> Login {/* Added icon and margin */}
               </Link>
               <Link 
                 href="/login" 
@@ -94,11 +94,11 @@ export function Header() {
               <Link 
                 href="/signup" 
                 className={cn(
-                  buttonVariants({ variant: "default", size: "sm" }), // Default variant for signup
-                  "hidden sm:inline-flex"
+                  buttonVariants({ variant: "default", size: "sm" }),
+                  "hidden sm:inline-flex items-center" // Added items-center
                 )}
               >
-                <UserPlusIcon /> Sign Up
+                <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up {/* Added icon and margin */}
               </Link>
               <Link 
                 href="/signup" 
