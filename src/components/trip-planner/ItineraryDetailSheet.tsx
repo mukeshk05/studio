@@ -13,17 +13,18 @@ import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XIcon, MapPinIcon } from "lucide-react";
+import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, ExternalLinkIcon, Loader2Icon } from "lucide-react"; // Added SendIcon
 import { cn } from "@/lib/utils";
-import React from 'react'; // Ensure React is imported
+import React from 'react'; 
 
 type ItineraryDetailSheetProps = {
   isOpen: boolean;
   onClose: () => void;
   itinerary: Itinerary;
-  onSaveTrip: (itinerary: Omit<Itinerary, 'id'>) => void;
+  onSaveTrip: (itineraryData: Omit<Itinerary, 'id'>) => void;
   isTripSaved: boolean;
   isSaving?: boolean;
+  onInitiateBooking: (itinerary: Itinerary) => void; // New prop
 };
 
 export function ItineraryDetailSheet({
@@ -33,12 +34,17 @@ export function ItineraryDetailSheet({
   onSaveTrip,
   isTripSaved,
   isSaving,
+  onInitiateBooking, // Destructure new prop
 }: ItineraryDetailSheetProps) {
   if (!itinerary) return null;
 
   const handleSave = () => {
     const { id, ...dataToSave } = itinerary;
     onSaveTrip(dataToSave);
+  };
+  
+  const handleBook = () => {
+    onInitiateBooking(itinerary); // Call the passed handler
   };
 
   const itineraryForCard: Itinerary = 'id' in itinerary && itinerary.id
@@ -72,9 +78,9 @@ export function ItineraryDetailSheet({
           <div className="p-4 sm:p-6 space-y-6">
             <ItineraryCard
               itinerary={itineraryForCard}
-              onSaveTrip={handleSave}
-              isSaved={isTripSaved}
-              isSaving={isSaving}
+              onSaveTrip={handleSave} // This is internal to ItineraryCard now
+              isSaved={isTripSaved} // This is internal to ItineraryCard now
+              isSaving={isSaving} // This is internal to ItineraryCard now
               isDetailedView={true}
             />
 
@@ -105,6 +111,25 @@ export function ItineraryDetailSheet({
             </div>
           </div>
         </ScrollArea>
+         <div className="p-4 sm:p-6 border-t border-border/30 bg-background/80 backdrop-blur-sm flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={handleSave} 
+              disabled={isTripSaved || isSaving} 
+              className="w-full sm:flex-1" 
+              variant={isTripSaved ? "secondary" : "outline"}
+            >
+              {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
+              {isSaving ? "Saving..." : isTripSaved ? "Saved To Dashboard" : "Save Trip"}
+            </Button>
+            <Button 
+              onClick={handleBook} 
+              className="w-full sm:flex-1 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
+              variant="default"
+            >
+              <SendIcon className="mr-2 h-4 w-4" />
+              Start Booking Process
+            </Button>
+        </div>
       </SheetContent>
     </Sheet>
   );

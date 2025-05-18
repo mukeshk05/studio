@@ -10,7 +10,7 @@ import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
-import { MessageSquarePlusIcon, HistoryIcon } from "lucide-react";
+import { MessageSquarePlusIcon, HistoryIcon, SendIcon } from "lucide-react"; // Added SendIcon
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
@@ -19,9 +19,10 @@ import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
 
 export interface ChatMessage {
   id: string;
-  type: "user" | "ai" | "error" | "loading" | "system";
+  type: "user" | "ai" | "error" | "loading" | "system" | "booking_guidance"; // Added booking_guidance
   payload?: any;
   timestamp: Date;
+  title?: string; // Optional title for certain message types
 }
 
 export default function TripPlannerPage() {
@@ -35,7 +36,7 @@ export default function TripPlannerPage() {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const { data: savedTrips, isLoading: isLoadingSavedTrips } = useSavedTrips();
-  const { data: userPersona } = useGetUserTravelPersona(); // Fetch user's travel persona
+  const { data: userPersona } = useGetUserTravelPersona();
   const addSavedTripMutation = useAddSavedTrip();
   const addSearchHistoryMutation = useAddSearchHistory();
 
@@ -115,14 +116,13 @@ export default function TripPlannerPage() {
 
     setChatHistory((prev) => [...prev, userMessage, loadingMessage]);
 
-    // Augment input with userPersona if available
     const plannerInput: AITripPlannerInput = {
       ...input,
       userPersona: userPersona ? { name: userPersona.name, description: userPersona.description } : undefined,
     };
 
     try {
-      const result: AITripPlannerOutput = await aiTripPlanner(plannerInput); // Use augmented input
+      const result: AITripPlannerOutput = await aiTripPlanner(plannerInput);
       const itinerariesFromAI: Omit<Itinerary, 'id'>[] = (result.itineraries || []).map((it) => ({
         ...it,
         destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
@@ -136,7 +136,7 @@ export default function TripPlannerPage() {
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         type: "ai",
-        payload: itinerariesFromAI.map(it => ({...it, id: `temp-${crypto.randomUUID()}`})),
+        payload: {itineraries: itinerariesFromAI.map(it => ({...it, id: `temp-${crypto.randomUUID()}`})), personalizationNote: result.personalizationNote},
         timestamp: new Date(),
       };
       setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(aiMessage));
@@ -210,6 +210,28 @@ export default function TripPlannerPage() {
     );
   };
 
+  const handleInitiateBookingGuidance = (itinerary: Itinerary) => {
+    const flightSearchUrl = `https://www.google.com/travel/flights?q=flights+to+${encodeURIComponent(itinerary.destination)}`;
+    const hotelSearchUrl = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(itinerary.destination)}`;
+
+    const guidanceMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      type: "booking_guidance",
+      title: `Booking Guidance for ${itinerary.destination}`,
+      payload: `Okay, let's get you started with booking your trip to ${itinerary.destination} for ${itinerary.travelDates}!
+      
+Here are some helpful links:
+✈️ Search for flights: [Google Flights](${flightSearchUrl})
+🏨 Find hotels: [Booking.com](${hotelSearchUrl})
+
+Remember to compare prices and check cancellation policies before booking. Happy travels!`,
+      timestamp: new Date(),
+    };
+    setChatHistory(prev => [...prev, guidanceMessage]);
+    setIsDetailSheetOpen(false); // Close the detail sheet after initiating guidance
+  };
+
+
   const isAiProcessing = chatHistory.some(msg => msg.type === 'loading');
 
   const handleSelectHistoryEntry = (entryData: Partial<AITripPlannerInput>) => {
@@ -229,8 +251,6 @@ export default function TripPlannerPage() {
     setIsInputSheetOpen(true);
   };
 
-  // Function to handle trip planning from dashboard (e.g., smart bundle)
-  // This effect listens for localStorage changes and opens the sheet.
   useEffect(() => {
     const handleStorageChange = () => {
         const bundledTripData = localStorage.getItem('tripBundleToPlan');
@@ -247,21 +267,15 @@ export default function TripPlannerPage() {
         }
     };
     
-    // Check on mount
     handleStorageChange();
-
-    // Listen for storage events (e.g., if set by another tab, though less likely here)
     window.addEventListener('storage', handleStorageChange);
-    // Listen for custom event if 'tripBundleToPlan' is set by same-page navigation (more reliable)
     window.addEventListener('localStorageUpdated_tripBundleToPlan', handleStorageChange);
-
 
     return () => {
         window.removeEventListener('storage', handleStorageChange);
         window.removeEventListener('localStorageUpdated_tripBundleToPlan', handleStorageChange);
     };
   }, []);
-
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
@@ -295,7 +309,7 @@ export default function TripPlannerPage() {
               size="lg"
               disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing || addSearchHistoryMutation.isPending}
             >
-              <MessageSquarePlusIcon className="w-6 h-6 mr-2" />
+              {isAiProcessing ? <MessageSquarePlusIcon className="w-6 h-6 mr-2 animate-pulse" /> : <MessageSquarePlusIcon className="w-6 h-6 mr-2" />}
               {isAiProcessing ? "AI is thinking..." : "Plan New Trip"}
             </Button>
         </div>
@@ -323,6 +337,7 @@ export default function TripPlannerPage() {
           onSaveTrip={handleSaveTrip}
           isTripSaved={isTripSaved(selectedItinerary)}
           isSaving={addSavedTripMutation.isPending}
+          onInitiateBooking={handleInitiateBookingGuidance} // Pass the new handler
         />
       )}
     </div>
