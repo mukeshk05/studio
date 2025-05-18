@@ -15,7 +15,10 @@ import {
   LightbulbIcon, 
   BookOpenTextIcon, 
   CheckCircleIcon,
-  Wand2Icon
+  Wand2Icon,
+  ListChecksIcon, // Added for Features
+  HeartIcon,      // Added for Why Us
+  LogInIcon       // Used for App/Get Started, could also be AppWindowIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -68,7 +71,7 @@ export default function LandingPage() {
     },
     {
       icon: <Wand2Icon className="w-10 h-10 text-accent mb-4" />, 
-      title: "Aura AI: Smart Assistant",
+      title: "Aura AI: Your Smart Assistant",
       description: "Ask Aura for trip ideas in natural language! From 'weekend beach getaways' to 'adventure in the Andes,' get personalized trip bundles based on your profile and search history.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
@@ -136,17 +139,19 @@ export default function LandingPage() {
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
           <AppLogo />
           <nav className="flex items-center space-x-2 sm:space-x-4">
-            <Link href="#features" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors">
-              Features
+            <Link href="#features" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
+              <ListChecksIcon className="w-4 h-4" /> Features
             </Link>
-            <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors">
-              Why Us
+            <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
+              <HeartIcon className="w-4 h-4" /> Why Us
             </Link>
-            <Button asChild variant="ghost" className="text-sm text-slate-100 hover:bg-primary/10 hover:text-primary">
-              <Link href="/planner">App</Link>
+            <Button asChild variant="ghost" className="text-sm text-slate-100 hover:bg-primary/10 hover:text-primary flex items-center gap-1.5">
+              <Link href="/planner"><LogInIcon className="w-4 h-4" /> App</Link>
             </Button>
              <Button asChild className={cn("text-sm hidden sm:inline-flex transform transition-transform hover:scale-105 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40")}>
-              <Link href="/planner">Get Started</Link>
+              <Link href="/planner" className="flex items-center gap-1.5">
+                <LogInIcon className="w-4 h-4" /> Get Started
+              </Link>
             </Button>
           </nav>
         </div>
@@ -193,7 +198,6 @@ export default function LandingPage() {
               <Carousel
                 opts={{ loop: true, align: "start" }}
                 className="w-full"
-                // autoplay plugin can be added here if needed: plugins={[Autoplay({ delay: 5000 })]}
               >
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
@@ -205,7 +209,7 @@ export default function LandingPage() {
                             layout="fill"
                             objectFit="cover"
                             data-ai-hint={image.aiHint}
-                            priority={index === 0} // Prioritize loading the first image
+                            priority={index === 0}
                             className="rounded-lg"
                         />
                       </div>
