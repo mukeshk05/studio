@@ -50,6 +50,12 @@ If rain is likely for typically outdoor activities, suggest indoor alternatives 
 This consideration should be subtly woven into the daily plan.
 {{/if}}
 
+{{#if riskContext}}
+The user has provided the following risk context or concerns: {{{riskContext}}}.
+Please explicitly consider this information when suggesting activities and accommodations. If necessary, add brief warnings, suggest alternatives, or note precautions in the daily plan or trip summary related to these risks.
+{{else}}
+When planning, also generally consider common travel advisories or potential risks for the destination and travel dates (e.g., peak tourist season causing crowds, common weather issues for that time of year, general safety tips for the area). If significant, subtly mention relevant considerations, alternatives, or precautions in the daily plan or trip summary.
+{{/if}}
 
 You will generate a range of possible itineraries based on the user's budget, destination and travel dates.
 For each itinerary:
@@ -177,25 +183,26 @@ const aiTripPlannerFlow = ai.defineFlow(
       })
     );
 
-    let personalizationNote: string | undefined = undefined;
+    let personalizationNoteParts: string[] = [];
     if (input.userPersona?.name) {
-      personalizationNote = `Tailored for the '${input.userPersona.name}' travel style.`;
+      personalizationNoteParts.push(`Tailored for the '${input.userPersona.name}' travel style.`);
     }
     if (input.desiredMood) {
-        if(personalizationNote) {
-            personalizationNote += ` Focused on a '${input.desiredMood}' vibe.`
-        } else {
-            personalizationNote = `Focused on a '${input.desiredMood}' vibe.`
-        }
+        personalizationNoteParts.push(`Focused on a '${input.desiredMood}' vibe.`);
     }
     if (input.weatherContext) {
-        const weatherNote = "Weather context considered in planning.";
-         if(personalizationNote) {
-            personalizationNote += ` ${weatherNote}`
-        } else {
-            personalizationNote = weatherNote;
-        }
+        personalizationNoteParts.push("Specific weather context considered.");
+    } else {
+        personalizationNoteParts.push("General weather patterns considered.");
     }
+
+    if (input.riskContext) {
+        personalizationNoteParts.push("Specific risk context considered.");
+    } else {
+        personalizationNoteParts.push("General risk factors considered.");
+    }
+    
+    const personalizationNote = personalizationNoteParts.length > 0 ? personalizationNoteParts.join(' ') : undefined;
 
 
     return { 

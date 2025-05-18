@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
+    // IMPORTANT: This Webpack configuration correctly handles the 'async_hooks' issue
+    // for client-side bundles when Next.js uses Webpack as its bundler.
+    // If you are using `next dev --turbopack`, Turbopack (which is experimental)
+    // may not respect this webpack configuration, leading to persistent 'async_hooks' errors.
+    // In such cases, try running `next dev` (without --turbopack) to use Webpack.
     if (!isServer) {
       // Ensure config.resolve object exists
       config.resolve = config.resolve || {};

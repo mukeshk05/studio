@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { AITripPlannerInput as AITripPlannerInputTypeFromFlow, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import React, { useEffect } from "react"; 
-import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon } from "lucide-react";
+import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon, AlertTriangleIcon } from "lucide-react";
 
 // Local form schema, can include UI-specific refinements or omit fields if needed
 const formSchema = z.object({
@@ -29,7 +29,8 @@ const formSchema = z.object({
   budget: z.coerce.number().positive({
     message: "Budget must be a positive number.",
   }),
-  desiredMood: z.string().optional(), // Added for emotion-based planning
+  desiredMood: z.string().optional(),
+  riskContext: z.string().optional(), // Added for risk context
 });
 
 type TripInputFormProps = {
@@ -54,6 +55,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
       travelDates: initialValues?.travelDates || "",
       budget: initialValues?.budget || 1000,
       desiredMood: initialValues?.desiredMood || "",
+      riskContext: initialValues?.riskContext || "", // Added default
     },
   });
 
@@ -63,6 +65,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
       travelDates: initialValues?.travelDates || "",
       budget: initialValues?.budget || 1000,
       desiredMood: initialValues?.desiredMood || "",
+      riskContext: initialValues?.riskContext || "", // Added reset
     });
   }, [initialValues, form]);
 
@@ -70,13 +73,14 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
   async function handleSubmit(values: z.infer<typeof formSchema>) {
     if (onSubmitProp) {
       setIsLoading(true);
-      // Map local form values to the AITripPlannerInputTypeFromFlow, ensuring all fields match
       const plannerInput: AITripPlannerInputTypeFromFlow = {
         destination: values.destination,
         travelDates: values.travelDates,
         budget: values.budget,
-        desiredMood: values.desiredMood || undefined, // Ensure optional fields are handled
-        userPersona: initialValues?.userPersona, // Preserve persona if it was part of initialValues
+        desiredMood: values.desiredMood || undefined,
+        riskContext: values.riskContext || undefined, // Pass risk context
+        userPersona: initialValues?.userPersona, 
+        weatherContext: initialValues?.weatherContext, // Preserve weather context if it was part of initialValues
       };
       await onSubmitProp(plannerInput);
       setIsLoading(false);
@@ -112,7 +116,8 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
     if (budgetStr) {
       form.setValue("budget", parseInt(budgetStr.replace(/,/g, ''), 10) || 1000);
     }
-    form.setValue("desiredMood", ""); // Clear mood when using a general prompt
+    form.setValue("desiredMood", ""); 
+    form.setValue("riskContext", ""); // Clear risk context when using a general prompt
   };
 
   return (
@@ -166,6 +171,19 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                   <FormLabel className="flex items-center"><LightbulbIcon className="w-4 h-4 mr-2" />Desired Mood/Vibe (Optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Relaxing, Adventurous, Romantic, Cultural" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="riskContext"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center"><AlertTriangleIcon className="w-4 h-4 mr-2" />Known Risks or Concerns (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Rainy season, local festivals, specific safety concerns" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

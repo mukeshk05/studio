@@ -54,11 +54,13 @@ export interface UserTravelPersona {
 // Re-export AITripPlannerOutput from here if needed by UI components
 export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
-// Augment AITripPlannerInput to include the optional userPersona and desiredMood
+// Augment AITripPlannerInput to include all optional fields for clarity
 export type AITripPlannerInput = AITripPlannerInputOriginal & {
   userPersona?: {
     name: string;
     description: string;
   } | null; 
-  desiredMood?: string | null; // Add desiredMood here to ensure it's part of the extended type
+  desiredMood?: string | null;
+  weatherContext?: string | null;
+  riskContext?: string | null;
 };

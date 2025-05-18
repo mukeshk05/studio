@@ -14,6 +14,7 @@ export const AITripPlannerInputSchema = z.object({
   userPersona: UserPersonaSchema.describe("Optional: The user's travel persona to help tailor the trip plan."),
   desiredMood: z.string().optional().describe("Optional: The desired mood or vibe for the trip (e.g., 'relaxing', 'adventurous', 'romantic')."),
   weatherContext: z.string().optional().describe("Optional: General weather context or forecast summary for the destination and dates. If not provided, AI should infer based on typical conditions."),
+  riskContext: z.string().optional().describe("Optional: User-provided specific risks or concerns for the trip (e.g., 'traveling during hurricane season', 'concerned about pickpockets in busy areas')."),
 });
 export type AITripPlannerInput = z.infer<typeof AITripPlannerInputSchema>;
 
@@ -60,7 +61,7 @@ export const ItineraryItemSchema = z.object({
 
 export const AITripPlannerOutputSchema = z.object({
   itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including generated images for destination, hotels, and hotel rooms, and a structured daily plan.'),
-  personalizationNote: z.string().optional().describe("A note indicating if and how the results were personalized based on the user's travel persona or desired mood.")
+  personalizationNote: z.string().optional().describe("A note indicating if and how the results were personalized based on the user's travel persona, desired mood, or other factors.")
 });
 export type AITripPlannerOutput = z.infer<typeof AITripPlannerOutputSchema>;
 
