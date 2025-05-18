@@ -1,3 +1,4 @@
+
 "use client";
 
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -7,8 +8,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { BellRingIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+const EMPTY_TRACKED_ITEMS: PriceTrackerEntry[] = [];
+
 export function PriceTrackerList() {
-  const [trackedItems, setTrackedItems] = useLocalStorage<PriceTrackerEntry[]>("trackedItems", []);
+  const [trackedItems, setTrackedItems] = useLocalStorage<PriceTrackerEntry[]>("trackedItems", EMPTY_TRACKED_ITEMS);
   const { toast } = useToast();
 
   const handleRemoveItem = (itemId: string) => {

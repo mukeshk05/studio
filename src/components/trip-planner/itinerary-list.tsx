@@ -15,8 +15,10 @@ type ItineraryListProps = {
   isLoading: boolean;
 };
 
+const EMPTY_SAVED_TRIPS: Itinerary[] = [];
+
 export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
-  const [savedTrips, setSavedTrips] = useLocalStorage<Itinerary[]>("savedTrips", []);
+  const [savedTrips, setSavedTrips] = useLocalStorage<Itinerary[]>("savedTrips", EMPTY_SAVED_TRIPS);
   const [cardsVisible, setCardsVisible] = React.useState(false);
 
   React.useEffect(() => {
@@ -103,4 +105,3 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
     </div>
   );
 }
-
