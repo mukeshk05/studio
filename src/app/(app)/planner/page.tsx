@@ -42,15 +42,15 @@ export default function TripPlannerPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Check for a bundle passed from dashboard via localStorage
+    // Check for a bundle/quiz trip idea passed via localStorage
     const bundledTripData = localStorage.getItem('tripBundleToPlan');
     if (bundledTripData) {
       try {
         const tripIdea: AITripPlannerInput = JSON.parse(bundledTripData);
         setCurrentFormInitialValues(tripIdea);
-        setIsInputSheetOpen(true);
+        setIsInputSheetOpen(true); // Open the input sheet directly
       } catch (e) {
-        console.error("Error parsing trip bundle data from localStorage:", e);
+        console.error("Error parsing trip bundle/quiz data from localStorage:", e);
       } finally {
         localStorage.removeItem('tripBundleToPlan'); // Clear it after use
       }
@@ -59,7 +59,7 @@ export default function TripPlannerPage() {
         {
           id: crypto.randomUUID(),
           type: "system",
-          payload: "Welcome to BudgetRoam AI Trip Planner! Click 'Plan New Trip' below or 'View Plan History' above to get started.",
+          payload: "Welcome to BudgetRoam AI Trip Planner! Click 'Plan New Trip' below or 'View Plan History' to get started.",
           timestamp: new Date(),
         },
       ]);
@@ -74,7 +74,7 @@ export default function TripPlannerPage() {
       ]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, isLoadingSavedTrips]); // Not adding chatHistory here to avoid loop with initial system message
+  }, [currentUser, isLoadingSavedTrips]); 
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -232,7 +232,7 @@ export default function TripPlannerPage() {
           variant="outline"
           size="sm"
           onClick={() => setIsSearchHistoryDrawerOpen(true)}
-          disabled={!currentUser || addSearchHistoryMutation.isPending}
+          disabled={!currentUser || addSearchHistoryMutation.isPending || isAiProcessing}
           className="glass-interactive border-primary/30 text-primary hover:bg-primary/20"
         >
           <HistoryIcon className="w-4 h-4 mr-2" />

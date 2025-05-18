@@ -3,7 +3,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,34 +15,19 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SendIcon, SparklesIcon } from "lucide-react";
 import React from "react";
+import { AdventureQuizInputSchema, type AdventureQuizInput } from "@/ai/types/adventure-matcher-types"; // Updated import
 
-const quizSchema = z.object({
-  pace: z.enum(["relaxing", "balanced", "action-packed"], {
-    required_error: "Please select your ideal vacation pace.",
-  }),
-  environment: z.enum(["beach", "mountains", "city", "countryside"], {
-    required_error: "Please select your preferred environment.",
-  }),
-  interest: z.enum(["culture-history", "food-drink", "adventure-outdoors", "wellness-relaxation"], {
-    required_error: "Please select your primary travel interest.",
-  }),
-  style: z.enum(["budget", "mid-range", "luxury"], {
-    required_error: "Please select your travel style.",
-  }),
-  company: z.enum(["solo", "partner", "family", "friends"], {
-    required_error: "Please select who you usually travel with.",
-  }),
-});
-
-type QuizFormValues = z.infer<typeof quizSchema>;
+// Zod schema is now imported from adventure-matcher-types.ts
+// const quizSchema = ... (removed from here)
 
 interface AdventureQuizFormProps {
-  onSubmit: (data: QuizFormValues) => void;
+  onSubmit: (data: AdventureQuizInput) => void;
+  isSubmitting?: boolean; // Added prop for loading state
 }
 
 const quizQuestions = [
   {
-    name: "pace" as keyof QuizFormValues,
+    name: "pace" as keyof AdventureQuizInput,
     label: "What's your ideal vacation pace?",
     options: [
       { value: "relaxing", label: "Relaxing (Chilling out, leisurely activities)" },
@@ -52,7 +36,7 @@ const quizQuestions = [
     ],
   },
   {
-    name: "environment" as keyof QuizFormValues,
+    name: "environment" as keyof AdventureQuizInput,
     label: "Which environment recharges you the most?",
     options: [
       { value: "beach", label: "Sandy Beaches & Ocean Breezes" },
@@ -62,7 +46,7 @@ const quizQuestions = [
     ],
   },
   {
-    name: "interest" as keyof QuizFormValues,
+    name: "interest" as keyof AdventureQuizInput,
     label: "What's your primary travel interest?",
     options: [
       { value: "culture-history", label: "Culture & History (Museums, ancient sites)" },
@@ -72,7 +56,7 @@ const quizQuestions = [
     ],
   },
   {
-    name: "style" as keyof QuizFormValues,
+    name: "style" as keyof AdventureQuizInput,
     label: "How would you describe your travel style?",
     options: [
       { value: "budget", label: "Budget-friendly (Hostels, local eateries)" },
@@ -81,7 +65,7 @@ const quizQuestions = [
     ],
   },
   {
-    name: "company" as keyof QuizFormValues,
+    name: "company" as keyof AdventureQuizInput,
     label: "Who do you usually travel with?",
     options: [
       { value: "solo", label: "Solo Adventure" },
@@ -92,14 +76,20 @@ const quizQuestions = [
   },
 ];
 
-export function AdventureQuizForm({ onSubmit }: AdventureQuizFormProps) {
-  const form = useForm<QuizFormValues>({
-    resolver: zodResolver(quizSchema),
+export function AdventureQuizForm({ onSubmit, isSubmitting }: AdventureQuizFormProps) {
+  const form = useForm<AdventureQuizInput>({
+    resolver: zodResolver(AdventureQuizInputSchema),
+    defaultValues: { // Provide default values to avoid uncontrolled component warnings
+        pace: undefined, 
+        environment: undefined,
+        interest: undefined,
+        style: undefined,
+        company: undefined,
+    }
   });
 
-  function handleFormSubmit(data: QuizFormValues) {
+  function handleFormSubmit(data: AdventureQuizInput) {
     onSubmit(data);
-    // form.reset(); // Optionally reset form after submission
   }
 
   return (
@@ -141,8 +131,8 @@ export function AdventureQuizForm({ onSubmit }: AdventureQuizFormProps) {
             )}
           />
         ))}
-        <Button type="submit" className="w-full text-lg py-6 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? (
+        <Button type="submit" className="w-full text-lg py-6 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={isSubmitting || form.formState.isSubmitting}>
+          {isSubmitting || form.formState.isSubmitting ? (
             <SparklesIcon className="mr-2 h-5 w-5 animate-pulse" />
           ) : (
             <SendIcon className="mr-2 h-5 w-5" />
