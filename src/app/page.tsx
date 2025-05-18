@@ -17,7 +17,12 @@ import {
   HeartIcon,
   LogInIcon,
   Wand2Icon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  BarChart3Icon, // For price suite
+  UsersRoundIcon, // For group planning
+  BrainIcon, // For Travel DNA
+  MessageSquareHeartIcon, // For Aura AI
+  NotebookTextIcon // For Memories
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -50,37 +55,44 @@ export default function LandingPage() {
     {
       icon: <NavigationIcon className="w-10 h-10 text-primary mb-4" />,
       title: "AI-Powered Trip Planner",
-      description: "Personalized itineraries in seconds! Tell us your destination, dates, budget, mood, and even your Travel DNA. Our AI crafts detailed daily plans and hotel options, considering weather and risks.",
+      description: "Personalized itineraries in seconds! Define your destination, dates, budget, mood, and Travel DNA. Our AI crafts detailed daily plans and hotel options, considering weather and risks.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "intelligent itinerary generation"
     },
     {
-      icon: <TrendingUpIcon className="w-10 h-10 text-accent mb-4" />,
+      icon: <BarChart3Icon className="w-10 h-10 text-accent mb-4" />,
       title: "Smart Price Suite",
       description: "Never miss a deal. Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecasts to make informed decisions.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai price analysis chart"
     },
     {
-      icon: <BrainCircuitIcon className="w-10 h-10 text-primary mb-4" />,
+      icon: <BrainIcon className="w-10 h-10 text-primary mb-4" />,
       title: "Discover Your Travel DNA",
       description: "Take our Adventure Quiz to uncover your unique travel persona. This helps Aura AI personalize all your future travel suggestions and trip plans!",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <Wand2Icon className="w-10 h-10 text-accent mb-4" />, 
+      icon: <MessageSquareHeartIcon className="w-10 h-10 text-accent mb-4" />, 
       title: "Aura AI: Your Smart Assistant",
-      description: "Ask Aura for trip ideas in natural language! From 'weekend beach getaways' to 'adventure in the Andes,' get personalized trip bundles based on your profile and search history.",
+      description: "Ask Aura for trip ideas using natural language! Get personalized trip bundles based on your profile and search history.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
     },
     {
-      icon: <UsersIcon className="w-10 h-10 text-primary mb-4" />,
-      title: "Effortless Group Planning & Memories",
-      description: "Sync trip plans with your group's preferences using AI insights. Plus, generate nostalgic AI-crafted memories from your saved adventures.",
+      icon: <UsersRoundIcon className="w-10 h-10 text-primary mb-4" />,
+      title: "Effortless Group Planning",
+      description: "Sync trip plans with your group's preferences using AI insights to ensure everyone has a great time.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai group travel collaboration"
+    },
+    {
+      icon: <NotebookTextIcon className="w-10 h-10 text-accent mb-4" />,
+      title: "AI Trip Memory Archive",
+      description: "Let AI craft nostalgic memory snippets from your saved adventures. Revisit and cherish your travel moments.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "ai travel journal diary"
     }
   ];
 
@@ -132,7 +144,7 @@ export default function LandingPage() {
           quality={90}
           priority
         />
-        <div className="absolute inset-0 bg-black/40 dark:bg-background/60"></div>
+        <div className="absolute inset-0 bg-black/40 dark:bg-black/40"></div> {/* Adjusted overlay */}
       </div>
 
       <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
