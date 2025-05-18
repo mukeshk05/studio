@@ -21,7 +21,7 @@ import {
   BarChart3Icon, 
   UsersRoundIcon, 
   BrainIcon, 
-  MessageSquareTextIcon, // Changed from MessageSquareHeartIcon
+  MessageSquareTextIcon,
   NotebookTextIcon,
   AppWindowIcon
 } from 'lucide-react';
@@ -375,4 +375,6 @@ export default function LandingPage() {
     </div>
   );
 }
+    
+
     
