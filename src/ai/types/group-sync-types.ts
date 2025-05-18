@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Group Sync feature.
  */
@@ -29,3 +28,4 @@ export const GroupSyncOutputSchema = z.object({
   compatibilityReport: z.string().describe("A comprehensive report detailing trip compatibility for the group, including an overview and specific suggestions for adjustments. Should be formatted for readability (e.g., using markdown-like structure)."),
 });
 export type GroupSyncOutput = z.infer<typeof GroupSyncOutputSchema>;
+
