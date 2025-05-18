@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppLogo } from '@/components/layout/app-logo';
 import { 
@@ -12,13 +12,11 @@ import {
   TrendingUpIcon, 
   BrainCircuitIcon, 
   UsersIcon, 
-  LightbulbIcon, 
-  BookOpenTextIcon, 
-  CheckCircleIcon,
-  Wand2Icon,
+  LightbulbIcon,
   ListChecksIcon,
   HeartIcon,
-  LogInIcon
+  LogInIcon,
+  Wand2Icon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -94,7 +92,7 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x678.png", alt: "Tablet displaying world map travel route", aiHint: "tablet displaying world map travel route" },
+    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai visualization travel app tablet" },
     { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
     { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
@@ -128,7 +126,7 @@ export default function LandingPage() {
           src="https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg"
           alt="Tropical beach with palm trees and clear blue water"
           fill
-          objectFit="cover"
+          className="object-cover"
           quality={90}
           priority
         />
@@ -206,11 +204,10 @@ export default function LandingPage() {
                         <Image 
                             src={image.src} 
                             alt={image.alt} 
-                            layout="fill"
-                            objectFit="cover"
+                            fill
+                            className="object-cover rounded-lg"
                             data-ai-hint={image.aiHint}
                             priority={index === 0}
-                            className="rounded-lg"
                         />
                       </div>
                     </CarouselItem>
@@ -255,10 +252,9 @@ export default function LandingPage() {
                               <Image 
                                   src={feature.imgSrc} 
                                   alt={feature.title} 
-                                  layout="fill" 
-                                  objectFit="cover" 
+                                  fill 
+                                  className="object-cover rounded-md group-hover:scale-110 transition-transform duration-300"
                                   data-ai-hint={feature.aiHint} 
-                                  className="rounded-md group-hover:scale-110 transition-transform duration-300"
                               />
                           </div>
                           <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -304,9 +300,8 @@ export default function LandingPage() {
                 <Image
                     src="https://placehold.co/600x600.png"
                     alt="Diverse travelers enjoying AI-planned trips"
-                    layout="fill"
-                    objectFit="cover"
-                    className="rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-500 ease-out"
+                    fill
+                    className="object-cover rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-500 ease-out"
                     data-ai-hint="happy traveler destination"
                 />
               </div>
