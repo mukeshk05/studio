@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon } from "lucide-react";
+import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, BriefcaseIcon, SparklesIcon, TrendingUpIcon } from "lucide-react";
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSavedTrips, useTrackedItems } from "@/lib/firestoreHooks";
 import { cn } from "@/lib/utils";
 
 
@@ -20,6 +21,8 @@ export default function DashboardPage() {
   const [isTipLoading, setIsTipLoading] = useState(false);
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { data: savedTrips, isLoading: isLoadingTrips } = useSavedTrips();
+  const { data: trackedItems, isLoading: isLoadingTrackedItems } = useTrackedItems();
 
   const fetchNewTravelTip = async () => {
     setIsTipLoading(true);
@@ -47,11 +50,34 @@ export default function DashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]); 
 
+  const userName = currentUser?.displayName || currentUser?.email?.split('@')[0] || "Explorer";
+  const numSavedTrips = savedTrips?.length || 0;
+  const numTrackedItems = trackedItems?.length || 0;
+
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold tracking-tight mb-6 text-foreground">Your Dashboard</h1>
+      <Card className={cn("mb-8 p-6", "glass-card")}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome back, {userName}!</h1>
+                <p className="text-muted-foreground mt-1">
+                    You have {numSavedTrips} saved trip{numSavedTrips !== 1 ? 's' : ''} and {numTrackedItems} item{numTrackedItems !== 1 ? 's' : ''} in your price tracker.
+                </p>
+            </div>
+            <div className="flex items-center gap-2 mt-4 sm:mt-0">
+                <Button variant="outline" size="sm" className="glass-interactive border-primary/30 text-primary hover:bg-primary/20" onClick={() => document.getElementById('my-trips-trigger')?.click()}>
+                    <ListChecksIcon className="w-4 h-4 mr-2" />
+                    View Trips
+                </Button>
+                 <Button variant="outline" size="sm" className="glass-interactive border-accent/30 text-accent hover:bg-accent/20" onClick={() => document.getElementById('price-tracker-trigger')?.click()}>
+                    <TrendingUpIcon className="w-4 h-4 mr-2" />
+                    Price Tracker
+                </Button>
+            </div>
+        </div>
+      </Card>
 
-      <Card className={cn("mb-8", "glass-card")}> {/* Applied glass-card */}
+      <Card className={cn("mb-8", "glass-card")}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center text-lg text-card-foreground">
@@ -83,19 +109,19 @@ export default function DashboardPage() {
       <Tabs defaultValue="my-trips" className="w-full">
         <TabsList className={cn(
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg", 
-            "bg-muted/30 dark:bg-card/30 backdrop-blur-sm border border-white/10 dark:border-black/20 shadow-md" // Glassy TabsList
+            "bg-muted/30 dark:bg-card/30 backdrop-blur-sm border border-white/10 dark:border-black/20 shadow-md" 
           )}>
-          <TabsTrigger value="my-trips" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+          <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
           </TabsTrigger>
-          <TabsTrigger value="price-tracker" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+          <TabsTrigger value="price-tracker" id="price-tracker-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <BellRingIcon className="w-5 h-5" />
             Price Tracker
           </TabsTrigger>
         </TabsList>
         
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card")}> {/* Applied glass-card to TabsContent wrapper */}
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card")}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>

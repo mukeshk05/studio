@@ -1,18 +1,33 @@
 
 "use client";
 
+import React, { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { getPackingList, PackingListInput, PackingListOutput } from "@/ai/flows/packing-list-flow";
+import { getDestinationFact, DestinationFactInput, DestinationFactOutput } from "@/ai/flows/destination-fact-flow";
 import { cn } from "@/lib/utils";
 
 type BookingCardProps = {
@@ -63,14 +78,62 @@ function SavedDailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
     </div>
   );
 }
-const glassEffectClasses = "glass-card"; // Using utility from globals.css
+const glassEffectClasses = "glass-card"; 
 
 export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCardProps) {
-  
+  const { toast } = useToast();
+  const [isPackingListDialogOpen, setIsPackingListDialogOpen] = useState(false);
+  const [isFactDialogOpen, setIsFactDialogOpen] = useState(false);
+  const [packingList, setPackingList] = useState<string[] | null>(null);
+  const [destinationFact, setDestinationFact] = useState<string | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+
   const hintWords = booking.destination.toLowerCase().split(/[\s,]+/);
   const aiHint = hintWords.slice(0, 2).join(" ");
 
+  const handleFetchPackingList = async () => {
+    setIsLoadingAI(true);
+    setPackingList(null);
+    try {
+      const duration = booking.dailyPlan && booking.dailyPlan.length > 0 
+        ? `${booking.dailyPlan.length} day${booking.dailyPlan.length !== 1 ? 's' : ''}` 
+        : "a few days"; // Fallback duration
+      
+      const input: PackingListInput = {
+        destination: booking.destination,
+        travelDates: booking.travelDates,
+        tripDuration: duration,
+      };
+      const result: PackingListOutput = await getPackingList(input);
+      setPackingList(result.packingList);
+    } catch (error) {
+      console.error("Error fetching packing list:", error);
+      toast({ title: "Error", description: "Could not fetch packing list.", variant: "destructive" });
+      setPackingList(["Failed to load packing list."]);
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
+  const handleFetchFunFact = async () => {
+    setIsLoadingAI(true);
+    setDestinationFact(null);
+    try {
+      const input: DestinationFactInput = { destination: booking.destination };
+      const result: DestinationFactOutput = await getDestinationFact(input);
+      setDestinationFact(result.fact);
+    } catch (error) {
+      console.error("Error fetching fun fact:", error);
+      toast({ title: "Error", description: "Could not fetch fun fact.", variant: "destructive" });
+      setDestinationFact("Failed to load fun fact.");
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
+
   return (
+    <>
     <Card className={cn(glassEffectClasses, "flex flex-col overflow-hidden border-primary/20")}>
       {booking.destinationImageUri && (
         <div className="relative w-full h-40 group">
@@ -167,14 +230,74 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             </AccordionItem>
           )}
         </Accordion>
-
       </CardContent>
-      <CardFooter className="pt-3">
-        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/50" disabled={isRemoving}>
-          {isRemoving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <Trash2Icon className="mr-2 h-4 w-4" />}
-          {isRemoving ? "Removing..." : "Remove Trip"}
+      <CardFooter className="pt-3 flex flex-col sm:flex-row gap-2">
+        <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full sm:flex-1 text-primary border-primary/50 hover:bg-primary/10">
+          <BriefcaseIcon className="mr-2 h-4 w-4" />Suggest Packing List
+        </Button>
+        <Button onClick={() => { setIsFactDialogOpen(true); handleFetchFunFact(); }} variant="outline" size="sm" className="w-full sm:flex-1 text-accent border-accent/50 hover:bg-accent/10">
+          <LightbulbIcon className="mr-2 h-4 w-4" />Fun Fact
+        </Button>
+        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full sm:w-auto sm:flex-none text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
+          {isRemoving ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
+          <span className="sm:hidden ml-2">Remove</span>
         </Button>
       </CardFooter>
     </Card>
+
+    {/* Packing List Dialog */}
+    <AlertDialog open={isPackingListDialogOpen} onOpenChange={setIsPackingListDialogOpen}>
+        <AlertDialogContent className={cn(glassEffectClasses)}>
+            <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center text-card-foreground"><BriefcaseIcon className="w-5 h-5 mr-2 text-primary"/>AI Packing List for {booking.destination}</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+                Here's a suggested packing list. Remember to adjust based on your specific needs!
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <ScrollArea className="max-h-60 my-4">
+                {isLoadingAI ? (
+                    <div className="flex items-center justify-center p-4 text-muted-foreground">
+                        <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Generating list...
+                    </div>
+                ) : packingList && packingList.length > 0 ? (
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-card-foreground/90">
+                    {packingList.map((item, index) => <li key={index}>{item}</li>)}
+                    </ul>
+                ) : (
+                     <p className="text-sm text-muted-foreground">No packing list generated or an error occurred.</p>
+                )}
+            </ScrollArea>
+            <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsPackingListDialogOpen(false)} className="bg-primary hover:bg-primary/90">Close</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Fun Fact Dialog */}
+    <AlertDialog open={isFactDialogOpen} onOpenChange={setIsFactDialogOpen}>
+        <AlertDialogContent className={cn(glassEffectClasses)}>
+            <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center text-card-foreground"><LightbulbIcon className="w-5 h-5 mr-2 text-accent"/>Fun Fact about {booking.destination}</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+                A little something interesting about your destination!
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="my-4 min-h-[50px]">
+            {isLoadingAI ? (
+                <div className="flex items-center justify-center p-4 text-muted-foreground">
+                <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Discovering fact...
+                </div>
+            ) : destinationFact ? (
+                <p className="text-sm text-card-foreground/90">{destinationFact}</p>
+            ) : (
+                <p className="text-sm text-muted-foreground">No fact available or an error occurred.</p>
+            )}
+            </div>
+            <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsFactDialogOpen(false)} className="bg-primary hover:bg-primary/90">Got it!</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
