@@ -21,7 +21,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
   const bubbleAlignment = isUser ? "justify-end" : "justify-start";
   const bubbleClasses = isUser
     ? "bg-primary text-primary-foreground rounded-br-none shadow-md shadow-primary/30"
-    : "bg-card/70 text-card-foreground rounded-bl-none glass-card border-border/50";
+    : "glass-card bg-card/70 dark:bg-card/50 rounded-bl-none border-border/50"; // Enhanced AI bubble
 
   const renderPayload = () => {
     switch (message.type) {

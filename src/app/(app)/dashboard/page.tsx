@@ -47,13 +47,11 @@ export default function DashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]); 
 
-  const glassCardClasses = "glass-card"; // Using utility from globals.css
-
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold tracking-tight mb-6 text-foreground">Your Dashboard</h1>
 
-      <Card className={cn("mb-8", glassCardClasses)}>
+      <Card className={cn("mb-8", "glass-card")}> {/* Applied glass-card */}
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center text-lg text-card-foreground">
@@ -83,7 +81,10 @@ export default function DashboardPage() {
       </Card>
 
       <Tabs defaultValue="my-trips" className="w-full">
-        <TabsList className={cn("grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg", glassCardClasses.replace('bg-card/40', 'bg-muted/20').replace('bg-card/60', 'bg-muted/30'))}>
+        <TabsList className={cn(
+            "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg", 
+            "bg-muted/30 dark:bg-card/30 backdrop-blur-sm border border-white/10 dark:border-black/20 shadow-md" // Glassy TabsList
+          )}>
           <TabsTrigger value="my-trips" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -94,7 +95,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
         
-        <div className={cn("p-0 sm:p-2 rounded-xl", glassCardClasses)}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card")}> {/* Applied glass-card to TabsContent wrapper */}
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>

@@ -19,7 +19,10 @@ export function CompactItineraryCard({ itinerary, onViewDetails }: CompactItiner
   const aiHint = hintWords.slice(0, 2).join(" ");
 
   return (
-    <Card className={cn("overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-200 bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/50")}>
+    <Card className={cn(
+        "overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-200", 
+        "glass-card hover:border-primary/50" // Applied glass-card
+        )}>
       <div className="flex">
         {itinerary.destinationImageUri && (
           <div className="relative w-24 h-36 sm:w-32 sm:h-auto shrink-0 group">

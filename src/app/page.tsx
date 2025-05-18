@@ -9,9 +9,8 @@ import { ArrowRightIcon, Wand2Icon, BellRingIcon, BadgePercentIcon, ClipboardLis
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel"; // Added Carousel imports
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 
-// Simple utility for staggered animations.
 const useStaggeredAnimation = (count: number, delayIncrement = 100) => {
   const [visibleItems, setVisibleItems] = useState(Array(count).fill(false));
 
@@ -40,28 +39,28 @@ export default function LandingPage() {
       title: "AI-Powered Trip Planning",
       description: "Enter your destination, dates, and budget. Our AI crafts personalized itineraries in seconds, complete with daily activities and options.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "interactive map trip" // Updated hint
+      aiHint: "interactive map trip"
     },
     {
       icon: <BellRingIcon className="w-10 h-10 text-accent mb-4" />,
       title: "Smart Price Tracker",
       description: "Never miss a deal. Track flight and hotel prices, and get alerts when prices drop below your target.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "notification bell graph" // Updated hint
+      aiHint: "notification bell graph"
     },
     {
       icon: <BadgePercentIcon className="w-10 h-10 text-primary mb-4" />,
       title: "AI Price Advisor",
       description: "Get intelligent advice on your tracked items. Is your target price realistic? Is it a good time to book? Our AI helps you decide.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "financial advisor chart" // Updated hint
+      aiHint: "financial advisor chart"
     },
     {
       icon: <ClipboardListIcon className="w-10 h-10 text-accent mb-4" />,
       title: "Daily Travel Tips",
       description: "Start your day with a fresh travel tip from our AI, covering everything from packing hacks to cultural etiquette.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "travel notebook tips" // Updated hint
+      aiHint: "travel notebook tips"
     }
   ];
 
@@ -89,12 +88,26 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card border-primary/20 hover:border-primary/40 bg-card/80 dark:bg-card/50";
+  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/60"; // Adjusted opacity
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
+      {/* Background Image and Overlay */}
+      <div className="absolute inset-0 z-[-1]">
+        <Image 
+          src="https://placehold.co/1920x1080.png" // Placeholder, replace with your image
+          alt="Scenic travel background"
+          layout="fill"
+          objectFit="cover"
+          quality={90}
+          priority
+          data-ai-hint="scenic travel collage"
+        />
+        <div className="absolute inset-0 bg-black/40 dark:bg-background/60"></div> {/* Overlay */}
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane backdrop-blur-md">
+      <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
           <AppLogo />
           <nav className="flex items-center space-x-2 sm:space-x-4">
@@ -114,13 +127,14 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="flex-grow">
-        <section className="py-20 md:py-32 text-center bg-gradient-to-br from-background via-primary/5 to-accent/5">
+      {/* Main Content sits on top of the background */}
+      <main className="flex-grow z-10">
+        {/* Hero Section */}
+        <section className="py-20 md:py-32 text-center"> {/* Removed bg gradient, relies on full page bg now */}
           <div className="container mx-auto px-4">
             <h1 
               className={cn(
-                "text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground mb-6 transition-all duration-700 ease-out",
+                "text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-6 transition-all duration-700 ease-out", // Text color to white for contrast
                 heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               )}
             >
@@ -128,7 +142,7 @@ export default function LandingPage() {
             </h1>
             <p 
               className={cn(
-                "text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto transition-all duration-700 ease-out delay-200",
+                "text-lg sm:text-xl text-slate-200 dark:text-muted-foreground mb-10 max-w-2xl mx-auto transition-all duration-700 ease-out delay-200", // Adjusted text color
                 heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               )}
             >
@@ -159,7 +173,7 @@ export default function LandingPage() {
                     alt="BudgetRoam App Screenshot Placeholder" 
                     layout="fill"
                     objectFit="cover"
-                    data-ai-hint="travel planning dashboard" // Updated hint
+                    data-ai-hint="travel planning dashboard" 
                     priority
                     className="rounded-lg"
                 />
@@ -168,10 +182,10 @@ export default function LandingPage() {
         </section>
 
         {/* Features Section with Carousel */}
-        <section id="features" className="py-16 md:py-24 bg-background">
+        <section id="features" className="py-16 md:py-24"> {/* Removed bg, relies on full page bg */}
           <div className="container mx-auto px-4">
-            <h2 className={cn("text-3xl sm:text-4xl font-bold text-center text-foreground mb-4 transition-opacity duration-700", heroVisible ? 'opacity-100' : 'opacity-0')}>Everything You Need to Roam on a Budget</h2>
-            <p className={cn("text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto transition-opacity duration-700 delay-200", heroVisible ? 'opacity-100' : 'opacity-0')}>
+            <h2 className={cn("text-3xl sm:text-4xl font-bold text-center text-white mb-4 transition-opacity duration-700", heroVisible ? 'opacity-100' : 'opacity-0')}>Everything You Need to Roam on a Budget</h2>
+            <p className={cn("text-lg text-slate-200 dark:text-muted-foreground text-center mb-12 max-w-xl mx-auto transition-opacity duration-700 delay-200", heroVisible ? 'opacity-100' : 'opacity-0')}>
               BudgetRoam leverages AI to simplify every step of your travel planning.
             </p>
             <Carousel
@@ -187,13 +201,13 @@ export default function LandingPage() {
                     <div className="p-1 h-full">
                       <Card 
                         className={cn(
-                          glassCardClasses,
+                          glassCardClasses, // Enhanced glass effect
                           "hover:shadow-primary/30 hover:scale-105 transition-all duration-300 flex flex-col h-full transform"
                         )}
                       >
                         <CardHeader className="items-center text-center">
                           {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, feature.icon.props.className.includes('text-accent') ? 'text-accent' : 'text-primary') })}
-                          <CardTitle className="text-xl">{feature.title}</CardTitle>
+                          <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow text-center">
                           <div className="relative aspect-video w-full rounded-md overflow-hidden mb-4 border border-border/30 group">
@@ -213,21 +227,21 @@ export default function LandingPage() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="ml-8 sm:ml-0" />
-              <CarouselNext className="mr-8 sm:mr-0" />
+              <CarouselPrevious className="ml-8 sm:ml-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground" />
+              <CarouselNext className="mr-8 sm:mr-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground" />
             </Carousel>
           </div>
         </section>
 
         {/* Why Choose Us Section */}
-        <section id="why-us" className={cn("py-16 md:py-24 bg-gradient-to-r from-accent/5 via-background to-primary/5 transition-opacity duration-1000", whyChooseUsSectionVisible ? 'opacity-100' : 'opacity-0')}>
+        <section id="why-us" className={cn("py-16 md:py-24 transition-opacity duration-1000", whyChooseUsSectionVisible ? 'opacity-100' : 'opacity-0')}> {/* Removed bg gradient */}
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
+                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6"> {/* Text color to white */}
                   Why Choose <span className="text-primary">BudgetRoam</span>?
                 </h2>
-                <p className="text-lg text-muted-foreground mb-8">
+                <p className="text-lg text-slate-200 dark:text-muted-foreground mb-8"> {/* Adjusted text color */}
                   We believe amazing travel experiences shouldn't break the bank. BudgetRoam is designed to be your intelligent partner, making dream vacations accessible and stress-free.
                 </p>
                 <ul className="space-y-3">
@@ -240,8 +254,8 @@ export default function LandingPage() {
                       )}
                       style={{transitionDelay: `${index * 100}ms`}}
                     >
-                      <CheckCircleIcon className="w-6 h-6 text-green-500 mr-3 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">{point}</span>
+                      <CheckCircleIcon className="w-6 h-6 text-green-400 mr-3 mt-0.5 shrink-0" /> {/* Green accent for checkmarks */}
+                      <span className="text-slate-200 dark:text-muted-foreground">{point}</span> {/* Adjusted text color */}
                     </li>
                   ))}
                 </ul>
@@ -253,7 +267,7 @@ export default function LandingPage() {
                     layout="fill"
                     objectFit="cover"
                     className="rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-500 ease-out"
-                    data-ai-hint="joyful travel moment" // Updated hint
+                    data-ai-hint="joyful travel moment"
                 />
               </div>
             </div>
@@ -261,13 +275,13 @@ export default function LandingPage() {
         </section>
 
         {/* Final CTA Section */}
-        <section className={cn("py-20 md:py-28 text-center bg-background transition-opacity duration-1000", finalCtaVisible ? 'opacity-100' : 'opacity-0')}>
+        <section className={cn("py-20 md:py-28 text-center transition-opacity duration-1000", finalCtaVisible ? 'opacity-100' : 'opacity-0')}> {/* Removed bg */}
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 flex items-center justify-center">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6 flex items-center justify-center"> {/* Text color to white */}
               <SparklesIcon className="w-10 h-10 mr-3 text-primary animate-pulse" />
               Ready to Explore the World on Your Terms?
             </h2>
-            <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
+            <p className="text-lg text-slate-200 dark:text-muted-foreground mb-10 max-w-xl mx-auto"> {/* Adjusted text color */}
               Join thousands of savvy travelers planning their next adventure with BudgetRoam.
             </p>
             <Button asChild size="lg" className="text-lg px-10 py-6 group transform transition-transform hover:scale-105 hover:shadow-xl hover:shadow-primary/40 shadow-md shadow-primary/30">
@@ -281,8 +295,8 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 bg-background/80 backdrop-blur-sm border-t border-border/30">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
+      <footer className="py-8 bg-black/30 dark:bg-background/70 backdrop-blur-sm border-t border-border/30 z-10"> {/* Adjusted footer bg */}
+        <div className="container mx-auto px-4 text-center text-slate-300 dark:text-muted-foreground">
           <div className="flex justify-center mb-2">
             <AppLogo />
           </div>

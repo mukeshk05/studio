@@ -9,7 +9,7 @@ body {
 
 @layer base {
   :root {
-    /* Light Sky Blue Theme */
+    /* Light Sky Blue Theme (will be active if 'dark' class is removed from html) */
     --background: 205 100% 92%; /* Light Sky Blue */
     --foreground: 215 50% 25%; /* Darker Blue for text */
     --card: 205 80% 97%; /* Very Light Blue/Off-white for cards */
@@ -48,7 +48,7 @@ body {
   }
 
   .dark {
-    /* Dark Blue Theme (variation of the sky blue idea) */
+    /* Dark Blue Theme (variation of the sky blue idea) - CURRENTLY ACTIVE */
     --background: 210 30% 10%; /* Dark Desaturated Blue */
     --foreground: 200 20% 90%; /* Light Gray/Off-white text */
     
@@ -73,7 +73,7 @@ body {
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 210 20% 30%; /* Subtle borders */
+    --border: 210 20% 30%; /* Subtle borders for general elements */
     --input: 210 20% 22%; /* Dark input fields */
     --ring: 205 70% 65%; /* Ring matching primary, slightly lighter for glow */
 
@@ -120,11 +120,15 @@ body {
     background-image: linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary)) 100%);
   }
   
-  .glass-card {
-    @apply bg-card/60 dark:bg-card/40 backdrop-blur-lg border border-white/10 shadow-xl;
+  /* Refined Glass Effects */
+  .glass-card { /* For individual content cards */
+    @apply bg-card/60 dark:bg-card/40 backdrop-blur-lg border border-white/10 dark:border-white/5 shadow-xl rounded-lg;
   }
-  .glass-pane { 
-    @apply bg-background/70 dark:bg-background/50 backdrop-blur-xl border-white/5;
+  .glass-pane { /* For larger panes like headers, sidebars, sheet backgrounds */
+    @apply bg-background/80 dark:bg-background/60 backdrop-blur-xl border-white/5 dark:border-black/20;
+  }
+  .glass-interactive { /* For interactive elements like buttons or input backgrounds if needed */
+    @apply bg-primary/10 backdrop-blur-sm border border-primary/20 hover:bg-primary/20;
   }
 }
 
