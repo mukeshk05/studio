@@ -1,5 +1,5 @@
 
-import type { AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
+import type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
 // This effectively takes the type of a single itinerary object from the array
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
@@ -38,3 +38,7 @@ export interface SearchHistoryEntry {
   budget: number;
   searchedAt: any; // Firestore ServerTimestamp
 }
+
+// Re-export AITripPlannerInput and AITripPlannerOutput from here if needed by UI components
+// This centralizes type exports if preferred over direct imports from @/ai/types
+export type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";

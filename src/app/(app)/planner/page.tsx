@@ -4,18 +4,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
+import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
-import type { Itinerary, SearchHistoryEntry } from "@/lib/types"; 
+import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
-import { MessageSquarePlusIcon, HistoryIcon } from "lucide-react"; 
+import { MessageSquarePlusIcon, HistoryIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer"; 
+import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
 
 export interface ChatMessage {
   id: string;
@@ -29,8 +29,8 @@ export default function TripPlannerPage() {
   const [isInputSheetOpen, setIsInputSheetOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [isSearchHistoryDrawerOpen, setIsSearchHistoryDrawerOpen] = useState(false); 
-  const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null); 
+  const [isSearchHistoryDrawerOpen, setIsSearchHistoryDrawerOpen] = useState(false);
+  const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null);
 
 
   const { currentUser } = useAuth();
@@ -218,7 +218,7 @@ export default function TripPlannerPage() {
     setIsSearchHistoryDrawerOpen(false);
     setIsInputSheetOpen(true);
   };
-  
+
   const handleOpenInputSheetForNewPlan = () => {
     setCurrentFormInitialValues(null); // Ensure new plan starts blank
     setIsInputSheetOpen(true);
@@ -266,7 +266,7 @@ export default function TripPlannerPage() {
         isOpen={isInputSheetOpen}
         onClose={() => setIsInputSheetOpen(false)}
         onPlanRequest={handlePlanRequest}
-        initialValues={currentFormInitialValues} 
+        initialValues={currentFormInitialValues}
       />
 
       <SearchHistoryDrawer

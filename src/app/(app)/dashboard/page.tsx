@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useTrackedItems } from "@/lib/firestoreHooks";
 import { cn } from "@/lib/utils";
 import { SmartBundleGenerator } from "@/components/dashboard/SmartBundleGenerator";
-import { AITripPlannerInput } from "@/ai/flows/ai-trip-planner";
+import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useRouter } from 'next/navigation';
 
 
@@ -25,13 +25,13 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const router = useRouter();
-  
+
   const { data: savedTrips, isLoading: isLoadingTrips } = useSavedTrips();
   const { data: trackedItems, isLoading: isLoadingTrackedItems } = useTrackedItems();
 
   const fetchNewTravelTip = async () => {
     setIsTipLoading(true);
-    setTravelTip(null); 
+    setTravelTip(null);
     try {
       const result: TravelTipOutput = await getTravelTip();
       setTravelTip(result.tip);
@@ -49,11 +49,11 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (currentUser) { 
+    if (currentUser) {
       fetchNewTravelTip();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]); 
+  }, [currentUser]);
 
   const userName = currentUser?.displayName || currentUser?.email?.split('@')[0] || "Explorer";
   const numSavedTrips = savedTrips?.length || 0;
@@ -127,8 +127,8 @@ export default function DashboardPage() {
 
       <Tabs defaultValue="my-trips" className="w-full">
         <TabsList className={cn(
-            "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg", 
-            "bg-muted/30 dark:bg-card/30 backdrop-blur-sm border border-white/10 dark:border-black/20 shadow-md" 
+            "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg",
+            "bg-muted/30 dark:bg-card/30 backdrop-blur-sm border border-white/10 dark:border-black/20 shadow-md"
           )}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
@@ -139,13 +139,13 @@ export default function DashboardPage() {
             Price Tracker
           </TabsTrigger>
         </TabsList>
-        
+
         <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card")}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
           <TabsContent value="price-tracker" className="mt-0">
-            <PriceTrackerForm /> 
+            <PriceTrackerForm />
             <PriceTrackerList />
           </TabsContent>
         </div>

@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
+import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import React, { useEffect } from "react"; // Added useEffect
 import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon } from "lucide-react";
 

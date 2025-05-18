@@ -4,80 +4,24 @@
  * @fileOverview An AI trip planner agent.
  *
  * - aiTripPlanner - A function that handles the trip planning process.
- * - AITripPlannerInput - The input type for the aiTripPlanner function.
- * - AITripPlannerOutput - The return type for the aiTripPlanner function.
- * - AITripPlannerInputSchema - The Zod schema for the input.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {
+  AITripPlannerInputSchema,
+  type AITripPlannerInput,
+  AITripPlannerOutputSchema,
+  type AITripPlannerOutput,
+  ItineraryTextOnlySchema,
+  type HotelOption, // Ensure nested types like HotelOption are imported if used
+  type Room         // Ensure nested types like Room are imported if used
+} from '@/ai/types/trip-planner-types';
 
-export const AITripPlannerInputSchema = z.object({
-  travelDates: z.string().describe('The desired travel dates (e.g., MM/DD/YYYY-MM/DD/YYYY).'),
-  destination: z.string().describe('The destination for the trip.'),
-  budget: z.number().describe('The budget for the trip in USD.'),
-});
-export type AITripPlannerInput = z.infer<typeof AITripPlannerInputSchema>;
-
-const FlightOptionSchema = z.object({
-  name: z.string().describe('Flight carrier and number, or general description (e.g., "Budget Airline Option 1").'),
-  description: z.string().describe('Details about the flight (e.g., layovers, departure/arrival times, airline).'),
-  price: z.number().describe('Estimated price of the flight in USD.')
-});
-
-const RoomSchema = z.object({
-  name: z.string().describe("Name of the room type (e.g., 'Deluxe King Room', 'Standard Twin Room with City View')."),
-  description: z.string().optional().describe("A brief description of the room type."),
-  features: z.array(z.string()).optional().describe("Key features of the room (e.g., ['Ocean view', 'Balcony', 'Sleeps 2', 'Mini-fridge'])."),
-  pricePerNight: z.number().optional().describe("Estimated price per night for this room type in USD, if available. This is optional."),
-  roomImagePrompt: z.string().optional().describe("A concise text prompt suitable for generating a representative image of this room type (e.g., 'Modern hotel room king bed city view', 'Cozy twin room with balcony')."),
-  roomImageUri: z.string().optional().describe("A data URI of a generated image representing this room type. Expected format: 'data:image/png;base64,<encoded_data>'. This will be populated by the flow."),
-});
-
-const HotelOptionSchema = z.object({
-  name: z.string().describe('Name of the hotel or accommodation type (e.g., "City Center Hotel", "Boutique Guesthouse").'),
-  description: z.string().describe('Details about the hotel (e.g., amenities, location rating, type). This description will be used to generate a representative image.'),
-  price: z.number().describe('Estimated price for the hotel for the duration of the stay in USD.'),
-  hotelImageUri: z.string().describe("A data URI of a generated image representing the hotel. Expected format: 'data:image/png;base64,<encoded_data>'."),
-  rating: z.number().min(0).max(5).optional().describe("Overall guest rating out of 5 (e.g., 4.5)."),
-  amenities: z.array(z.string()).optional().describe("List of key amenities (e.g., ['Free WiFi', 'Pool', 'Restaurant', 'Pet-friendly', 'Gym', 'Spa', 'Parking']). Provide 3-7 important amenities."),
-  rooms: z.array(RoomSchema).optional().describe("A list of 2-3 available room types with their details. For each room, include name, description, features, and a 'roomImagePrompt' for image generation."),
-});
-
-const DailyPlanItemSchema = z.object({
-  day: z.string().describe('The day number or label (e.g., "Day 1", "Arrival Day").'),
-  activities: z.string().describe('A detailed description of activities planned for this day, including potential morning, afternoon, and evening segments if applicable. Be descriptive and engaging.'),
-});
-
-const ItineraryItemSchema = z.object({
-  destination: z.string().describe('The destination for this itinerary.'),
-  travelDates: z.string().describe('The travel dates for this itinerary.'),
-  estimatedCost: z.number().describe('The total estimated cost for this itinerary in USD, summing a representative flight and hotel option.'),
-  tripSummary: z.string().describe('A concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details.'),
-  dailyPlan: z.array(DailyPlanItemSchema).describe('A detailed day-by-day plan of potential activities. Each item should clearly state the day and the activities for that day.'),
-  flightOptions: z.array(FlightOptionSchema).describe('A list of flight options for this itinerary. Aim for 2-3 distinct options.'),
-  hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary, each including a generated image for the hotel and its rooms. Aim for 2-3 distinct options.'),
-  destinationImageUri: z.string().describe("A data URI of a generated image representing the destination. Expected format: 'data:image/png;base64,<encoded_data>'."),
-});
-
-const AITripPlannerOutputSchema = z.object({
-  itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including generated images for destination, hotels, and hotel rooms, and a structured daily plan.'),
-});
-export type AITripPlannerOutput = z.infer<typeof AITripPlannerOutputSchema>;
 
 export async function aiTripPlanner(input: AITripPlannerInput): Promise<AITripPlannerOutput> {
   return aiTripPlannerFlow(input);
 }
-
-// Schema for the text-only part of the itinerary, before images are generated
-const HotelOptionTextOnlySchema = HotelOptionSchema.omit({ hotelImageUri: true }).extend({
-  rooms: z.array(RoomSchema.omit({ roomImageUri: true })).optional(),
-});
-
-const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true }).extend({
-  hotelOptions: z.array(HotelOptionTextOnlySchema),
-});
-
 
 const aiTripPlannerTextPrompt = ai.definePrompt({
   name: 'aiTripPlannerTextPrompt',
@@ -125,22 +69,22 @@ Return the itineraries in JSON format according to the defined output schema. En
 });
 
 const generateImage = async (promptText: string, fallbackDataAiHint: string): Promise<string> => {
-  let imageUri = `https://placehold.co/600x400.png`; 
+  let imageUri = `https://placehold.co/600x400.png`;
   try {
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
       prompt: promptText,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
-        safetySettings: [ 
+        safetySettings: [
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
         ],
       },
-      // @ts-ignore 
-      experimentalDoNotSelectOutputTool: true, 
+      // @ts-ignore
+      experimentalDoNotSelectOutputTool: true,
     });
 
     if (media?.url) {
@@ -169,7 +113,7 @@ const aiTripPlannerFlow = ai.defineFlow(
       console.warn("AI Trip Planner text prompt did not return itineraries.");
       return { itineraries: [] };
     }
-    
+
     if (textPromptOutput.itineraries.some(it => !it.dailyPlan || it.dailyPlan.length === 0)) {
       console.warn("Some itineraries are missing daily plans. Check AI prompt and output structure.", textPromptOutput.itineraries);
     }
@@ -184,7 +128,7 @@ const aiTripPlannerFlow = ai.defineFlow(
             const hotelImagePrompt = `Photorealistic image of a ${hotel.description}, hotel name: ${hotel.name}, in ${itinerary.destination}. Aspect ratio: 16:9.`;
             const fallbackHotelHint = `${hotel.name.substring(0,15)} ${hotel.description.split(' ')[0].substring(0,10)}`
             const hotelImageUri = await generateImage(hotelImagePrompt, fallbackHotelHint);
-            
+
             const roomsWithImages = hotel.rooms ? await Promise.all(
               hotel.rooms.map(async (room) => {
                 if (room.roomImagePrompt) {
@@ -199,18 +143,17 @@ const aiTripPlannerFlow = ai.defineFlow(
             return { ...hotel, hotelImageUri, rooms: roomsWithImages };
           })
         );
-        
+
         const dailyPlan = itinerary.dailyPlan || [];
 
         return {
           ...itinerary,
           destinationImageUri,
           hotelOptions: hotelOptionsWithImages,
-          dailyPlan: dailyPlan, 
+          dailyPlan: dailyPlan,
         };
       })
     );
     return { itineraries: itinerariesWithImages };
   }
 );
-

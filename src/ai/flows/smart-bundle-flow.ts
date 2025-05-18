@@ -10,9 +10,9 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import type { AITripPlannerInput } from './ai-trip-planner'; // Assuming this type is in the same directory or accessible
+import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { getRecentUserSearchHistory } from '@/lib/firestoreHooks'; // Adjust path as necessary
-import { AITripPlannerInputSchema } from './ai-trip-planner'; // Import the schema
+import { AITripPlannerInputSchema } from '@/ai/types/trip-planner-types';
 
 // Input Schema
 export const SmartBundleInputSchema = z.object({
@@ -58,7 +58,7 @@ const getUserSearchHistoryTool = ai.defineTool(
     } catch (error) {
       console.error("Error fetching user search history for tool:", error);
       // Return an empty array or a specific error structure if preferred
-      return []; 
+      return [];
     }
   }
 );
@@ -122,7 +122,7 @@ export const smartBundleFlow = ai.defineFlow(
         // You could return a default suggestion or throw an error
         // For now, returning an empty array if AI fails, or a placeholder.
         // Let's try a generic suggestion if AI fails.
-        return { 
+        return {
             suggestions: [{
                 bundleName: "Explore a New City",
                 reasoning: "Could not generate personalized suggestions at this time. How about exploring a vibrant city like Barcelona or Amsterdam?",

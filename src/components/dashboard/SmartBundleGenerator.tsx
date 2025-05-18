@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { AITripPlannerInput } from '@/ai/flows/ai-trip-planner';
+import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 
 
 type SmartBundleGeneratorProps = {
@@ -126,9 +126,9 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="w-full glass-interactive border-primary/30 text-primary hover:bg-primary/20"
                     onClick={() => onPlanTripFromBundle(suggestion.tripIdea)}
                     >
