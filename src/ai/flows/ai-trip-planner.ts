@@ -73,13 +73,15 @@ For example, if the mood is 'romantic' and persona is 'Adventurer', suggest adve
     - Always include a general reminder in the 'tripSummary': "For a smooth journey, remember to check current travel advisories and verify visa requirements for {{{destination}}} well before your trip."
     {{/if}}
     If you've included proactive risk advice or made adjustments based on general advisories (not directly requested by the user), briefly mention this in the 'tripSummary' as part of your comprehensive planning.
+3.  **Sustainable Travel Considerations (Conceptual):**
+    When planning, and if appropriate for the destination and trip style, subtly weave in considerations for sustainable travel. This could involve suggesting public transport where efficient, mentioning eco-friendly tours if known, or highlighting locally-owned businesses or experiences. This is a conceptual consideration to promote awareness. If you incorporate such suggestions, briefly mention this aspect in the trip summary.
 
 **Cultural Tip:**
 Generate one concise (1-2 sentences) and helpful cultural tip relevant to the destination: {{{destination}}}. This should be practical or insightful for a first-time visitor. Place this in the 'culturalTip' field of the output.
 
 You will generate a range of possible itineraries (usually 2-3) based on the user's budget, destination and travel dates.
 For each itinerary:
-1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa reminders and reflect how preferences (including Journey Sentinel considerations) were fused.
+1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa reminders and reflect how preferences (including Journey Sentinel and Sustainability considerations) were fused.
 2.  Provide a 'dailyPlan' as an array of objects. Each object in the array should represent one day and have two fields:
     - 'day': A string for the day's label (e.g., "Day 1", "Arrival Day").
     - 'activities': A string describing the activities for that day in detail. Be engaging and descriptive. You can suggest morning, afternoon, and evening activities. Ensure this is a comprehensive plan.
@@ -121,7 +123,7 @@ const backupAiTripPlannerTextPrompt = ai.definePrompt({
   prompt: `You are a helpful backup travel assistant. The primary planner might have encountered an issue.
 Please generate 1 or 2 robust and appealing itineraries for the user based on the following details.
 Focus on common attractions and adaptable activities. Keep suggestions somewhat general if specific preferences like persona, mood, or risk context are complex.
-Briefly remind the user in the trip summary to check visa and current travel advisories for {{{destination}}}.
+Briefly remind the user in the trip summary to check visa and current travel advisories for {{{destination}}}, and that sustainable travel choices are encouraged.
 Also, provide one general cultural tip for {{{destination}}} in the 'culturalTip' field.
 
 Travel Dates: {{{travelDates}}}
@@ -286,13 +288,13 @@ const aiTripPlannerFlow = ai.defineFlow(
     if (guardianConsiderations.length > 0) {
         fusionMessages.push(guardianConsiderations.join(' and '));
     } else {
-      fusionMessages.push("general travel factors (weather awareness, risk/visa reminders)");
+      fusionMessages.push("general travel factors (weather awareness, risk/visa reminders, conceptual sustainability)");
     }
 
     if (fusionMessages.length > 0) {
         personalizationNoteParts.push(`Plans were crafted by fusing ${fusionMessages.join(', ')} with your core request for ${input.destination}.`);
     } else {
-        personalizationNoteParts.push(`Plans for ${input.destination} were generated based on your core request.`);
+        personalizationNoteParts.push(`Plans for ${input.destination} were generated based on your core request, including conceptual sustainability considerations.`);
     }
     
     const personalizationNote = personalizationNoteParts.join(' ');

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon, BookOpenTextIcon, RefreshCwIcon, MessageSquareQuoteIcon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon, BookOpenTextIcon, RefreshCwIcon, MessageSquareQuoteIcon, LeafIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -121,8 +121,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         destination: booking.destination,
         travelDates: booking.travelDates,
         tripDuration: duration,
-        // Pass weather context if available from saved trip, though 'weatherContext' isn't currently on Itinerary type directly
-        // weatherContext: booking.weatherContext, 
+        // weatherContext: booking.weatherContext, // Future enhancement: pass actual weather if stored
       };
       const result: PackingListOutput = await getPackingList(input);
       setPackingList(result.packingList);
@@ -191,7 +190,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
 
   return (
     <>
-    <Card className={cn(glassEffectClasses, "flex flex-col overflow-hidden")}>
+    <Card className={cn(glassEffectClasses, "flex flex-col overflow-hidden border-primary/20")}>
       {booking.destinationImageUri && (
         <div className="relative w-full h-40 group">
           <Image
@@ -229,9 +228,15 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
              </Badge>
           )}
         </div>
-         <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
-             <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-sky-400 opacity-70" />
-             <span className="italic opacity-70">AI considered general planning factors (weather, risks, visa reminders).</span>
+         <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+             <span className="flex items-center opacity-70">
+                <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-sky-400" />
+                Weather, risks & visa reminders considered.
+             </span>
+             <span className="flex items-center opacity-70">
+                <LeafIcon className="w-3.5 h-3.5 mr-1.5 text-green-400" />
+                Sustainability aspects conceptually included.
+             </span>
         </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2 pb-3 text-card-foreground">
@@ -450,13 +455,14 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         </AlertDialogContent>
     </AlertDialog>
 
-    {trip && (
+    {booking && ( // Ensure 'booking' is used instead of 'trip' for the prop
       <GroupSyncDialog
         isOpen={isGroupSyncDialogOpen}
         onClose={() => setIsGroupSyncDialogOpen(false)}
-        trip={booking}
+        trip={booking} 
       />
     )}
     </>
   );
 }
+

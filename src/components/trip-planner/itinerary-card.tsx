@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, EyeIcon, CloudSunIcon, MessageSquareQuoteIcon } from "lucide-react";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, EyeIcon, CloudSunIcon, MessageSquareQuoteIcon, LeafIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -145,9 +145,15 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
             </Badge>
           )}
         </div>
-         <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
-             <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-sky-400 opacity-70" />
-             <span className="italic opacity-70">AI considered general planning factors (weather, risks, visa reminders).</span>
+         <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+             <span className="flex items-center opacity-70">
+                <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-sky-400" />
+                Weather, risks & visa reminders considered.
+             </span>
+             <span className="flex items-center opacity-70">
+                <LeafIcon className="w-3.5 h-3.5 mr-1.5 text-green-400" />
+                Sustainability aspects conceptually included.
+             </span>
         </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2 text-card-foreground">
@@ -224,7 +230,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         <Button 
           onClick={handleSaveClick} 
           disabled={isSaved || isSaving} 
-          className="w-full sm:flex-1" 
+          className="w-full sm:flex-1 glass-interactive" 
           variant={isSaved ? "secondary" : "outline"}
         >
           {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
@@ -246,12 +252,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         isOpen={isHotelDetailOpen}
         onClose={() => {
           setIsHotelDetailOpen(false);
-          // It's good practice to set selectedHotel to null after closing to free up memory
-          // and ensure clean state for next open, though React state might handle this.
-          // However, given the modal nature, explicit nulling might not be strictly necessary
-          // if the component unmounts or data is always freshly passed.
-          // For safety and clarity, if state persists:
-          // setSelectedHotel(null); 
+          // setSelectedHotel(null); // Optional: clear selected hotel on close
         }}
         hotel={selectedHotel}
         destinationName={itinerary.destination}
@@ -260,3 +261,4 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
     </>
   );
 }
+
