@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { AppLogo } from "./app-logo";
 import { MainNav } from "./main-nav";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button"; // Import buttonVariants
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -15,9 +15,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserIcon, LogOutIcon, LogInIcon, UserPlusIcon, Loader2Icon } from "lucide-react";
+import { UserIcon, LogOutIcon, LogInIcon, UserPlusIcon } from "lucide-react"; // Removed Loader2Icon as Skeleton is used
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { cn } from "@/lib/utils"; // Import cn
 
 export function Header() {
   const { currentUser, logout, loading } = useAuth();
@@ -72,26 +72,44 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <>
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-                <Link href="/login">
-                  <LogInIcon /> Login
-                </Link>
-              </Button>
-               <Button asChild variant="ghost" size="icon" className="sm:hidden">
-                <Link href="/login" aria-label="Login">
-                  <LogInIcon />
-                </Link>
-              </Button>
-              <Button asChild size="sm" className="hidden sm:inline-flex">
-                <Link href="/signup">
-                  <UserPlusIcon /> Sign Up
-                </Link>
-              </Button>
-               <Button asChild variant="ghost" size="icon" className="sm:hidden">
-                <Link href="/signup" aria-label="Sign Up">
-                  <UserPlusIcon />
-                </Link>
-              </Button>
+              <Link 
+                href="/login" 
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "hidden sm:inline-flex"
+                )}
+              >
+                <LogInIcon /> Login
+              </Link>
+              <Link 
+                href="/login" 
+                aria-label="Login"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "sm:hidden"
+                )}
+              >
+                <LogInIcon />
+              </Link>
+              <Link 
+                href="/signup" 
+                className={cn(
+                  buttonVariants({ variant: "default", size: "sm" }), // Default variant for signup
+                  "hidden sm:inline-flex"
+                )}
+              >
+                <UserPlusIcon /> Sign Up
+              </Link>
+              <Link 
+                href="/signup" 
+                aria-label="Sign Up"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "sm:hidden"
+                )}
+              >
+                <UserPlusIcon />
+              </Link>
             </>
           )}
         </div>
