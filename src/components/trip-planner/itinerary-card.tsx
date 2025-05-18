@@ -4,8 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, MapPinIcon } from "lucide-react";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ChevronDownIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 type ItineraryCardProps = {
   itinerary: Itinerary;
@@ -25,7 +31,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -44,11 +50,50 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-start text-sm text-muted-foreground mb-1">
+      <CardContent className="flex-grow">
+        <div className="flex items-start text-sm text-muted-foreground mb-4">
           <InfoIcon className="w-4 h-4 mr-2 mt-1 shrink-0" />
           <p className="whitespace-pre-line">{itinerary.description}</p>
         </div>
+
+        <Accordion type="multiple" className="w-full text-sm">
+          {itinerary.flightOptions && itinerary.flightOptions.length > 0 && (
+            <AccordionItem value="flights">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                <div className="flex items-center">
+                  <PlaneIcon className="w-4 h-4 mr-2 text-primary" /> Flight Options ({itinerary.flightOptions.length})
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-2 space-y-2">
+                {itinerary.flightOptions.map((flight, index) => (
+                  <div key={`flight-${index}`} className="p-2 rounded-md border bg-muted/50">
+                    <p className="font-semibold text-foreground">{flight.name} - ${flight.price.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">{flight.description}</p>
+                  </div>
+                ))}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {itinerary.hotelOptions && itinerary.hotelOptions.length > 0 && (
+            <AccordionItem value="hotels">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                <div className="flex items-center">
+                  <HotelIcon className="w-4 h-4 mr-2 text-primary" /> Hotel Options ({itinerary.hotelOptions.length})
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-2 space-y-2">
+                {itinerary.hotelOptions.map((hotel, index) => (
+                  <div key={`hotel-${index}`} className="p-2 rounded-md border bg-muted/50">
+                    <p className="font-semibold text-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">{hotel.description}</p>
+                  </div>
+                ))}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+        </Accordion>
+
       </CardContent>
       <CardFooter>
         <Button onClick={handleSave} disabled={isSaved} className="w-full" variant={isSaved ? "outline" : "default"}>

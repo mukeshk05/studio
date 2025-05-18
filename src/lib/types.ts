@@ -1,6 +1,11 @@
 import type { AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 
-export type Itinerary = AITripPlannerOutput["itineraries"][0] & { id: string };
+// This effectively takes the type of a single itinerary object from the array
+type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
+
+// Add the 'id' field that we add manually in ItineraryList
+export type Itinerary = SingleItineraryFromAI & { id: string };
+
 
 export interface PriceTrackerEntry {
   id: string;
