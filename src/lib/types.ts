@@ -7,15 +7,16 @@ type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
 // Add the 'id' field that we add manually
 export type Itinerary = SingleItineraryFromAI & {
   id: string;
-  aiGeneratedMemory?: { // Added for storing AI generated memory
+  aiGeneratedMemory?: { 
     memoryText: string;
-    generatedAt: string; // ISO date string
+    generatedAt: string; 
   };
+  culturalTip?: string; // Added from AITripPlannerOutputSchema implicitly
 };
 
 // Type for a single hotel option, derived from the itinerary type
 export type HotelOption = Itinerary["hotelOptions"][0];
-export type Room = NonNullable<HotelOption["rooms"]>[0]; // Gets the type of a single room if rooms array exists
+export type Room = NonNullable<HotelOption["rooms"]>[0]; 
 
 // Type for a single daily plan item, derived from the itinerary type
 export type DailyPlanItem = Itinerary["dailyPlan"][0];
@@ -23,7 +24,7 @@ export type DailyPlanItem = Itinerary["dailyPlan"][0];
 export interface PriceForecast {
   forecast: string;
   confidence?: 'low' | 'medium' | 'high';
-  forecastedAt: string; // ISO date string
+  forecastedAt: string; 
 }
 
 export interface PriceTrackerEntry {
@@ -31,9 +32,9 @@ export interface PriceTrackerEntry {
   itemType: "flight" | "hotel";
   itemName: string;
   targetPrice: number;
-  currentPrice: number; // Last known current price
-  lastChecked: string; // ISO date string
-  createdAt?: any; // Firestore ServerTimestamp
+  currentPrice: number; 
+  lastChecked: string; 
+  createdAt?: any; 
   alertStatus?: {
     shouldAlert: boolean;
     alertMessage: string;
@@ -43,24 +44,22 @@ export interface PriceTrackerEntry {
 }
 
 export interface SearchHistoryEntry {
-  id: string; // Document ID from Firestore
+  id: string; 
   destination: string;
   travelDates: string;
   budget: number;
-  searchedAt: any; // Firestore ServerTimestamp (can be Date on client)
+  searchedAt: any; 
 }
 
 export interface UserTravelPersona {
   name: string;
   description: string;
-  lastUpdated: any; // Firestore ServerTimestamp (can be Date on client)
+  lastUpdated: any; 
 }
 
 
-// Re-export AITripPlannerOutput from here if needed by UI components
 export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
-// Augment AITripPlannerInput to include all optional fields for clarity
 export type AITripPlannerInput = AITripPlannerInputOriginal & {
   userPersona?: {
     name: string;
@@ -70,4 +69,3 @@ export type AITripPlannerInput = AITripPlannerInputOriginal & {
   weatherContext?: string | null;
   riskContext?: string | null;
 };
-

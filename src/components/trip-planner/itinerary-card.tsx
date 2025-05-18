@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, EyeIcon, CloudSunIcon } from "lucide-react";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, EyeIcon, CloudSunIcon, MessageSquareQuoteIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -83,6 +83,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
   const [isHotelDetailOpen, setIsHotelDetailOpen] = useState(false);
 
   const handleSaveClick = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...dataToSave } = itinerary; 
     onSaveTrip(dataToSave);
   };
@@ -145,7 +146,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
           )}
         </div>
          <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
-             <InfoIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400 opacity-70" />
+             <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-sky-400 opacity-70" />
              <span className="italic opacity-70">AI considered general planning factors (weather, risks, visa reminders).</span>
         </div>
       </CardHeader>
@@ -154,6 +155,13 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
           <div className="text-sm text-muted-foreground mb-4">
             <h4 className="text-sm font-semibold text-card-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-2 shrink-0 text-primary" /> Trip Summary</h4>
             <p className="text-xs pl-6 border-l-2 border-border/50 ml-1 py-1">{itinerary.tripSummary}</p>
+          </div>
+        )}
+
+        {itinerary.culturalTip && (
+          <div className="text-sm text-muted-foreground mb-4">
+            <h4 className="text-sm font-semibold text-card-foreground mb-1 flex items-center"><MessageSquareQuoteIcon className="w-4 h-4 mr-2 shrink-0 text-accent" /> Cultural Tip</h4>
+            <p className="text-xs pl-6 border-l-2 border-accent/50 ml-1 py-1">{itinerary.culturalTip}</p>
           </div>
         )}
 
@@ -238,7 +246,12 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         isOpen={isHotelDetailOpen}
         onClose={() => {
           setIsHotelDetailOpen(false);
-          setSelectedHotel(null); 
+          // It's good practice to set selectedHotel to null after closing to free up memory
+          // and ensure clean state for next open, though React state might handle this.
+          // However, given the modal nature, explicit nulling might not be strictly necessary
+          // if the component unmounts or data is always freshly passed.
+          // For safety and clarity, if state persists:
+          // setSelectedHotel(null); 
         }}
         hotel={selectedHotel}
         destinationName={itinerary.destination}

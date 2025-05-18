@@ -13,6 +13,7 @@ import {
   AITripPlannerOutputSchema,
   type AITripPlannerOutput,
   AITripPlannerTextOutputSchema,
+  type TextPlannerOutput,
 } from '@/ai/types/trip-planner-types';
 
 
@@ -23,7 +24,7 @@ export async function aiTripPlanner(input: AITripPlannerInput): Promise<AITripPl
 const aiTripPlannerTextPrompt = ai.definePrompt({
   name: 'aiTripPlannerTextPrompt',
   input: {schema: AITripPlannerInputSchema},
-  output: {schema: AITripPlannerTextOutputSchema },
+  output: {schema: AITripPlannerTextOutputSchema }, // This now expects itineraries AND a culturalTip
   prompt: `You are a travel agent specializing in budget travel. Act as an AI Guardian for the user.
 Your response must be a JSON object matching the AITripPlannerTextOutputSchema.
 
@@ -70,6 +71,9 @@ For example, if the mood is 'romantic' and persona is 'Adventurer', suggest adve
     Also, include a general reminder in the trip summary: "Remember to check current travel advisories and visa requirements for {{{destination}}} before your trip."
     {{/if}}
 
+**Cultural Tip:**
+Generate one concise (1-2 sentences) and helpful cultural tip relevant to the destination: {{{destination}}}. This should be practical or insightful for a first-time visitor. Place this in the 'culturalTip' field of the output.
+
 You will generate a range of possible itineraries (usually 2-3) based on the user's budget, destination and travel dates.
 For each itinerary:
 1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa reminders and reflect how preferences were fused.
@@ -102,7 +106,7 @@ Consider a variety of options for flights, accommodations, and activities that w
 Provide multiple itineraries with varying levels of luxury and activity so the user has multiple choices.
 Among these itineraries, try to include at least one that could serve as a distinct 'backup plan' or 'alternative approach' to the trip. This might focus on different core activities, have a different pacing, or be more resilient to potential disruptions (e.g., weather, crowds) for the given destination and dates. Its 'tripSummary' could reflect this resilient nature.
 
-Return the itineraries in JSON format according to the defined output schema. Ensure all fields are populated.
+Return the itineraries and the single culturalTip in JSON format according to the defined output schema. Ensure all fields are populated.
 `,
 });
 
@@ -115,6 +119,7 @@ const backupAiTripPlannerTextPrompt = ai.definePrompt({
 Please generate 1 or 2 robust and appealing itineraries for the user based on the following details.
 Focus on common attractions and adaptable activities. Keep suggestions somewhat general if specific preferences like persona, mood, or risk context are complex.
 Briefly remind the user in the trip summary to check visa and travel advisories for the destination.
+Also, provide one general cultural tip for {{{destination}}} in the 'culturalTip' field.
 
 Travel Dates: {{{travelDates}}}
 Destination: {{{destination}}}
@@ -136,7 +141,7 @@ For each itinerary:
 4.  Detail 1-2 hotel options (name, description, price, rating, amenities, 1-2 rooms with name, features, roomImagePrompt).
 5.  Provide an 'estimatedCost'.
 
-Return in the specified JSON format.
+Return in the specified JSON format, including the 'culturalTip'.
 `,
 });
 
@@ -181,43 +186,42 @@ const aiTripPlannerFlow = ai.defineFlow(
   },
   async (input: AITripPlannerInput): Promise<AITripPlannerOutput> => {
     let wasBackupPlannerUsed = false;
-    let textPromptOutput: AITripPlannerTextOutputSchema | undefined;
+    let textOutput: TextPlannerOutput | undefined; // Use the new type
 
     // Try primary prompt first
     try {
         const { output } = await aiTripPlannerTextPrompt(input);
-        textPromptOutput = output;
+        textOutput = output;
     } catch (primaryError) {
         console.warn("Primary AI Trip Planner text prompt failed:", primaryError);
-        textPromptOutput = undefined; // Ensure it's undefined so backup is tried
+        textOutput = undefined; // Ensure it's undefined so backup is tried
     }
 
-
-    if (!textPromptOutput || !textPromptOutput.itineraries || textPromptOutput.itineraries.length === 0) {
+    if (!textOutput || !textOutput.itineraries || textOutput.itineraries.length === 0) {
       console.warn("Primary AI Trip Planner did not return itineraries or failed. Attempting backup planner.");
       wasBackupPlannerUsed = true;
       try {
         const { output: backupOutput } = await backupAiTripPlannerTextPrompt(input);
-        textPromptOutput = backupOutput;
+        textOutput = backupOutput;
       } catch (backupError) {
         console.error("Backup AI Trip Planner also failed:", backupError);
-        // If backup also fails, return empty or a default error structure
          return { itineraries: [], personalizationNote: "Sorry, we encountered an issue generating trip plans, even with our backup planner. Please try again later or adjust your query." };
       }
     }
     
-    if (!textPromptOutput || !textPromptOutput.itineraries) {
+    if (!textOutput || !textOutput.itineraries) {
       console.warn("AI Trip Planner (primary or backup) did not return itineraries.");
       return { itineraries: [], personalizationNote: wasBackupPlannerUsed ? "Our backup planner couldn't generate suggestions for this request. Please try again." : "No itineraries could be generated for your request. Please try different criteria." };
     }
 
+    const { itineraries: textItineraries, culturalTip } = textOutput; // Destructure culturalTip
 
-    if (textPromptOutput.itineraries.some(it => !it.dailyPlan || it.dailyPlan.length === 0)) {
-      console.warn("Some itineraries are missing daily plans. Check AI prompt and output structure.", textPromptOutput.itineraries);
+    if (textItineraries.some(it => !it.dailyPlan || it.dailyPlan.length === 0)) {
+      console.warn("Some itineraries are missing daily plans. Check AI prompt and output structure.", textItineraries);
     }
 
     const itinerariesWithImages = await Promise.all(
-      textPromptOutput.itineraries.map(async (itinerary) => {
+      textItineraries.map(async (itinerary) => {
         const destinationImagePrompt = `A vibrant, high-quality travel photograph representing ${itinerary.destination}. Focus on its most iconic visual elements or overall atmosphere. Style: photorealistic. Aspect ratio: 16:9.`;
         const destinationImageUri = await generateImage(destinationImagePrompt, itinerary.destination);
 
@@ -249,6 +253,7 @@ const aiTripPlannerFlow = ai.defineFlow(
           destinationImageUri,
           hotelOptions: hotelOptionsWithImages,
           dailyPlan: dailyPlan,
+          culturalTip, // Add culturalTip to each itinerary for easy access in UI
         };
       })
     );
@@ -265,21 +270,24 @@ const aiTripPlannerFlow = ai.defineFlow(
     if (input.desiredMood) {
         fusionMessages.push(`your desire for a '${input.desiredMood}' vibe`);
     }
-     if (input.riskContext || input.weatherContext) {
-        let riskWeatherParts = [];
-        if (input.riskContext) riskWeatherParts.push("your specific concerns");
-        if (input.weatherContext) riskWeatherParts.push("the weather context");
-        fusionMessages.push(riskWeatherParts.join(' and '));
+    
+    let guardianConsiderations: string[] = [];
+    if(input.riskContext) guardianConsiderations.push("your specific concerns");
+    if(input.weatherContext) guardianConsiderations.push("the weather context you provided");
+    
+    if(guardianConsiderations.length > 0){
+        fusionMessages.push(guardianConsiderations.join(' and '));
+    } else {
+      // If no specific user input for risk/weather, acknowledge general guardian role
+      fusionMessages.push("general travel factors (weather, risks, visa reminders)");
     }
+
 
     if (fusionMessages.length > 0) {
         personalizationNoteParts.push(`Plans were crafted by fusing ${fusionMessages.join(', ')} with your core request.`);
-    } else {
-        personalizationNoteParts.push("General planning factors (weather, common risks, visa reminders) considered.");
     }
     
     const personalizationNote = personalizationNoteParts.length > 0 ? personalizationNoteParts.join(' ') : undefined;
-
 
     return { 
       itineraries: itinerariesWithImages,
@@ -287,4 +295,3 @@ const aiTripPlannerFlow = ai.defineFlow(
     };
   }
 );
-

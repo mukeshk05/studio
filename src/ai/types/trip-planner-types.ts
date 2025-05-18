@@ -57,6 +57,7 @@ export const ItineraryItemSchema = z.object({
   flightOptions: z.array(FlightOptionSchema).describe('A list of flight options for this itinerary. Aim for 2-3 distinct options.'),
   hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary, each including a generated image for the hotel and its rooms. Aim for 2-3 distinct options.'),
   destinationImageUri: z.string().describe("A data URI of a generated image representing the destination. Expected format: 'data:image/png;base64,<encoded_data>'."),
+  culturalTip: z.string().optional().describe("A single, concise cultural tip relevant to the destination."),
 });
 
 export const AITripPlannerOutputSchema = z.object({
@@ -71,11 +72,15 @@ export const HotelOptionTextOnlySchema = HotelOptionSchema.omit({ hotelImageUri:
   rooms: z.array(RoomSchema.omit({ roomImageUri: true })).optional(),
 });
 
-export const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true }).extend({
+export const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true, culturalTip: true }).extend({ // Exclude culturalTip from text-only for now
   hotelOptions: z.array(HotelOptionTextOnlySchema),
 });
 
 // Schema for the text-only output of the AI, used before image generation
 export const AITripPlannerTextOutputSchema = z.object({
- itineraries: z.array(ItineraryTextOnlySchema)
+ itineraries: z.array(ItineraryTextOnlySchema).describe("Text-only itinerary details before image generation."),
+ culturalTip: z.string().optional().describe("A single, concise cultural tip relevant to the destination, generated alongside text itineraries.")
 });
+
+// New type for the output of the text prompt to make it easier to handle
+export type TextPlannerOutput = z.infer<typeof AITripPlannerTextOutputSchema>;

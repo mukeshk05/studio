@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon, BookOpenTextIcon, RefreshCwIcon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon, BookOpenTextIcon, RefreshCwIcon, MessageSquareQuoteIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -121,7 +121,8 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         destination: booking.destination,
         travelDates: booking.travelDates,
         tripDuration: duration,
-        weatherContext: booking.weatherContext, // Pass weather context if available from saved trip
+        // Pass weather context if available from saved trip, though 'weatherContext' isn't currently on Itinerary type directly
+        // weatherContext: booking.weatherContext, 
       };
       const result: PackingListOutput = await getPackingList(input);
       setPackingList(result.packingList);
@@ -229,7 +230,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
           )}
         </div>
          <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
-             <InfoIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400 opacity-70" />
+             <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-sky-400 opacity-70" />
              <span className="italic opacity-70">AI considered general planning factors (weather, risks, visa reminders).</span>
         </div>
       </CardHeader>
@@ -240,6 +241,13 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
               <p className="pl-5 text-xs border-l border-border/50 ml-0.5 py-0.5">{booking.tripSummary}</p>
            </div>
          )}
+        
+        {booking.culturalTip && (
+          <div className="text-xs text-muted-foreground mb-3">
+            <h4 className="text-xs font-semibold text-card-foreground mb-0.5 flex items-center"><MessageSquareQuoteIcon className="w-3 h-3 mr-1.5 shrink-0 text-accent" /> Cultural Tip</h4>
+            <p className="pl-5 text-xs border-l border-accent/50 ml-0.5 py-0.5">{booking.culturalTip}</p>
+          </div>
+        )}
 
         <Accordion type="multiple" className="w-full text-sm"  defaultValue={booking.dailyPlan && booking.dailyPlan.length > 0 ? ['daily-plan'] : []}>
           {booking.dailyPlan && booking.dailyPlan.length > 0 && (
@@ -452,4 +460,3 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     </>
   );
 }
-
