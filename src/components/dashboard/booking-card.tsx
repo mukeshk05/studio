@@ -5,8 +5,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Itinerary } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon } from "lucide-react";
+import type { Itinerary, HotelOption } from "@/lib/types";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -19,6 +19,37 @@ type BookingCardProps = {
   onRemoveBooking: (bookingId: string) => void;
 };
 
+
+function SavedHotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
+  const hintWords = hotel.name.toLowerCase().split(/[\s,]+/);
+  const aiHint = hintWords.slice(0, 2).join(" ");
+
+  return (
+    <div className="p-1.5 rounded-md border bg-muted/30 flex gap-2">
+      <div className="relative w-16 h-16 shrink-0 rounded-sm overflow-hidden border">
+        {hotel.hotelImageUri && hotel.hotelImageUri !== "" ? (
+           <Image
+              src={hotel.hotelImageUri}
+              alt={`Image of ${hotel.name}`}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 15vw, 8vw"
+              data-ai-hint={hotel.hotelImageUri.startsWith('https://placehold.co') ? aiHint : undefined}
+            />
+        ) : (
+          <div className="w-full h-full bg-muted/50 flex items-center justify-center">
+            <ImageOffIcon className="w-6 h-6 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      <div>
+        <p className="font-semibold text-xs text-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2">{hotel.description}</p>
+      </div>
+    </div>
+  );
+}
+
 export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
   
   const hintWords = booking.destination.toLowerCase().split(/[\s,]+/);
@@ -27,7 +58,7 @@ export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
   return (
     <Card className="shadow-md flex flex-col overflow-hidden">
       {booking.destinationImageUri && (
-        <div className="relative w-full h-40 group"> {/* Slightly smaller height for dashboard card */}
+        <div className="relative w-full h-40 group">
           <Image
             src={booking.destinationImageUri}
             alt={`Image of ${booking.destination}`}
@@ -36,9 +67,15 @@ export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint={booking.destinationImageUri.startsWith('https://placehold.co') ? aiHint : undefined}
           />
+           <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
+            <Badge variant="outline" className="text-md py-1 px-2 text-white bg-black/40 border-black/20 backdrop-blur-sm">
+                <DollarSignIcon className="w-3 h-3 mr-1" />
+                {booking.estimatedCost.toLocaleString()}
+            </Badge>
+          </div>
         </div>
       )}
-      <CardHeader className="pt-3 pb-2"> {/* Adjust padding */}
+      <CardHeader className="pt-3 pb-2">
          <div className="flex justify-between items-start">
           <div>
             <CardTitle className="flex items-center text-lg">
@@ -50,17 +87,19 @@ export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
               {booking.travelDates}
             </CardDescription>
           </div>
-          <Badge variant="outline" className="text-md py-1 px-2">
-            <DollarSignIcon className="w-3 h-3 mr-1" />
-            {booking.estimatedCost.toLocaleString()}
-          </Badge>
+          {!booking.destinationImageUri && (
+             <Badge variant="outline" className="text-md py-1 px-2">
+                <DollarSignIcon className="w-3 h-3 mr-1" />
+                {booking.estimatedCost.toLocaleString()}
+             </Badge>
+          )}
         </div>
       </CardHeader>
-      <CardContent className="flex-grow pt-2 pb-3"> {/* Adjust padding */}
-         <div className="flex items-start text-sm text-muted-foreground mb-3">
-          <InfoIcon className="w-4 h-4 mr-2 mt-1 shrink-0" />
-          <p className="text-xs max-h-16 overflow-y-auto whitespace-pre-line">{booking.description}</p>
-        </div>
+      <CardContent className="flex-grow pt-2 pb-3">
+         <div className="text-xs text-muted-foreground mb-3">
+            <h4 className="text-xs font-semibold text-foreground mb-0.5 flex items-center"><InfoIcon className="w-3 h-3 mr-1.5 shrink-0" /> Trip Overview & Daily Plan</h4>
+            <p className="whitespace-pre-line pl-5 text-xs max-h-24 overflow-y-auto border-l border-border ml-0.5 py-0.5">{booking.description}</p>
+         </div>
 
         <Accordion type="multiple" className="w-full text-sm">
           {booking.flightOptions && booking.flightOptions.length > 0 && (
@@ -88,12 +127,9 @@ export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
                     <HotelIcon className="w-3 h-3 mr-2 text-primary" /> Hotel Options ({booking.hotelOptions.length})
                   </div>
               </AccordionTrigger>
-              <AccordionContent className="pt-1 pb-2 space-y-1">
+              <AccordionContent className="pt-1 pb-2 space-y-1.5">
                 {booking.hotelOptions.map((hotel, index) => (
-                  <div key={`saved-hotel-${booking.id}-${index}`} className="p-1.5 rounded-md border bg-muted/30">
-                    <p className="font-semibold text-xs text-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{hotel.description}</p>
-                  </div>
+                   <SavedHotelOptionDisplay key={`saved-hotel-${booking.id}-${index}`} hotel={hotel} />
                 ))}
               </AccordionContent>
             </AccordionItem>
@@ -101,7 +137,7 @@ export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
         </Accordion>
 
       </CardContent>
-      <CardFooter className="pt-3"> {/* Adjust padding */}
+      <CardFooter className="pt-3">
         <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive">
           <Trash2Icon className="mr-2 h-4 w-4" />
           Remove Trip

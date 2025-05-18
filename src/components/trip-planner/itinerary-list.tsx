@@ -49,12 +49,12 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
               <Skeleton className="h-4 w-1/2 mt-1" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-8 w-full mt-4" />
-              <Skeleton className="h-8 w-full mt-2" />
+              <Skeleton className="h-4 w-full mb-1" />
+              <Skeleton className="h-12 w-full mb-2" /> {/* Skeleton for description/daily plan */}
+              <Skeleton className="h-8 w-full mt-4" /> {/* Skeleton for flight accordion trigger */}
+              <Skeleton className="h-8 w-full mt-2" /> {/* Skeleton for hotel accordion trigger */}
             </CardContent>
-            <CardFooter className="gap-3">
+            <CardFooter className="gap-3 pt-4">
               <Skeleton className="h-10 w-1/2" />
               <Skeleton className="h-10 w-1/2" />
             </CardFooter>
@@ -76,8 +76,11 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
 
   const itinerariesWithIds: Itinerary[] = itineraries.map((it, index) => ({
     ...it,
-    // Ensure destinationImageUri is present, default to placeholder if somehow missing
     destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
+    hotelOptions: it.hotelOptions.map(hotel => ({
+      ...hotel,
+      hotelImageUri: hotel.hotelImageUri || `https://placehold.co/300x200.png?text=${encodeURIComponent(hotel.name.substring(0,10))}`
+    })),
     id: `${it.destination}-${it.travelDates}-${it.estimatedCost}-${index}` 
   }));
 

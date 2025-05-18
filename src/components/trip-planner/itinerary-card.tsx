@@ -5,8 +5,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Itinerary } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon } from "lucide-react";
+import type { Itinerary, HotelOption } from "@/lib/types";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Accordion,
@@ -20,6 +20,37 @@ type ItineraryCardProps = {
   onSaveTrip: (itinerary: Itinerary) => void;
   isSaved: boolean;
 };
+
+function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
+  const hintWords = hotel.name.toLowerCase().split(/[\s,]+/);
+  const aiHint = hintWords.slice(0, 2).join(" ");
+
+  return (
+    <div className="p-2 rounded-md border bg-muted/50 flex gap-3">
+      <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden border">
+        {hotel.hotelImageUri && hotel.hotelImageUri !== "" ? (
+           <Image
+              src={hotel.hotelImageUri}
+              alt={`Image of ${hotel.name}`}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              sizes="(max-width: 768px) 20vw, 10vw"
+              data-ai-hint={hotel.hotelImageUri.startsWith('https://placehold.co') ? aiHint : undefined}
+            />
+        ) : (
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <ImageOffIcon className="w-8 h-8 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      <div>
+        <p className="font-semibold text-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
+        <p className="text-xs text-muted-foreground line-clamp-3">{hotel.description}</p>
+      </div>
+    </div>
+  );
+}
+
 
 export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardProps) {
   const { toast } = useToast();
@@ -56,6 +87,12 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint={itinerary.destinationImageUri.startsWith('https://placehold.co') ? aiHint : undefined}
           />
+           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+            <Badge variant="secondary" className="text-lg py-1 px-3 text-white bg-black/50 border-black/30 backdrop-blur-sm">
+                <DollarSignIcon className="w-4 h-4 mr-1" />
+                {itinerary.estimatedCost.toLocaleString()}
+            </Badge>
+          </div>
         </div>
       )}
       <CardHeader className="pt-4">
@@ -70,16 +107,18 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
               {itinerary.travelDates}
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="text-lg py-1 px-3">
-            <DollarSignIcon className="w-4 h-4 mr-1" />
-            {itinerary.estimatedCost.toLocaleString()}
-          </Badge>
+         {!itinerary.destinationImageUri && ( // Show badge here if no image
+            <Badge variant="secondary" className="text-lg py-1 px-3">
+              <DollarSignIcon className="w-4 h-4 mr-1" />
+              {itinerary.estimatedCost.toLocaleString()}
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
-        <div className="flex items-start text-sm text-muted-foreground mb-4">
-          <InfoIcon className="w-4 h-4 mr-2 mt-1 shrink-0" />
-          <p className="whitespace-pre-line">{itinerary.description}</p>
+        <div className="text-sm text-muted-foreground mb-4">
+          <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-2 shrink-0" /> Trip Overview & Daily Plan</h4>
+          <p className="whitespace-pre-line pl-6 text-xs max-h-48 overflow-y-auto border-l-2 border-border ml-1 py-1">{itinerary.description}</p>
         </div>
 
         <Accordion type="multiple" className="w-full text-sm">
@@ -110,10 +149,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-2 space-y-2">
                 {itinerary.hotelOptions.map((hotel, index) => (
-                  <div key={`hotel-${index}`} className="p-2 rounded-md border bg-muted/50">
-                    <p className="font-semibold text-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{hotel.description}</p>
-                  </div>
+                  <HotelOptionDisplay key={`hotel-${index}`} hotel={hotel} />
                 ))}
               </AccordionContent>
             </AccordionItem>
