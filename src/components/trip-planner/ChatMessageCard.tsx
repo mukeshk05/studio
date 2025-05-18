@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react'; // Added React import
 import type { ChatMessage } from "@/app/(app)/planner/page";
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import type { Itinerary } from "@/lib/types";
@@ -70,6 +71,8 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
             <p><strong>Dates:</strong> {input.travelDates}</p>
             <p><strong>Budget:</strong> ${input.budget.toLocaleString()}</p>
             {input.desiredMood && <p><strong>Mood:</strong> {input.desiredMood}</p>}
+            {input.riskContext && <p><strong>Concerns:</strong> {input.riskContext}</p>}
+            {input.weatherContext && <p><strong>Weather Context:</strong> {input.weatherContext}</p>}
           </div>
         );
       case "ai":
@@ -193,4 +196,3 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
     </div>
   );
 }
-
