@@ -1,5 +1,6 @@
 
-import type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
+import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal } from "@/ai/types/trip-planner-types";
+import type { UserTravelPersona as UserTravelPersonaFromHook } from "./firestoreHooks"; // For persona in input
 
 // This effectively takes the type of a single itinerary object from the array
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
@@ -48,4 +49,12 @@ export interface UserTravelPersona {
 
 // Re-export AITripPlannerInput and AITripPlannerOutput from here if needed by UI components
 // This centralizes type exports if preferred over direct imports from @/ai/types
-export type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
+export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
+
+// Augment AITripPlannerInput to include the optional userPersona
+export type AITripPlannerInput = AITripPlannerInputOriginal & {
+  userPersona?: {
+    name: string;
+    description: string;
+  } | null; // Allow null or undefined
+};

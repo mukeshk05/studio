@@ -1,10 +1,17 @@
 
 import { z } from 'genkit';
 
+// Schema for User Persona, if passed into the planner
+export const UserPersonaSchema = z.object({
+  name: z.string().describe("The name of the user's travel persona (e.g., 'Cultural Explorer')."),
+  description: z.string().describe("A brief description of the user's travel persona.")
+}).optional();
+
 export const AITripPlannerInputSchema = z.object({
   travelDates: z.string().describe('The desired travel dates (e.g., MM/DD/YYYY-MM/DD/YYYY).'),
   destination: z.string().describe('The destination for the trip.'),
   budget: z.number().describe('The budget for the trip in USD.'),
+  userPersona: UserPersonaSchema.describe("Optional: The user's travel persona to help tailor the trip plan."),
 });
 export type AITripPlannerInput = z.infer<typeof AITripPlannerInputSchema>;
 

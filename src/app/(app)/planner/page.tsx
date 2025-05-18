@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
+import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/types/trip-planner-types";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
@@ -12,7 +12,7 @@ import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
 import { MessageSquarePlusIcon, HistoryIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSavedTrips, useAddSavedTrip, useAddSearchHistory } from "@/lib/firestoreHooks";
+import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
@@ -32,27 +32,26 @@ export default function TripPlannerPage() {
   const [isSearchHistoryDrawerOpen, setIsSearchHistoryDrawerOpen] = useState(false);
   const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null);
 
-
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const { data: savedTrips, isLoading: isLoadingSavedTrips } = useSavedTrips();
+  const { data: userPersona } = useGetUserTravelPersona(); // Fetch user's travel persona
   const addSavedTripMutation = useAddSavedTrip();
   const addSearchHistoryMutation = useAddSearchHistory();
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Check for a bundle/quiz trip idea passed via localStorage
     const bundledTripData = localStorage.getItem('tripBundleToPlan');
     if (bundledTripData) {
       try {
         const tripIdea: AITripPlannerInput = JSON.parse(bundledTripData);
         setCurrentFormInitialValues(tripIdea);
-        setIsInputSheetOpen(true); // Open the input sheet directly
+        setIsInputSheetOpen(true); 
       } catch (e) {
         console.error("Error parsing trip bundle/quiz data from localStorage:", e);
       } finally {
-        localStorage.removeItem('tripBundleToPlan'); // Clear it after use
+        localStorage.removeItem('tripBundleToPlan'); 
       }
     } else if (chatHistory.length === 0 && currentUser) {
       setChatHistory([
@@ -116,8 +115,14 @@ export default function TripPlannerPage() {
 
     setChatHistory((prev) => [...prev, userMessage, loadingMessage]);
 
+    // Augment input with userPersona if available
+    const plannerInput: AITripPlannerInput = {
+      ...input,
+      userPersona: userPersona ? { name: userPersona.name, description: userPersona.description } : undefined,
+    };
+
     try {
-      const result: AITripPlannerOutput = await aiTripPlanner(input);
+      const result: AITripPlannerOutput = await aiTripPlanner(plannerInput); // Use augmented input
       const itinerariesFromAI: Omit<Itinerary, 'id'>[] = (result.itineraries || []).map((it) => ({
         ...it,
         destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
@@ -220,9 +225,43 @@ export default function TripPlannerPage() {
   };
 
   const handleOpenInputSheetForNewPlan = () => {
-    setCurrentFormInitialValues(null); // Ensure new plan starts blank
+    setCurrentFormInitialValues(null); 
     setIsInputSheetOpen(true);
   };
+
+  // Function to handle trip planning from dashboard (e.g., smart bundle)
+  // This effect listens for localStorage changes and opens the sheet.
+  useEffect(() => {
+    const handleStorageChange = () => {
+        const bundledTripData = localStorage.getItem('tripBundleToPlan');
+        if (bundledTripData) {
+            try {
+                const tripIdea: AITripPlannerInput = JSON.parse(bundledTripData);
+                setCurrentFormInitialValues(tripIdea);
+                setIsInputSheetOpen(true);
+            } catch (e) {
+                console.error("Error parsing trip bundle data from localStorage:", e);
+            } finally {
+                localStorage.removeItem('tripBundleToPlan');
+            }
+        }
+    };
+    
+    // Check on mount
+    handleStorageChange();
+
+    // Listen for storage events (e.g., if set by another tab, though less likely here)
+    window.addEventListener('storage', handleStorageChange);
+    // Listen for custom event if 'tripBundleToPlan' is set by same-page navigation (more reliable)
+    window.addEventListener('localStorageUpdated_tripBundleToPlan', handleStorageChange);
+
+
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('localStorageUpdated_tripBundleToPlan', handleStorageChange);
+    };
+  }, []);
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
