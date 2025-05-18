@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getPackingList, PackingListInput, PackingListOutput } from "@/ai/flows/packing-list-flow";
 import { getDestinationFact, DestinationFactInput, DestinationFactOutput } from "@/ai/flows/destination-fact-flow";
 import { cn } from "@/lib/utils";
+import { GroupSyncDialog } from "./GroupSyncDialog"; // Import new dialog
 
 type BookingCardProps = {
   booking: Itinerary;
@@ -85,6 +86,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
   const [isPackingListDialogOpen, setIsPackingListDialogOpen] = useState(false);
   const [isFactDialogOpen, setIsFactDialogOpen] = useState(false);
   const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false);
+  const [isGroupSyncDialogOpen, setIsGroupSyncDialogOpen] = useState(false); // State for new dialog
   const [packingList, setPackingList] = useState<string[] | null>(null);
   const [destinationFact, setDestinationFact] = useState<string | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
@@ -105,7 +107,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         destination: booking.destination,
         travelDates: booking.travelDates,
         tripDuration: duration,
-        // We don't have specific weather context here, so AI will infer.
+        weatherContext: booking.weatherContext, // Pass existing weather context if available
       };
       const result: PackingListOutput = await getPackingList(input);
       setPackingList(result.packingList);
@@ -175,10 +177,17 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
              </Badge>
           )}
         </div>
-         <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
-            <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
-            <span className="italic">AI considered general weather patterns in planning.</span>
+         {(booking.weatherContext || booking.riskContext) && (
+          <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
+             {booking.weatherContext && <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400" /> }
+             {booking.riskContext && !booking.weatherContext && <InfoIcon className="w-3.5 h-3.5 mr-1.5 text-orange-400" /> }
+            <span className="italic">
+              {booking.weatherContext && "AI considered weather. "}
+              {booking.riskContext && "AI considered risks."}
+              {!booking.weatherContext && !booking.riskContext && "AI considered general patterns."}
+            </span>
         </div>
+         )}
       </CardHeader>
       <CardContent className="flex-grow pt-2 pb-3 text-card-foreground">
          {booking.tripSummary && (
@@ -238,7 +247,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
           )}
         </Accordion>
       </CardContent>
-      <CardFooter className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <CardFooter className="pt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
         <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full text-primary border-primary/50 hover:bg-primary/10">
           <BriefcaseIcon className="mr-2 h-4 w-4" />List
         </Button>
@@ -248,9 +257,12 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         <Button onClick={() => setIsArVrDialogOpen(true)} variant="outline" size="sm" className="w-full text-purple-400 border-purple-400/50 hover:bg-purple-400/10">
           <ScanEyeIcon className="mr-2 h-4 w-4" />Preview
         </Button>
+        <Button onClick={() => setIsGroupSyncDialogOpen(true)} variant="outline" size="sm" className="w-full text-green-400 border-green-400/50 hover:bg-green-400/10">
+          <UsersIcon className="mr-2 h-4 w-4" />Sync
+        </Button>
         <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
           {isRemoving ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
-          Remove
+          {isRemoving ? '' : 'Remove'}
         </Button>
       </CardFooter>
     </Card>
@@ -343,7 +355,15 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+
+    {/* Group Sync Dialog */}
+    {trip && (
+      <GroupSyncDialog
+        isOpen={isGroupSyncDialogOpen}
+        onClose={() => setIsGroupSyncDialogOpen(false)}
+        trip={booking}
+      />
+    )}
     </>
   );
 }
-
