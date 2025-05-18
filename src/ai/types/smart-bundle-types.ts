@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview Type definitions and Zod schemas for the Smart Bundle Generator.
  */
