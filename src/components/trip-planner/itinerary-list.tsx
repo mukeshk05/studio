@@ -6,6 +6,7 @@ import { Itinerary } from "@/lib/types";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { Loader2Icon, SearchXIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 type ItineraryListProps = {
   itineraries: AITripPlannerOutput["itineraries"] | null;
