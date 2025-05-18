@@ -1,15 +1,16 @@
 
 "use client";
 
-import type { PriceTrackerEntry } from "@/lib/types";
+import type { PriceTrackerEntry, PriceForecast } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon } from "lucide-react";
+import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon, TrendingUpIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import { getPriceAdvice, PriceAdvisorInput, PriceAdvisorOutput } from "@/ai/flows/price-advisor-flow"; 
+import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow"; // New import
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -25,7 +26,7 @@ type PriceTrackerItemProps = {
   isRemoving?: boolean;
 };
 
-const glassEffectClasses = "glass-card"; // Using utility from globals.css
+const glassEffectClasses = "glass-card";
 
 export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating, isRemoving }: PriceTrackerItemProps) {
   const { toast } = useToast();
@@ -34,6 +35,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   const [isRecheckDialogOpen, setIsRecheckDialogOpen] = React.useState(false);
   const [recheckDialogAiAlert, setRecheckDialogAiAlert] = React.useState<PriceTrackerOutput | null>(null);
   const [isAiAdviceLoading, setIsAiAdviceLoading] = React.useState(false);
+  const [isPriceForecastLoading, setIsPriceForecastLoading] = React.useState(false); // New state for forecast
 
 
   const handleRecheckPriceSubmit = async () => {
@@ -58,6 +60,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
       const dataToUpdate: Partial<Omit<PriceTrackerEntry, 'id'>> = {
         currentPrice: currentPriceNum,
         alertStatus: alertResult,
+        lastChecked: new Date().toISOString(),
       };
       await onUpdateItem(item.id, dataToUpdate); 
 
@@ -90,7 +93,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         currentPrice: item.currentPrice,
       };
       const result = await getPriceAdvice(adviceInput);
-      await onUpdateItem(item.id, { aiAdvice: result.advice });
+      await onUpdateItem(item.id, { aiAdvice: result.advice, lastChecked: new Date().toISOString() });
       toast({
         title: "AI Advice Received",
         description: "Check the insights below.",
@@ -102,9 +105,37 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
       setIsAiAdviceLoading(false);
     }
   };
+
+  const handleGetPriceForecast = async () => {
+    setIsPriceForecastLoading(true);
+    try {
+      const forecastInput: AIPFInput = {
+        itemType: item.itemType,
+        itemName: item.itemName,
+        currentPrice: item.currentPrice,
+        travelDates: item.itemName, // Using itemName as a proxy for dates, might need refinement
+      };
+      const result = await getPriceForecast(forecastInput);
+      const newForecast: PriceForecast = {
+        forecast: result.forecast,
+        confidence: result.confidence,
+        forecastedAt: new Date().toISOString(),
+      };
+      await onUpdateItem(item.id, { priceForecast: newForecast, lastChecked: new Date().toISOString() });
+      toast({
+        title: "AI Price Forecast Received",
+        description: "Check the forecast below.",
+      });
+    } catch (error) {
+      console.error("Error getting AI price forecast:", error);
+      toast({ title: "Error", description: "Could not fetch AI price forecast.", variant: "destructive" });
+    } finally {
+      setIsPriceForecastLoading(false);
+    }
+  };
   
   const Icon = item.itemType === 'flight' ? PlaneIcon : HotelIcon;
-  const isCurrentlyUpdating = isUpdating || isRecheckingPriceAI || isAiAdviceLoading;
+  const isCurrentlyUpdating = isUpdating || isRecheckingPriceAI || isAiAdviceLoading || isPriceForecastLoading;
 
   return (
     <Card className={cn(glassEffectClasses, "flex flex-col border-primary/20")}>
@@ -119,7 +150,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
           </Badge>
         </div>
         <CardDescription className="text-xs text-muted-foreground">
-          Last checked: {item.lastChecked ? formatDistanceToNow(new Date(item.lastChecked), { addSuffix: true }) : 'Never'}
+          Last updated: {item.lastChecked ? formatDistanceToNow(new Date(item.lastChecked), { addSuffix: true }) : 'Never'}
         </CardDescription>
       </CardHeader>
       <CardContent className="text-sm space-y-2 flex-grow text-card-foreground/90">
@@ -137,10 +168,10 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
               </Alert>
         )}
 
-        {(isAiAdviceLoading || (isCurrentlyUpdating && !item.aiAdvice)) && (
+        {(isAiAdviceLoading || (isCurrentlyUpdating && !item.aiAdvice && !item.priceForecast)) && (
           <div className="flex items-center justify-center p-3 bg-muted/30 rounded-md">
             <Loader2Icon className="w-5 h-5 mr-2 animate-spin text-primary" />
-            <span className="text-xs text-muted-foreground">Getting AI advice...</span>
+            <span className="text-xs text-muted-foreground">AI is working...</span>
           </div>
         )}
 
@@ -153,12 +184,37 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
             </AlertDescription>
           </Alert>
         )}
+
+        {isPriceForecastLoading && !item.priceForecast && (
+             <div className="flex items-center justify-center p-3 bg-muted/30 rounded-md mt-2">
+                <Loader2Icon className="w-5 h-5 mr-2 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">Generating price forecast...</span>
+            </div>
+        )}
+
+        {item.priceForecast && !isPriceForecastLoading && (
+            <Alert variant="default" className="mt-2 p-2.5 text-xs border-purple-500/30 bg-purple-500/10 text-card-foreground transition-opacity duration-300">
+                <TrendingUpIcon className="h-4 w-4 text-purple-400" />
+                <AlertTitle className="text-xs font-semibold text-purple-400 mb-0.5">AI Price Forecast <span className="text-muted-foreground text-xs">({formatDistanceToNow(new Date(item.priceForecast.forecastedAt), { addSuffix: true })})</span></AlertTitle>
+                <AlertDescription className="text-xs">
+                {item.priceForecast.forecast}
+                {item.priceForecast.confidence && <span className="capitalize text-muted-foreground/80"> (Confidence: {item.priceForecast.confidence})</span>}
+                </AlertDescription>
+            </Alert>
+        )}
+
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
-        <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full sm:w-auto flex-1 bg-card/70 hover:bg-accent/20 border-border/70 text-accent hover:text-accent-foreground" disabled={isCurrentlyUpdating}>
-          {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-          AI Advice
-        </Button>
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2 mb-2 sm:mb-0">
+            <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full sm:w-auto flex-1 bg-card/70 hover:bg-accent/20 border-border/70 text-accent hover:text-accent-foreground" disabled={isCurrentlyUpdating}>
+                {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+                AI Advice
+            </Button>
+            <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full sm:w-auto flex-1 bg-card/70 hover:bg-purple-500/20 border-border/70 text-purple-400 hover:text-purple-300" disabled={isCurrentlyUpdating}>
+                {isPriceForecastLoading ? <Loader2Icon className="animate-spin" /> : <TrendingUpIcon />}
+                Get Forecast
+            </Button>
+        </div>
         <div className="flex w-full sm:w-auto gap-2">
             <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="flex-1 bg-card/70 hover:bg-primary/20 border-border/70 text-primary hover:text-primary-foreground" disabled={isCurrentlyUpdating}>
               <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
