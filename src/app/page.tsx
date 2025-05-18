@@ -15,7 +15,7 @@ import {
   LightbulbIcon, 
   BookOpenTextIcon, 
   CheckCircleIcon,
-  Wand2Icon // Added Wand2Icon for Aura AI
+  Wand2Icon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -67,7 +67,7 @@ export default function LandingPage() {
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <Wand2Icon className="w-10 h-10 text-accent mb-4" />, // Changed to Wand2Icon for Aura
+      icon: <Wand2Icon className="w-10 h-10 text-accent mb-4" />, 
       title: "Aura AI: Smart Assistant",
       description: "Ask Aura for trip ideas in natural language! From 'weekend beach getaways' to 'adventure in the Andes,' get personalized trip bundles based on your profile and search history.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -88,6 +88,13 @@ export default function LandingPage() {
     "Intelligent Tools: Price tracking, AI advice, packing lists, and group sync.",
     "Modern & Intuitive: A seamless, enjoyable planning experience with a ChatGPT-like interface.",
     "All-in-One Dashboard: Your trips, alerts, and Aura AI in one place."
+  ];
+
+  const heroCarouselImages = [
+    { src: "https://placehold.co/1200x675.png", alt: "AI Generated Abstract Travel Visualization", aiHint: "ai abstract travel" },
+    { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
+    { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
+    { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
   ];
 
   const [heroVisible, setHeroVisible] = useState(false);
@@ -117,7 +124,7 @@ export default function LandingPage() {
         <Image 
           src="https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg"
           alt="Tropical beach with palm trees and clear blue water"
-          layout="fill"
+          fill
           objectFit="cover"
           quality={90}
           priority
@@ -129,13 +136,13 @@ export default function LandingPage() {
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
           <AppLogo />
           <nav className="flex items-center space-x-2 sm:space-x-4">
-            <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link href="#features" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors">
               Features
             </Link>
-            <Link href="#why-us" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+            <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors">
               Why Us
             </Link>
-            <Button asChild variant="ghost" className="text-sm hover:bg-primary/10 hover:text-primary">
+            <Button asChild variant="ghost" className="text-sm text-slate-100 hover:bg-primary/10 hover:text-primary">
               <Link href="/planner">App</Link>
             </Button>
              <Button asChild className={cn("text-sm hidden sm:inline-flex transform transition-transform hover:scale-105 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40")}>
@@ -179,19 +186,35 @@ export default function LandingPage() {
             </Button>
             <div 
               className={cn(
-                "mt-16 relative aspect-video max-w-4xl mx-auto rounded-xl shadow-2xl overflow-hidden border-4 border-card/50 transition-all duration-1000 ease-out delay-500",
+                "mt-16 relative max-w-4xl mx-auto rounded-xl shadow-2xl overflow-hidden border-4 border-card/50 transition-all duration-1000 ease-out delay-500",
                 heroVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
               )}
             >
-                <Image 
-                    src="https://placehold.co/1200x675.png" 
-                    alt="BudgetRoam AI Travel App Interface" 
-                    layout="fill"
-                    objectFit="cover"
-                    data-ai-hint="ai travel app interface"
-                    priority
-                    className="rounded-lg"
-                />
+              <Carousel
+                opts={{ loop: true, align: "start" }}
+                className="w-full"
+                // autoplay plugin can be added here if needed: plugins={[Autoplay({ delay: 5000 })]}
+              >
+                <CarouselContent>
+                  {heroCarouselImages.map((image, index) => (
+                    <CarouselItem key={index}>
+                      <div className="aspect-video relative">
+                        <Image 
+                            src={image.src} 
+                            alt={image.alt} 
+                            layout="fill"
+                            objectFit="cover"
+                            data-ai-hint={image.aiHint}
+                            priority={index === 0} // Prioritize loading the first image
+                            className="rounded-lg"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-primary/80" />
+                <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-primary/80" />
+              </Carousel>
             </div>
           </div>
         </section>
@@ -280,7 +303,7 @@ export default function LandingPage() {
                     layout="fill"
                     objectFit="cover"
                     className="rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-500 ease-out"
-                    data-ai-hint="ai empowered traveler world"
+                    data-ai-hint="happy traveler destination"
                 />
               </div>
             </div>
