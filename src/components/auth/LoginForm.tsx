@@ -19,12 +19,12 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2Icon, LogInIcon, MailIcon, KeyRoundIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
-// Define a simple SVG for Google icon as lucide-react doesn't have it directly
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4">
     <title>Google</title>
-    <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.05 1.05-2.36 1.62-4.38 1.62-3.82 0-6.91-3.02-6.91-6.91s3.02-6.91 6.91-6.91c1.84 0 3.21.65 4.1 1.55l2.65-2.58C18.04 3.32 15.87 2 12.48 2c-5.61 0-10.2 4.5-10.2 10.2s4.5 10.2 10.2 10.2c3.22 0 5.53-1.08 7.36-2.91 1.99-1.99 2.65-4.82 2.65-7.72 0-.65-.05-1.22-.14-1.79H12.48z"/>
+    <path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.05 1.05-2.36 1.62-4.38 1.62-3.82 0-6.91-3.02-6.91-6.91s3.02-6.91 6.91-6.91c1.84 0 3.21.65 4.1 1.55l2.65-2.58C18.04 3.32 15.87 2 12.48 2c-5.61 0-10.2 4.5-10.2 10.2s4.5 10.2 10.2 10.2c3.22 0 5.53-1.08 7.36-2.91 1.99-1.99 2.65-4.82 2.65-7.72 0-.65-.05-1.22-.14-1.79H12.48z"/>
   </svg>
 );
 
@@ -54,12 +54,12 @@ export function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-xl bg-card/80 backdrop-blur-md border-border/30">
+    <Card className={cn("w-full max-w-md glass-card border-primary/30")}>
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl flex items-center justify-center">
+        <CardTitle className="text-2xl flex items-center justify-center text-foreground">
           <LogInIcon className="w-7 h-7 mr-2 text-primary" /> Login to BudgetRoam
         </CardTitle>
-        <CardDescription>Access your personalized travel plans and tools.</CardDescription>
+        <CardDescription className="text-muted-foreground">Access your personalized travel plans and tools.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -69,9 +69,9 @@ export function LoginForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><MailIcon className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><MailIcon className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="you@example.com" {...field} />
+                    <Input placeholder="you@example.com" {...field} className="bg-background/70 focus:bg-background/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -82,29 +82,29 @@ export function LoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••" {...field} className="bg-background/70 focus:bg-background/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={loading}>
               {loading ? <Loader2Icon className="animate-spin" /> : <LogInIcon />}
               Login
             </Button>
           </form>
         </Form>
-        <Separator className="my-6" />
+        <Separator className="my-6 bg-border/50" />
         <div className="space-y-4">
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={loading}>
+          <Button variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" onClick={handleGoogleSignIn} disabled={loading}>
             {loading ? <Loader2Icon className="animate-spin" /> : <GoogleIcon />} 
             Sign in with Google
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Button variant="link" asChild className="px-0.5">
+            <Button variant="link" asChild className="px-0.5 text-primary hover:text-accent">
               <Link href="/signup">Sign up</Link>
             </Button>
           </p>

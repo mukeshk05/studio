@@ -23,7 +23,7 @@ export function Header() {
   const { currentUser, logout, loading } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-4 md:gap-6">
           <AppLogo />
@@ -32,28 +32,28 @@ export function Header() {
         <div className="flex items-center gap-2 sm:gap-3">
           {loading ? (
             <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-20 rounded-md" />
-              <Skeleton className="h-9 w-9 rounded-full hidden sm:block" />
+              <Skeleton className="h-8 w-20 rounded-md bg-muted/50" />
+              <Skeleton className="h-9 w-9 rounded-full bg-muted/50 hidden sm:block" />
             </div>
           ) : currentUser ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                  <Avatar className="h-9 w-9">
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 hover:bg-accent/20">
+                  <Avatar className="h-9 w-9 border border-primary/50">
                     <AvatarImage 
                       src={currentUser.photoURL || undefined} 
                       alt={currentUser.displayName || currentUser.email || "User avatar"} 
                     />
-                    <AvatarFallback>
-                      <UserIcon className="h-5 w-5" />
+                    <AvatarFallback className="bg-muted/50">
+                      <UserIcon className="h-5 w-5 text-foreground/80" />
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuContent className="w-56 glass-card border-border/50" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
+                    <p className="text-sm font-medium leading-none text-foreground">
                       {currentUser.displayName || currentUser.email?.split('@')[0]}
                     </p>
                     {currentUser.email && (
@@ -63,8 +63,8 @@ export function Header() {
                     )}
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                <DropdownMenuSeparator className="bg-border/50"/>
+                <DropdownMenuItem onClick={logout} className="cursor-pointer focus:bg-destructive/20 focus:text-destructive-foreground">
                   <LogOutIcon className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
@@ -76,17 +76,17 @@ export function Header() {
                 href="/login" 
                 className={cn(
                   buttonVariants({ variant: "outline", size: "sm" }),
-                  "hidden sm:inline-flex items-center" // Added items-center
+                  "hidden sm:inline-flex items-center border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
                 )}
               >
-                <LogInIcon className="mr-1 h-4 w-4" /> Login {/* Added icon and margin */}
+                <LogInIcon className="mr-1 h-4 w-4" /> Login
               </Link>
               <Link 
                 href="/login" 
                 aria-label="Login"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
-                  "sm:hidden"
+                  "sm:hidden text-primary hover:bg-primary/10"
                 )}
               >
                 <LogInIcon />
@@ -94,18 +94,18 @@ export function Header() {
               <Link 
                 href="/signup" 
                 className={cn(
-                  buttonVariants({ variant: "default", size: "sm" }),
-                  "hidden sm:inline-flex items-center" // Added items-center
+                  buttonVariants({ variant: "default", size: "sm" }), // Default for primary action
+                  "hidden sm:inline-flex items-center shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
                 )}
               >
-                <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up {/* Added icon and margin */}
+                <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up
               </Link>
-              <Link 
+               <Link 
                 href="/signup" 
                 aria-label="Sign Up"
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon" }),
-                  "sm:hidden"
+                  "sm:hidden text-primary hover:bg-primary/10"
                 )}
               >
                 <UserPlusIcon />

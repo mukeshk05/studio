@@ -8,15 +8,14 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-// Removed useLocalStorage import for trackedItems
 import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon } from "lucide-react";
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 
 export default function DashboardPage() {
-  // trackedItems are now managed by PriceTrackerList via firestoreHooks
   const [travelTip, setTravelTip] = useState<string | null>(null);
   const [isTipLoading, setIsTipLoading] = useState(false);
   const { toast } = useToast();
@@ -42,29 +41,26 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (currentUser) { // Fetch tip only if user is logged in, or adjust if tips are for all users
+    if (currentUser) { 
       fetchNewTravelTip();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]); // Re-fetch if user logs in/out and tip is user-dependent
+  }, [currentUser]); 
 
-  // handleTrackerAdded is no longer needed here as PriceTrackerForm will directly save to Firestore.
-  
-  const glassEffectClasses = "bg-card/60 dark:bg-card/40 backdrop-blur-lg border-white/20 shadow-xl";
-
+  const glassCardClasses = "glass-card"; // Using utility from globals.css
 
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold tracking-tight mb-6 text-foreground">Your Dashboard</h1>
 
-      <Card className={`mb-8 ${glassEffectClasses}`}>
+      <Card className={cn("mb-8", glassCardClasses)}>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center text-lg text-foreground">
+            <CardTitle className="flex items-center text-lg text-card-foreground">
               <LightbulbIcon className="w-6 h-6 mr-2 text-yellow-400" />
               AI Travel Tip of the Day
             </CardTitle>
-            <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:text-primary/80">
+            <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:bg-primary/10 hover:text-primary/80">
               {isTipLoading ? <Loader2Icon className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
                <span className="ml-2 hidden sm:inline">New Tip</span>
             </Button>
@@ -78,7 +74,7 @@ export default function DashboardPage() {
             </div>
           )}
           {travelTip && (
-            <p className="text-sm text-foreground/90 transition-opacity duration-500">{travelTip}</p>
+            <p className="text-sm text-card-foreground/90 transition-opacity duration-500">{travelTip}</p>
           )}
           {!isTipLoading && !travelTip && (
              <p className="text-sm text-muted-foreground">Loading travel tip...</p>
@@ -87,23 +83,22 @@ export default function DashboardPage() {
       </Card>
 
       <Tabs defaultValue="my-trips" className="w-full">
-        <TabsList className={`grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 ${glassEffectClasses.replace('bg-card','bg-muted')} p-1.5 rounded-lg`}>
-          <TabsTrigger value="my-trips" className="flex items-center gap-2 data-[state=active]:bg-background/70 data-[state=active]:shadow-md">
+        <TabsList className={cn("grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg", glassCardClasses.replace('bg-card/40', 'bg-muted/20').replace('bg-card/60', 'bg-muted/30'))}>
+          <TabsTrigger value="my-trips" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
           </TabsTrigger>
-          <TabsTrigger value="price-tracker" className="flex items-center gap-2 data-[state=active]:bg-background/70 data-[state=active]:shadow-md">
+          <TabsTrigger value="price-tracker" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <BellRingIcon className="w-5 h-5" />
             Price Tracker
           </TabsTrigger>
         </TabsList>
         
-        <div className={`p-0 sm:p-2 rounded-xl ${glassEffectClasses} `}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", glassCardClasses)}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
           <TabsContent value="price-tracker" className="mt-0">
-            {/* PriceTrackerForm no longer needs onTrackerAdded */}
             <PriceTrackerForm /> 
             <PriceTrackerList />
           </TabsContent>

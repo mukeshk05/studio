@@ -7,13 +7,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { Itinerary } from "@/lib/types";
-import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet"; // Updated import
+import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
 import { MessageSquarePlusIcon, SparklesIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export interface ChatMessage {
   id: string;
@@ -24,7 +25,7 @@ export interface ChatMessage {
 
 export default function TripPlannerPage() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [isInputSheetOpen, setIsInputSheetOpen] = useState(false); // Renamed from isInputDialogOpen
+  const [isInputSheetOpen, setIsInputSheetOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   
@@ -76,10 +77,6 @@ export default function TripPlannerPage() {
     try {
       const result: AITripPlannerOutput = await aiTripPlanner(input);
       
-      // Firestore will generate IDs, so we don't create them here.
-      // The 'id' will be added when fetching from Firestore or immediately after adding.
-      // For display before saving, a temporary client-side ID could be used if needed,
-      // but for now, let's assume ID is only relevant once saved.
       const itinerariesFromAI: Omit<Itinerary, 'id'>[] = (result.itineraries || []).map((it) => ({
         ...it,
         destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
@@ -88,16 +85,13 @@ export default function TripPlannerPage() {
           hotelImageUri: hotel.hotelImageUri || `https://placehold.co/300x200.png?text=${encodeURIComponent(hotel.name.substring(0,10))}`
         })),
         dailyPlan: it.dailyPlan || [],
-        // No client-side 'id' generation here; Firestore will handle it.
-        // For viewing details of an unsaved trip, we pass the full Itinerary (Omit<Itinerary, 'id'>) object.
       }));
 
 
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         type: "ai",
-        // Pass the AI output directly. The ItineraryCard will handle unsaved items.
-        payload: itinerariesFromAI.map(it => ({...it, id: `temp-${crypto.randomUUID()}`})), // Add temp id for key prop
+        payload: itinerariesFromAI.map(it => ({...it, id: `temp-${crypto.randomUUID()}`})), 
         timestamp: new Date(),
       };
       setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(aiMessage));
@@ -124,7 +118,7 @@ export default function TripPlannerPage() {
     }
   };
 
-  const handleViewDetails = (itinerary: Itinerary) => { // Expects Itinerary which might have temp id
+  const handleViewDetails = (itinerary: Itinerary) => { 
     setSelectedItinerary(itinerary);
     setIsDetailSheetOpen(true);
   };
@@ -135,8 +129,6 @@ export default function TripPlannerPage() {
       return;
     }
     try {
-      // Check if a very similar trip (destination, travelDates, estimatedCost) already exists to avoid exact duplicates if user clicks save multiple times on an unsaved card
-      // This client-side check is basic. A more robust check could be done via Firestore query if needed.
       const alreadyExists = savedTrips?.some(
         (trip) => 
           trip.destination === itineraryToSave.destination &&
@@ -144,7 +136,7 @@ export default function TripPlannerPage() {
           trip.estimatedCost === itineraryToSave.estimatedCost
       );
 
-      if (alreadyExists && !itineraryToSave.id?.startsWith('temp-')) { // only check for already saved trips
+      if (alreadyExists && itineraryToSave.id && !itineraryToSave.id.startsWith('temp-')) { 
          toast({ title: "Already Saved", description: "This trip variation seems to be already in your dashboard." });
          return;
       }
@@ -154,7 +146,7 @@ export default function TripPlannerPage() {
         title: "Trip Saved!",
         description: `${itineraryToSave.destination} has been added to your dashboard.`,
       });
-      setIsDetailSheetOpen(false); // Close sheet after saving
+      setIsDetailSheetOpen(false);
     } catch (error) {
       console.error("Error saving trip:", error);
       toast({ title: "Error Saving Trip", description: "Could not save the trip to your dashboard.", variant: "destructive" });
@@ -163,11 +155,9 @@ export default function TripPlannerPage() {
   
   const isTripSaved = (itinerary: Itinerary | Omit<Itinerary, 'id'>): boolean => {
     if (isLoadingSavedTrips || !savedTrips) return false;
-    // If the itinerary has a non-temporary ID, check if it's in savedTrips
-    if (itinerary.id && !itinerary.id.startsWith('temp-')) {
+    if ('id' in itinerary && itinerary.id && !itinerary.id.startsWith('temp-')) {
       return savedTrips.some(trip => trip.id === itinerary.id);
     }
-    // For unsaved (temporary ID) or items without ID, check by content
     return savedTrips.some(
       (trip) =>
         trip.destination === itinerary.destination &&
@@ -176,10 +166,9 @@ export default function TripPlannerPage() {
     );
   };
 
-
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]"> {/* Adjust height based on header */}
-      <ScrollArea className="flex-grow p-4 sm:p-6 bg-background" ref={chatContainerRef}>
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background"> {/* Adjusted height based on header */}
+      <ScrollArea className="flex-grow p-4 sm:p-6" ref={chatContainerRef}>
         <div className="max-w-3xl mx-auto space-y-6">
           {chatHistory.map((msg) => (
             <ChatMessageCard key={msg.id} message={msg} onViewDetails={handleViewDetails} />
@@ -187,17 +176,17 @@ export default function TripPlannerPage() {
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t bg-background">
+      <div className="p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto">
            {chatHistory.length > 0 && chatHistory[chatHistory.length -1].type === 'loading' ? (
-             <div className="flex items-center justify-center text-muted-foreground">
+             <div className="flex items-center justify-center text-muted-foreground h-11">
                 <SparklesIcon className="w-5 h-5 mr-2 animate-pulse text-primary" />
                 BudgetRoam AI is thinking...
              </div>
            ) : (
             <Button
-              onClick={() => setIsInputSheetOpen(true)} // Updated to setIsInputSheetOpen
-              className="w-full text-lg py-3"
+              onClick={() => setIsInputSheetOpen(true)}
+              className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
               size="lg"
               disabled={!currentUser || addSavedTripMutation.isPending}
             >
@@ -208,9 +197,9 @@ export default function TripPlannerPage() {
         </div>
       </div>
 
-      <TripPlannerInputSheet // Updated component name
-        isOpen={isInputSheetOpen} // Updated prop name
-        onClose={() => setIsInputSheetOpen(false)} // Updated prop name
+      <TripPlannerInputSheet
+        isOpen={isInputSheetOpen}
+        onClose={() => setIsInputSheetOpen(false)}
         onPlanRequest={handlePlanRequest}
       />
 
@@ -218,7 +207,7 @@ export default function TripPlannerPage() {
         <ItineraryDetailSheet
           isOpen={isDetailSheetOpen}
           onClose={() => setIsDetailSheetOpen(false)}
-          itinerary={selectedItinerary} // selectedItinerary now includes a temporary ID if unsaved
+          itinerary={selectedItinerary}
           onSaveTrip={handleSaveTrip}
           isTripSaved={isTripSaved(selectedItinerary)}
           isSaving={addSavedTripMutation.isPending}

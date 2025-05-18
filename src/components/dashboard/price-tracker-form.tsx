@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAddTrackedItem } from "@/lib/firestoreHooks";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   itemType: z.enum(["flight", "hotel"], {
@@ -33,7 +34,6 @@ const formSchema = z.object({
   currentPrice: z.coerce.number().positive("Current price must be a positive number."),
 });
 
-// onTrackerAdded prop is removed as we save directly to Firestore
 export function PriceTrackerForm() {
   const { toast } = useToast();
   const [aiAlert, setAiAlert] = React.useState<PriceTrackerOutput | null>(null);
@@ -54,22 +54,19 @@ export function PriceTrackerForm() {
     }
     setAiAlert(null);
     try {
-      // Call AI for initial alert status
       const alertResult = await trackPrice(values);
       setAiAlert(alertResult);
 
-      // Prepare data for Firestore (without ID)
       const newItemData = {
         itemType: values.itemType,
         itemName: values.itemName,
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
-        // lastChecked, alertStatus will be set by the hook/Firestore
       };
       
       await addTrackedItemMutation.mutateAsync(
-        // @ts-ignore // TODO: Fix type for newItemData to match mutation expectation if necessary
-        {...newItemData, alertStatus: alertResult} // Pass alertResult to be stored initially
+        // @ts-ignore 
+        {...newItemData, alertStatus: alertResult} 
       );
       
       toast({
@@ -80,7 +77,7 @@ export function PriceTrackerForm() {
          toast({
             title: "Price Alert!",
             description: alertResult.alertMessage,
-            variant: "default",
+            variant: "default", // Or a success/info variant
             duration: 10000,
          });
       }
@@ -96,17 +93,17 @@ export function PriceTrackerForm() {
     }
   }
   
-  const glassEffectClasses = "bg-card/60 dark:bg-card/40 backdrop-blur-lg border-white/20 shadow-xl";
+  const glassEffectClasses = "glass-card"; // Using utility from globals.css
   const isSubmitting = form.formState.isSubmitting || addTrackedItemMutation.isPending;
 
   return (
-    <Card className={`w-full mb-6 ${glassEffectClasses} border-none`}>
+    <Card className={cn("w-full mb-6", glassEffectClasses, "border-primary/20")}>
       <CardHeader>
-        <CardTitle className="flex items-center text-xl text-foreground">
+        <CardTitle className="flex items-center text-xl text-card-foreground">
           <BellPlusIcon className="w-6 h-6 mr-2 text-accent" />
           Add Item to Price Tracker
         </CardTitle>
-        <CardDescription className="text-foreground/80">Get alerts when prices drop for your desired flights or hotels.</CardDescription>
+        <CardDescription className="text-muted-foreground">Get alerts when prices drop for your desired flights or hotels.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -116,14 +113,14 @@ export function PriceTrackerForm() {
               name="itemType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground/90">Item Type</FormLabel>
+                  <FormLabel className="text-card-foreground/90">Item Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-background/70 dark:bg-background/50 border-input/70">
+                      <SelectTrigger className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90">
                         <SelectValue placeholder="Select item type (flight or hotel)" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="bg-popover/90 backdrop-blur-md">
+                    <SelectContent className="glass-pane border-border/50">
                       <SelectItem value="flight"><PlaneIcon className="inline-block mr-2 h-4 w-4" />Flight</SelectItem>
                       <SelectItem value="hotel"><HotelIcon className="inline-block mr-2 h-4 w-4" />Hotel</SelectItem>
                     </SelectContent>
@@ -137,9 +134,9 @@ export function PriceTrackerForm() {
               name="itemName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><TagIcon className="w-4 h-4 mr-2" />Item Name</FormLabel>
+                  <FormLabel className="flex items-center text-card-foreground/90"><TagIcon className="w-4 h-4 mr-2" />Item Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Flight AA123 or Grand Hyatt Hotel" {...field} className="bg-background/70 dark:bg-background/50 border-input/70" />
+                    <Input placeholder="e.g., Flight AA123 or Grand Hyatt Hotel" {...field} className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,9 +148,9 @@ export function PriceTrackerForm() {
                 name="targetPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Target Price (USD)</FormLabel>
+                    <FormLabel className="flex items-center text-card-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Target Price (USD)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 300" {...field} className="bg-background/70 dark:bg-background/50 border-input/70"/>
+                      <Input type="number" placeholder="e.g., 300" {...field} className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -164,16 +161,16 @@ export function PriceTrackerForm() {
                 name="currentPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Current Price (USD)</FormLabel>
+                    <FormLabel className="flex items-center text-card-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Current Price (USD)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 350" {...field} className="bg-background/70 dark:bg-background/50 border-input/70"/>
+                      <Input type="number" placeholder="e.g., 350" {...field} className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting || !currentUser}>
+            <Button type="submit" className="w-full shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={isSubmitting || !currentUser}>
               {isSubmitting ? (
                 <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -184,10 +181,10 @@ export function PriceTrackerForm() {
           </form>
         </Form>
         {aiAlert && (
-          <Alert className={`mt-4 ${aiAlert.shouldAlert ? 'border-green-500/70 text-green-700 dark:text-green-400' : 'border-blue-500/70 text-blue-700 dark:text-blue-400'} bg-background/80 backdrop-blur-sm`}>
-            <BellPlusIcon className={`h-4 w-4 ${aiAlert.shouldAlert ? 'text-green-700 dark:text-green-400' : 'text-blue-700 dark:text-blue-400'}`} />
-            <AlertTitle className="text-foreground">{aiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
-            <AlertDescription className="text-foreground/80">
+          <Alert className={`mt-4 ${aiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400'} bg-card/80 backdrop-blur-sm`}>
+            <BellPlusIcon className={`h-4 w-4 ${aiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500'}`} />
+            <AlertTitle className="text-card-foreground">{aiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
               {aiAlert.alertMessage}
             </AlertDescription>
           </Alert>

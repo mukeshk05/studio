@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary } from "@/lib/types";
 import { CalendarDaysIcon, DollarSignIcon, EyeIcon, LandmarkIcon, ImageOffIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type CompactItineraryCardProps = {
-  itinerary: Itinerary;
+  itinerary: Itinerary; // Assumes Itinerary has a temp ID if not saved
   onViewDetails: () => void;
 };
 
@@ -18,7 +19,7 @@ export function CompactItineraryCard({ itinerary, onViewDetails }: CompactItiner
   const aiHint = hintWords.slice(0, 2).join(" ");
 
   return (
-    <Card className="overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-200 bg-card/80 backdrop-blur-sm border-border/50">
+    <Card className={cn("overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-200 bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/50")}>
       <div className="flex">
         {itinerary.destinationImageUri && (
           <div className="relative w-24 h-36 sm:w-32 sm:h-auto shrink-0 group">
@@ -33,18 +34,18 @@ export function CompactItineraryCard({ itinerary, onViewDetails }: CompactItiner
           </div>
         )}
         {!itinerary.destinationImageUri && (
-            <div className="w-24 h-36 sm:w-32 bg-muted flex items-center justify-center shrink-0">
+            <div className="w-24 h-36 sm:w-32 bg-muted/50 flex items-center justify-center shrink-0">
                 <ImageOffIcon className="w-8 h-8 text-muted-foreground" />
             </div>
         )}
         <div className="flex flex-col flex-grow p-3">
           <CardHeader className="p-0 pb-1">
-            <CardTitle className="text-base flex items-center">
+            <CardTitle className="text-base flex items-center text-card-foreground">
               <LandmarkIcon className="w-4 h-4 mr-1.5 text-primary shrink-0" />
               {itinerary.destination}
             </CardTitle>
-            <CardDescription className="text-xs flex items-center">
-              <CalendarDaysIcon className="w-3 h-3 mr-1 text-muted-foreground shrink-0" />
+            <CardDescription className="text-xs flex items-center text-muted-foreground">
+              <CalendarDaysIcon className="w-3 h-3 mr-1 shrink-0" />
               {itinerary.travelDates}
             </CardDescription>
           </CardHeader>
@@ -52,11 +53,11 @@ export function CompactItineraryCard({ itinerary, onViewDetails }: CompactItiner
             <p className="line-clamp-2">{itinerary.tripSummary || "View details for more information."}</p>
           </CardContent>
           <CardFooter className="p-0 flex justify-between items-center">
-            <Badge variant="secondary" className="py-0.5 px-2 text-xs">
+            <Badge variant="secondary" className="py-0.5 px-2 text-xs bg-primary/20 text-primary border-primary/30">
               <DollarSignIcon className="w-3 h-3 mr-1" />
               {itinerary.estimatedCost.toLocaleString()}
             </Badge>
-            <Button onClick={onViewDetails} size="sm" variant="outline" className="text-xs h-7 px-2.5">
+            <Button onClick={onViewDetails} size="sm" variant="outline" className="text-xs h-7 px-2.5 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
               <EyeIcon className="w-3.5 h-3.5 mr-1" />
               Details
             </Button>

@@ -19,24 +19,19 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2Icon, UserPlusIcon, MailIcon, KeyRoundIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
-// Define a simple SVG for Google icon as lucide-react doesn't have it directly
 const GoogleIcon = () => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4">
     <title>Google</title>
-    <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.05 1.05-2.36 1.62-4.38 1.62-3.82 0-6.91-3.02-6.91-6.91s3.02-6.91 6.91-6.91c1.84 0 3.21.65 4.1 1.55l2.65-2.58C18.04 3.32 15.87 2 12.48 2c-5.61 0-10.2 4.5-10.2 10.2s4.5 10.2 10.2 10.2c3.22 0 5.53-1.08 7.36-2.91 1.99-1.99 2.65-4.82 2.65-7.72 0-.65-.05-1.22-.14-1.79H12.48z"/>
+    <path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.05 1.05-2.36 1.62-4.38 1.62-3.82 0-6.91-3.02-6.91-6.91s3.02-6.91 6.91-6.91c1.84 0 3.21.65 4.1 1.55l2.65-2.58C18.04 3.32 15.87 2 12.48 2c-5.61 0-10.2 4.5-10.2 10.2s4.5 10.2 10.2 10.2c3.22 0 5.53-1.08 7.36-2.91 1.99-1.99 2.65-4.82 2.65-7.72 0-.65-.05-1.22-.14-1.79H12.48z"/>
   </svg>
 );
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  // confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters." }), // Optional: add confirm password
-})
-// .refine((data) => data.password === data.confirmPassword, { // Optional: add confirm password validation
-//   message: "Passwords don't match",
-//   path: ["confirmPassword"],
-// });
+});
 
 
 export function SignupForm() {
@@ -47,7 +42,6 @@ export function SignupForm() {
     defaultValues: {
       email: "",
       password: "",
-      // confirmPassword: "", // Optional
     },
   });
 
@@ -56,17 +50,17 @@ export function SignupForm() {
   }
 
   const handleGoogleSignUp = async () => {
-    await loginWithGoogle(); // Google sign-in handles both login and signup scenarios
+    await loginWithGoogle(); 
   };
 
 
   return (
-    <Card className="w-full max-w-md shadow-xl bg-card/80 backdrop-blur-md border-border/30">
+    <Card className={cn("w-full max-w-md glass-card border-primary/30")}>
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl flex items-center justify-center">
+        <CardTitle className="text-2xl flex items-center justify-center text-foreground">
           <UserPlusIcon className="w-7 h-7 mr-2 text-primary" /> Create Your Account
         </CardTitle>
-        <CardDescription>Join BudgetRoam and start planning smarter.</CardDescription>
+        <CardDescription className="text-muted-foreground">Join BudgetRoam and start planning smarter.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -76,9 +70,9 @@ export function SignupForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><MailIcon className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><MailIcon className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="you@example.com" {...field} />
+                    <Input placeholder="you@example.com" {...field} className="bg-background/70 focus:bg-background/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -89,44 +83,29 @@ export function SignupForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Create a strong password" {...field} />
+                    <Input type="password" placeholder="Create a strong password" {...field} className="bg-background/70 focus:bg-background/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {/* Optional: Confirm Password Field
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Confirm Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="Re-enter your password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            */}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={loading}>
               {loading ? <Loader2Icon className="animate-spin" /> : <UserPlusIcon />}
               Sign Up
             </Button>
           </form>
         </Form>
-        <Separator className="my-6" />
+        <Separator className="my-6 bg-border/50" />
         <div className="space-y-4">
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignUp} disabled={loading}>
+          <Button variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" onClick={handleGoogleSignUp} disabled={loading}>
             {loading ? <Loader2Icon className="animate-spin" /> : <GoogleIcon />}
              Sign up with Google
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Button variant="link" asChild className="px-0.5">
+            <Button variant="link" asChild className="px-0.5 text-primary hover:text-accent">
               <Link href="/login">Login</Link>
             </Button>
           </p>

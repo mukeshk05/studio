@@ -7,20 +7,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
 import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon } from "lucide-react";
-// Removed useToast as saving feedback is handled by the parent sheet/page
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { cn } from "@/lib/utils";
 
 type ItineraryCardProps = {
-  itinerary: Itinerary; // Itinerary will have an ID (temp or real)
-  onSaveTrip: (itineraryData: Omit<Itinerary, 'id'>) => void; // Expects data without ID for saving
+  itinerary: Itinerary; 
+  onSaveTrip: (itineraryData: Omit<Itinerary, 'id'>) => void; 
   isSaved: boolean;
   isSaving?: boolean;
-  isDetailedView?: boolean; // To conditionally render certain elements if needed
+  isDetailedView?: boolean; 
 };
 
 function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
@@ -28,8 +28,8 @@ function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
   const aiHint = hintWords.slice(0, 2).join(" ");
 
   return (
-    <div className="p-2 rounded-md border bg-muted/50 flex gap-3">
-      <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden border">
+    <div className="p-2 rounded-md border border-border/50 bg-card/50 flex gap-3">
+      <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md overflow-hidden border border-border/30">
         {hotel.hotelImageUri && hotel.hotelImageUri !== "" ? (
            <Image
               src={hotel.hotelImageUri}
@@ -40,13 +40,13 @@ function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
               data-ai-hint={hotel.hotelImageUri.startsWith('https://placehold.co') ? aiHint : undefined}
             />
         ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
+          <div className="w-full h-full bg-muted/50 flex items-center justify-center">
             <ImageOffIcon className="w-8 h-8 text-muted-foreground" />
           </div>
         )}
       </div>
       <div>
-        <p className="font-semibold text-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
+        <p className="font-semibold text-card-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
         <p className="text-xs text-muted-foreground line-clamp-3">{hotel.description}</p>
       </div>
     </div>
@@ -55,7 +55,7 @@ function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
 
 function DailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
   return (
-    <div className="p-2.5 rounded-lg border bg-background shadow-sm mb-2">
+    <div className="p-2.5 rounded-lg border border-border/50 bg-card/30 shadow-sm mb-2">
       <h5 className="font-semibold text-sm text-primary mb-1 flex items-center">
         <RouteIcon className="w-4 h-4 mr-2 shrink-0" />
         {planItem.day}
@@ -67,10 +67,9 @@ function DailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
 
 
 export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDetailedView = false }: ItineraryCardProps) {
-  // const { toast } = useToast(); // Toast is handled by parent now
 
   const handleSaveClick = () => {
-    const { id, ...dataToSave } = itinerary; // Remove ID before passing to save handler
+    const { id, ...dataToSave } = itinerary; 
     onSaveTrip(dataToSave);
   };
 
@@ -87,7 +86,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
   const aiHint = hintWords.slice(0, 2).join(" ");
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden">
+    <Card className={cn("shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden glass-card border-primary/20")}>
       {itinerary.destinationImageUri && (
         <div className="relative w-full h-48 group">
           <Image
@@ -98,8 +97,8 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint={itinerary.destinationImageUri.startsWith('https://placehold.co') ? aiHint : undefined}
           />
-           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
-            <Badge variant="secondary" className="text-lg py-1 px-3 text-white bg-black/50 border-black/30 backdrop-blur-sm">
+           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+            <Badge variant="secondary" className="text-lg py-1 px-3 text-white bg-black/70 border-black/30 backdrop-blur-sm">
                 <DollarSignIcon className="w-4 h-4 mr-1" />
                 {itinerary.estimatedCost.toLocaleString()}
             </Badge>
@@ -109,35 +108,35 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
       <CardHeader className="pt-4 pb-2">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="flex items-center text-xl">
+            <CardTitle className="flex items-center text-xl text-card-foreground">
               <LandmarkIcon className="w-5 h-5 mr-2 text-primary" />
               {itinerary.destination}
             </CardTitle>
-            <CardDescription className="flex items-center mt-1">
-              <CalendarDaysIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+            <CardDescription className="flex items-center mt-1 text-muted-foreground">
+              <CalendarDaysIcon className="w-4 h-4 mr-2" />
               {itinerary.travelDates}
             </CardDescription>
           </div>
          {!itinerary.destinationImageUri && ( 
-            <Badge variant="secondary" className="text-lg py-1 px-3">
+            <Badge variant="secondary" className="text-lg py-1 px-3 bg-primary/20 text-primary border-primary/30">
               <DollarSignIcon className="w-4 h-4 mr-1" />
               {itinerary.estimatedCost.toLocaleString()}
             </Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-grow pt-2">
+      <CardContent className="flex-grow pt-2 text-card-foreground">
         {itinerary.tripSummary && (
           <div className="text-sm text-muted-foreground mb-4">
-            <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-2 shrink-0" /> Trip Summary</h4>
-            <p className="text-xs pl-6 border-l-2 border-border ml-1 py-1">{itinerary.tripSummary}</p>
+            <h4 className="text-sm font-semibold text-card-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-2 shrink-0 text-primary" /> Trip Summary</h4>
+            <p className="text-xs pl-6 border-l-2 border-border/50 ml-1 py-1">{itinerary.tripSummary}</p>
           </div>
         )}
 
         <Accordion type="multiple" className="w-full text-sm" defaultValue={ isDetailedView && itinerary.dailyPlan && itinerary.dailyPlan.length > 0 ? ['daily-plan'] : []}>
           {itinerary.dailyPlan && itinerary.dailyPlan.length > 0 && (
-            <AccordionItem value="daily-plan">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2">
+            <AccordionItem value="daily-plan" className="border-border/30">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2 text-card-foreground/90 [&[data-state=open]>svg]:text-primary">
                 <div className="flex items-center">
                   <ListChecksIcon className="w-4 h-4 mr-2 text-primary" /> Daily Itinerary ({itinerary.dailyPlan.length} days)
                 </div>
@@ -151,16 +150,16 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
           )}
 
           {itinerary.flightOptions && itinerary.flightOptions.length > 0 && (
-            <AccordionItem value="flights">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2">
+            <AccordionItem value="flights" className="border-border/30">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2 text-card-foreground/90 [&[data-state=open]>svg]:text-primary">
                 <div className="flex items-center">
                   <PlaneIcon className="w-4 h-4 mr-2 text-primary" /> Flight Options ({itinerary.flightOptions.length})
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-2 space-y-2">
                 {itinerary.flightOptions.map((flight, index) => (
-                  <div key={`flight-${itinerary.id}-${index}`} className="p-2 rounded-md border bg-muted/50">
-                    <p className="font-semibold text-foreground">{flight.name} - ${flight.price.toLocaleString()}</p>
+                  <div key={`flight-${itinerary.id}-${index}`} className="p-2 rounded-md border border-border/50 bg-card/50">
+                    <p className="font-semibold text-card-foreground">{flight.name} - ${flight.price.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">{flight.description}</p>
                   </div>
                 ))}
@@ -169,8 +168,8 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
           )}
 
           {itinerary.hotelOptions && itinerary.hotelOptions.length > 0 && (
-            <AccordionItem value="hotels">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2">
+            <AccordionItem value="hotels" className="border-border/30">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2 text-card-foreground/90 [&[data-state=open]>svg]:text-primary">
                 <div className="flex items-center">
                   <HotelIcon className="w-4 h-4 mr-2 text-primary" /> Hotel Options ({itinerary.hotelOptions.length})
                 </div>
@@ -193,11 +192,11 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
           variant={isSaved ? "secondary" : "outline"}
         >
           {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
-          {isSaving ? "Saving..." : isSaved ? "Saved" : "Save Trip"}
+          {isSaving ? "Saving..." : isSaved ? "Saved To Dashboard" : "Save Trip"}
         </Button>
         <Button 
           onClick={handleFindDeals} 
-          className="w-full sm:flex-1" 
+          className="w-full sm:flex-1 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
           variant="default"
         >
           <ExternalLinkIcon className="mr-2 h-4 w-4" />

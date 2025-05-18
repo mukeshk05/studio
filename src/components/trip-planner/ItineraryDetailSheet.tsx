@@ -14,12 +14,13 @@ import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { XIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type ItineraryDetailSheetProps = {
   isOpen: boolean;
   onClose: () => void;
-  itinerary: Itinerary; // Can be Itinerary with temp ID or Omit<Itinerary, 'id'> if unsaved
-  onSaveTrip: (itinerary: Omit<Itinerary, 'id'>) => void; // Expects data without Firestore ID for saving
+  itinerary: Itinerary; 
+  onSaveTrip: (itinerary: Omit<Itinerary, 'id'>) => void;
   isTripSaved: boolean;
   isSaving?: boolean;
 };
@@ -34,30 +35,30 @@ export function ItineraryDetailSheet({
 }: ItineraryDetailSheetProps) {
   if (!itinerary) return null;
 
-  // Prepare data for saving: remove temporary ID if present
   const handleSave = () => {
     const { id, ...dataToSave } = itinerary;
     onSaveTrip(dataToSave);
   };
   
-  const itineraryForCard: Itinerary = itinerary.id 
+  // Ensure itinerary passed to ItineraryCard always has an ID, even if temporary
+  const itineraryForCard: Itinerary = 'id' in itinerary && itinerary.id 
     ? itinerary 
     : { ...itinerary, id: `temp-${crypto.randomUUID()}`};
 
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col">
-        <SheetHeader className="p-4 sm:p-6 border-b bg-background sticky top-0 z-10">
+      <SheetContent className={cn("w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col glass-pane border-l-border/30")}>
+        <SheetHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
           <div className="flex justify-between items-center">
             <div>
-              <SheetTitle>{itinerary.destination}</SheetTitle>
-              <SheetDescription>
+              <SheetTitle className="text-foreground">{itinerary.destination}</SheetTitle>
+              <SheetDescription className="text-muted-foreground">
                 Detailed plan for your trip from {itinerary.travelDates}. Estimated cost: ${itinerary.estimatedCost.toLocaleString()}.
               </SheetDescription>
             </div>
             <SheetClose asChild>
-              <Button variant="ghost" size="icon" className="ml-2">
+              <Button variant="ghost" size="icon" className="ml-2 text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
                 <XIcon className="h-5 w-5" />
               </Button>
             </SheetClose>
@@ -66,11 +67,11 @@ export function ItineraryDetailSheet({
         <ScrollArea className="flex-grow">
           <div className="p-4 sm:p-6">
             <ItineraryCard
-              itinerary={itineraryForCard} // Pass Itinerary with ID (temp or real)
-              onSaveTrip={handleSave} // onSaveTrip in ItineraryCard now calls this sheet's handleSave
+              itinerary={itineraryForCard}
+              onSaveTrip={handleSave} 
               isSaved={isTripSaved}
-              isSaving={isSaving} // Pass saving state
-              isDetailedView={true} // Indicate this is the detailed view context
+              isSaving={isSaving} 
+              isDetailedView={true} 
             />
           </div>
         </ScrollArea>
