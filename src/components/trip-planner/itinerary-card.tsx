@@ -145,8 +145,8 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
           )}
         </div>
          <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
-            <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
-            <span className="italic">AI considered general weather patterns in planning.</span>
+             <InfoIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400 opacity-70" />
+             <span className="italic opacity-70">AI considered general planning factors (weather, risks, visa reminders).</span>
         </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2 text-card-foreground">
@@ -247,4 +247,3 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
     </>
   );
 }
-

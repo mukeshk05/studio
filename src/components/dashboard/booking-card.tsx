@@ -31,7 +31,7 @@ import { getDestinationFact, DestinationFactInput, DestinationFactOutput } from 
 import { generateTripMemory, GenerateTripMemoryInput, GenerateTripMemoryOutput } from "@/ai/flows/generate-trip-memory-flow";
 import { cn } from "@/lib/utils";
 import { GroupSyncDialog } from "./GroupSyncDialog";
-import { useUpdateSavedTripMemory } from "@/lib/firestoreHooks"; // Import the new hook
+import { useUpdateSavedTripMemory } from "@/lib/firestoreHooks"; 
 import { formatDistanceToNow } from 'date-fns';
 
 
@@ -121,7 +121,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         destination: booking.destination,
         travelDates: booking.travelDates,
         tripDuration: duration,
-        weatherContext: booking.weatherContext,
+        weatherContext: booking.weatherContext, // Pass weather context if available from saved trip
       };
       const result: PackingListOutput = await getPackingList(input);
       setPackingList(result.packingList);
@@ -152,7 +152,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
 
   const triggerMemoryGeneration = async () => {
     setIsLoadingAI(true);
-    setCurrentTripMemory(null); // Clear previous memory while generating new one
+    setCurrentTripMemory(null); 
     try {
       const input: GenerateTripMemoryInput = {
         destination: booking.destination,
@@ -181,8 +181,8 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     if (booking.aiGeneratedMemory?.memoryText) {
       setCurrentTripMemory({text: booking.aiGeneratedMemory.memoryText, generatedAt: booking.aiGeneratedMemory.generatedAt});
     } else {
-      setCurrentTripMemory(null); // No saved memory, prompt for generation
-      triggerMemoryGeneration(); // Or trigger generation immediately if no saved one
+      setCurrentTripMemory(null); 
+      triggerMemoryGeneration(); 
     }
     setIsMemoryDialogOpen(true);
   };
@@ -229,21 +229,8 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
           )}
         </div>
          <div className="mt-1.5 text-xs text-muted-foreground flex items-center">
-           {(booking.weatherContext || booking.riskContext) ? (
-             <>
-              {booking.weatherContext && <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400" />}
-              {booking.riskContext && !booking.weatherContext && <InfoIcon className="w-3.5 h-3.5 mr-1.5 text-orange-400" />}
-              <span className="italic">
-                {booking.weatherContext && "AI considered weather. "}
-                {booking.riskContext && "AI considered risks."}
-              </span>
-             </>
-           ) : (
-             <>
-              <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400 opacity-70" />
-              <span className="italic opacity-70">AI considered general patterns.</span>
-             </>
-           )}
+             <InfoIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400 opacity-70" />
+             <span className="italic opacity-70">AI considered general planning factors (weather, risks, visa reminders).</span>
         </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2 pb-3 text-card-foreground">
@@ -465,4 +452,3 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     </>
   );
 }
-

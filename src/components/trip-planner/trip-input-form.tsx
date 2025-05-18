@@ -30,7 +30,8 @@ const formSchema = z.object({
     message: "Budget must be a positive number.",
   }),
   desiredMood: z.string().optional(),
-  riskContext: z.string().optional(), // Added for risk context
+  riskContext: z.string().optional(), 
+  weatherContext: z.string().optional(), // Kept for direct weather input, though Guardian AI will infer too
 });
 
 type TripInputFormProps = {
@@ -55,7 +56,8 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
       travelDates: initialValues?.travelDates || "",
       budget: initialValues?.budget || 1000,
       desiredMood: initialValues?.desiredMood || "",
-      riskContext: initialValues?.riskContext || "", // Added default
+      riskContext: initialValues?.riskContext || "", 
+      weatherContext: initialValues?.weatherContext || "",
     },
   });
 
@@ -65,7 +67,8 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
       travelDates: initialValues?.travelDates || "",
       budget: initialValues?.budget || 1000,
       desiredMood: initialValues?.desiredMood || "",
-      riskContext: initialValues?.riskContext || "", // Added reset
+      riskContext: initialValues?.riskContext || "",
+      weatherContext: initialValues?.weatherContext || "",
     });
   }, [initialValues, form]);
 
@@ -78,9 +81,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
         travelDates: values.travelDates,
         budget: values.budget,
         desiredMood: values.desiredMood || undefined,
-        riskContext: values.riskContext || undefined, // Pass risk context
+        riskContext: values.riskContext || undefined, 
+        weatherContext: values.weatherContext || undefined,
         userPersona: initialValues?.userPersona, 
-        weatherContext: initialValues?.weatherContext, // Preserve weather context if it was part of initialValues
       };
       await onSubmitProp(plannerInput);
       setIsLoading(false);
@@ -92,32 +95,44 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
     let destinationAndDates = parts[0];
     let budgetStr = parts[1]?.split(" budget $")?.[1] || parts[1]?.split(" $")?.[1];
     let destination = destinationAndDates;
-    let travelDates = "a week";
+    let travelDates = "a week"; // Default travel dates if not parsed
 
-    if (destinationAndDates.toLowerCase().includes(" to ")) {
-        const destParts = destinationAndDates.split(" to ");
-        if (destParts.length > 1) {
-            travelDates = destParts[0].trim();
-            destination = destParts.slice(1).join(" to ").trim();
-            if (travelDates.toLowerCase().includes(" days")) travelDates = travelDates.split(" days")[0] + " days";
-            else if (travelDates.toLowerCase().includes(" day")) travelDates = travelDates.split(" day")[0] + " day";
-            else if (travelDates.toLowerCase().includes(" week")) travelDates = "a week";
+    // Attempt to parse destination and travel dates
+    const dateKeywords = [" week", " weeks", " day", " days", " getaway", " trip"];
+    let parsedDate = "";
+    for (const keyword of dateKeywords) {
+        if (destinationAndDates.toLowerCase().includes(keyword)) {
+            const splitPoint = destinationAndDates.toLowerCase().lastIndexOf(keyword);
+            // Ensure "to" is not part of date keyword (e.g. "trip to Paris")
+            if (destinationAndDates.toLowerCase().substring(0, splitPoint).trim().endsWith(" to")){
+                 // "trip to Paris for ..." - date is likely in the original string or default
+            } else {
+                parsedDate = destinationAndDates.substring(0, splitPoint + keyword.length).trim();
+                destination = destinationAndDates.substring(splitPoint + keyword.length).replace(/^to\s+/i, '').trim(); // Remove leading "to "
+                break;
+            }
         }
-    } else if (destinationAndDates.includes(",")) {
+    }
+    if (parsedDate) travelDates = parsedDate;
+    else if (destinationAndDates.includes(",")) { // Fallback for "Kyoto, Japan for 5 days"
         const firstComma = destinationAndDates.indexOf(",");
         destination = destinationAndDates.substring(0, firstComma).trim();
         travelDates = destinationAndDates.substring(firstComma + 1).trim();
-         if (travelDates.toLowerCase().includes(" days")) travelDates = travelDates.split(" days")[0] + " days";
-         else if (travelDates.toLowerCase().includes(" day")) travelDates = travelDates.split(" day")[0] + " day";
     }
 
-    form.setValue("destination", destination.trim());
-    form.setValue("travelDates", travelDates.trim());
+
+    form.setValue("destination", destination.trim() || "Paris, France"); // Ensure destination has a fallback
+    form.setValue("travelDates", travelDates.trim() || "a week");
     if (budgetStr) {
       form.setValue("budget", parseInt(budgetStr.replace(/,/g, ''), 10) || 1000);
+    } else {
+      form.setValue("budget", 1500); // Default budget if not parsed
     }
+    
+    // Clear mood and risk for general prompts
     form.setValue("desiredMood", ""); 
-    form.setValue("riskContext", ""); // Clear risk context when using a general prompt
+    form.setValue("riskContext", ""); 
+    form.setValue("weatherContext", "");
   };
 
   return (
@@ -181,9 +196,22 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="riskContext"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><AlertTriangleIcon className="w-4 h-4 mr-2" />Known Risks or Concerns (Optional)</FormLabel>
+                  <FormLabel className="flex items-center"><AlertTriangleIcon className="w-4 h-4 mr-2" />Specific Concerns or Preferences (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Rainy season, local festivals, specific safety concerns" {...field} />
+                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility concerns" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="weatherContext"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center"><CloudSunIcon className="w-4 h-4 mr-2" />Specific Weather Context (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

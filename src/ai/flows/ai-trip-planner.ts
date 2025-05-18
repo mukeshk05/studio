@@ -24,15 +24,21 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
   name: 'aiTripPlannerTextPrompt',
   input: {schema: AITripPlannerInputSchema},
   output: {schema: AITripPlannerTextOutputSchema },
-  prompt: `You are a travel agent specializing in budget travel.
+  prompt: `You are a travel agent specializing in budget travel. Act as an AI Guardian for the user.
+Your response must be a JSON object matching the AITripPlannerTextOutputSchema.
+
+Consider the following inputs to personalize the trip:
+- Destination: {{{destination}}}
+- Travel Dates: {{{travelDates}}}
+- Budget: {{{budget}}}
+
 {{#if userPersona}}
 The user you are planning for has the following travel persona:
 - Name: {{{userPersona.name}}}
 - Description: {{{userPersona.description}}}
 Please prioritize suggestions, activities, and accommodation styles that align strongly with this persona.
 If the persona suggests luxury, try to find high-value luxury. If it suggests adventure, focus on relevant activities.
-The overall tone and suggestions should reflect their travel DNA.
-The first itinerary suggested should be the best match for their persona.
+The overall tone and suggestions should reflect their travel DNA. The first itinerary suggested should be the best match for their persona.
 {{/if}}
 
 {{#if desiredMood}}
@@ -41,25 +47,31 @@ Please ensure the suggested activities, the tone of the trip summary, and the da
 For example, if the mood is 'romantic', suggest activities like sunset views, fine dining. If 'adventurous', suggest hiking or unique local experiences.
 {{/if}}
 
-{{#if weatherContext}}
-The user has provided the following weather context for their trip: {{{weatherContext}}}.
-Use this information to tailor activities. For example, if rain is expected, suggest more indoor activities or alternatives. If sunny, emphasize outdoor options.
-{{else}}
-When planning activities, assume you have access to a general weather forecast for the destination and travel dates. 
-If rain is likely for typically outdoor activities, suggest indoor alternatives or note this possibility. If the weather is expected to be pleasant, emphasize outdoor activities.
-This consideration should be subtly woven into the daily plan.
-{{/if}}
-
-{{#if riskContext}}
-The user has provided the following risk context or concerns: {{{riskContext}}}.
-Please explicitly consider this information when suggesting activities and accommodations. If necessary, add brief warnings, suggest alternatives, or note precautions in the daily plan or trip summary related to these risks.
-{{else}}
-When planning, also generally consider common travel advisories or potential risks for the destination and travel dates (e.g., peak tourist season causing crowds, common weather issues for that time of year, general safety tips for the area). If significant, subtly mention relevant considerations, alternatives, or precautions in the daily plan or trip summary.
-{{/if}}
+**AI Guardian Instructions:**
+1.  **Weather:**
+    {{#if weatherContext}}
+    The user has provided specific weather context: {{{weatherContext}}}.
+    Use this information to tailor activities. For example, if rain is expected, suggest more indoor activities or alternatives. If sunny, emphasize outdoor options.
+    {{else}}
+    Assume you have access to a general weather forecast for the destination and travel dates.
+    If rain is likely for typically outdoor activities, suggest indoor alternatives or note this possibility. If the weather is expected to be pleasant, emphasize outdoor activities. This consideration should be subtly woven into the daily plan.
+    {{/if}}
+2.  **Risks & Visa:**
+    {{#if riskContext}}
+    The user has provided the following specific concerns or requests: {{{riskContext}}}.
+    Please explicitly consider this information.
+    - If it mentions safety concerns, suggest appropriate precautions or safer alternatives.
+    - If it mentions visa questions, add a reminder in the trip summary to check official visa requirements for {{{destination}}} for their nationality. Do NOT provide definitive visa advice.
+    - If it mentions accessibility needs, try to suggest suitable activities and note if some attractions might be challenging.
+    - If it mentions weather preferences (e.g., "prefer sunny activities"), try to align the plan accordingly.
+    {{else}}
+    Generally consider common travel advisories or potential risks for {{{destination}}} around {{{travelDates}}} (e.g., peak tourist season, common weather issues, general safety tips).
+    Also, include a general reminder in the trip summary: "Remember to check current travel advisories and visa requirements for {{{destination}}} before your trip."
+    {{/if}}
 
 You will generate a range of possible itineraries (usually 2-3) based on the user's budget, destination and travel dates.
 For each itinerary:
-1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details.
+1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa reminders.
 2.  Provide a 'dailyPlan' as an array of objects. Each object in the array should represent one day and have two fields:
     - 'day': A string for the day's label (e.g., "Day 1", "Arrival Day").
     - 'activities': A string describing the activities for that day in detail. Be engaging and descriptive. You can suggest morning, afternoon, and evening activities. Ensure this is a comprehensive plan.
@@ -89,10 +101,6 @@ Consider a variety of options for flights, accommodations, and activities that w
 Provide multiple itineraries with varying levels of luxury and activity so the user has multiple choices.
 Among these itineraries, try to include at least one that could serve as a distinct 'backup plan' or 'alternative approach' to the trip. This might focus on different core activities, have a different pacing, or be more resilient to potential disruptions (e.g., weather, crowds) for the given destination and dates. Its 'tripSummary' could reflect this resilient nature.
 
-Travel Dates: {{{travelDates}}}
-Destination: {{{destination}}}
-Budget: {{{budget}}}
-
 Return the itineraries in JSON format according to the defined output schema. Ensure all fields are populated.
 `,
 });
@@ -104,7 +112,8 @@ const backupAiTripPlannerTextPrompt = ai.definePrompt({
   output: {schema: AITripPlannerTextOutputSchema },
   prompt: `You are a helpful backup travel assistant. The primary planner might have encountered an issue.
 Please generate 1 or 2 robust and appealing itineraries for the user based on the following details.
-Focus on common attractions and adaptable activities. Keep suggestions somewhat general if specific preferences like persona or mood are complex.
+Focus on common attractions and adaptable activities. Keep suggestions somewhat general if specific preferences like persona, mood, or risk context are complex.
+Briefly remind the user in the trip summary to check visa and travel advisories for the destination.
 
 Travel Dates: {{{travelDates}}}
 Destination: {{{destination}}}
@@ -114,6 +123,9 @@ User Persona: {{userPersona.name}} - {{userPersona.description}} (Consider this 
 {{/if~}}
 {{#if desiredMood~}}
 Desired Mood: {{desiredMood}} (Consider this if possible)
+{{/if~}}
+{{#if riskContext~}}
+User Concerns: {{riskContext}} (Address briefly if straightforward, otherwise provide general advice)
 {{/if~}}
 
 For each itinerary:
@@ -242,26 +254,25 @@ const aiTripPlannerFlow = ai.defineFlow(
 
     let personalizationNoteParts: string[] = [];
     if (wasBackupPlannerUsed) {
-        personalizationNoteParts.push("These suggestions were provided by our backup planner to ensure you received some ideas.");
+        personalizationNoteParts.push("Suggestions provided by our backup planner.");
     }
     if (input.userPersona?.name) {
-      personalizationNoteParts.push(`Tailored for the '${input.userPersona.name}' travel style.`);
+      personalizationNoteParts.push(`Tailored for the '${input.userPersona.name}' persona.`);
     }
     if (input.desiredMood) {
         personalizationNoteParts.push(`Focused on a '${input.desiredMood}' vibe.`);
     }
     
-    if (input.weatherContext) {
-        personalizationNoteParts.push("Specific weather context considered.");
-    } else {
-        personalizationNoteParts.push("General weather patterns considered in planning.");
+    // General "AI Guardian" note
+    let guardianNote = "General planning factors (weather, common risks, visa reminders) considered.";
+    if (input.weatherContext && input.riskContext) {
+        guardianNote = "Specific weather & user concerns considered.";
+    } else if (input.weatherContext) {
+        guardianNote = "Specific weather context considered; general risk factors & visa reminders included.";
+    } else if (input.riskContext) {
+        guardianNote = "User-specified concerns considered; general weather & visa reminders included.";
     }
-
-    if (input.riskContext) {
-        personalizationNoteParts.push("Specific risk context considered.");
-    } else {
-        personalizationNoteParts.push("General risk factors considered in planning.");
-    }
+    personalizationNoteParts.push(guardianNote);
     
     const personalizationNote = personalizationNoteParts.length > 0 ? personalizationNoteParts.join(' ') : undefined;
 
@@ -272,4 +283,3 @@ const aiTripPlannerFlow = ai.defineFlow(
     };
   }
 );
-

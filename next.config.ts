@@ -31,18 +31,22 @@ const nextConfig: NextConfig = {
       
       // Ensure config.resolve.fallback object exists
       config.resolve.fallback = config.resolve.fallback || {};
-      // Prevent 'async_hooks' from being resolved client-side by providing an empty module.
+      // Prevent Node.js core modules from being resolved client-side by providing an empty module.
       config.resolve.fallback['async_hooks'] = false;
-      // Prevent 'fs' from being resolved client-side by providing an empty module.
       config.resolve.fallback['fs'] = false;
-      // Prevent 'tls' from being resolved client-side by providing an empty module.
       config.resolve.fallback['tls'] = false;
-      // Prevent 'net' from being resolved client-side by providing an empty module.
       config.resolve.fallback['net'] = false;
-      // Prevent 'http2' from being resolved client-side by providing an empty module.
       config.resolve.fallback['http2'] = false;
-      // Prevent 'dns' from being resolved client-side by providing an empty module.
       config.resolve.fallback['dns'] = false;
+
+      // Add fallbacks for 'node:' prefixed modules
+      config.resolve.fallback['node:async_hooks'] = false;
+      config.resolve.fallback['node:fs'] = false;
+      config.resolve.fallback['node:tls'] = false;
+      config.resolve.fallback['node:net'] = false;
+      config.resolve.fallback['node:http2'] = false;
+      config.resolve.fallback['node:dns'] = false;
+
 
       // Ensure config.resolve.alias object exists
       config.resolve.alias = config.resolve.alias || {};
@@ -53,6 +57,14 @@ const nextConfig: NextConfig = {
       config.resolve.alias['net'] = false;
       config.resolve.alias['http2'] = false;
       config.resolve.alias['dns'] = false;
+
+      // Add aliases for 'node:' prefixed modules
+      config.resolve.alias['node:async_hooks'] = false;
+      config.resolve.alias['node:fs'] = false;
+      config.resolve.alias['node:tls'] = false;
+      config.resolve.alias['node:net'] = false;
+      config.resolve.alias['node:http2'] = false;
+      config.resolve.alias['node:dns'] = false;
     }
     return config;
   },
