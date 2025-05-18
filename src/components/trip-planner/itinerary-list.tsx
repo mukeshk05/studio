@@ -6,29 +6,30 @@ import type { AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 import { ItineraryCard } from "./itinerary-card";
 import { Itinerary } from "@/lib/types";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { SearchXIcon } from "lucide-react";
+import { SearchXIcon, SparklesIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
 type ItineraryListProps = {
   itineraries: AITripPlannerOutput["itineraries"] | null;
-  isLoading: boolean;
+  isLoading: boolean; // isLoading is passed but not used for the new loading state which is in planner/page.tsx
 };
 
 const EMPTY_SAVED_TRIPS: Itinerary[] = [];
 
-export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
+export function ItineraryList({ itineraries /* isLoading is managed by parent now */ }: ItineraryListProps) {
   const [savedTrips, setSavedTrips] = useLocalStorage<Itinerary[]>("savedTrips", EMPTY_SAVED_TRIPS);
   const [cardsVisible, setCardsVisible] = React.useState(false);
 
   React.useEffect(() => {
-    if (itineraries && itineraries.length > 0 && !isLoading) {
+    // Cards become visible once itineraries are loaded (isLoading is false in parent)
+    if (itineraries && itineraries.length > 0) {
       const timer = setTimeout(() => setCardsVisible(true), 50); 
       return () => clearTimeout(timer);
     } else {
       setCardsVisible(false);
     }
-  }, [itineraries, isLoading]);
+  }, [itineraries]);
 
   const handleSaveTrip = (itineraryToSave: Itinerary) => {
     if (!savedTrips.find(trip => trip.id === itineraryToSave.id)) {
@@ -40,40 +41,17 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
     return savedTrips.some(trip => trip.id === itineraryId);
   };
   
-  if (isLoading) {
-    return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="shadow-lg overflow-hidden">
-            <Skeleton className="h-48 w-full" /> 
-            <CardHeader className="pt-4 pb-2">
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 w-1/2 mt-1" />
-            </CardHeader>
-            <CardContent className="pt-2">
-              <Skeleton className="h-4 w-full mb-1" /> {/* Skeleton for trip summary */}
-              <Skeleton className="h-8 w-full mt-4 mb-2" /> {/* Skeleton for daily plan accordion trigger */}
-              <Skeleton className="h-8 w-full mb-2" /> {/* Skeleton for flight accordion trigger */}
-              <Skeleton className="h-8 w-full" /> {/* Skeleton for hotel accordion trigger */}
-            </CardContent>
-            <CardFooter className="gap-3 pt-4">
-              <Skeleton className="h-10 w-1/2" />
-              <Skeleton className="h-10 w-1/2" />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  // The main loading state is now handled in src/app/(app)/planner/page.tsx
+  // This component will only render skeletons if explicitly told to by a future prop,
+  // or we can remove the skeleton from here if the parent fully handles loading UI.
+  // For now, if itineraries is null (initial state before loading or after error), 
+  // it won't render anything, which is fine as parent handles those states.
 
   if (!itineraries || itineraries.length === 0) {
-    return (
-      <div className="mt-12 flex flex-col items-center justify-center text-center">
-        <SearchXIcon className="w-16 h-16 text-muted-foreground mb-4" />
-        <h3 className="text-xl font-semibold text-muted-foreground">No Itineraries Found</h3>
-        <p className="text-muted-foreground">Try adjusting your search criteria or try again later.</p>
-      </div>
-    );
+    // This case is also handled by the parent page with a more prominent message.
+    // Returning null here to avoid duplicate "No itineraries" messages.
+    // The parent page (planner/page.tsx) shows a specific message for this.
+    return null; 
   }
 
   const itinerariesWithIds: Itinerary[] = itineraries.map((it, index) => ({
@@ -83,17 +61,17 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
       ...hotel,
       hotelImageUri: hotel.hotelImageUri || `https://placehold.co/300x200.png?text=${encodeURIComponent(hotel.name.substring(0,10))}`
     })),
-    dailyPlan: it.dailyPlan || [], // Ensure dailyPlan is an array
+    dailyPlan: it.dailyPlan || [], 
     id: `${it.destination}-${it.travelDates}-${it.estimatedCost}-${index}` 
   }));
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
+    <div className="w-full max-w-3xl mx-auto space-y-8">
       {itinerariesWithIds.map((itinerary, index) => (
         <div
           key={itinerary.id}
-          className={`transition-all duration-500 ease-out transform ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-          style={{ transitionDelay: `${index * 100}ms` }}
+          className={`transition-all duration-700 ease-out transform ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+          style={{ transitionDelay: `${index * 150}ms` }} // Slightly increased delay
         >
           <ItineraryCard 
             itinerary={itinerary} 
@@ -105,3 +83,5 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
     </div>
   );
 }
+
+    

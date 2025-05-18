@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -87,3 +88,35 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Animations */
+@layer utilities {
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+  .animate-pulse-loader-planner {
+    animation: pulse-loader-planner 2s infinite ease-in-out;
+    background-size: 200% 100%; /* For gradient movement */
+    background-image: linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary)) 100%);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-loader-planner {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+    
