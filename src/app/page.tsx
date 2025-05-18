@@ -74,39 +74,40 @@ export default function LandingPage() {
 
   const [heroVisible, setHeroVisible] = useState(false);
   const whyChooseUsVisible = useStaggeredAnimation(whyChooseUsPoints.length, 100);
+  const [featuresSectionVisible, setFeaturesSectionVisible] = useState(false);
   const [whyChooseUsSectionVisible, setWhyChooseUsSectionVisible] = useState(false);
   const [finalCtaVisible, setFinalCtaVisible] = useState(false);
 
 
   useEffect(() => {
     setHeroVisible(true);
-    const sectionTimer1 = setTimeout(() => setWhyChooseUsSectionVisible(true), 200);
-    const sectionTimer2 = setTimeout(() => setFinalCtaVisible(true), 400);
+    const sectionTimerFeatures = setTimeout(() => setFeaturesSectionVisible(true), 150); // Slight delay for section
+    const sectionTimerWhyUs = setTimeout(() => setWhyChooseUsSectionVisible(true), 300);
+    const sectionTimerCta = setTimeout(() => setFinalCtaVisible(true), 450);
     return () => {
-      clearTimeout(sectionTimer1);
-      clearTimeout(sectionTimer2);
+      clearTimeout(sectionTimerFeatures);
+      clearTimeout(sectionTimerWhyUs);
+      clearTimeout(sectionTimerCta);
     };
   }, []);
 
-  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/60"; // Adjusted opacity
+  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/60";
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
-      {/* Background Image and Overlay */}
       <div className="absolute inset-0 z-[-1]">
         <Image 
-          src="https://placehold.co/1920x1080.png" // Placeholder, replace with your image
-          alt="Scenic travel background"
+          src="https://placehold.co/1920x1080.png"
+          alt="Scenic travel background collage"
           layout="fill"
           objectFit="cover"
           quality={90}
           priority
           data-ai-hint="scenic travel collage"
         />
-        <div className="absolute inset-0 bg-black/40 dark:bg-background/60"></div> {/* Overlay */}
+        <div className="absolute inset-0 bg-black/40 dark:bg-background/60"></div>
       </div>
 
-      {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
           <AppLogo />
@@ -127,14 +128,12 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Main Content sits on top of the background */}
       <main className="flex-grow z-10">
-        {/* Hero Section */}
-        <section className="py-20 md:py-32 text-center"> {/* Removed bg gradient, relies on full page bg now */}
+        <section className="py-20 md:py-32 text-center">
           <div className="container mx-auto px-4">
             <h1 
               className={cn(
-                "text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-6 transition-all duration-700 ease-out", // Text color to white for contrast
+                "text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-6 transition-all duration-700 ease-out",
                 heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               )}
             >
@@ -142,7 +141,7 @@ export default function LandingPage() {
             </h1>
             <p 
               className={cn(
-                "text-lg sm:text-xl text-slate-200 dark:text-muted-foreground mb-10 max-w-2xl mx-auto transition-all duration-700 ease-out delay-200", // Adjusted text color
+                "text-lg sm:text-xl text-slate-200 dark:text-muted-foreground mb-10 max-w-2xl mx-auto transition-all duration-700 ease-out delay-200",
                 heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               )}
             >
@@ -181,11 +180,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Features Section with Carousel */}
-        <section id="features" className="py-16 md:py-24"> {/* Removed bg, relies on full page bg */}
+        <section id="features" className={cn("py-16 md:py-24 transition-opacity duration-1000", featuresSectionVisible ? 'opacity-100' : 'opacity-0')}>
           <div className="container mx-auto px-4">
-            <h2 className={cn("text-3xl sm:text-4xl font-bold text-center text-white mb-4 transition-opacity duration-700", heroVisible ? 'opacity-100' : 'opacity-0')}>Everything You Need to Roam on a Budget</h2>
-            <p className={cn("text-lg text-slate-200 dark:text-muted-foreground text-center mb-12 max-w-xl mx-auto transition-opacity duration-700 delay-200", heroVisible ? 'opacity-100' : 'opacity-0')}>
+            <h2 className={cn("text-3xl sm:text-4xl font-bold text-center text-white mb-4 transition-all duration-700 ease-out", featuresSectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5')}>Everything You Need to Roam on a Budget</h2>
+            <p className={cn("text-lg text-slate-200 dark:text-muted-foreground text-center mb-12 max-w-xl mx-auto transition-all duration-700 ease-out delay-100", featuresSectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5')}>
               BudgetRoam leverages AI to simplify every step of your travel planning.
             </p>
             <Carousel
@@ -197,11 +195,11 @@ export default function LandingPage() {
             >
               <CarouselContent className="-ml-2 md:-ml-4">
                 {features.map((feature, index) => (
-                  <CarouselItem key={index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
+                  <CarouselItem key={index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3 animate-fade-in-up" style={{animationDelay: `${index * 100 + 200}ms`}}>
                     <div className="p-1 h-full">
                       <Card 
                         className={cn(
-                          glassCardClasses, // Enhanced glass effect
+                          glassCardClasses,
                           "hover:shadow-primary/30 hover:scale-105 transition-all duration-300 flex flex-col h-full transform"
                         )}
                       >
@@ -233,15 +231,14 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Why Choose Us Section */}
-        <section id="why-us" className={cn("py-16 md:py-24 transition-opacity duration-1000", whyChooseUsSectionVisible ? 'opacity-100' : 'opacity-0')}> {/* Removed bg gradient */}
+        <section id="why-us" className={cn("py-16 md:py-24 transition-opacity duration-1000", whyChooseUsSectionVisible ? 'opacity-100' : 'opacity-0')}>
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6"> {/* Text color to white */}
+              <div className={cn("animate-fade-in-up", whyChooseUsSectionVisible ? "opacity-100" : "opacity-0")} style={{animationDelay: '100ms'}}>
+                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
                   Why Choose <span className="text-primary">BudgetRoam</span>?
                 </h2>
-                <p className="text-lg text-slate-200 dark:text-muted-foreground mb-8"> {/* Adjusted text color */}
+                <p className="text-lg text-slate-200 dark:text-muted-foreground mb-8">
                   We believe amazing travel experiences shouldn't break the bank. BudgetRoam is designed to be your intelligent partner, making dream vacations accessible and stress-free.
                 </p>
                 <ul className="space-y-3">
@@ -254,13 +251,13 @@ export default function LandingPage() {
                       )}
                       style={{transitionDelay: `${index * 100}ms`}}
                     >
-                      <CheckCircleIcon className="w-6 h-6 text-green-400 mr-3 mt-0.5 shrink-0" /> {/* Green accent for checkmarks */}
-                      <span className="text-slate-200 dark:text-muted-foreground">{point}</span> {/* Adjusted text color */}
+                      <CheckCircleIcon className="w-6 h-6 text-green-400 mr-3 mt-0.5 shrink-0" />
+                      <span className="text-slate-200 dark:text-muted-foreground">{point}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="relative aspect-square max-w-md mx-auto md:max-w-none">
+              <div className={cn("relative aspect-square max-w-md mx-auto md:max-w-none animate-fade-in-up",  whyChooseUsSectionVisible ? "opacity-100" : "opacity-0")} style={{animationDelay: '200ms'}}>
                 <Image
                     src="https://placehold.co/600x600.png"
                     alt="Happy traveler using BudgetRoam"
@@ -274,17 +271,16 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Final CTA Section */}
-        <section className={cn("py-20 md:py-28 text-center transition-opacity duration-1000", finalCtaVisible ? 'opacity-100' : 'opacity-0')}> {/* Removed bg */}
+        <section className={cn("py-20 md:py-28 text-center transition-opacity duration-1000", finalCtaVisible ? 'opacity-100' : 'opacity-0')}>
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6 flex items-center justify-center"> {/* Text color to white */}
+            <h2 className={cn("text-3xl sm:text-4xl font-bold text-white mb-6 flex items-center justify-center animate-fade-in-up", finalCtaVisible ? "opacity-100" : "opacity-0")} style={{animationDelay: '100ms'}}>
               <SparklesIcon className="w-10 h-10 mr-3 text-primary animate-pulse" />
               Ready to Explore the World on Your Terms?
             </h2>
-            <p className="text-lg text-slate-200 dark:text-muted-foreground mb-10 max-w-xl mx-auto"> {/* Adjusted text color */}
+            <p className={cn("text-lg text-slate-200 dark:text-muted-foreground mb-10 max-w-xl mx-auto animate-fade-in-up", finalCtaVisible ? "opacity-100" : "opacity-0")} style={{animationDelay: '200ms'}}>
               Join thousands of savvy travelers planning their next adventure with BudgetRoam.
             </p>
-            <Button asChild size="lg" className="text-lg px-10 py-6 group transform transition-transform hover:scale-105 hover:shadow-xl hover:shadow-primary/40 shadow-md shadow-primary/30">
+            <Button asChild size="lg" className={cn("text-lg px-10 py-6 group transform transition-transform hover:scale-105 hover:shadow-xl hover:shadow-primary/40 shadow-md shadow-primary/30 animate-fade-in-up", finalCtaVisible ? "opacity-100" : "opacity-0")} style={{animationDelay: '300ms'}}>
               <Link href="/planner">
                 Plan Your First Trip for Free
                 <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -294,8 +290,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="py-8 bg-black/30 dark:bg-background/70 backdrop-blur-sm border-t border-border/30 z-10"> {/* Adjusted footer bg */}
+      <footer className="py-8 bg-black/30 dark:bg-background/70 backdrop-blur-sm border-t border-border/30 z-10">
         <div className="container mx-auto px-4 text-center text-slate-300 dark:text-muted-foreground">
           <div className="flex justify-center mb-2">
             <AppLogo />

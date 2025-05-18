@@ -4,11 +4,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { HomeIcon, LayoutDashboardIcon, PlaneIcon } from "lucide-react"; // Changed HomeIcon to PlaneIcon for planner
+import { LayoutDashboardIcon, PlaneIcon, BrainIcon } from "lucide-react"; 
 
 const navItems = [
-  { href: "/planner", label: "Plan Trip", icon: PlaneIcon }, // Updated href and icon
+  { href: "/planner", label: "Plan Trip", icon: PlaneIcon },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
+  { href: "/quiz", label: "Adventure Quiz", icon: BrainIcon }, // New Quiz Link
 ];
 
 export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
@@ -25,7 +26,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           href={item.href}
           className={cn(
             "text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 p-2 rounded-md",
-            pathname === item.href || (item.href === "/planner" && pathname === "/") // Highlight if on root or /planner for "Plan Trip"
+            pathname === item.href || (item.href === "/planner" && pathname === "/") 
               ? "text-primary bg-accent/10"
               : "text-muted-foreground"
           )}

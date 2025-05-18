@@ -60,15 +60,13 @@ export default function DashboardPage() {
   const numTrackedItems = trackedItems?.length || 0;
 
   const handlePlanTripFromBundle = (tripIdea: AITripPlannerInput) => {
-    // Store the tripIdea in localStorage or a global state accessible by the planner page
-    // For simplicity, using localStorage here. A more robust solution might use Zustand/Redux or React Context.
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
     router.push('/planner');
   };
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Card className={cn("mb-8 p-6", "glass-card")}>
+      <Card className={cn("mb-8 p-6", "glass-card", "animate-fade-in-up")}>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome back, {userName}!</h1>
@@ -90,7 +88,7 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card className={cn("lg:col-span-1", "glass-card")}>
+        <Card className={cn("lg:col-span-1", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.1s'}}>
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center text-lg text-card-foreground">
@@ -119,7 +117,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <div className="lg:col-span-2">
+        <div className={cn("lg:col-span-2", "animate-fade-in-up")} style={{animationDelay: '0.2s'}}>
             <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
         </div>
       </div>
@@ -128,8 +126,9 @@ export default function DashboardPage() {
       <Tabs defaultValue="my-trips" className="w-full">
         <TabsList className={cn(
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg",
-            "bg-muted/30 dark:bg-card/30 backdrop-blur-sm border border-white/10 dark:border-black/20 shadow-md"
-          )}>
+            "bg-muted/30 dark:bg-card/30 backdrop-blur-sm border border-white/10 dark:border-black/20 shadow-md",
+            "animate-fade-in-up"
+          )} style={{animationDelay: '0.3s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -140,7 +139,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card")}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.4s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
