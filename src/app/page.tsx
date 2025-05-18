@@ -18,11 +18,12 @@ import {
   LogInIcon,
   Wand2Icon,
   CheckCircleIcon,
-  BarChart3Icon, // For price suite
-  UsersRoundIcon, // For group planning
-  BrainIcon, // For Travel DNA
-  MessageSquareHeartIcon, // For Aura AI
-  NotebookTextIcon // For Memories
+  BarChart3Icon, 
+  UsersRoundIcon, 
+  BrainIcon, 
+  MessageSquareHeartIcon, 
+  NotebookTextIcon,
+  AppWindowIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -53,42 +54,42 @@ const useStaggeredAnimation = (count: number, delayIncrement = 100) => {
 export default function LandingPage() {
   const features = [
     {
-      icon: <NavigationIcon className="w-10 h-10 text-primary mb-4" />,
+      icon: <NavigationIcon className="w-10 h-10 mb-4" />,
       title: "AI-Powered Trip Planner",
       description: "Personalized itineraries in seconds! Define your destination, dates, budget, mood, and Travel DNA. Our AI crafts detailed daily plans and hotel options, considering weather and risks.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "intelligent itinerary generation"
     },
     {
-      icon: <BarChart3Icon className="w-10 h-10 text-accent mb-4" />,
+      icon: <BarChart3Icon className="w-10 h-10 mb-4" />,
       title: "Smart Price Suite",
       description: "Never miss a deal. Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecasts to make informed decisions.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai price analysis chart"
     },
     {
-      icon: <BrainIcon className="w-10 h-10 text-primary mb-4" />,
+      icon: <BrainIcon className="w-10 h-10 mb-4" />,
       title: "Discover Your Travel DNA",
       description: "Take our Adventure Quiz to uncover your unique travel persona. This helps Aura AI personalize all your future travel suggestions and trip plans!",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageSquareHeartIcon className="w-10 h-10 text-accent mb-4" />, 
-      title: "Aura AI: Your Smart Assistant",
+      icon: <MessageSquareHeartIcon className="w-10 h-10 mb-4" />, 
+      title: "Aura AI: Natural Language Search",
       description: "Ask Aura for trip ideas using natural language! Get personalized trip bundles based on your profile and search history.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
     },
     {
-      icon: <UsersRoundIcon className="w-10 h-10 text-primary mb-4" />,
+      icon: <UsersRoundIcon className="w-10 h-10 mb-4" />,
       title: "Effortless Group Planning",
       description: "Sync trip plans with your group's preferences using AI insights to ensure everyone has a great time.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai group travel collaboration"
     },
     {
-      icon: <NotebookTextIcon className="w-10 h-10 text-accent mb-4" />,
+      icon: <NotebookTextIcon className="w-10 h-10 mb-4" />,
       title: "AI Trip Memory Archive",
       description: "Let AI craft nostalgic memory snippets from your saved adventures. Revisit and cherish your travel moments.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -144,7 +145,7 @@ export default function LandingPage() {
           quality={90}
           priority
         />
-        <div className="absolute inset-0 bg-black/40 dark:bg-black/40"></div> {/* Adjusted overlay */}
+        <div className="absolute inset-0 bg-black/40 dark:bg-black/40"></div>
       </div>
 
       <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
@@ -342,8 +343,8 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="py-8 bg-black/30 dark:bg-black/50 backdrop-blur-sm border-t border-border/30 z-10">
-        <div className="container mx-auto px-4 text-center text-slate-300 dark:text-muted-foreground">
+      <footer className="py-8 bg-[hsl(205_80%_85%_/_0.7)] dark:bg-black/50 backdrop-blur-sm border-t border-border/30 z-10">
+        <div className="container mx-auto px-4 text-center text-foreground dark:text-muted-foreground">
           <div className="flex justify-center mb-2">
             <AppLogo />
           </div>
