@@ -16,9 +16,9 @@ import {
   BookOpenTextIcon, 
   CheckCircleIcon,
   Wand2Icon,
-  ListChecksIcon, // Added for Features
-  HeartIcon,      // Added for Why Us
-  LogInIcon       // Used for App/Get Started, could also be AppWindowIcon
+  ListChecksIcon,
+  HeartIcon,
+  LogInIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -94,7 +94,7 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x675.png", alt: "AI Generated Abstract Travel Visualization", aiHint: "ai abstract travel" },
+    { src: "https://placehold.co/1200x678.png", alt: "AI Powered Trip Planner Interface", aiHint: "ai powered trip planner interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
     { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
@@ -145,8 +145,8 @@ export default function LandingPage() {
             <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
               <HeartIcon className="w-4 h-4" /> Why Us
             </Link>
-            <Button asChild variant="ghost" className="text-sm text-slate-100 hover:bg-primary/10 hover:text-primary flex items-center gap-1.5">
-              <Link href="/planner"><LogInIcon className="w-4 h-4" /> App</Link>
+            <Button asChild variant="ghost" className="text-sm text-slate-100 hover:bg-primary/10 hover:text-primary">
+              <Link href="/planner" className="flex items-center gap-1.5"><LogInIcon className="w-4 h-4" /> App</Link>
             </Button>
              <Button asChild className={cn("text-sm hidden sm:inline-flex transform transition-transform hover:scale-105 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40")}>
               <Link href="/planner" className="flex items-center gap-1.5">
