@@ -9,23 +9,20 @@ import {
   ArrowRightIcon,
   SparklesIcon,
   ListChecksIcon,
-  HeartIcon,
   LogInIcon,
   UserPlusIcon,
-  Wand2Icon,
-  BarChart3Icon,
-  UsersRoundIcon,
-  BrainIcon,
-  MessageSquareTextIcon,
-  NotebookTextIcon,
+  Wand2Icon, // For AI Trip Planner
+  BarChart3Icon, // For Smart Price Suite
+  UsersRoundIcon, // For Group Planning
+  BrainIcon, // For Travel DNA
+  MessageSquareTextIcon, // For Aura AI / NLP
+  BookOpenCheckIcon, // For Memory Archive
   UserIcon,
   LogOutIcon,
-  CheckCircleIcon,
-  LayoutGridIcon, // Example for a more generic 'App' icon
-  ShieldCheckIcon, // Example for 'Why Us'
-  TrendingUpIcon, // For Smart Price Suite
-  GroupIcon, // For Group Planning
-  BookOpenCheckIcon // For Memory Archive
+  CheckCircleIcon, 
+  ShieldCheckIcon,
+  LayoutGridIcon,
+  HeartIcon,
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -78,7 +75,7 @@ export default function LandingPage() {
       aiHint: "intelligent itinerary generation"
     },
     {
-      icon: <TrendingUpIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <BarChart3Icon className="w-10 h-10 mb-4 text-accent" />, // Changed icon, alternate color
       title: "Smart Price Suite",
       description: "Track flight/hotel prices, get AI advice on booking, and view illustrative price forecasts to make informed decisions.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -92,21 +89,21 @@ export default function LandingPage() {
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />, // Alternate color
       title: "Aura AI: Natural Language Search",
       description: "Ask Aura for trip ideas using natural language! Get personalized trip bundles based on your profile and search history.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
     },
     {
-      icon: <GroupIcon className="w-10 h-10 mb-4 text-primary" />, // Changed icon
+      icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />, 
       title: "Effortless Group Planning",
       description: "Sync trip plans with your group's preferences using AI insights to ensure everyone has a great time.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai group travel collaboration"
     },
     {
-      icon: <BookOpenCheckIcon className="w-10 h-10 mb-4 text-primary" />, // Changed icon
+      icon: <BookOpenCheckIcon className="w-10 h-10 mb-4 text-accent" />, // Alternate color
       title: "AI Trip Memory Archive",
       description: "Let AI craft nostalgic memory snippets from your saved adventures. Revisit and cherish your travel moments.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -152,7 +149,7 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/60";
+  const glassCardClasses = "glass-card hover:border-primary/40"; // Removed specific bg override here, relies on global .glass-card
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
@@ -165,7 +162,7 @@ export default function LandingPage() {
           quality={90}
           priority
         />
-        <div className="absolute inset-0 bg-black/40 dark:bg-black/40"></div>
+        <div className="absolute inset-0 bg-black/40 dark:bg-black/40"></div> {/* Consistent overlay */}
       </div>
 
       <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
@@ -176,7 +173,7 @@ export default function LandingPage() {
               <ListChecksIcon className="w-4 h-4" /> Features
             </Link>
             <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
-              <ShieldCheckIcon className="w-4 h-4" /> Why Us {/* Updated Icon */}
+              <HeartIcon className="w-4 h-4" /> Why Us 
             </Link>
 
             {authLoading ? (
@@ -202,7 +199,7 @@ export default function LandingPage() {
                 <DropdownMenuContent className="w-56 glass-card border-border/50" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none text-foreground">
+                      <p className="text-sm font-medium leading-none text-card-foreground">
                         {currentUser.displayName || currentUser.email?.split('@')[0]}
                       </p>
                       {currentUser.email && (
@@ -231,7 +228,7 @@ export default function LandingPage() {
                   href="/login"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
-                    "hidden sm:inline-flex items-center border-primary/50 text-primary hover:bg-primary/10 hover:text-primary hover:shadow-md hover:shadow-primary/20"
+                    "hidden sm:inline-flex items-center glass-interactive" // Use glass-interactive
                   )}
                 >
                   <LogInIcon className="mr-1 h-4 w-4" /> Login
@@ -361,8 +358,8 @@ export default function LandingPage() {
                     <div className="p-1 h-full">
                       <Card
                         className={cn(
-                          glassCardClasses,
-                          "hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.03] transition-all duration-300 flex flex-col h-full transform"
+                          glassCardClasses, // Uses the refined glass-card
+                          "hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 flex flex-col h-full transform"
                         )}
                       >
                         <CardHeader className="items-center text-center">
@@ -457,7 +454,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="py-8 bg-[hsl(205_80%_85%_/_0.7)] dark:bg-black/50 backdrop-blur-sm border-t border-border/30 z-10">
+      <footer className={cn("py-8 backdrop-blur-lg border-t border-border/30 z-10", "bg-[hsl(205_80%_85%_/_0.7)] dark:bg-black/50")}>
         <div className="container mx-auto px-4 text-center text-foreground dark:text-muted-foreground">
           <div className="flex justify-center mb-2">
             <AppLogo />

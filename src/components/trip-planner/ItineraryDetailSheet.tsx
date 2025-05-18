@@ -13,10 +13,10 @@ import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, ExternalLinkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react"; // Added ScanEyeIcon
+import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, ExternalLinkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react"; 
 import { cn } from "@/lib/utils";
-import React, { useState } from 'react'; // Added useState
-import Image from 'next/image'; // Added Image
+import React, { useState } from 'react'; 
+import Image from 'next/image'; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"; // Added AlertDialog imports
+} from "@/components/ui/alert-dialog"; 
 
 type ItineraryDetailSheetProps = {
   isOpen: boolean;
@@ -37,6 +37,8 @@ type ItineraryDetailSheetProps = {
   onInitiateBooking: (itinerary: Itinerary) => void;
 };
 
+const glassEffectClasses = "glass-card";
+
 export function ItineraryDetailSheet({
   isOpen,
   onClose,
@@ -46,7 +48,7 @@ export function ItineraryDetailSheet({
   isSaving,
   onInitiateBooking,
 }: ItineraryDetailSheetProps) {
-  const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false); // State for AR/VR Dialog
+  const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false); 
 
   if (!itinerary) return null;
 
@@ -75,7 +77,7 @@ export function ItineraryDetailSheet({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <SheetContent className={cn("w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col glass-pane border-l-border/30")}>
+        <SheetContent className={cn("w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col glass-pane")}>
           <SheetHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
             <div className="flex justify-between items-center">
               <div>
@@ -101,7 +103,7 @@ export function ItineraryDetailSheet({
                 isDetailedView={true}
               />
 
-              <div className={cn("mt-6 glass-card p-4")}>
+              <div className={cn("mt-6 p-4", glassEffectClasses)}>
                 <h3 className="text-lg font-semibold mb-3 flex items-center text-card-foreground">
                   <MapPinIcon className="w-5 h-5 mr-2 text-primary" />
                   Location & Hotels Map
@@ -128,11 +130,11 @@ export function ItineraryDetailSheet({
               </div>
             </div>
           </ScrollArea>
-           <div className="p-4 sm:p-6 border-t border-border/30 bg-background/80 backdrop-blur-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+           <div className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3", "glass-pane")}>
               <Button 
                 onClick={handleSave} 
                 disabled={isTripSaved || isSaving} 
-                className="w-full" 
+                className="w-full glass-interactive" 
                 variant={isTripSaved ? "secondary" : "outline"}
               >
                 {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
@@ -149,7 +151,7 @@ export function ItineraryDetailSheet({
               <Button
                 onClick={() => setIsArVrDialogOpen(true)}
                 variant="outline"
-                className="w-full text-purple-400 border-purple-400/50 hover:bg-purple-400/10 hover:text-purple-300"
+                className="w-full glass-interactive"
               >
                 <ScanEyeIcon className="mr-2 h-4 w-4" />
                 AR/VR Preview
@@ -160,7 +162,7 @@ export function ItineraryDetailSheet({
 
       {/* AR/VR Preview Dialog Placeholder */}
       <AlertDialog open={isArVrDialogOpen} onOpenChange={setIsArVrDialogOpen}>
-          <AlertDialogContent className={cn("glass-card", "sm:max-w-lg border-purple-500/30")}>
+          <AlertDialogContent className={cn(glassEffectClasses, "sm:max-w-lg")}>
               <AlertDialogHeader>
                   <AlertDialogTitle className="flex items-center text-card-foreground">
                       <ScanEyeIcon className="w-5 h-5 mr-2 text-purple-400"/>Immersive AR/VR Preview
@@ -196,3 +198,4 @@ export function ItineraryDetailSheet({
     </>
   );
 }
+

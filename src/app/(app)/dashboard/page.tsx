@@ -95,11 +95,11 @@ export default function DashboardPage() {
                 </p>
             </div>
             <div className="flex items-center gap-2 mt-4 sm:mt-0">
-                <Button variant="outline" size="sm" className="glass-interactive border-primary/30 text-primary hover:bg-primary/20" onClick={() => document.getElementById('my-trips-trigger')?.click()}>
+                <Button variant="outline" size="sm" className="glass-interactive" onClick={() => document.getElementById('my-trips-trigger')?.click()}>
                     <ListChecksIcon className="w-4 h-4 mr-2" />
                     View Trips
                 </Button>
-                 <Button variant="outline" size="sm" className="glass-interactive border-accent/30 text-accent hover:bg-accent/20" onClick={() => document.getElementById('price-tracker-trigger')?.click()}>
+                 <Button variant="outline" size="sm" className="glass-interactive" onClick={() => document.getElementById('price-tracker-trigger')?.click()}>
                     <TrendingUpIcon className="w-4 h-4 mr-2" />
                     Price Tracker
                 </Button>
@@ -149,8 +149,8 @@ export default function DashboardPage() {
 
       <Tabs defaultValue="my-trips" className="w-full">
         <TabsList className={cn(
-            "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg",
-            "bg-muted/30 dark:bg-card/30 backdrop-blur-sm border border-white/10 dark:border-black/20 shadow-md",
+            "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
+            "glass-pane border-opacity-50", // Applied glass-pane
             "animate-fade-in-up"
           )} style={{animationDelay: '0.3s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
@@ -176,3 +176,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

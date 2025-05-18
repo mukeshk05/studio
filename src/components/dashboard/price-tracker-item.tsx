@@ -27,8 +27,6 @@ type PriceTrackerItemProps = {
   isRemoving?: boolean;
 };
 
-type SimulatedChartDataPoint = { time: string; price: number | null };
-
 const glassEffectClasses = "glass-card";
 
 export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating, isRemoving }: PriceTrackerItemProps) {
@@ -175,7 +173,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
 
   return (
     <>
-      <Card className={cn(glassEffectClasses, "flex flex-col border-primary/20")}>
+      <Card className={cn(glassEffectClasses, "flex flex-col")}>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <CardTitle className="flex items-center text-md text-card-foreground">
@@ -243,23 +241,23 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
           <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:flex-row gap-2 mb-2 sm:mb-0">
-              <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-accent/20 border-border/70 text-accent hover:text-accent-foreground" disabled={isCurrentlyUpdating}>
+              <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
                   {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
                   Advice
               </Button>
-              <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-purple-500/20 border-border/70 text-purple-400 hover:text-purple-300" disabled={isCurrentlyUpdating}>
+              <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
                   {isPriceForecastLoading ? <Loader2Icon className="animate-spin" /> : <TrendingUpIcon />}
                   Forecast
               </Button>
               {simulatedChartData.length > 0 && item.priceForecast && (
-                  <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full bg-card/70 hover:bg-teal-500/20 border-border/70 text-teal-400 hover:text-teal-300" disabled={isCurrentlyUpdating}>
+                  <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
                       <LineChartIcon />
                       Trend
                   </Button>
               )}
           </div>
           <div className="flex w-full sm:w-auto gap-2">
-              <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="flex-1 bg-card/70 hover:bg-primary/20 border-border/70 text-primary hover:text-primary-foreground" disabled={isCurrentlyUpdating}>
+              <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="flex-1 glass-interactive" disabled={isCurrentlyUpdating}>
                 <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
               </Button>
               <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive-foreground px-2" disabled={isRemoving || isCurrentlyUpdating}>
@@ -267,10 +265,10 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
               </Button>
           </div>
         </CardFooter>
-      </Card> {/* This is the corrected closing tag */}
+      </Card> 
 
       <Dialog open={isRecheckDialogOpen} onOpenChange={setIsRecheckDialogOpen}>
-        <DialogContent className={cn(glassEffectClasses, "border-primary/30")}>
+        <DialogContent className={cn(glassEffectClasses)}>
           <DialogHeader>
             <DialogTitle className="text-card-foreground">Re-check Price for {item.itemName}</DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -315,7 +313,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
 
       {/* Dialog for Price Forecast Chart */}
       <Dialog open={isForecastChartDialogOpen} onOpenChange={setIsForecastChartDialogOpen}>
-        <DialogContent className={cn(glassEffectClasses, "sm:max-w-xl md:max-w-2xl border-purple-500/30")}>
+        <DialogContent className={cn(glassEffectClasses, "sm:max-w-xl md:max-w-2xl")}>
           <DialogHeader>
             <DialogTitle className="text-card-foreground flex items-center">
               <LineChartIcon className="mr-2 h-5 w-5 text-purple-400" />
@@ -356,3 +354,4 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     </>
   );
 }
+

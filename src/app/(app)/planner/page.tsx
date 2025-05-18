@@ -9,12 +9,13 @@ import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
-import { MessageSquarePlusIcon, HistoryIcon, SendIcon } from "lucide-react"; // Changed to SendIcon
+import { HistoryIcon, SendIcon } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
+import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet"; // Ensure this is imported
 
 export interface ChatMessage {
   id: string;
@@ -58,7 +59,7 @@ export default function TripPlannerPage() {
         {
           id: crypto.randomUUID(),
           type: "system",
-          payload: "Welcome to your AI Trip Planner! Click 'Compose Trip Request' below or 'View Plan History' to get started.",
+          payload: "Welcome to your AI Trip Planner! Click the 'Compose Trip Request' button below to describe your ideal trip.",
           timestamp: new Date(),
         },
       ]);
@@ -278,14 +279,14 @@ Remember to compare prices and check cancellation policies before booking. Happy
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
-      <div className="p-3 border-b border-border/30 bg-background/80 backdrop-blur-sm flex justify-between items-center">
+      <div className={cn("p-3 border-b border-border/30 flex justify-between items-center", "glass-pane")}>
         <h2 className="text-lg font-semibold text-foreground">AI Trip Planner</h2>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setIsSearchHistoryDrawerOpen(true)}
           disabled={!currentUser || addSearchHistoryMutation.isPending || isAiProcessing}
-          className="glass-interactive border-primary/30 text-primary hover:bg-primary/20"
+          className="glass-interactive"
         >
           <HistoryIcon className="w-4 h-4 mr-2" />
           View Plan History
@@ -300,7 +301,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm">
+      <div className={cn("p-4 border-t border-border/30", "glass-pane")}>
         <div className="max-w-3xl mx-auto">
             <Button
               onClick={handleOpenInputSheetForNewPlan}

@@ -125,7 +125,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={cn(glassEffectClasses, "sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0 border-primary/30")}>
+      <DialogContent className={cn(glassEffectClasses, "sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0")}>
         <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 backdrop-blur-sm">
            <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
@@ -149,7 +149,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-medium text-card-foreground mb-2">Current Trip Details</h3>
-              <div className={cn(glassEffectClasses, "p-3 rounded-md text-sm border-border/30 bg-card/50")}>
+              <div className={cn("p-3 rounded-md text-sm border-border/30 bg-card/50", glassEffectClasses)}>
                 <p><span className="font-semibold">Destination:</span> {trip.destination}</p>
                 <p><span className="font-semibold">Dates:</span> {trip.travelDates}</p>
                 {trip.tripSummary && <p><span className="font-semibold">Summary:</span> {trip.tripSummary}</p>}
@@ -160,7 +160,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
             <div>
               <h3 className="text-lg font-medium text-card-foreground mb-3">Companion Preferences</h3>
               {companions.map((companion, index) => (
-                <div key={companion.id} className={cn(glassEffectClasses, "p-4 rounded-md mb-3 border-border/30 bg-card/50 relative")}>
+                <div key={companion.id} className={cn("p-4 rounded-md mb-3 border-border/30 bg-card/50 relative", glassEffectClasses)}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label htmlFor={`companionName-${companion.id}`} className="text-xs text-card-foreground/90">Companion #{index + 1} Name</Label>
@@ -169,7 +169,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                         value={companion.name}
                         onChange={(e) => handleCompanionChange(companion.id, "name", e.target.value)}
                         placeholder="E.g., Alex"
-                        className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"
+                        className="bg-input/70 focus:bg-input/90"
                       />
                     </div>
                     <div className="space-y-1">
@@ -179,7 +179,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                         value={companion.preferences}
                         onChange={(e) => handleCompanionChange(companion.id, "preferences", e.target.value)}
                         placeholder="E.g., Loves beaches, historical sites, prefers relaxed pace."
-                        className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90 min-h-[60px]"
+                        className="bg-input/70 focus:bg-input/90 min-h-[60px]"
                         rows={2}
                       />
                     </div>
@@ -196,7 +196,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                   )}
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={handleAddCompanion} className="mt-2 glass-interactive border-primary/30 text-primary hover:bg-primary/20">
+              <Button variant="outline" size="sm" onClick={handleAddCompanion} className="mt-2 glass-interactive">
                 <PlusCircleIcon className="w-4 h-4 mr-2" /> Add Companion
               </Button>
             </div>
@@ -211,7 +211,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
             {report && !isLoading && (
               <div>
                 <h3 className="text-lg font-medium text-card-foreground mb-2">AI Compatibility Report</h3>
-                <div className={cn(glassEffectClasses, "p-4 rounded-md border-accent/30 bg-card/50 max-h-96")}>
+                <div className={cn("p-4 rounded-md border-accent/30 bg-card/50 max-h-96", glassEffectClasses)}>
                   <ScrollArea className="h-full max-h-80"> {/* Inner scroll for long reports */}
                     <div className="prose prose-sm dark:prose-invert prose-headings:text-accent prose-strong:text-card-foreground whitespace-pre-line">
                         {report}
@@ -223,7 +223,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-4 sm:p-6 border-t border-border/30 sticky bottom-0 z-10 bg-card/80 backdrop-blur-sm">
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 sticky bottom-0 z-10", "glass-pane")}>
           <Button onClick={handleGenerateReport} disabled={isLoading || companions.length === 0} className="w-full sm:w-auto shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
             {isLoading ? <Loader2Icon className="animate-spin" /> : <UsersIcon />}
             Generate Sync Report
@@ -233,3 +233,4 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
     </Dialog>
   );
 }
+

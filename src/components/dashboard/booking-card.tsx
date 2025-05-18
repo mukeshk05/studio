@@ -190,7 +190,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
 
   return (
     <>
-    <Card className={cn(glassEffectClasses, "flex flex-col overflow-hidden border-primary/20")}>
+    <Card className={cn(glassEffectClasses, "flex flex-col overflow-hidden")}>
       {booking.destinationImageUri && (
         <div className="relative w-full h-40 group">
           <Image
@@ -292,19 +292,19 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         </Accordion>
       </CardContent>
       <CardFooter className="pt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-        <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full text-primary border-primary/50 hover:bg-primary/10">
+        <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full glass-interactive">
           <BriefcaseIcon className="mr-2 h-4 w-4" />List
         </Button>
-        <Button onClick={() => { setIsFactDialogOpen(true); handleFetchFunFact(); }} variant="outline" size="sm" className="w-full text-accent border-accent/50 hover:bg-accent/10">
+        <Button onClick={() => { setIsFactDialogOpen(true); handleFetchFunFact(); }} variant="outline" size="sm" className="w-full glass-interactive">
           <LightbulbIcon className="mr-2 h-4 w-4" />Fact
         </Button>
-        <Button onClick={() => setIsArVrDialogOpen(true)} variant="outline" size="sm" className="w-full text-purple-400 border-purple-400/50 hover:bg-purple-400/10">
+        <Button onClick={() => setIsArVrDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive">
           <ScanEyeIcon className="mr-2 h-4 w-4" />Preview
         </Button>
-        <Button onClick={() => setIsGroupSyncDialogOpen(true)} variant="outline" size="sm" className="w-full text-green-400 border-green-400/50 hover:bg-green-400/10">
+        <Button onClick={() => setIsGroupSyncDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive">
           <UsersIcon className="mr-2 h-4 w-4" />Sync
         </Button>
-        <Button onClick={handleOpenMemoryDialog} variant="outline" size="sm" className="w-full text-orange-400 border-orange-400/50 hover:bg-orange-400/10">
+        <Button onClick={handleOpenMemoryDialog} variant="outline" size="sm" className="w-full glass-interactive">
           <BookOpenTextIcon className="mr-2 h-4 w-4" />Memory
         </Button>
         <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
@@ -433,7 +433,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
                 )}
             </div>
             <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                 <Button variant="outline" onClick={triggerMemoryGeneration} disabled={isLoadingAI || updateSavedTripMemoryMutation.isPending} className="w-full sm:w-auto">
+                 <Button variant="outline" onClick={triggerMemoryGeneration} disabled={isLoadingAI || updateSavedTripMemoryMutation.isPending} className="w-full sm:w-auto glass-interactive">
                     {isLoadingAI || updateSavedTripMemoryMutation.isPending ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
                     Refresh Memory
                 </Button>
@@ -452,3 +452,4 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     </>
   );
 }
+
