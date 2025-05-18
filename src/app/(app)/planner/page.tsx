@@ -9,8 +9,7 @@ import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
-import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
-import { MessageSquarePlusIcon, HistoryIcon, SendIcon } from "lucide-react"; // Added SendIcon
+import { MessageSquarePlusIcon, HistoryIcon, SendIcon } from "lucide-react"; // Changed to SendIcon
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
@@ -19,10 +18,10 @@ import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
 
 export interface ChatMessage {
   id: string;
-  type: "user" | "ai" | "error" | "loading" | "system" | "booking_guidance"; // Added booking_guidance
+  type: "user" | "ai" | "error" | "loading" | "system" | "booking_guidance";
   payload?: any;
   timestamp: Date;
-  title?: string; // Optional title for certain message types
+  title?: string;
 }
 
 export default function TripPlannerPage() {
@@ -59,7 +58,7 @@ export default function TripPlannerPage() {
         {
           id: crypto.randomUUID(),
           type: "system",
-          payload: "Welcome to BudgetRoam AI Trip Planner! Click 'Plan New Trip' below or 'View Plan History' to get started.",
+          payload: "Welcome to your AI Trip Planner! Click 'Compose Trip Request' below or 'View Plan History' to get started.",
           timestamp: new Date(),
         },
       ]);
@@ -228,7 +227,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
       timestamp: new Date(),
     };
     setChatHistory(prev => [...prev, guidanceMessage]);
-    setIsDetailSheetOpen(false); // Close the detail sheet after initiating guidance
+    setIsDetailSheetOpen(false); 
   };
 
 
@@ -309,8 +308,8 @@ Remember to compare prices and check cancellation policies before booking. Happy
               size="lg"
               disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing || addSearchHistoryMutation.isPending}
             >
-              {isAiProcessing ? <MessageSquarePlusIcon className="w-6 h-6 mr-2 animate-pulse" /> : <MessageSquarePlusIcon className="w-6 h-6 mr-2" />}
-              {isAiProcessing ? "AI is thinking..." : "Plan New Trip"}
+              {isAiProcessing ? <SendIcon className="w-6 h-6 mr-2 animate-pulse" /> : <SendIcon className="w-6 h-6 mr-2" />} 
+              {isAiProcessing ? "AI is responding..." : "Compose Trip Request"}
             </Button>
         </div>
       </div>
@@ -337,9 +336,11 @@ Remember to compare prices and check cancellation policies before booking. Happy
           onSaveTrip={handleSaveTrip}
           isTripSaved={isTripSaved(selectedItinerary)}
           isSaving={addSavedTripMutation.isPending}
-          onInitiateBooking={handleInitiateBookingGuidance} // Pass the new handler
+          onInitiateBooking={handleInitiateBookingGuidance} 
         />
       )}
     </div>
   );
 }
+
+    
