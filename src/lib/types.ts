@@ -25,5 +25,6 @@ export interface PriceTrackerEntry {
     shouldAlert: boolean;
     alertMessage: string;
   };
+  aiAdvice?: string; // New field for AI-generated price advice
 }
 

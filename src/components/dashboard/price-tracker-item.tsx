@@ -1,13 +1,15 @@
+
 "use client";
 
 import type { PriceTrackerEntry } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon } from "lucide-react";
+import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
+import { getPriceAdvice, PriceAdvisorInput, PriceAdvisorOutput } from "@/ai/flows/price-advisor-flow"; // New import
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -24,8 +26,9 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
   const { toast } = useToast();
   const [isRechecking, setIsRechecking] = React.useState(false);
   const [newCurrentPrice, setNewCurrentPrice] = React.useState<string>(item.currentPrice.toString());
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isRecheckDialogOpen, setIsRecheckDialogOpen] = React.useState(false);
   const [recheckResult, setRecheckResult] = React.useState<PriceTrackerOutput | null>(null);
+  const [isAiAdviceLoading, setIsAiAdviceLoading] = React.useState(false);
 
 
   const handleRecheckPrice = async () => {
@@ -53,7 +56,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
         lastChecked: new Date().toISOString(),
         alertStatus: result,
       };
-      onUpdateItem(updatedItem);
+      onUpdateItem(updatedItem); // This will also save to localStorage via useLocalStorage in parent
 
       toast({
         title: "Price Re-checked",
@@ -71,21 +74,44 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
       toast({ title: "Error", description: "Could not re-check price.", variant: "destructive" });
     } finally {
       setIsRechecking(false);
-      // Keep dialog open to show result, or close if preferred: setIsDialogOpen(false);
+    }
+  };
+
+  const handleGetAiAdvice = async () => {
+    setIsAiAdviceLoading(true);
+    try {
+      const adviceInput: PriceAdvisorInput = {
+        itemType: item.itemType,
+        itemName: item.itemName,
+        targetPrice: item.targetPrice,
+        currentPrice: item.currentPrice,
+      };
+      const result = await getPriceAdvice(adviceInput);
+      const updatedItem = { ...item, aiAdvice: result.advice, lastChecked: new Date().toISOString() };
+      onUpdateItem(updatedItem);
+      toast({
+        title: "AI Advice Received",
+        description: "Check the insights below.",
+      });
+    } catch (error) {
+      console.error("Error getting AI advice:", error);
+      toast({ title: "Error", description: "Could not fetch AI advice.", variant: "destructive" });
+    } finally {
+      setIsAiAdviceLoading(false);
     }
   };
   
   const Icon = item.itemType === 'flight' ? PlaneIcon : HotelIcon;
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
+    <Card className="shadow-sm flex flex-col">
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <CardTitle className="flex items-center text-md">
             <Icon className="w-5 h-5 mr-2 text-primary" />
             {item.itemName}
           </CardTitle>
-          <Badge variant={item.alertStatus?.shouldAlert ? "destructive" : "outline"}>
+          <Badge variant={item.alertStatus?.shouldAlert ? "destructive" : "outline"} className="whitespace-nowrap">
             {item.alertStatus?.shouldAlert ? <><BellIcon className="w-3 h-3 mr-1"/> Alert!</> : "Tracking"}
           </Badge>
         </div>
@@ -93,30 +119,54 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
           Last checked: {formatDistanceToNow(new Date(item.lastChecked), { addSuffix: true })}
         </CardDescription>
       </CardHeader>
-      <CardContent className="text-sm space-y-1">
+      <CardContent className="text-sm space-y-2 flex-grow">
         <p className="flex items-center"><TagIcon className="w-4 h-4 mr-2 text-muted-foreground" />Type: <span className="font-medium ml-1">{item.itemType}</span></p>
         <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Target: <span className="font-medium ml-1">${item.targetPrice.toLocaleString()}</span></p>
         <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Current: <span className="font-medium ml-1">${item.currentPrice.toLocaleString()}</span></p>
+        
         {item.alertStatus && (
-             <Alert variant={item.alertStatus.shouldAlert ? "destructive" : "default"} className="mt-2 p-2 text-xs">
+             <Alert variant={item.alertStatus.shouldAlert ? "destructive" : "default"} className="p-2.5 text-xs">
                 <BellIcon className="h-4 w-4" />
-                <AlertTitle className="text-xs font-semibold">{item.alertStatus.shouldAlert ? "Action Recommended!" : "Status"}</AlertTitle>
+                <AlertTitle className="text-xs font-semibold mb-0.5">{item.alertStatus.shouldAlert ? "Action Recommended!" : "Status"}</AlertTitle>
                 <AlertDescription className="text-xs">
                   {item.alertStatus.alertMessage}
                 </AlertDescription>
               </Alert>
         )}
+
+        {isAiAdviceLoading && (
+          <div className="flex items-center justify-center p-3 bg-muted/50 rounded-md">
+            <Loader2Icon className="w-5 h-5 mr-2 animate-spin text-primary" />
+            <span className="text-xs text-muted-foreground">Getting AI advice...</span>
+          </div>
+        )}
+
+        {item.aiAdvice && !isAiAdviceLoading && (
+          <Alert variant="default" className="p-2.5 text-xs border-accent/50 transition-opacity duration-300">
+            <SparklesIcon className="h-4 w-4 text-accent" />
+            <AlertTitle className="text-xs font-semibold text-accent mb-0.5">AI Price Advisor</AlertTitle>
+            <AlertDescription className="text-xs text-foreground">
+              {item.aiAdvice}
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
-      <CardFooter className="flex justify-between gap-2">
-        <Button onClick={() => setIsDialogOpen(true)} variant="outline" size="sm" className="flex-1">
-          <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
+      <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
+        <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full sm:w-auto flex-1" disabled={isAiAdviceLoading}>
+          {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          AI Advice
         </Button>
-        <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-          <Trash2Icon className="h-4 w-4" />
-        </Button>
+        <div className="flex w-full sm:w-auto gap-2">
+            <Button onClick={() => setIsRecheckDialogOpen(true)} variant="outline" size="sm" className="flex-1">
+            <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
+            </Button>
+            <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2">
+            <Trash2Icon className="h-4 w-4" />
+            </Button>
+        </div>
       </CardFooter>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isRecheckDialogOpen} onOpenChange={setIsRecheckDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Re-check Price for {item.itemName}</DialogTitle>
