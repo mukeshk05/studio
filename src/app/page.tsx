@@ -17,16 +17,21 @@ import {
   LogOutIcon,
   CheckCircleIcon, 
   ShieldCheckIcon, 
-  MessageSquareHeartIcon, 
-  RouteIcon, 
+  MessageSquareHeartIcon, // Kept for Aura AI
   TrendingUpIcon, 
-  UsersRoundIcon, 
-  BrainCircuitIcon,
+  UsersRoundIcon, // Will use for Generational Story Weaver
+  BrainCircuitIcon, // Kept for Travel DNA
   EarIcon, 
   EyeIcon, 
   CameraIcon, 
   BookOpenCheckIcon,
   LayoutGridIcon,
+  ActivityIcon, // New for Dynamic Itinerary Reshaper
+  BotIcon, // New for AI Guardian
+  LocateFixedIcon, // New for Serendipity Engine
+  SearchCheckIcon, // New for Authenticity Verifier
+  LeafIcon, // New for Sustainable Optimizer
+  BookHeartIcon, // Alternative for Generational Story Weaver
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -74,7 +79,7 @@ export default function LandingPage() {
     {
       icon: <Wand2Icon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI-Powered Trip Planner",
-      description: "Hyper-personalized itineraries! Define destination, dates, budget, mood, and even your Travel DNA. Our AI Guardian crafts detailed plans, fusing preferences with weather, risk, and visa awareness.",
+      description: "Hyper-personalized itineraries! Define destination, dates, budget, mood, and your Travel DNA. Our AI Guardian crafts detailed plans, fusing preferences with weather, risk, and visa awareness.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "intelligent itinerary generation" 
     },
@@ -107,39 +112,46 @@ export default function LandingPage() {
       aiHint: "ai group travel collaboration"
     },
     {
-      icon: <BookOpenCheckIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "GPT Travel Memory Archive",
-      description: "Let Aura AI craft evocative memory snippets from your saved adventures. Revisit, cherish, and build your generational travel diary.",
+      icon: <BotIcon className="w-10 h-10 mb-4 text-accent" />, 
+      title: "Proactive Journey Sentinel AI",
+      description: "Our AI proactively considers general travel risks, reminds you about visa checks, and incorporates typical weather patterns into your trip plans for a safer journey.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai travel journal diary"
+      aiHint: "travel safety shield ai"
     },
     {
-      icon: <ShieldCheckIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "AI Guardian (Risk, Visa, Weather)",
-      description: "Our AI incorporates general awareness of travel risks, visa reminders, and typical weather patterns into your trip plans for a safer, smoother journey.",
+      icon: <LeafIcon className="w-10 h-10 mb-4 text-primary" />, 
+      title: "Sustainable Footprint Optimizer AI",
+      description: "Conceptually, our AI considers sustainable travel options, suggesting eco-friendly choices and promoting awareness for responsible tourism.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "travel safety shield"
+      aiHint: "eco friendly travel ai"
+    },
+     {
+      icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-accent" />, 
+      title: "Serendipity Engine (Conceptual)",
+      description: "Imagine discovering spontaneous, hyper-local events unfolding near you in real-time, perfectly matched to your Travel DNA and current mood.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "real time local discovery ai"
+    },
+     {
+      icon: <SearchCheckIcon className="w-10 h-10 mb-4 text-primary" />, 
+      title: "Authenticity Verifier AI (Conceptual)",
+      description: "Conceptually, verify local crafts, food, and experiences. Upload a photo, and AI provides insights on origin, value, and authenticity markers.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "ai authenticity check travel"
     },
     {
-      icon: <EyeIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "AR/VR Destination Preview (Conceptual)",
-      description: "Get a conceptual glimpse of your destination with immersive AR/VR previews, bringing your travel dreams closer to reality before you book.",
+      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />,
+      title: "Dynamic Itinerary Reshaper (Conceptual)",
+      description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "virtual reality travel"
+      aiHint: "bio feedback travel ai"
     },
-     {
-      icon: <EarIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "Zero-UI Conversational Planning",
-      description: "Experience a seamless, chat-first trip planning flow. Converse naturally with Aura AI, minimizing form interaction for an intuitive journey.",
+    {
+      icon: <BookHeartIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Generational Story Weaver AI (Evolved Diary)",
+      description: "Beyond simple snippets, envision an AI that helps weave rich, multimedia travel diaries and uncovers travel narratives across generations.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "voice assistant travel"
-    },
-     {
-      icon: <CameraIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "AI-Enhanced Image Generation",
-      description: "Visualize your trip! AI generates representative images for destinations and hotels, making your planned itineraries more vivid and inspiring.",
-      imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai generated travel image"
+      aiHint: "ai travel storytelling generational"
     }
   ];
   
@@ -154,7 +166,7 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "futuristic ai travel" },
+    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
@@ -171,7 +183,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
+    // Delay subsequent section animations
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); 
     const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
     const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
 
@@ -183,7 +196,7 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card hover:border-primary/40";
+  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
@@ -378,14 +391,14 @@ export default function LandingPage() {
             <Carousel
               opts={{
                 align: "start",
-                loop: features.length > 2, // Adjusted to loop if more than 2, can be 3 for wider screens
+                loop: features.length > 2,
               }}
               className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto"
             >
               <CarouselContent className="-ml-2 md:-ml-4">
                 {features.map((feature, index) => (
                   <CarouselItem key={index} className={cn(
-                      "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 transition-all duration-500 ease-out", // Ensure responsive basis
+                      "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 transition-all duration-500 ease-out",
                       featureCardsVisible[index] ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
                     )}
                   >
@@ -502,3 +515,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
