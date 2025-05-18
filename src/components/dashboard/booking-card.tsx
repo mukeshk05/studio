@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon, BookOpenTextIcon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon, BookOpenTextIcon, RefreshCwIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -30,7 +30,10 @@ import { getPackingList, PackingListInput, PackingListOutput } from "@/ai/flows/
 import { getDestinationFact, DestinationFactInput, DestinationFactOutput } from "@/ai/flows/destination-fact-flow";
 import { generateTripMemory, GenerateTripMemoryInput, GenerateTripMemoryOutput } from "@/ai/flows/generate-trip-memory-flow";
 import { cn } from "@/lib/utils";
-import { GroupSyncDialog } from "./GroupSyncDialog"; 
+import { GroupSyncDialog } from "./GroupSyncDialog";
+import { useUpdateSavedTripMemory } from "@/lib/firestoreHooks"; // Import the new hook
+import { formatDistanceToNow } from 'date-fns';
+
 
 type BookingCardProps = {
   booking: Itinerary;
@@ -80,7 +83,7 @@ function SavedDailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
     </div>
   );
 }
-const glassEffectClasses = "glass-card"; 
+const glassEffectClasses = "glass-card";
 
 export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCardProps) {
   const { toast } = useToast();
@@ -89,10 +92,13 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
   const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false);
   const [isGroupSyncDialogOpen, setIsGroupSyncDialogOpen] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
+
   const [packingList, setPackingList] = useState<string[] | null>(null);
   const [destinationFact, setDestinationFact] = useState<string | null>(null);
-  const [tripMemoryText, setTripMemoryText] = useState<string | null>(null);
+  const [currentTripMemory, setCurrentTripMemory] = useState<{text: string, generatedAt?: string} | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+
+  const updateSavedTripMemoryMutation = useUpdateSavedTripMemory();
 
   const hintWords = booking.destination.toLowerCase().split(/[\s,]+/);
   const aiHint = hintWords.slice(0, 2).join(" ");
@@ -107,15 +113,15 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     setIsLoadingAI(true);
     setPackingList(null);
     try {
-      const duration = booking.dailyPlan && booking.dailyPlan.length > 0 
-        ? `${booking.dailyPlan.length} day${booking.dailyPlan.length !== 1 ? 's' : ''}` 
-        : "a few days"; 
-      
+      const duration = booking.dailyPlan && booking.dailyPlan.length > 0
+        ? `${booking.dailyPlan.length} day${booking.dailyPlan.length !== 1 ? 's' : ''}`
+        : "a few days";
+
       const input: PackingListInput = {
         destination: booking.destination,
         travelDates: booking.travelDates,
         tripDuration: duration,
-        weatherContext: booking.weatherContext, 
+        weatherContext: booking.weatherContext,
       };
       const result: PackingListOutput = await getPackingList(input);
       setPackingList(result.packingList);
@@ -144,9 +150,9 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     }
   };
 
-  const handleGenerateMemory = async () => {
+  const triggerMemoryGeneration = async () => {
     setIsLoadingAI(true);
-    setTripMemoryText(null);
+    setCurrentTripMemory(null); // Clear previous memory while generating new one
     try {
       const input: GenerateTripMemoryInput = {
         destination: booking.destination,
@@ -155,14 +161,30 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         dailyPlanActivities: formatDailyPlanForAI(booking.dailyPlan),
       };
       const result: GenerateTripMemoryOutput = await generateTripMemory(input);
-      setTripMemoryText(result.memoryText);
+      const newMemory = {
+        memoryText: result.memoryText,
+        generatedAt: new Date().toISOString(),
+      };
+      setCurrentTripMemory({text: newMemory.memoryText, generatedAt: newMemory.generatedAt});
+      await updateSavedTripMemoryMutation.mutateAsync({ tripId: booking.id, memory: newMemory });
+      toast({ title: "Trip Memory Updated!", description: "A new memory snippet has been generated and saved."});
     } catch (error) {
       console.error("Error generating trip memory:", error);
       toast({ title: "Error", description: "Could not generate trip memory.", variant: "destructive" });
-      setTripMemoryText("Failed to generate a memory for this trip.");
+      setCurrentTripMemory({text: "Failed to generate a memory for this trip."});
     } finally {
       setIsLoadingAI(false);
     }
+  };
+
+  const handleOpenMemoryDialog = () => {
+    if (booking.aiGeneratedMemory?.memoryText) {
+      setCurrentTripMemory({text: booking.aiGeneratedMemory.memoryText, generatedAt: booking.aiGeneratedMemory.generatedAt});
+    } else {
+      setCurrentTripMemory(null); // No saved memory, prompt for generation
+      triggerMemoryGeneration(); // Or trigger generation immediately if no saved one
+    }
+    setIsMemoryDialogOpen(true);
   };
 
 
@@ -218,7 +240,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
              </>
            ) : (
              <>
-              <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400 opacity-70" /> 
+              <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-blue-400 opacity-70" />
               <span className="italic opacity-70">AI considered general patterns.</span>
              </>
            )}
@@ -247,7 +269,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
               </AccordionContent>
             </AccordionItem>
           )}
-          
+
           {booking.flightOptions && booking.flightOptions.length > 0 && (
             <AccordionItem value="flights" className="border-border/30">
               <AccordionTrigger className="text-xs font-medium hover:no-underline py-2 text-card-foreground/90 [&[data-state=open]>svg]:text-primary">
@@ -295,7 +317,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         <Button onClick={() => setIsGroupSyncDialogOpen(true)} variant="outline" size="sm" className="w-full text-green-400 border-green-400/50 hover:bg-green-400/10">
           <UsersIcon className="mr-2 h-4 w-4" />Sync
         </Button>
-        <Button onClick={() => { setIsMemoryDialogOpen(true); handleGenerateMemory(); }} variant="outline" size="sm" className="w-full text-orange-400 border-orange-400/50 hover:bg-orange-400/10">
+        <Button onClick={handleOpenMemoryDialog} variant="outline" size="sm" className="w-full text-orange-400 border-orange-400/50 hover:bg-orange-400/10">
           <BookOpenTextIcon className="mr-2 h-4 w-4" />Memory
         </Button>
         <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
@@ -381,7 +403,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
                     />
                 </div>
                 <p className="text-sm text-card-foreground/90 text-center">
-                    Imagine stepping into the vibrant streets and landscapes of <strong>{booking.destination}</strong>. 
+                    Imagine stepping into the vibrant streets and landscapes of <strong>{booking.destination}</strong>.
                     A full AR/VR experience could bring your travel dreams to life before you even pack your bags!
                 </p>
                 <p className="text-xs text-muted-foreground text-center">
@@ -399,25 +421,36 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         <AlertDialogContent className={cn(glassEffectClasses)}>
             <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center text-card-foreground">
-                    <BookOpenTextIcon className="w-5 h-5 mr-2 text-orange-400"/>AI Generated Memory for {booking.destination}
+                    <BookOpenTextIcon className="w-5 h-5 mr-2 text-orange-400"/>AI Trip Memory
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-muted-foreground">
-                    A nostalgic snippet of your trip!
+                    A nostalgic snippet of your trip to {booking.destination}.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="my-4 min-h-[60px]">
-                {isLoadingAI && !tripMemoryText ? (
+                {isLoadingAI && !currentTripMemory?.text ? (
                     <div className="flex items-center justify-center p-4 text-muted-foreground">
                         <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Generating memory...
                     </div>
-                ) : tripMemoryText ? (
-                    <p className="text-sm text-card-foreground/90 whitespace-pre-line">{tripMemoryText}</p>
+                ) : currentTripMemory?.text ? (
+                    <div>
+                        <p className="text-sm text-card-foreground/90 whitespace-pre-line">{currentTripMemory.text}</p>
+                        {currentTripMemory.generatedAt && (
+                             <p className="text-xs text-muted-foreground mt-2">
+                                Generated: {formatDistanceToNow(new Date(currentTripMemory.generatedAt), { addSuffix: true })}
+                             </p>
+                        )}
+                    </div>
                 ) : (
-                    <p className="text-sm text-muted-foreground">No memory snippet generated or an error occurred.</p>
+                    <p className="text-sm text-muted-foreground">No memory snippet available yet. Click "Refresh Memory" to generate one.</p>
                 )}
             </div>
-            <AlertDialogFooter>
-                <AlertDialogAction onClick={() => setIsMemoryDialogOpen(false)} className="bg-primary hover:bg-primary/90">Nice!</AlertDialogAction>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                 <Button variant="outline" onClick={triggerMemoryGeneration} disabled={isLoadingAI || updateSavedTripMemoryMutation.isPending} className="w-full sm:w-auto">
+                    {isLoadingAI || updateSavedTripMemoryMutation.isPending ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
+                    Refresh Memory
+                </Button>
+                <AlertDialogAction onClick={() => setIsMemoryDialogOpen(false)} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">Close</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
@@ -432,3 +465,4 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     </>
   );
 }
+

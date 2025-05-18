@@ -32,7 +32,7 @@ export function useAddSavedTrip() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
-  return useMutation<string, Error, Omit<Itinerary, 'id'>>({
+  return useMutation<string, Error, Omit<Itinerary, 'id' | 'aiGeneratedMemory'>>({
     mutationFn: async (newTripData) => {
       if (!currentUser) throw new Error("User not authenticated");
       const tripsCollectionRef = collection(firestore, 'users', currentUser.uid, 'savedTrips');
@@ -59,6 +59,36 @@ export function useRemoveSavedTrip() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid] });
     },
+  });
+}
+
+// Hook to update AI generated memory for a saved trip
+export function useUpdateSavedTripMemory() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { tripId: string; memory: { memoryText: string; generatedAt: string; } }>({
+    mutationFn: async ({ tripId, memory }) => {
+      if (!currentUser) throw new Error("User not authenticated");
+      const tripDocRef = doc(firestore, 'users', currentUser.uid, 'savedTrips', tripId);
+      await updateDoc(tripDocRef, {
+        aiGeneratedMemory: memory,
+        lastModified: serverTimestamp() // Optional: track last modification
+      });
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate and refetch to update the UI
+      queryClient.invalidateQueries({ queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid] });
+      // Optionally, optimistically update the cache if needed for immediate UI feedback
+      queryClient.setQueryData([SAVED_TRIPS_QUERY_KEY, currentUser?.uid], (oldData: Itinerary[] | undefined) =>
+        oldData?.map(trip =>
+          trip.id === variables.tripId ? { ...trip, aiGeneratedMemory: variables.memory } : trip
+        )
+      );
+    },
+    onError: (error) => {
+      console.error("Error updating trip memory:", error);
+    }
   });
 }
 
@@ -90,7 +120,7 @@ export function useAddTrackedItem() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
-  return useMutation<string, Error, Omit<PriceTrackerEntry, 'id' | 'lastChecked' | 'aiAdvice' | 'createdAt' | 'alertStatus'>>({
+  return useMutation<string, Error, Omit<PriceTrackerEntry, 'id' | 'lastChecked' | 'aiAdvice' | 'createdAt' | 'alertStatus' | 'priceForecast'>>({
     mutationFn: async (newItemData) => {
       if (!currentUser) throw new Error("User not authenticated");
       const itemsCollectionRef = collection(firestore, 'users', currentUser.uid, 'trackedItems');
@@ -174,7 +204,7 @@ export function useAddSearchHistory() {
 }
 
 // Hook to get search history (e.g., last N entries)
-export function useSearchHistory(count: number = 10) {
+export function useSearchHistory(count: number = 20) {
   const { currentUser } = useAuth();
 
   return useQuery<SearchHistoryEntry[], Error>({
@@ -184,14 +214,14 @@ export function useSearchHistory(count: number = 10) {
       const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
       const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, searchedAt: doc.data().searchedAt?.toDate() || new Date() } as SearchHistoryEntry));
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, searchedAt: doc.data().searchedAt?.toDate?.() || new Date() } as SearchHistoryEntry));
     },
     enabled: !!currentUser,
     staleTime: 1000 * 60 * 15,
   });
 }
 
-// Function to be called by Genkit tool to fetch search history
+// Function to be called by Genkit tool to fetch user search history
 export async function getRecentUserSearchHistory(userId: string, count: number = 5): Promise<SearchHistoryEntry[]> {
   if (!userId) {
     console.error("getRecentUserSearchHistory: userId is required.");
@@ -228,12 +258,11 @@ export function useSaveUserTravelPersona() {
   return useMutation<void, Error, Omit<UserTravelPersona, 'lastUpdated'>>({
     mutationFn: async (personaData) => {
       if (!currentUser) throw new Error("User not authenticated");
-      // Store persona in a specific doc, e.g., users/{userId}/profile/travelPersona
       const personaDocRef = doc(firestore, 'users', currentUser.uid, 'profile', 'travelPersona');
       await setDoc(personaDocRef, {
         ...personaData,
         lastUpdated: serverTimestamp(),
-      }, { merge: true }); // merge: true will create or update
+      }, { merge: true });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USER_TRAVEL_PERSONA_QUERY_KEY, currentUser?.uid] });
@@ -262,7 +291,7 @@ export function useGetUserTravelPersona() {
       return null;
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 15, // Cache for 15 minutes
+    staleTime: 1000 * 60 * 15,
   });
 }
 
@@ -289,3 +318,4 @@ export async function getUserTravelPersona(userId: string): Promise<UserTravelPe
     return null;
   }
 }
+

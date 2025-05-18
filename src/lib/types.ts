@@ -5,7 +5,13 @@ import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOrigi
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
 
 // Add the 'id' field that we add manually
-export type Itinerary = SingleItineraryFromAI & { id: string };
+export type Itinerary = SingleItineraryFromAI & {
+  id: string;
+  aiGeneratedMemory?: { // Added for storing AI generated memory
+    memoryText: string;
+    generatedAt: string; // ISO date string
+  };
+};
 
 // Type for a single hotel option, derived from the itinerary type
 export type HotelOption = Itinerary["hotelOptions"][0];
@@ -32,8 +38,8 @@ export interface PriceTrackerEntry {
     shouldAlert: boolean;
     alertMessage: string;
   };
-  aiAdvice?: string; 
-  priceForecast?: PriceForecast; 
+  aiAdvice?: string;
+  priceForecast?: PriceForecast;
 }
 
 export interface SearchHistoryEntry {
@@ -59,8 +65,9 @@ export type AITripPlannerInput = AITripPlannerInputOriginal & {
   userPersona?: {
     name: string;
     description: string;
-  } | null; 
+  } | null;
   desiredMood?: string | null;
   weatherContext?: string | null;
   riskContext?: string | null;
 };
+
