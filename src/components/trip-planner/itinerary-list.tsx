@@ -21,11 +21,9 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
 
   React.useEffect(() => {
     if (itineraries && itineraries.length > 0 && !isLoading) {
-      // Timeout to allow CSS to apply initial (hidden) state before transitioning
       const timer = setTimeout(() => setCardsVisible(true), 50); 
       return () => clearTimeout(timer);
     } else {
-      // Reset visibility if itineraries are cleared or loading starts
       setCardsVisible(false);
     }
   }, [itineraries, isLoading]);
@@ -44,8 +42,9 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
         {[...Array(3)].map((_, i) => (
-          <Card key={i} className="shadow-lg">
-            <CardHeader>
+          <Card key={i} className="shadow-lg overflow-hidden">
+            <Skeleton className="h-48 w-full" /> 
+            <CardHeader className="pt-4">
               <Skeleton className="h-6 w-3/4" />
               <Skeleton className="h-4 w-1/2 mt-1" />
             </CardHeader>
@@ -55,8 +54,9 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
               <Skeleton className="h-8 w-full mt-4" />
               <Skeleton className="h-8 w-full mt-2" />
             </CardContent>
-            <CardFooter>
-              <Skeleton className="h-10 w-full" />
+            <CardFooter className="gap-3">
+              <Skeleton className="h-10 w-1/2" />
+              <Skeleton className="h-10 w-1/2" />
             </CardFooter>
           </Card>
         ))}
@@ -76,6 +76,8 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
 
   const itinerariesWithIds: Itinerary[] = itineraries.map((it, index) => ({
     ...it,
+    // Ensure destinationImageUri is present, default to placeholder if somehow missing
+    destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
     id: `${it.destination}-${it.travelDates}-${it.estimatedCost}-${index}` 
   }));
 

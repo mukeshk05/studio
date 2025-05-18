@@ -1,6 +1,8 @@
+
 import type { AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 
 // This effectively takes the type of a single itinerary object from the array
+// It will now include destinationImageUri due to schema changes in the flow
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
 
 // Add the 'id' field that we add manually in ItineraryList

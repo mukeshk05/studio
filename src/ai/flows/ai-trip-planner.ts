@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI trip planner agent.
@@ -35,11 +36,12 @@ const ItineraryItemSchema = z.object({
   estimatedCost: z.number().describe('The total estimated cost for this itinerary in USD, summing a representative flight and hotel option.'),
   description: z.string().describe('A general description of the trip including potential activities and the overall experience. Specific flight and hotel details will be in their respective sections.'),
   flightOptions: z.array(FlightOptionSchema).describe('A list of flight options for this itinerary. Aim for 2-3 distinct options.'),
-  hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary. Aim for 2-3 distinct options.')
+  hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary. Aim for 2-3 distinct options.'),
+  destinationImageUri: z.string().describe("A data URI of a generated image representing the destination. Expected format: 'data:image/png;base64,<encoded_data>'."),
 });
 
 const AITripPlannerOutputSchema = z.object({
-  itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input.'),
+  itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including a generated image for each destination.'),
 });
 export type AITripPlannerOutput = z.infer<typeof AITripPlannerOutputSchema>;
 
@@ -47,10 +49,11 @@ export async function aiTripPlanner(input: AITripPlannerInput): Promise<AITripPl
   return aiTripPlannerFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'aiTripPlannerPrompt',
+const aiTripPlannerTextPrompt = ai.definePrompt({
+  name: 'aiTripPlannerTextPrompt',
   input: {schema: AITripPlannerInputSchema},
-  output: {schema: AITripPlannerOutputSchema},
+  // Output schema here is for the text part only, before image generation
+  output: {schema: z.object({ itineraries: z.array(ItineraryItemSchema.omit({ destinationImageUri: true })) }) },
   prompt: `You are a travel agent specializing in budget travel.
 
 You will generate a range of possible itineraries based on the user's budget, destination and travel dates.
@@ -87,8 +90,54 @@ const aiTripPlannerFlow = ai.defineFlow(
     inputSchema: AITripPlannerInputSchema,
     outputSchema: AITripPlannerOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input: AITripPlannerInput) => {
+    const { output: textPromptOutput } = await aiTripPlannerTextPrompt(input);
+
+    if (!textPromptOutput || !textPromptOutput.itineraries) {
+      return { itineraries: [] };
+    }
+
+    const itinerariesWithImages = await Promise.all(
+      textPromptOutput.itineraries.map(async (itinerary) => {
+        let imageUri = `https://placehold.co/600x400.png`; // Default placeholder
+        
+        try {
+          const imagePromptText = `A vibrant, high-quality travel photograph representing ${itinerary.destination}. Focus on its most iconic visual elements or overall atmosphere. Style: photorealistic. Aspect ratio: 16:9.`;
+          
+          const { media } = await ai.generate({
+            model: 'googleai/gemini-2.0-flash-exp',
+            prompt: imagePromptText,
+            config: {
+              responseModalities: ['TEXT', 'IMAGE'],
+              safetySettings: [ 
+                { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+                { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+              ],
+            },
+            // @ts-ignore // Experimental API might have type issues with some TS configs.
+            experimentalDoNotSelectOutputTool: true, 
+          });
+
+          if (media?.url) {
+            imageUri = media.url;
+          } else {
+            console.warn(`Image generation for ${itinerary.destination} did not return a media URL. Using placeholder.`);
+            imageUri = `https://placehold.co/600x400.png`;
+          }
+        } catch (imageError) {
+          console.error(`Failed to generate image for ${itinerary.destination}:`, imageError);
+          imageUri = `https://placehold.co/600x400.png`;
+        }
+        
+        return {
+          ...itinerary,
+          destinationImageUri: imageUri,
+        };
+      })
+    );
+    return { itineraries: itinerariesWithImages };
   }
 );
+

@@ -1,6 +1,7 @@
 
 "use client";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,27 +33,32 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
   };
 
   const handleFindDeals = () => {
-    const baseUrl = "https://www.google.com/search"; // Using Google search as a placeholder
+    const baseUrl = "https://www.google.com/search"; 
     const queryParams = new URLSearchParams({
       q: `Book trip to ${itinerary.destination} for ${itinerary.travelDates} with budget ${itinerary.estimatedCost} USD`,
     });
-    // In a real app, this would be a deep link to a booking partner.
-    // For example:
-    // const baseUrl = "https://example.com/book";
-    // const queryParams = new URLSearchParams({
-    //   destination: itinerary.destination,
-    //   dates: itinerary.travelDates,
-    //   max_budget: itinerary.estimatedCost.toString(),
-    //   currency: "USD"
-    // });
-    
     const bookingUrl = `${baseUrl}?${queryParams.toString()}`;
     window.open(bookingUrl, "_blank", "noopener,noreferrer");
   };
 
+  const hintWords = itinerary.destination.toLowerCase().split(/[\s,]+/);
+  const aiHint = hintWords.slice(0, 2).join(" ");
+
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
-      <CardHeader>
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col overflow-hidden">
+      {itinerary.destinationImageUri && (
+        <div className="relative w-full h-48 group">
+          <Image
+            src={itinerary.destinationImageUri}
+            alt={`Image of ${itinerary.destination}`}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            data-ai-hint={itinerary.destinationImageUri.startsWith('https://placehold.co') ? aiHint : undefined}
+          />
+        </div>
+      )}
+      <CardHeader className="pt-4">
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="flex items-center text-xl">
