@@ -17,17 +17,21 @@ const groupSyncPrompt = ai.definePrompt({
   name: 'groupSyncPrompt',
   input: { schema: GroupSyncInputSchema },
   output: { schema: GroupSyncOutputSchema },
-  prompt: `You are an AI Travel Group Facilitator for BudgetRoam.
+  prompt: `You are an AI Travel Group Facilitator and Harmony Predictor for BudgetRoam.
 Your task is to analyze an existing trip plan and compare it against the preferences of several travel companions, as well as the original planner's persona (if provided).
-Your goal is to generate a "Compatibility Report". This report should:
-1.  Provide a brief OVERVIEW of the trip's general compatibility with the group.
-2.  For EACH companion (and the original planner, if their persona is mentioned), highlight:
-    *   Aspects of the trip that ALIGN WELL with their stated preferences.
-    *   Aspects that might CONFLICT or be less ideal.
-    *   CONCRETE, ACTIONABLE SUGGESTIONS for adjustments to the trip (activities, pace, type of accommodation, etc.) to better suit them, while trying to maintain the core essence of the trip if possible.
-3.  Offer overall recommendations for making the trip enjoyable for everyone.
+Your goal is to generate a "Group Harmony & Compatibility Report". This report should:
 
-Structure your report clearly. Use headings (e.g., ## Overview, ## Companion: [Name]) and bullet points for suggestions to make it easy to read.
+1.  Provide a brief OVERVIEW of the trip's general compatibility with the group.
+2.  **Predict Potential Dynamics:** Based on the combination of all preferences (planner and companions), identify:
+    *   Potential areas of friction or conflicting desires (e.g., "Alex's high-energy adventure preference might clash with Sarah's desire for a relaxed pace during morning activities.").
+    *   Opportunities for enhanced group cohesion (e.g., "The shared interest in local cuisine between Maria and David could be leveraged for a group cooking class.").
+3.  For EACH companion (and the original planner, if their persona is mentioned), highlight:
+    *   Aspects of the trip that ALIGN WELL with their stated preferences.
+    *   Aspects that might CONFLICT or be less ideal, considering the predicted group dynamics.
+    *   CONCRETE, ACTIONABLE SUGGESTIONS for adjustments to the trip (activities, pace, type of accommodation, optional activities, or even communication strategies for the group) to better suit them and promote overall harmony.
+4.  Offer overall recommendations for making the trip enjoyable for everyone, focusing on compromise and shared experiences.
+
+Structure your report clearly. Use headings (e.g., ## Overall Harmony Outlook, ## Companion: [Name] - Alignment & Suggestions) and bullet points for suggestions to make it easy to read.
 
 Existing Trip Details:
 - Destination: {{{tripDestination}}}
@@ -46,16 +50,16 @@ Companion Preferences:
     -   Preferences: {{{this.preferences}}}
 {{/each}}
 
-Generate the Compatibility Report. Be diplomatic but clear in your analysis and suggestions.
-Focus on constructive advice.
-Example of a suggestion for a companion:
+Generate the Group Harmony & Compatibility Report. Be diplomatic but clear in your analysis and suggestions.
+Focus on constructive, predictive advice to enhance the group experience.
+Example of a predictive suggestion for a companion:
 "## Companion: Alex
-Preferences: Enjoys relaxing holidays, not keen on museums.
+Preferences: Enjoys relaxing holidays, not keen on museums. The planner enjoys cultural sites.
 - Alignment: The beach destination aligns well with Alex's preference for relaxation.
-- Potential Conflict: The current itinerary includes two full days of museum visits.
+- Potential Conflict & Prediction: The current itinerary includes two full days of museum visits. This might lead to Alex feeling disengaged. It's predicted that if Alex is offered alternatives, overall group satisfaction will be higher.
 - Suggestions:
-    *   Consider replacing one museum day with a spa day or a leisurely boat trip.
-    *   Offer Alex the option to skip a museum visit and relax at the hotel or beach instead."
+    *   Consider replacing one museum day with a spa day or a leisurely boat trip that the whole group might enjoy, or that Alex could opt into.
+    *   Offer Alex the option to skip a museum visit and relax at the hotel or explore a nearby cafe instead. Suggest the planner communicates these options clearly beforehand."
 
 Keep the entire report as a single string for the 'compatibilityReport' field.
 `,
@@ -72,9 +76,10 @@ const groupSyncFlow = ai.defineFlow(
     if (!output || !output.compatibilityReport) {
       console.warn("Group Sync AI did not return a valid report. Returning a default message.");
       return {
-        compatibilityReport: "Could not generate a detailed compatibility report at this time. Please ensure all companion preferences are clearly stated and try again. General advice: Discuss key activities and priorities with your group to find common ground!"
+        compatibilityReport: "Could not generate a detailed group harmony report at this time. Please ensure all companion preferences are clearly stated and try again. General advice: Open communication is key! Discuss key activities, pace, and individual 'must-dos' with your group to find common ground and ensure everyone feels heard."
       };
     }
     return output;
   }
 );
+

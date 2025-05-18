@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, SparklesIcon, TrendingUpIcon, BrainCircuitIcon } from "lucide-react";
+import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, TrendingUpIcon } from "lucide-react";
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +19,8 @@ import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useRouter } from 'next/navigation';
 import { onForegroundMessageListener } from "@/lib/firebaseMessaging"; 
 import { NotificationSettings } from "@/components/dashboard/NotificationSettings"; 
-import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder"; // Import the new component
+import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder";
+import { AuthenticityVerifierPlaceholder } from "@/components/dashboard/AuthenticityVerifierPlaceholder"; // Import new placeholder
 
 
 export default function DashboardPage() {
@@ -32,15 +33,12 @@ export default function DashboardPage() {
   const { data: savedTrips, isLoading: isLoadingTrips } = useSavedTrips();
   const { data: trackedItems, isLoading: isLoadingTrackedItems } = useTrackedItems();
 
-  // Effect for FCM foreground messages
   useEffect(() => {
     if (typeof window !== 'undefined' && currentUser) {
-      // Check if notifications are enabled before setting up listener
       if (Notification.permission === 'granted' && localStorage.getItem('fcmToken')) {
         onForegroundMessageListener()
           .then((payload) => {
             console.log("Foreground message received in DashboardPage: ", payload);
-            // Toast is already handled in onForegroundMessageListener
           })
           .catch((err) =>
             console.error("Failed to listen for foreground messages: ", err)
@@ -82,7 +80,6 @@ export default function DashboardPage() {
 
   const handlePlanTripFromBundle = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
-    // Dispatch a custom event to notify other components or the planner page itself
     window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
     router.push('/planner');
   };
@@ -144,14 +141,17 @@ export default function DashboardPage() {
             <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
         </div>
         
-        {/* Integrate the Serendipity Engine Placeholder */}
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.25s'}}>
           <SerendipityEnginePlaceholder />
         </div>
 
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.3s'}}>
+          <AuthenticityVerifierPlaceholder />
+        </div>
+
       </div>
       
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.35s' }}>
         <NotificationSettings />
       </div>
 
@@ -161,7 +161,7 @@ export default function DashboardPage() {
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '0.35s'}}>
+          )} style={{animationDelay: '0.4s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -172,7 +172,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.4s'}}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.45s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>

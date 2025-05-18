@@ -19,11 +19,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateGroupSyncReport } from "@/ai/flows/group-sync-flow";
 import type { GroupSyncInput, CompanionPreference } from "@/ai/types/group-sync-types";
 import type { Itinerary, UserTravelPersona } from "@/lib/types";
-import { Loader2Icon, PlusCircleIcon, Trash2Icon, UsersIcon, XIcon } from "lucide-react";
+import { Loader2Icon, PlusCircleIcon, Trash2Icon, UsersIcon, XIcon, BrainCircuitIcon } from "lucide-react"; // Added BrainCircuitIcon
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useGetUserTravelPersona } from "@/lib/firestoreHooks"; // To get planner's persona
+import { useGetUserTravelPersona } from "@/lib/firestoreHooks"; 
 
 type GroupSyncDialogProps = {
   isOpen: boolean;
@@ -41,10 +41,9 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
   const [report, setReport] = useState<string | null>(null);
   const { toast } = useToast();
   const { currentUser } = useAuth();
-  const { data: plannerPersona } = useGetUserTravelPersona(); // Fetch current user's (planner's) persona
+  const { data: plannerPersona } = useGetUserTravelPersona(); 
 
   useEffect(() => {
-    // Reset state when dialog is opened with a new trip or closed
     if (isOpen) {
       setCompanions([{ id: crypto.randomUUID(), name: "", preferences: "" }]);
       setReport(null);
@@ -130,11 +129,11 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
            <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
                 <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center">
-                    <UsersIcon className="w-6 h-6 mr-2 text-primary" />
-                    AI Group Sync Report for {trip.destination}
+                    <BrainCircuitIcon className="w-6 h-6 mr-2 text-primary" /> 
+                    AI Group Harmony & Sync Report for {trip.destination}
                 </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
-                    Align your trip with everyone's preferences!
+                    Predict compatibility and get suggestions to align your trip with everyone's preferences!
                 </DialogDescription>
             </div>
             <DialogClose asChild>
@@ -173,12 +172,12 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor={`companionPrefs-${companion.id}`} className="text-xs text-card-foreground/90">Preferences / Interests</Label>
+                      <Label htmlFor={`companionPrefs-${companion.id}`} className="text-xs text-card-foreground/90">Preferences / Interests / Pet Peeves</Label>
                       <Textarea
                         id={`companionPrefs-${companion.id}`}
                         value={companion.preferences}
                         onChange={(e) => handleCompanionChange(companion.id, "preferences", e.target.value)}
-                        placeholder="E.g., Loves beaches, historical sites, prefers relaxed pace."
+                        placeholder="E.g., Loves beaches & history, dislikes early mornings, prefers relaxed pace."
                         className="bg-input/70 focus:bg-input/90 min-h-[60px]"
                         rows={2}
                       />
@@ -204,16 +203,16 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
             {isLoading && (
               <div className="text-center py-8 text-muted-foreground">
                 <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-primary" />
-                <p>Aura AI is analyzing group preferences...</p>
+                <p>Aura AI is analyzing group preferences and predicting harmony...</p>
               </div>
             )}
 
             {report && !isLoading && (
               <div>
-                <h3 className="text-lg font-medium text-card-foreground mb-2">AI Compatibility Report</h3>
+                <h3 className="text-lg font-medium text-card-foreground mb-2">AI Group Harmony & Compatibility Report</h3>
                 <div className={cn("p-4 rounded-md border-accent/30 bg-card/50 max-h-96", glassEffectClasses)}>
-                  <ScrollArea className="h-full max-h-80"> {/* Inner scroll for long reports */}
-                    <div className="prose prose-sm dark:prose-invert prose-headings:text-accent prose-strong:text-card-foreground whitespace-pre-line">
+                  <ScrollArea className="h-full max-h-80"> 
+                    <div className="prose prose-sm dark:prose-invert prose-headings:text-accent prose-strong:text-card-foreground whitespace-pre-line text-card-foreground/90">
                         {report}
                     </div>
                   </ScrollArea>
@@ -225,12 +224,11 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
 
         <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 sticky bottom-0 z-10", "glass-pane")}>
           <Button onClick={handleGenerateReport} disabled={isLoading || companions.length === 0} className="w-full sm:w-auto shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
-            {isLoading ? <Loader2Icon className="animate-spin" /> : <UsersIcon />}
-            Generate Sync Report
+            {isLoading ? <Loader2Icon className="animate-spin" /> : <BrainCircuitIcon />}
+            Generate Harmony Report
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
