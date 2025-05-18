@@ -21,12 +21,14 @@ const nextConfig: NextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
+      // Ensure config.resolve object exists
+      config.resolve = config.resolve || {};
+      // Ensure config.resolve.alias object exists
+      config.resolve.alias = config.resolve.alias || {};
+      
       // Prevent 'async_hooks' from being resolved client-side.
       // This addresses issues with libraries like OpenTelemetry's Node.js tracer.
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'async_hooks': false,
-      };
+      config.resolve.alias['async_hooks'] = false;
     }
     return config;
   },
