@@ -7,8 +7,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ListChecksIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+const EMPTY_SAVED_TRIPS: Itinerary[] = [];
+
 export function BookingList() {
-  const [savedTrips, setSavedTrips] = useLocalStorage<Itinerary[]>("savedTrips", []);
+  const [savedTrips, setSavedTrips] = useLocalStorage<Itinerary[]>("savedTrips", EMPTY_SAVED_TRIPS);
   const { toast } = useToast();
 
   const handleRemoveBooking = (bookingId: string) => {

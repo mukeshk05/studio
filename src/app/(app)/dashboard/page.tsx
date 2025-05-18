@@ -8,8 +8,10 @@ import useLocalStorage from "@/hooks/use-local-storage";
 import type { PriceTrackerEntry } from "@/lib/types";
 import { ListChecksIcon, BellRingIcon } from "lucide-react";
 
+const EMPTY_TRACKED_ITEMS: PriceTrackerEntry[] = [];
+
 export default function DashboardPage() {
-  const [trackedItems, setTrackedItems] = useLocalStorage<PriceTrackerEntry[]>("trackedItems", []);
+  const [trackedItems, setTrackedItems] = useLocalStorage<PriceTrackerEntry[]>("trackedItems", EMPTY_TRACKED_ITEMS);
 
   const handleTrackerAdded = (newEntry: PriceTrackerEntry) => {
     setTrackedItems([...trackedItems, newEntry]);
