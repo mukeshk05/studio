@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { AITripPlannerInput as AITripPlannerInputTypeFromFlow, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import React, { useEffect } from "react"; 
-import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon, AlertTriangleIcon } from "lucide-react";
+import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon, AlertTriangleIcon, CloudSunIcon } from "lucide-react";
 
 // Local form schema, can include UI-specific refinements or omit fields if needed
 const formSchema = z.object({
