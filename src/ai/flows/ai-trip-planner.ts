@@ -31,18 +31,25 @@ const HotelOptionSchema = z.object({
   hotelImageUri: z.string().describe("A data URI of a generated image representing the hotel. Expected format: 'data:image/png;base64,<encoded_data>'."),
 });
 
+const DailyPlanItemSchema = z.object({
+  day: z.string().describe('The day number or label (e.g., "Day 1", "Arrival Day").'),
+  activities: z.string().describe('A detailed description of activities planned for this day, including potential morning, afternoon, and evening segments if applicable. Be descriptive and engaging.'),
+  // Optional: activityImagePrompt: z.string().optional().describe('A short, descriptive prompt for generating an image representing an activity of this day (e.g., "Eiffel Tower view Paris", "Kyoto golden temple"). This will be used for image generation.')
+});
+
 const ItineraryItemSchema = z.object({
   destination: z.string().describe('The destination for this itinerary.'),
   travelDates: z.string().describe('The travel dates for this itinerary.'),
   estimatedCost: z.number().describe('The total estimated cost for this itinerary in USD, summing a representative flight and hotel option.'),
-  description: z.string().describe('A general description of the trip. Crucially, this MUST include a detailed day-by-day plan of potential activities. Format this clearly, e.g., "Day 1: Morning - Activity A, Afternoon - Activity B. Day 2: ...". Specific flight and hotel details will be in their respective sections.'),
+  tripSummary: z.string().describe('A concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details.'),
+  dailyPlan: z.array(DailyPlanItemSchema).describe('A detailed day-by-day plan of potential activities. Each item should clearly state the day and the activities for that day.'),
   flightOptions: z.array(FlightOptionSchema).describe('A list of flight options for this itinerary. Aim for 2-3 distinct options.'),
   hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary, each including a generated image. Aim for 2-3 distinct options.'),
   destinationImageUri: z.string().describe("A data URI of a generated image representing the destination. Expected format: 'data:image/png;base64,<encoded_data>'."),
 });
 
 const AITripPlannerOutputSchema = z.object({
-  itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including a generated image for each destination and each hotel option.'),
+  itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including a generated image for each destination and each hotel option, and a structured daily plan.'),
 });
 export type AITripPlannerOutput = z.infer<typeof AITripPlannerOutputSchema>;
 
@@ -53,6 +60,7 @@ export async function aiTripPlanner(input: AITripPlannerInput): Promise<AITripPl
 // Schema for the text-only part of the itinerary, before hotel images are generated
 const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true }).extend({
   hotelOptions: z.array(HotelOptionSchema.omit({ hotelImageUri: true })),
+  // dailyPlan structure remains the same as in ItineraryItemSchema
 });
 
 
@@ -64,9 +72,12 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
 
 You will generate a range of possible itineraries based on the user's budget, destination and travel dates.
 For each itinerary:
-1.  Provide a 'description' that includes a detailed day-by-day plan of potential activities. Format this clearly (e.g., "Day 1: Morning - Activity A, Afternoon - Activity B. Day 2: ..."). This description should also give an overall feel for the trip.
-2.  Detail 2-3 distinct flight options.
-3.  Detail 2-3 distinct hotel options. An image will be generated for each hotel based on its description, so make hotel descriptions evocative (e.g., "Charming boutique hotel with a rooftop terrace", "Modern business hotel near the convention center").
+1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details.
+2.  Provide a 'dailyPlan' as an array of objects. Each object in the array should represent one day and have two fields:
+    - 'day': A string for the day's label (e.g., "Day 1", "Arrival Day").
+    - 'activities': A string describing the activities for that day in detail. Be engaging and descriptive. You can suggest morning, afternoon, and evening activities. Ensure this is a comprehensive plan.
+3.  Detail 2-3 distinct flight options.
+4.  Detail 2-3 distinct hotel options. An image will be generated for each hotel based on its description, so make hotel descriptions evocative (e.g., "Charming boutique hotel with a rooftop terrace", "Modern business hotel near the convention center").
 
 Each flight option must include:
 - name: Flight carrier and number, or a general description (e.g., "Budget Airline Option 1", "Premium Economy Choice").
@@ -79,7 +90,6 @@ Each hotel option must include:
 - price: Estimated price for the hotel for the entire duration of the stay in USD.
 
 The 'estimatedCost' for the overall itinerary should be a sum of a representative flight option and a representative hotel option (e.g., the cheapest combination, or a balanced recommendation).
-The main 'description' of the itinerary should contain the day-by-day plan and overall trip atmosphere.
 
 Consider a variety of options for flights, accommodations, and activities that would fit within the budget.
 Provide multiple itineraries with varying levels of luxury and activity so the user has multiple choices.
@@ -88,7 +98,7 @@ Travel Dates: {{{travelDates}}}
 Destination: {{{destination}}}
 Budget: {{{budget}}}
 
-Return the itineraries in JSON format according to the defined output schema. Ensure all fields are populated.
+Return the itineraries in JSON format according to the defined output schema. Ensure all fields are populated, especially the 'dailyPlan' with rich, detailed content for each day.
 `,
 });
 
@@ -134,8 +144,14 @@ const aiTripPlannerFlow = ai.defineFlow(
     const { output: textPromptOutput } = await aiTripPlannerTextPrompt(input);
 
     if (!textPromptOutput || !textPromptOutput.itineraries) {
+      console.warn("AI Trip Planner text prompt did not return itineraries.");
       return { itineraries: [] };
     }
+    
+    if (textPromptOutput.itineraries.some(it => !it.dailyPlan || it.dailyPlan.length === 0)) {
+      console.warn("Some itineraries are missing daily plans. Check AI prompt and output structure.", textPromptOutput.itineraries);
+    }
+
 
     const itinerariesWithImages = await Promise.all(
       textPromptOutput.itineraries.map(async (itinerary) => {
@@ -143,22 +159,27 @@ const aiTripPlannerFlow = ai.defineFlow(
         const destinationImageUri = await generateImage(destinationImagePrompt, itinerary.destination);
 
         const hotelOptionsWithImages = await Promise.all(
-          itinerary.hotelOptions.map(async (hotel) => {
+          (itinerary.hotelOptions || []).map(async (hotel) => {
             const hotelImagePrompt = `Photorealistic image of a ${hotel.description}, hotel name: ${hotel.name}, in ${itinerary.destination}. Aspect ratio: 16:9.`;
-            // Use hotel name and type for fallback hint if description is too generic
             const fallbackHotelHint = `${hotel.name.substring(0,15)} ${hotel.description.split(' ')[0].substring(0,10)}`
             const hotelImageUri = await generateImage(hotelImagePrompt, fallbackHotelHint);
             return { ...hotel, hotelImageUri };
           })
         );
+        
+        // Ensure dailyPlan is at least an empty array if undefined from the AI
+        const dailyPlan = itinerary.dailyPlan || [];
+
 
         return {
           ...itinerary,
           destinationImageUri,
           hotelOptions: hotelOptionsWithImages,
+          dailyPlan: dailyPlan, // Ensure dailyPlan is part of the final object
         };
       })
     );
     return { itineraries: itinerariesWithImages };
   }
 );
+

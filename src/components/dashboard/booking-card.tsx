@@ -5,8 +5,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Itinerary, HotelOption } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon } from "lucide-react";
+import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -46,6 +46,18 @@ function SavedHotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
         <p className="font-semibold text-xs text-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
         <p className="text-xs text-muted-foreground line-clamp-2">{hotel.description}</p>
       </div>
+    </div>
+  );
+}
+
+function SavedDailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
+  return (
+    <div className="p-2 rounded-md border bg-muted/30 mb-1.5">
+      <h5 className="font-semibold text-xs text-foreground mb-0.5 flex items-center">
+        <RouteIcon className="w-3 h-3 mr-1.5 shrink-0" />
+        {planItem.day}
+      </h5>
+      <p className="text-xs text-muted-foreground whitespace-pre-line pl-5">{planItem.activities}</p>
     </div>
   );
 }
@@ -96,12 +108,29 @@ export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
         </div>
       </CardHeader>
       <CardContent className="flex-grow pt-2 pb-3">
-         <div className="text-xs text-muted-foreground mb-3">
-            <h4 className="text-xs font-semibold text-foreground mb-0.5 flex items-center"><InfoIcon className="w-3 h-3 mr-1.5 shrink-0" /> Trip Overview & Daily Plan</h4>
-            <p className="whitespace-pre-line pl-5 text-xs max-h-24 overflow-y-auto border-l border-border ml-0.5 py-0.5">{booking.description}</p>
-         </div>
+         {booking.tripSummary && (
+           <div className="text-xs text-muted-foreground mb-3">
+              <h4 className="text-xs font-semibold text-foreground mb-0.5 flex items-center"><InfoIcon className="w-3 h-3 mr-1.5 shrink-0" /> Trip Summary</h4>
+              <p className="pl-5 text-xs border-l border-border ml-0.5 py-0.5">{booking.tripSummary}</p>
+           </div>
+         )}
 
-        <Accordion type="multiple" className="w-full text-sm">
+        <Accordion type="multiple" className="w-full text-sm"  defaultValue={booking.dailyPlan && booking.dailyPlan.length > 0 ? ['daily-plan'] : []}>
+          {booking.dailyPlan && booking.dailyPlan.length > 0 && (
+            <AccordionItem value="daily-plan">
+              <AccordionTrigger className="text-xs font-medium hover:no-underline py-2">
+                <div className="flex items-center">
+                  <ListChecksIcon className="w-3 h-3 mr-2 text-primary" /> Daily Itinerary ({booking.dailyPlan.length} days)
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-1 pb-0 space-y-1 max-h-40 overflow-y-auto">
+                {booking.dailyPlan.map((planItem, index) => (
+                  <SavedDailyPlanDisplay key={`saved-plan-${booking.id}-${index}`} planItem={planItem} />
+                ))}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+          
           {booking.flightOptions && booking.flightOptions.length > 0 && (
             <AccordionItem value="flights">
               <AccordionTrigger className="text-xs font-medium hover:no-underline py-2">
@@ -146,3 +175,4 @@ export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
     </Card>
   );
 }
+

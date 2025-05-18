@@ -44,15 +44,15 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
         {[...Array(3)].map((_, i) => (
           <Card key={i} className="shadow-lg overflow-hidden">
             <Skeleton className="h-48 w-full" /> 
-            <CardHeader className="pt-4">
+            <CardHeader className="pt-4 pb-2">
               <Skeleton className="h-6 w-3/4" />
               <Skeleton className="h-4 w-1/2 mt-1" />
             </CardHeader>
-            <CardContent>
-              <Skeleton className="h-4 w-full mb-1" />
-              <Skeleton className="h-12 w-full mb-2" /> {/* Skeleton for description/daily plan */}
-              <Skeleton className="h-8 w-full mt-4" /> {/* Skeleton for flight accordion trigger */}
-              <Skeleton className="h-8 w-full mt-2" /> {/* Skeleton for hotel accordion trigger */}
+            <CardContent className="pt-2">
+              <Skeleton className="h-4 w-full mb-1" /> {/* Skeleton for trip summary */}
+              <Skeleton className="h-8 w-full mt-4 mb-2" /> {/* Skeleton for daily plan accordion trigger */}
+              <Skeleton className="h-8 w-full mb-2" /> {/* Skeleton for flight accordion trigger */}
+              <Skeleton className="h-8 w-full" /> {/* Skeleton for hotel accordion trigger */}
             </CardContent>
             <CardFooter className="gap-3 pt-4">
               <Skeleton className="h-10 w-1/2" />
@@ -77,10 +77,11 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
   const itinerariesWithIds: Itinerary[] = itineraries.map((it, index) => ({
     ...it,
     destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
-    hotelOptions: it.hotelOptions.map(hotel => ({
+    hotelOptions: (it.hotelOptions || []).map(hotel => ({
       ...hotel,
       hotelImageUri: hotel.hotelImageUri || `https://placehold.co/300x200.png?text=${encodeURIComponent(hotel.name.substring(0,10))}`
     })),
+    dailyPlan: it.dailyPlan || [], // Ensure dailyPlan is an array
     id: `${it.destination}-${it.travelDates}-${it.estimatedCost}-${index}` 
   }));
 
@@ -102,3 +103,4 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
     </div>
   );
 }
+

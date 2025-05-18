@@ -5,8 +5,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Itinerary, HotelOption } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon } from "lucide-react";
+import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Accordion,
@@ -47,6 +47,18 @@ function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
         <p className="font-semibold text-foreground">{hotel.name} - ${hotel.price.toLocaleString()}</p>
         <p className="text-xs text-muted-foreground line-clamp-3">{hotel.description}</p>
       </div>
+    </div>
+  );
+}
+
+function DailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
+  return (
+    <div className="p-2.5 rounded-lg border bg-background shadow-sm mb-2">
+      <h5 className="font-semibold text-sm text-primary mb-1 flex items-center">
+        <RouteIcon className="w-4 h-4 mr-2 shrink-0" />
+        {planItem.day}
+      </h5>
+      <p className="text-xs text-muted-foreground whitespace-pre-line pl-6">{planItem.activities}</p>
     </div>
   );
 }
@@ -95,7 +107,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
           </div>
         </div>
       )}
-      <CardHeader className="pt-4">
+      <CardHeader className="pt-4 pb-2">
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="flex items-center text-xl">
@@ -107,7 +119,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
               {itinerary.travelDates}
             </CardDescription>
           </div>
-         {!itinerary.destinationImageUri && ( // Show badge here if no image
+         {!itinerary.destinationImageUri && ( 
             <Badge variant="secondary" className="text-lg py-1 px-3">
               <DollarSignIcon className="w-4 h-4 mr-1" />
               {itinerary.estimatedCost.toLocaleString()}
@@ -115,16 +127,33 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <div className="text-sm text-muted-foreground mb-4">
-          <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-2 shrink-0" /> Trip Overview & Daily Plan</h4>
-          <p className="whitespace-pre-line pl-6 text-xs max-h-48 overflow-y-auto border-l-2 border-border ml-1 py-1">{itinerary.description}</p>
-        </div>
+      <CardContent className="flex-grow pt-2">
+        {itinerary.tripSummary && (
+          <div className="text-sm text-muted-foreground mb-4">
+            <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-2 shrink-0" /> Trip Summary</h4>
+            <p className="text-xs pl-6 border-l-2 border-border ml-1 py-1">{itinerary.tripSummary}</p>
+          </div>
+        )}
 
-        <Accordion type="multiple" className="w-full text-sm">
+        <Accordion type="multiple" className="w-full text-sm" defaultValue={['daily-plan']}>
+          {itinerary.dailyPlan && itinerary.dailyPlan.length > 0 && (
+            <AccordionItem value="daily-plan">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2">
+                <div className="flex items-center">
+                  <ListChecksIcon className="w-4 h-4 mr-2 text-primary" /> Daily Itinerary ({itinerary.dailyPlan.length} days)
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-2 pb-1 space-y-1.5 max-h-60 overflow-y-auto">
+                {itinerary.dailyPlan.map((planItem, index) => (
+                  <DailyPlanDisplay key={`plan-${index}`} planItem={planItem} />
+                ))}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
           {itinerary.flightOptions && itinerary.flightOptions.length > 0 && (
             <AccordionItem value="flights">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2">
                 <div className="flex items-center">
                   <PlaneIcon className="w-4 h-4 mr-2 text-primary" /> Flight Options ({itinerary.flightOptions.length})
                 </div>
@@ -142,7 +171,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
 
           {itinerary.hotelOptions && itinerary.hotelOptions.length > 0 && (
             <AccordionItem value="hotels">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline">
+              <AccordionTrigger className="text-sm font-medium hover:no-underline py-2">
                 <div className="flex items-center">
                   <HotelIcon className="w-4 h-4 mr-2 text-primary" /> Hotel Options ({itinerary.hotelOptions.length})
                 </div>
@@ -179,3 +208,4 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
     </Card>
   );
 }
+
