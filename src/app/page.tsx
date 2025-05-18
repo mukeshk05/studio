@@ -7,14 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppLogo } from '@/components/layout/app-logo';
 import { 
   ArrowRightIcon, 
-  SparklesIcon, // Main AI icon
-  NavigationIcon, // For planning
-  TrendingUpIcon, // For price/finance
-  BrainCircuitIcon, // For personalization/DNA
-  UsersIcon, // For group features
-  LightbulbIcon, // For tips/ideas
-  BookOpenTextIcon, // For memories/diary
-  CheckCircleIcon
+  SparklesIcon, 
+  NavigationIcon, 
+  TrendingUpIcon, 
+  BrainCircuitIcon, 
+  UsersIcon, 
+  LightbulbIcon, 
+  BookOpenTextIcon, 
+  CheckCircleIcon,
+  Wand2Icon // Added Wand2Icon for Aura AI
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -49,35 +50,35 @@ export default function LandingPage() {
       title: "AI-Powered Trip Planner",
       description: "Personalized itineraries in seconds! Tell us your destination, dates, budget, mood, and even your Travel DNA. Our AI crafts detailed daily plans and hotel options, considering weather and risks.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "intelligent itinerary generation" // Updated hint
+      aiHint: "intelligent itinerary generation"
     },
     {
       icon: <TrendingUpIcon className="w-10 h-10 text-accent mb-4" />,
       title: "Smart Price Suite",
       description: "Never miss a deal. Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecasts to make informed decisions.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai price analysis chart" // Updated hint
+      aiHint: "ai price analysis chart"
     },
     {
       icon: <BrainCircuitIcon className="w-10 h-10 text-primary mb-4" />,
       title: "Discover Your Travel DNA",
       description: "Take our Adventure Quiz to uncover your unique travel persona. This helps Aura AI personalize all your future travel suggestions and trip plans!",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai travel preferences quiz" // Updated hint
+      aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <SparklesIcon className="w-10 h-10 text-accent mb-4" />,
-      title: "Aura AI: Natural Language Trip Search",
+      icon: <Wand2Icon className="w-10 h-10 text-accent mb-4" />, // Changed to Wand2Icon for Aura
+      title: "Aura AI: Smart Assistant",
       description: "Ask Aura for trip ideas in natural language! From 'weekend beach getaways' to 'adventure in the Andes,' get personalized trip bundles based on your profile and search history.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "conversational ai travel chat" // Updated hint
+      aiHint: "conversational ai travel chat"
     },
     {
       icon: <UsersIcon className="w-10 h-10 text-primary mb-4" />,
       title: "Effortless Group Planning & Memories",
       description: "Sync trip plans with your group's preferences using AI insights. Plus, generate nostalgic AI-crafted memories from your saved adventures.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai group travel collaboration" // Updated hint
+      aiHint: "ai group travel collaboration"
     }
   ];
 
@@ -114,13 +115,12 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
       <div className="absolute inset-0 z-[-1]">
         <Image 
-          src="https://placehold.co/1920x1080.png"
-          alt="Abstract AI and travel concept background"
+          src="https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg"
+          alt="Tropical beach with palm trees and clear blue water"
           layout="fill"
           objectFit="cover"
           quality={90}
           priority
-          data-ai-hint="futuristic ai travel" // Updated hint
         />
         <div className="absolute inset-0 bg-black/40 dark:bg-background/60"></div>
       </div>
@@ -162,7 +162,7 @@ export default function LandingPage() {
                 heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               )}
             >
-              BudgetRoam uses cutting-edge AI to craft personalized trips, track prices, and offer smart travel insights, all tailored to your unique style and budget.
+              BudgetRoam uses cutting-edge AI to craft personalized trips, track prices, and offer smart travel insights, all tailored to your unique style and budget. Discover your Travel DNA and let Aura AI guide you!
             </p>
             <Button 
               asChild 
@@ -188,7 +188,7 @@ export default function LandingPage() {
                     alt="BudgetRoam AI Travel App Interface" 
                     layout="fill"
                     objectFit="cover"
-                    data-ai-hint="ai travel app interface" // Updated hint
+                    data-ai-hint="ai travel app interface"
                     priority
                     className="rounded-lg"
                 />
@@ -280,7 +280,7 @@ export default function LandingPage() {
                     layout="fill"
                     objectFit="cover"
                     className="rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-500 ease-out"
-                    data-ai-hint="ai empowered traveler world" // Updated hint
+                    data-ai-hint="ai empowered traveler world"
                 />
               </div>
             </div>
@@ -321,5 +321,3 @@ export default function LandingPage() {
   );
 }
  
-
-    
