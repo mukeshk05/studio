@@ -1,9 +1,9 @@
 
 'use client';
-import { useQuery, useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firestore } from './firebase';
-import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit } from 'firebase/firestore';
-import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry } from './types';
+import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc } from 'firebase/firestore';
+import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 
 // --- Saved Trips Hooks ---
@@ -13,7 +13,6 @@ const SAVED_TRIPS_QUERY_KEY = 'savedTrips';
 // Hook to get saved trips
 export function useSavedTrips() {
   const { currentUser } = useAuth();
-  const queryClient = useQueryClient();
 
   return useQuery<Itinerary[], Error>({
     queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid],
@@ -23,8 +22,8 @@ export function useSavedTrips() {
       const querySnapshot = await getDocs(tripsCollectionRef);
       return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<Itinerary, 'id'>, id: doc.id }));
     },
-    enabled: !!currentUser, 
-    staleTime: 1000 * 60 * 5, 
+    enabled: !!currentUser,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -82,7 +81,7 @@ export function useTrackedItems() {
       return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 5, 
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -98,7 +97,7 @@ export function useAddTrackedItem() {
       const docRef = await addDoc(itemsCollectionRef, {
         ...newItemData,
         lastChecked: new Date().toISOString(),
-        createdAt: serverTimestamp(), 
+        createdAt: serverTimestamp(),
       });
       return docRef.id;
     },
@@ -119,7 +118,7 @@ export function useUpdateTrackedItem() {
       const itemDocRef = doc(firestore, 'users', currentUser.uid, 'trackedItems', itemId);
       await updateDoc(itemDocRef, {
         ...dataToUpdate,
-        lastChecked: new Date().toISOString(), 
+        lastChecked: new Date().toISOString(),
       });
     },
     onSuccess: (_data, variables) => {
@@ -185,10 +184,10 @@ export function useSearchHistory(count: number = 10) {
       const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
       const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<SearchHistoryEntry, 'id'>, id: doc.id }));
+      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, searchedAt: doc.data().searchedAt?.toDate() || new Date() } as SearchHistoryEntry));
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 15, 
+    staleTime: 1000 * 60 * 15,
   });
 }
 
@@ -202,9 +201,91 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
     const historyCollectionRef = collection(firestore, 'users', userId, 'searchHistory');
     const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<SearchHistoryEntry, 'id' | 'searchedAt'>, id: doc.id, searchedAt: doc.data().searchedAt?.toDate() || new Date() }));
+    return querySnapshot.docs.map(docSnapshot => {
+        const data = docSnapshot.data();
+        return {
+            id: docSnapshot.id,
+            destination: data.destination,
+            travelDates: data.travelDates,
+            budget: data.budget,
+            searchedAt: data.searchedAt?.toDate() || new Date(), // Convert Timestamp to Date
+        } as SearchHistoryEntry;
+    });
   } catch (error) {
     console.error(`Error fetching search history for user ${userId}:`, error);
     return [];
+  }
+}
+
+// --- User Travel Persona Hooks ---
+const USER_TRAVEL_PERSONA_QUERY_KEY = 'userTravelPersona';
+
+// Hook to save/update user travel persona
+export function useSaveUserTravelPersona() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, Omit<UserTravelPersona, 'lastUpdated'>>({
+    mutationFn: async (personaData) => {
+      if (!currentUser) throw new Error("User not authenticated");
+      // Store persona in a specific doc, e.g., users/{userId}/profile/travelPersona
+      const personaDocRef = doc(firestore, 'users', currentUser.uid, 'profile', 'travelPersona');
+      await setDoc(personaDocRef, {
+        ...personaData,
+        lastUpdated: serverTimestamp(),
+      }, { merge: true }); // merge: true will create or update
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [USER_TRAVEL_PERSONA_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+// Hook to get user travel persona (primarily for client-side display if needed)
+export function useGetUserTravelPersona() {
+  const { currentUser } = useAuth();
+
+  return useQuery<UserTravelPersona | null, Error>({
+    queryKey: [USER_TRAVEL_PERSONA_QUERY_KEY, currentUser?.uid],
+    queryFn: async () => {
+      if (!currentUser) return null;
+      const personaDocRef = doc(firestore, 'users', currentUser.uid, 'profile', 'travelPersona');
+      const docSnap = await getDoc(personaDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+            name: data.name,
+            description: data.description,
+            lastUpdated: data.lastUpdated?.toDate() || new Date(),
+        } as UserTravelPersona;
+      }
+      return null;
+    },
+    enabled: !!currentUser,
+    staleTime: 1000 * 60 * 15, // Cache for 15 minutes
+  });
+}
+
+// Function to be called by Genkit tool to fetch user travel persona
+export async function getUserTravelPersona(userId: string): Promise<UserTravelPersona | null> {
+  if (!userId) {
+    console.error("getUserTravelPersona: userId is required.");
+    return null;
+  }
+  try {
+    const personaDocRef = doc(firestore, 'users', userId, 'profile', 'travelPersona');
+    const docSnap = await getDoc(personaDocRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return {
+          name: data.name,
+          description: data.description,
+          lastUpdated: data.lastUpdated?.toDate() || new Date(),
+      } as UserTravelPersona;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching travel persona for user ${userId}:`, error);
+    return null;
   }
 }

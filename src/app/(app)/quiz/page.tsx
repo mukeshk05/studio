@@ -13,12 +13,17 @@ import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge"; // Import Badge
+import { useSaveUserTravelPersona } from "@/lib/firestoreHooks"; // Import the new hook
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 export default function AdventureQuizPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AdventureSuggestion[] | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const { currentUser } = useAuth(); // Get current user
+  const saveUserTravelPersona = useSaveUserTravelPersona(); // Initialize the mutation
 
   const handleSubmitQuiz = async (answers: AdventureQuizInput) => {
     setIsLoading(true);
@@ -27,6 +32,20 @@ export default function AdventureQuizPage() {
       const result: AdventureMatcherOutput = await matchAdventure(answers);
       if (result.suggestions && result.suggestions.length > 0) {
         setAiSuggestions(result.suggestions);
+
+        // Save the primary persona if user is logged in
+        if (currentUser && result.suggestions[0]) {
+          const primaryPersona = result.suggestions[0];
+          await saveUserTravelPersona.mutateAsync({
+            name: primaryPersona.name,
+            description: primaryPersona.description,
+          });
+          toast({
+            title: "Travel Persona Updated!",
+            description: `Your Travel DNA is now '${primaryPersona.name}'.`,
+            variant: "default",
+          });
+        }
       } else {
         toast({
           title: "No Specific Matches",
@@ -62,7 +81,7 @@ export default function AdventureQuizPage() {
             Discover Your Travel Persona
           </CardTitle>
           <CardDescription className="text-muted-foreground mt-2">
-            Answer a few questions, and our AI will suggest your perfect adventure style!
+            Answer a few questions, and our AI will suggest your perfect adventure style! This helps us personalize future suggestions.
           </CardDescription>
         </CardHeader>
         <CardContent>

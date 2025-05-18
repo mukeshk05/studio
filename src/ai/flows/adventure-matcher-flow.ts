@@ -1,9 +1,9 @@
 
 'use server';
 /**
- * @fileOverview An AI flow that matches users to travel adventure types based on quiz answers.
+ * @fileOverview An AI flow that matches users to travel adventure types/personas based on quiz answers.
  *
- * - matchAdventure - A function that takes quiz answers and returns adventure suggestions.
+ * - matchAdventure - A function that takes quiz answers and returns adventure suggestions/personas.
  */
 
 import { ai } from '@/ai/genkit';
@@ -23,7 +23,8 @@ const adventureMatcherPrompt = ai.definePrompt({
   input: { schema: AdventureQuizInputSchema },
   output: { schema: AdventureMatcherOutputSchema },
   prompt: `You are an expert AI Travel Persona Matchmaker for BudgetRoam.
-Your goal is to analyze a user's answers to a travel preferences quiz and suggest 1-3 distinct travel personas or adventure types that would best suit them.
+Your goal is to analyze a user's answers to a travel preferences quiz and suggest 1-3 distinct travel personas or "Travel DNA" profiles that would best suit them.
+These personas should be inspiring and help the user understand their travel style better.
 
 Here are the quiz questions and their possible answers:
 1.  **Ideal Vacation Pace (pace):**
@@ -57,12 +58,12 @@ User's Quiz Answers:
 - Style: {{{style}}}
 - Company: {{{company}}}
 
-Based on this unique combination of preferences, generate 1 to 3 distinct adventure suggestions.
+Based on this unique combination of preferences, generate 1 to 3 distinct travel persona suggestions.
 For each suggestion, you MUST provide:
--   'name': A catchy and descriptive name for the travel persona or adventure type (e.g., "The Serene Solo Explorer," "Luxury Urban Connoisseur," "Budget Family Beachcomber").
--   'description': A brief (1-2 sentences), engaging description of what this travel persona or adventure type entails.
+-   'name': A catchy and descriptive name for the travel persona (e.g., "The Serene Solo Explorer," "Luxury Urban Connoisseur," "Budget Family Beachcomber"). This name represents their core travel DNA.
+-   'description': A brief (1-2 sentences), engaging description of what this travel persona entails.
 -   'exampleDestinations': An array of 1 to 3 example destinations that would be ideal for this persona (e.g., for "Serene Solo Explorer" focusing on mountains and wellness: ["Banff, Canada", "Swiss Alps", "Patagonia, Argentina"]).
--   'matchReasoning': A short explanation (1-2 sentences) clearly stating why this suggestion is a good fit for the user, directly referencing their specific quiz answers (e.g., "Given your preference for a 'relaxing' pace and 'wellness' interest, this persona focusing on rejuvenation is a perfect match.").
+-   'matchReasoning': A short explanation (1-2 sentences) clearly stating why this persona is a good fit for the user, directly referencing their specific quiz answers (e.g., "Given your preference for a 'relaxing' pace and 'wellness' interest, this persona focusing on rejuvenation is a perfect match.").
 -   'suggestedTripIdea' (Optional): A concrete trip idea that can be directly used by our AI Trip Planner. This should include:
     -   'destination': Pick ONE specific destination from your 'exampleDestinations' or a similar one.
     -   'travelDates': Suggest a plausible, general timeframe (e.g., "Next spring for 7 days", "A long weekend in October", "Two weeks in July").
@@ -82,7 +83,7 @@ Example of one suggestion (ensure 'suggestions' is an array):
 }
 
 Ensure the output strictly follows the defined JSON schema for 'AdventureMatcherOutputSchema'.
-Be creative and provide genuinely helpful and inspiring suggestions.
+Focus on providing insightful persona descriptions and strong reasoning. The first suggestion should be considered the primary match.
 If suggesting multiple options, try to offer some variety if the user's answers allow for it.
 `,
 });

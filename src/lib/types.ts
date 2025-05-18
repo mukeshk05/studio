@@ -36,8 +36,15 @@ export interface SearchHistoryEntry {
   destination: string;
   travelDates: string;
   budget: number;
-  searchedAt: any; // Firestore ServerTimestamp
+  searchedAt: any; // Firestore ServerTimestamp (can be Date on client)
 }
+
+export interface UserTravelPersona {
+  name: string;
+  description: string;
+  lastUpdated: any; // Firestore ServerTimestamp (can be Date on client)
+}
+
 
 // Re-export AITripPlannerInput and AITripPlannerOutput from here if needed by UI components
 // This centralizes type exports if preferred over direct imports from @/ai/types
