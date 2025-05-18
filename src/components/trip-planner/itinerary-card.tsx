@@ -1,10 +1,11 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ChevronDownIcon } from "lucide-react";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Accordion,
@@ -28,6 +29,25 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
       title: "Trip Saved!",
       description: `${itinerary.destination} has been added to your dashboard.`,
     });
+  };
+
+  const handleFindDeals = () => {
+    const baseUrl = "https://www.google.com/search"; // Using Google search as a placeholder
+    const queryParams = new URLSearchParams({
+      q: `Book trip to ${itinerary.destination} for ${itinerary.travelDates} with budget ${itinerary.estimatedCost} USD`,
+    });
+    // In a real app, this would be a deep link to a booking partner.
+    // For example:
+    // const baseUrl = "https://example.com/book";
+    // const queryParams = new URLSearchParams({
+    //   destination: itinerary.destination,
+    //   dates: itinerary.travelDates,
+    //   max_budget: itinerary.estimatedCost.toString(),
+    //   currency: "USD"
+    // });
+    
+    const bookingUrl = `${baseUrl}?${queryParams.toString()}`;
+    window.open(bookingUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -95,10 +115,23 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
         </Accordion>
 
       </CardContent>
-      <CardFooter>
-        <Button onClick={handleSave} disabled={isSaved} className="w-full" variant={isSaved ? "outline" : "default"}>
+      <CardFooter className="flex flex-col sm:flex-row gap-3 pt-4">
+        <Button 
+          onClick={handleSave} 
+          disabled={isSaved} 
+          className="w-full sm:flex-1" 
+          variant={isSaved ? "secondary" : "outline"}
+        >
           <BookmarkIcon className="mr-2 h-4 w-4" />
-          {isSaved ? "Saved to Dashboard" : "Save This Trip"}
+          {isSaved ? "Saved" : "Save Trip"}
+        </Button>
+        <Button 
+          onClick={handleFindDeals} 
+          className="w-full sm:flex-1" 
+          variant="default"
+        >
+          <ExternalLinkIcon className="mr-2 h-4 w-4" />
+          Find Deals
         </Button>
       </CardFooter>
     </Card>

@@ -1,10 +1,12 @@
+
 "use client";
 
+import * as React from "react";
 import type { AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 import { ItineraryCard } from "./itinerary-card";
 import { Itinerary } from "@/lib/types";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { Loader2Icon, SearchXIcon } from "lucide-react";
+import { SearchXIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 
@@ -15,6 +17,18 @@ type ItineraryListProps = {
 
 export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
   const [savedTrips, setSavedTrips] = useLocalStorage<Itinerary[]>("savedTrips", []);
+  const [cardsVisible, setCardsVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    if (itineraries && itineraries.length > 0 && !isLoading) {
+      // Timeout to allow CSS to apply initial (hidden) state before transitioning
+      const timer = setTimeout(() => setCardsVisible(true), 50); 
+      return () => clearTimeout(timer);
+    } else {
+      // Reset visibility if itineraries are cleared or loading starts
+      setCardsVisible(false);
+    }
+  }, [itineraries, isLoading]);
 
   const handleSaveTrip = (itineraryToSave: Itinerary) => {
     if (!savedTrips.find(trip => trip.id === itineraryToSave.id)) {
@@ -38,6 +52,8 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
             <CardContent>
               <Skeleton className="h-4 w-full mb-2" />
               <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-8 w-full mt-4" />
+              <Skeleton className="h-8 w-full mt-2" />
             </CardContent>
             <CardFooter>
               <Skeleton className="h-10 w-full" />
@@ -58,23 +74,25 @@ export function ItineraryList({ itineraries, isLoading }: ItineraryListProps) {
     );
   }
 
-  // Ensure each itinerary has a unique ID for saving purposes
   const itinerariesWithIds: Itinerary[] = itineraries.map((it, index) => ({
     ...it,
-    // A simple way to generate an ID. In a real app, AI might provide IDs or a more robust method would be used.
     id: `${it.destination}-${it.travelDates}-${it.estimatedCost}-${index}` 
   }));
 
-
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
-      {itinerariesWithIds.map((itinerary) => (
-        <ItineraryCard 
-          key={itinerary.id} 
-          itinerary={itinerary} 
-          onSaveTrip={handleSaveTrip}
-          isSaved={isTripSaved(itinerary.id)}
-        />
+      {itinerariesWithIds.map((itinerary, index) => (
+        <div
+          key={itinerary.id}
+          className={`transition-all duration-500 ease-out transform ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+          style={{ transitionDelay: `${index * 100}ms` }}
+        >
+          <ItineraryCard 
+            itinerary={itinerary} 
+            onSaveTrip={handleSaveTrip}
+            isSaved={isTripSaved(itinerary.id)}
+          />
+        </div>
       ))}
     </div>
   );
