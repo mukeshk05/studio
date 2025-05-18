@@ -1,0 +1,183 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { trackPrice, type PriceTrackerOutput } from "@/ai/flows/price-tracker";
+import type { PriceTrackerEntry } from "@/lib/types";
+import React from "react";
+import { Loader2Icon, BellPlusIcon, PlaneIcon, HotelIcon, DollarSignIcon, TagIcon } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+const formSchema = z.object({
+  itemType: z.enum(["flight", "hotel"], {
+    required_error: "You need to select an item type.",
+  }),
+  itemName: z.string().min(2, "Item name must be at least 2 characters."),
+  targetPrice: z.coerce.number().positive("Target price must be a positive number."),
+  currentPrice: z.coerce.number().positive("Current price must be a positive number."),
+});
+
+type PriceTrackerFormProps = {
+  onTrackerAdded: (entry: PriceTrackerEntry) => void;
+};
+
+export function PriceTrackerForm({ onTrackerAdded }: PriceTrackerFormProps) {
+  const { toast } = useToast();
+  const [aiAlert, setAiAlert] = React.useState<PriceTrackerOutput | null>(null);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      itemName: "",
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setAiAlert(null);
+    try {
+      const result = await trackPrice(values);
+      setAiAlert(result);
+
+      const newEntry: PriceTrackerEntry = {
+        id: crypto.randomUUID(),
+        ...values,
+        lastChecked: new Date().toISOString(),
+        alertStatus: result,
+      };
+      onTrackerAdded(newEntry);
+      
+      toast({
+        title: "Price Tracker Added",
+        description: `${values.itemName} is now being tracked.`,
+      });
+      if(result.shouldAlert){
+         toast({
+            title: "Price Alert!",
+            description: result.alertMessage,
+            variant: "default",
+            duration: 10000,
+         });
+      }
+      form.reset();
+
+    } catch (error) {
+      console.error("Error tracking price:", error);
+      toast({
+        title: "Error",
+        description: "Could not add item to tracker. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  return (
+    <Card className="w-full mb-6 shadow-md">
+      <CardHeader>
+        <CardTitle className="flex items-center text-xl">
+          <BellPlusIcon className="w-6 h-6 mr-2 text-accent" />
+          Add Item to Price Tracker
+        </CardTitle>
+        <CardDescription>Get alerts when prices drop for your desired flights or hotels.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="itemType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Item Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select item type (flight or hotel)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="flight"><PlaneIcon className="inline-block mr-2 h-4 w-4" />Flight</SelectItem>
+                      <SelectItem value="hotel"><HotelIcon className="inline-block mr-2 h-4 w-4" />Hotel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="itemName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center"><TagIcon className="w-4 h-4 mr-2" />Item Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Flight AA123 or Grand Hyatt Hotel" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="targetPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2" />Target Price (USD)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 300" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="currentPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2" />Current Price (USD)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 350" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? (
+                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <BellPlusIcon className="mr-2 h-4 w-4" />
+              )}
+              Add to Tracker
+            </Button>
+          </form>
+        </Form>
+        {aiAlert && (
+          <Alert className={`mt-4 ${aiAlert.shouldAlert ? 'border-green-500 text-green-700' : 'border-blue-500 text-blue-700'}`}>
+            <BellPlusIcon className={`h-4 w-4 ${aiAlert.shouldAlert ? 'text-green-700' : 'text-blue-700'}`} />
+            <AlertTitle>{aiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
+            <AlertDescription>
+              {aiAlert.alertMessage}
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
