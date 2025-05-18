@@ -23,7 +23,7 @@ import type { UserTravelPersona } from '@/lib/types';
 const getUserSearchHistoryTool = ai.defineTool(
   {
     name: 'getUserSearchHistory',
-    description: "Fetches the user's recent travel search history (up to 5 entries) from the database to understand their past preferences.",
+    description: "Fetches the user's recent travel search history (up to 5 entries) from the database to understand their past preferences. Useful for seeing what destinations, date ideas, or budgets they've considered.",
     inputSchema: z.object({ userId: z.string().describe("The unique identifier of the user.") }),
     outputSchema: z.array(z.object({
         destination: z.string(),
@@ -51,7 +51,7 @@ const getUserSearchHistoryTool = ai.defineTool(
 const getUserTravelPersonaTool = ai.defineTool(
   {
     name: 'getUserTravelPersona',
-    description: "Fetches the user's established Travel Persona (Travel DNA) from their profile, if available. This persona includes their preferred travel style name and description.",
+    description: "Fetches the user's established Travel Persona (Travel DNA) from their profile, if available. This persona includes their preferred travel style name and description, which is a strong indicator of their general preferences.",
     inputSchema: z.object({ userId: z.string().describe("The unique identifier of the user.") }),
     outputSchema: z.object({
         name: z.string(),
@@ -78,40 +78,43 @@ const smartBundlePrompt = ai.definePrompt({
   tools: [getUserSearchHistoryTool, getUserTravelPersonaTool],
   prompt: `You are an AI Smart Travel Concierge for BudgetRoam. Your goal is to suggest 1 or 2 highly personalized trip bundles to the user (ID: {{{userId}}}).
 
-To create these suggestions, you MUST perform the following steps in order:
-1.  Call the 'getUserTravelPersona' tool. If a Travel Persona (Travel DNA) is found, this is a STRONG indicator of their preferences. Use it as primary inspiration.
-2.  Call the 'getUserSearchHistory' tool to get the user's recent travel searches. This provides context on their past interests, preferred destinations, budget ranges, and typical travel times.
-3.  Consider the user's optional current input for 'upcomingAvailability': {{{upcomingAvailability}}}. If provided, try to align suggestions with this.
-4.  Consider the user's optional current input for 'travelInterests': {{{travelInterests}}}. If provided, tailor suggestions to these interests.
-5.  Synthesize ALL available information (Persona > Search History > Current Inputs) to generate 1 or 2 distinct trip bundle suggestions.
+To create these suggestions, you MUST perform the following steps in order, using the available tools and user inputs:
+1.  **User's Travel Interests (Primary Input):** The user might provide specific desires in 'travelInterests': \`{{{travelInterests}}}\`. Carefully parse this for destination types (beach, city, mountains), activities (hiking, museums, relaxing), desired atmosphere, and any implicit or explicit destination ideas, dates, or budget constraints. This is a key driver for the suggestions.
+2.  **User's Travel Persona (Context):** Call the 'getUserTravelPersona' tool. If a Travel Persona (Travel DNA) is found, this is a STRONG indicator of their general preferences (e.g., 'Luxury Explorer', 'Budget Backpacker'). Use this to refine the style and type of suggestions if 'travelInterests' is vague or to ensure alignment.
+3.  **User's Search History (Context):** Call the 'getUserSearchHistory' tool to get the user's recent travel searches. This provides context on their past specific interests, destinations they've considered, budget ranges, and typical travel times. Use this to see if current interests align with past searches or to find inspiration if 'travelInterests' is very open.
+4.  **User's Availability (Context):** Consider the user's optional current input for 'upcomingAvailability': \`{{{upcomingAvailability}}}\`. If provided, try to align suggested travel dates or trip duration with this.
 
-For each suggestion, provide:
--   'bundleName': A catchy and descriptive name for the bundle (e.g., "The Cultural Connoisseur's Parisian Jaunt", "Serene Mountain Retreat for July").
--   'reasoning': A short explanation (1-2 sentences) of why this bundle is a good fit for the user, EXPLICITLY referencing which information source(s) inspired it (e.g., "Based on your 'Cultural Explorer' persona and recent searches for European cities...", or "Aligning with your interest in 'hiking' and upcoming 'long weekend'...").
+**Synthesize ALL available information (Travel Interests (most important) > Persona > Search History > Availability) to generate 1 or 2 distinct trip bundle suggestions.**
+If 'travelInterests' is very specific (e.g., "A 5-day trip to see cherry blossoms in Kyoto next April, budget $2000"), prioritize fulfilling that request.
+If 'travelInterests' is more general (e.g., "adventure travel and good food"), use the Persona and Search History to narrow down options.
+
+For each suggestion, you MUST provide:
+-   'bundleName': A catchy and descriptive name for the bundle (e.g., "Kyoto Cherry Blossom Dream", "Andean Adventure & Culinary Delights").
+-   'reasoning': A short explanation (1-2 sentences) of why this bundle is a good fit, EXPLICITLY referencing which information source(s) inspired it (e.g., "Based on your interest in 'cherry blossoms and Kyoto'...", "Aligning your 'Adventure Seeker' persona with your interest in 'hiking and mountains', and considering your past searches for South America...").
 -   'tripIdea': A complete object with 'destination', 'travelDates', and 'budget' (in USD). This 'tripIdea' should be directly usable as input for a detailed trip planner.
-    -   'destination': Be specific (e.g., "Paris, France", "Kyoto, Japan").
-    -   'travelDates': Suggest plausible dates based on availability or general appeal (e.g., "October 12-19, 2024", "Mid-July 2025 for 1 week"). If availability is given, use it.
-    -   'budget': Suggest a realistic budget in USD. Infer from persona style, search history, or typical costs.
+    -   'destination': Be specific (e.g., "Paris, France", "Kyoto, Japan", "Banff National Park, Canada").
+    -   'travelDates': Suggest plausible dates (e.g., "April 5-10, 2025", "Mid-July 2025 for 1 week", "Next available long weekend (e.g., Nov 8-10, 2024)"). If availability is given, use it. Be creative if dates are not specified in 'travelInterests'.
+    -   'budget': Suggest a realistic budget in USD. Infer from persona style, search history, typical costs for the destination/duration, or any budget mentioned in 'travelInterests'.
 
 Example Output for a single suggestion (ensure 'suggestions' is an array):
 {
   "suggestions": [
     {
-      "bundleName": "Weekend Escape to Rome",
-      "reasoning": "Inspired by your 'History Buff' persona and past searches for European capitals, a weekend trip to Rome focusing on ancient wonders could be exciting. This fits well with your stated 'next long weekend' availability.",
+      "bundleName": "Relaxing Bali Beach Escape",
+      "reasoning": "Your interest in a 'relaxing beach vacation' and 'wellness' aligns perfectly with this Bali escape. We've matched it to your 'Serene Traveler' persona and suggested dates based on your 'free in July' availability.",
       "tripIdea": {
-        "destination": "Rome, Italy",
-        "travelDates": "Next available long weekend (e.g., Nov 8-10, 2024)",
-        "budget": 1200
+        "destination": "Ubud & Seminyak, Bali, Indonesia",
+        "travelDates": "July 10-20, 2025",
+        "budget": 2200
       }
     }
   ]
 }
 
 Prioritize variety if suggesting two bundles. Ensure the output strictly follows the defined JSON schema for 'SmartBundleOutputSchema'.
-If the Travel Persona is very specific, one highly relevant suggestion might be better than two less relevant ones.
-If no persona or search history is available, rely on the provided availability and interests, or suggest popular/diverse options.
-If no inputs at all are available, suggest 1-2 broadly appealing, distinct trips (e.g., one city, one nature).
+If the Travel Persona is very specific and 'travelInterests' is empty, one highly relevant suggestion might be better.
+If no persona or search history is available, rely heavily on the provided 'travelInterests' and 'upcomingAvailability'.
+If no inputs at all are available (empty 'travelInterests', no persona, no history, no availability), suggest 1-2 broadly appealing, distinct trips (e.g., one city break, one nature escape).
 `,
 });
 
@@ -123,6 +126,9 @@ export const smartBundleFlow = ai.defineFlow(
     outputSchema: SmartBundleOutputSchema,
   },
   async (input) => {
+    // Add a log to see the exact input received by the flow
+    console.log('SmartBundleFlow received input:', JSON.stringify(input, null, 2));
+
     const { output } = await smartBundlePrompt(input);
     if (!output || !output.suggestions || output.suggestions.length === 0) {
         console.warn("Smart Bundle AI did not return valid suggestions. Returning a default.");
@@ -145,3 +151,4 @@ export const smartBundleFlow = ai.defineFlow(
 export async function generateSmartBundles(input: SmartBundleInput): Promise<SmartBundleOutput> {
   return smartBundleFlow(input);
 }
+

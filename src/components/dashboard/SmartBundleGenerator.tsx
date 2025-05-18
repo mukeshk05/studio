@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, SendIcon, InfoIcon, ExternalLinkIcon } from 'lucide-react';
+import { Loader2Icon, SparklesIcon, SendIcon, InfoIcon, ExternalLinkIcon, Wand2Icon } from 'lucide-react';
 import { generateSmartBundles } from '@/ai/flows/smart-bundle-flow';
 import type { SmartBundleInput, SmartBundleOutput } from '@/ai/types/smart-bundle-types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,7 +47,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
       const result = await generateSmartBundles(input);
       setSuggestions(result.suggestions);
       if (!result.suggestions || result.suggestions.length === 0) {
-        toast({ title: "No Suggestions", description: "The AI couldn't generate specific bundles at this time. Try broadening your inputs." });
+        toast({ title: "No Suggestions", description: "The AI couldn't generate specific bundles at this time. Try broadening your inputs or describe your ideal trip in the 'Travel Interests' field." });
       }
     } catch (error) {
       console.error("Error generating smart bundles:", error);
@@ -63,51 +63,51 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
     <Card className={cn(glassCardClasses, "w-full border-primary/20")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <SparklesIcon className="w-6 h-6 mr-2 text-primary" />
-          AI Smart Bundle Generator
+          <Wand2Icon className="w-6 h-6 mr-2 text-primary" />
+          AI Trip Idea Generator
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Let AI suggest trip packages based on your history, availability, and interests.
+          Describe your ideal trip, or let AI suggest packages based on your profile, availability, and past searches.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div>
+          <Label htmlFor="interests" className="text-card-foreground/90">What kind of trip are you dreaming of? (Optional)</Label>
+          <Textarea
+            id="interests"
+            value={interests}
+            onChange={(e) => setInterests(e.target.value)}
+            placeholder="e.g., 'Relaxing beach vacation in Southeast Asia for two weeks around December, focus on good food and light snorkeling. Budget $2500.' or 'Weekend hiking trip in the mountains next month.'"
+            className="mt-1 bg-background/70 dark:bg-input border-border/70 focus:bg-input/90 min-h-[80px]"
+          />
+        </div>
         <div>
           <Label htmlFor="availability" className="text-card-foreground/90">Upcoming Availability (Optional)</Label>
           <Textarea
             id="availability"
             value={availability}
             onChange={(e) => setAvailability(e.target.value)}
-            placeholder="e.g., 'Long weekend next month', 'Free in July for 2 weeks'"
-            className="mt-1 bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"
-          />
-        </div>
-        <div>
-          <Label htmlFor="interests" className="text-card-foreground/90">Travel Interests (Optional)</Label>
-          <Textarea
-            id="interests"
-            value={interests}
-            onChange={(e) => setInterests(e.target.value)}
-            placeholder="e.g., 'Historical sites and local cuisine', 'Hiking and nature photography'"
+            placeholder="e.g., 'Long weekend next month', 'Free in July for 2 weeks', 'Flexible autumn dates'"
             className="mt-1 bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"
           />
         </div>
         <Button onClick={handleGenerateBundle} disabled={isLoading || !currentUser} className="w-full shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
-          Generate Smart Bundle
+          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          Generate Trip Ideas
         </Button>
 
         {isLoading && !suggestions && (
           <div className="text-center py-4 text-muted-foreground">
-            <Loader2Icon className="w-8 h-8 animate-spin mx-auto mb-2" />
-            <p>AI is thinking up some amazing trips for you...</p>
+            <Loader2Icon className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
+            <p>AI is crafting some amazing trip ideas for you...</p>
           </div>
         )}
 
         {suggestions && suggestions.length > 0 && (
           <div className="mt-6 space-y-4">
-            <h3 className="text-lg font-semibold text-card-foreground">Your AI-Suggested Bundles:</h3>
+            <h3 className="text-lg font-semibold text-card-foreground">Your AI-Suggested Trip Ideas:</h3>
             {suggestions.map((suggestion, index) => (
-              <Card key={index} className={cn(glassCardClasses, "border-accent/30")}>
+              <Card key={index} className={cn(glassCardClasses, "border-accent/30 animate-fade-in-up")} style={{animationDelay: `${index * 100}ms`}}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-md text-accent flex items-center">
                      <SparklesIcon className="w-5 h-5 mr-2"/>
@@ -143,10 +143,11 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
         )}
          {suggestions && suggestions.length === 0 && !isLoading && (
           <div className="text-center py-4 text-muted-foreground">
-            <p>No specific bundles could be generated with the current information. Try providing more details or explore general planning!</p>
+            <p>No specific trip ideas could be generated with the current information. Try providing more details about your ideal trip in the 'Travel Interests' field, or explore general planning!</p>
           </div>
         )}
       </CardContent>
     </Card>
   );
 }
+
