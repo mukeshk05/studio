@@ -20,7 +20,12 @@ import {
   NotebookTextIcon,
   UserIcon,
   LogOutIcon,
-  CheckCircleIcon, // Added CheckCircleIcon
+  CheckCircleIcon,
+  LayoutGridIcon, // Example for a more generic 'App' icon
+  ShieldCheckIcon, // Example for 'Why Us'
+  TrendingUpIcon, // For Smart Price Suite
+  GroupIcon, // For Group Planning
+  BookOpenCheckIcon // For Memory Archive
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -73,7 +78,7 @@ export default function LandingPage() {
       aiHint: "intelligent itinerary generation"
     },
     {
-      icon: <BarChart3Icon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <TrendingUpIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Smart Price Suite",
       description: "Track flight/hotel prices, get AI advice on booking, and view illustrative price forecasts to make informed decisions.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -94,14 +99,14 @@ export default function LandingPage() {
       aiHint: "conversational ai travel chat"
     },
     {
-      icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <GroupIcon className="w-10 h-10 mb-4 text-primary" />, // Changed icon
       title: "Effortless Group Planning",
       description: "Sync trip plans with your group's preferences using AI insights to ensure everyone has a great time.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai group travel collaboration"
     },
     {
-      icon: <NotebookTextIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <BookOpenCheckIcon className="w-10 h-10 mb-4 text-primary" />, // Changed icon
       title: "AI Trip Memory Archive",
       description: "Let AI craft nostalgic memory snippets from your saved adventures. Revisit and cherish your travel moments.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -171,7 +176,7 @@ export default function LandingPage() {
               <ListChecksIcon className="w-4 h-4" /> Features
             </Link>
             <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
-              <HeartIcon className="w-4 h-4" /> Why Us
+              <ShieldCheckIcon className="w-4 h-4" /> Why Us {/* Updated Icon */}
             </Link>
 
             {authLoading ? (
@@ -208,6 +213,12 @@ export default function LandingPage() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border/50"/>
+                  <DropdownMenuItem asChild>
+                     <Link href="/planner" className="cursor-pointer focus:bg-accent/20 focus:text-accent-foreground">
+                        <LayoutGridIcon className="mr-2 h-4 w-4" />
+                        Go to App
+                     </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={logout} className="cursor-pointer focus:bg-destructive/20 focus:text-destructive-foreground">
                     <LogOutIcon className="mr-2 h-4 w-4" />
                     Log out
@@ -220,7 +231,7 @@ export default function LandingPage() {
                   href="/login"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
-                    "hidden sm:inline-flex items-center border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+                    "hidden sm:inline-flex items-center border-primary/50 text-primary hover:bg-primary/10 hover:text-primary hover:shadow-md hover:shadow-primary/20"
                   )}
                 >
                   <LogInIcon className="mr-1 h-4 w-4" /> Login
@@ -269,7 +280,7 @@ export default function LandingPage() {
                 heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               )}
             >
-              Plan Your Next Adventure with <span className="text-primary">AI-Powered</span> Precision
+              Craft Your Perfect Journey with <span className="text-primary">BudgetRoam AI</span>
             </h1>
             <p
               className={cn(
@@ -283,13 +294,14 @@ export default function LandingPage() {
               asChild
               size="lg"
               className={cn(
-                "text-lg px-8 py-6 group transform transition-all duration-700 ease-out hover:shadow-lg hover:shadow-primary/50 hover:scale-105",
+                "text-lg px-8 py-6 group transform transition-all duration-700 ease-out hover:shadow-xl hover:shadow-primary/50 hover:scale-105 active:scale-100",
+                "bg-primary hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30",
                 heroVisible ? 'opacity-100 translate-y-0 delay-300' : 'opacity-0 translate-y-10'
               )}
             >
-              <Link href="/planner">
+              <Link href={currentUser ? "/planner" : "/signup"}>
                 <SparklesIcon className="w-5 h-5 mr-2 transition-transform group-hover:animate-pulse" />
-                Start Your AI-Powered Journey
+                {currentUser ? "Plan New Trip" : "Get Started Free"}
                 <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
@@ -319,8 +331,8 @@ export default function LandingPage() {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-primary/80" />
-                <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-primary/80" />
+                <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary" />
+                <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary" />
               </Carousel>
             </div>
           </div>
@@ -350,7 +362,7 @@ export default function LandingPage() {
                       <Card
                         className={cn(
                           glassCardClasses,
-                          "hover:shadow-primary/30 hover:scale-[1.03] transition-all duration-300 flex flex-col h-full transform"
+                          "hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.03] transition-all duration-300 flex flex-col h-full transform"
                         )}
                       >
                         <CardHeader className="items-center text-center">
@@ -374,8 +386,8 @@ export default function LandingPage() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="ml-8 sm:ml-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground" />
-              <CarouselNext className="mr-8 sm:mr-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground" />
+              <CarouselPrevious className="ml-8 sm:ml-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-accent" />
+              <CarouselNext className="mr-8 sm:mr-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-accent" />
             </Carousel>
           </div>
         </section>
@@ -410,7 +422,7 @@ export default function LandingPage() {
                     src="https://placehold.co/600x600.png"
                     alt="Diverse travelers enjoying AI-planned trips"
                     fill
-                    className="object-cover rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 transition-transform duration-500 ease-out"
+                    className="object-cover rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 hover:shadow-primary/30 transition-all duration-500 ease-out"
                     data-ai-hint="happy diverse travelers"
                 />
               </div>
@@ -431,12 +443,13 @@ export default function LandingPage() {
                 asChild
                 size="lg"
                 className={cn(
-                    "text-lg px-10 py-6 group transform transition-all duration-700 ease-out hover:shadow-xl hover:shadow-primary/40 shadow-md shadow-primary/30 hover:scale-105",
+                    "text-lg px-10 py-6 group transform transition-all duration-700 ease-out hover:shadow-xl hover:shadow-primary/40 shadow-md shadow-primary/30 hover:scale-105 active:scale-100",
+                    "bg-primary hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30",
                     finalCtaVisible ? "opacity-100 translate-y-0 delay-200" : "opacity-0 translate-y-10"
                 )}
             >
-              <Link href="/planner">
-                Plan Your First AI Trip for Free
+              <Link href={currentUser ? "/planner" : "/signup"}>
+                {currentUser ? "Start Planning Now" : "Unlock Your AI Travel Assistant"}
                 <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
@@ -458,3 +471,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
