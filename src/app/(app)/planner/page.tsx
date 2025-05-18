@@ -6,16 +6,16 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
-import type { Itinerary, SearchHistoryEntry } from "@/lib/types"; // Added SearchHistoryEntry
+import type { Itinerary, SearchHistoryEntry } from "@/lib/types"; 
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
-import { MessageSquarePlusIcon, HistoryIcon } from "lucide-react"; // Added HistoryIcon
+import { MessageSquarePlusIcon, HistoryIcon } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer"; // New import
+import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer"; 
 
 export interface ChatMessage {
   id: string;
@@ -29,8 +29,8 @@ export default function TripPlannerPage() {
   const [isInputSheetOpen, setIsInputSheetOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [isSearchHistoryDrawerOpen, setIsSearchHistoryDrawerOpen] = useState(false); // New state
-  const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null); // New state
+  const [isSearchHistoryDrawerOpen, setIsSearchHistoryDrawerOpen] = useState(false); 
+  const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null); 
 
 
   const { currentUser } = useAuth();
@@ -42,7 +42,19 @@ export default function TripPlannerPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (chatHistory.length === 0 && currentUser) {
+    // Check for a bundle passed from dashboard via localStorage
+    const bundledTripData = localStorage.getItem('tripBundleToPlan');
+    if (bundledTripData) {
+      try {
+        const tripIdea: AITripPlannerInput = JSON.parse(bundledTripData);
+        setCurrentFormInitialValues(tripIdea);
+        setIsInputSheetOpen(true);
+      } catch (e) {
+        console.error("Error parsing trip bundle data from localStorage:", e);
+      } finally {
+        localStorage.removeItem('tripBundleToPlan'); // Clear it after use
+      }
+    } else if (chatHistory.length === 0 && currentUser) {
       setChatHistory([
         {
           id: crypto.randomUUID(),
@@ -62,7 +74,7 @@ export default function TripPlannerPage() {
       ]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, isLoadingSavedTrips]);
+  }, [currentUser, isLoadingSavedTrips]); // Not adding chatHistory here to avoid loop with initial system message
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -254,7 +266,7 @@ export default function TripPlannerPage() {
         isOpen={isInputSheetOpen}
         onClose={() => setIsInputSheetOpen(false)}
         onPlanRequest={handlePlanRequest}
-        initialValues={currentFormInitialValues} // Pass initial values
+        initialValues={currentFormInitialValues} 
       />
 
       <SearchHistoryDrawer

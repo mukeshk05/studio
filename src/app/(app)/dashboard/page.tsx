@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, BriefcaseIcon, SparklesIcon, TrendingUpIcon } from "lucide-react";
+import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, SparklesIcon, TrendingUpIcon, BrainCircuitIcon } from "lucide-react";
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useTrackedItems } from "@/lib/firestoreHooks";
 import { cn } from "@/lib/utils";
+import { SmartBundleGenerator } from "@/components/dashboard/SmartBundleGenerator";
+import { AITripPlannerInput } from "@/ai/flows/ai-trip-planner";
+import { useRouter } from 'next/navigation';
 
 
 export default function DashboardPage() {
@@ -21,6 +24,8 @@ export default function DashboardPage() {
   const [isTipLoading, setIsTipLoading] = useState(false);
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const router = useRouter();
+  
   const { data: savedTrips, isLoading: isLoadingTrips } = useSavedTrips();
   const { data: trackedItems, isLoading: isLoadingTrackedItems } = useTrackedItems();
 
@@ -54,6 +59,13 @@ export default function DashboardPage() {
   const numSavedTrips = savedTrips?.length || 0;
   const numTrackedItems = trackedItems?.length || 0;
 
+  const handlePlanTripFromBundle = (tripIdea: AITripPlannerInput) => {
+    // Store the tripIdea in localStorage or a global state accessible by the planner page
+    // For simplicity, using localStorage here. A more robust solution might use Zustand/Redux or React Context.
+    localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
+    router.push('/planner');
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className={cn("mb-8 p-6", "glass-card")}>
@@ -77,34 +89,41 @@ export default function DashboardPage() {
         </div>
       </Card>
 
-      <Card className={cn("mb-8", "glass-card")}>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center text-lg text-card-foreground">
-              <LightbulbIcon className="w-6 h-6 mr-2 text-yellow-400" />
-              AI Travel Tip of the Day
-            </CardTitle>
-            <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:bg-primary/10 hover:text-primary/80">
-              {isTipLoading ? <Loader2Icon className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
-               <span className="ml-2 hidden sm:inline">New Tip</span>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isTipLoading && !travelTip && (
-            <div className="flex items-center text-muted-foreground">
-              <Loader2Icon className="w-5 h-5 mr-2 animate-spin" />
-              <span>Fetching your daily inspiration...</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <Card className={cn("lg:col-span-1", "glass-card")}>
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center text-lg text-card-foreground">
+                <LightbulbIcon className="w-6 h-6 mr-2 text-yellow-400" />
+                AI Travel Tip
+              </CardTitle>
+              <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:bg-primary/10 hover:text-primary/80">
+                {isTipLoading ? <Loader2Icon className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
+                <span className="ml-2 hidden sm:inline">New Tip</span>
+              </Button>
             </div>
-          )}
-          {travelTip && (
-            <p className="text-sm text-card-foreground/90 transition-opacity duration-500">{travelTip}</p>
-          )}
-          {!isTipLoading && !travelTip && (
-             <p className="text-sm text-muted-foreground">Loading travel tip...</p>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {isTipLoading && !travelTip && (
+              <div className="flex items-center text-muted-foreground">
+                <Loader2Icon className="w-5 h-5 mr-2 animate-spin" />
+                <span>Fetching inspiration...</span>
+              </div>
+            )}
+            {travelTip && (
+              <p className="text-sm text-card-foreground/90 transition-opacity duration-500">{travelTip}</p>
+            )}
+            {!isTipLoading && !travelTip && (
+              <p className="text-sm text-muted-foreground">Loading travel tip...</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="lg:col-span-2">
+            <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
+        </div>
+      </div>
+
 
       <Tabs defaultValue="my-trips" className="w-full">
         <TabsList className={cn(

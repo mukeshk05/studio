@@ -23,8 +23,8 @@ export function useSavedTrips() {
       const querySnapshot = await getDocs(tripsCollectionRef);
       return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<Itinerary, 'id'>, id: doc.id }));
     },
-    enabled: !!currentUser, // Only run query if user is logged in
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!currentUser, 
+    staleTime: 1000 * 60 * 5, 
   });
 }
 
@@ -77,13 +77,12 @@ export function useTrackedItems() {
     queryFn: async () => {
       if (!currentUser) throw new Error("User not authenticated");
       const itemsCollectionRef = collection(firestore, 'users', currentUser.uid, 'trackedItems');
-      // Order by createdAt to show newest first, or lastChecked
       const q = query(itemsCollectionRef, orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5, 
   });
 }
 
@@ -120,14 +119,13 @@ export function useUpdateTrackedItem() {
       const itemDocRef = doc(firestore, 'users', currentUser.uid, 'trackedItems', itemId);
       await updateDoc(itemDocRef, {
         ...dataToUpdate,
-        lastChecked: new Date().toISOString(), // Always update lastChecked on any update
+        lastChecked: new Date().toISOString(), 
       });
     },
     onSuccess: (_data, variables) => {
       queryClient.setQueryData<PriceTrackerEntry[]>([TRACKED_ITEMS_QUERY_KEY, currentUser?.uid], (oldData) =>
         oldData?.map(item => item.id === variables.itemId ? { ...item, ...variables.dataToUpdate, lastChecked: new Date().toISOString() } : item)
       );
-      // queryClient.invalidateQueries({ queryKey: [TRACKED_ITEMS_QUERY_KEY, currentUser?.uid] });
     },
   });
 }
@@ -171,13 +169,12 @@ export function useAddSearchHistory() {
       queryClient.invalidateQueries({ queryKey: [SEARCH_HISTORY_QUERY_KEY, currentUser?.uid] });
     },
     onError: (error) => {
-      // Optionally, you can log this error or show a non-blocking toast
       console.warn("Failed to save search history:", error.message);
     }
   });
 }
 
-// Hook to get search history (e.g., last 10 entries)
+// Hook to get search history (e.g., last N entries)
 export function useSearchHistory(count: number = 10) {
   const { currentUser } = useAuth();
 
@@ -191,6 +188,23 @@ export function useSearchHistory(count: number = 10) {
       return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<SearchHistoryEntry, 'id'>, id: doc.id }));
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 15, // 15 minutes for search history
+    staleTime: 1000 * 60 * 15, 
   });
+}
+
+// Function to be called by Genkit tool to fetch search history
+export async function getRecentUserSearchHistory(userId: string, count: number = 5): Promise<SearchHistoryEntry[]> {
+  if (!userId) {
+    console.error("getRecentUserSearchHistory: userId is required.");
+    return [];
+  }
+  try {
+    const historyCollectionRef = collection(firestore, 'users', userId, 'searchHistory');
+    const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<SearchHistoryEntry, 'id' | 'searchedAt'>, id: doc.id, searchedAt: doc.data().searchedAt?.toDate() || new Date() }));
+  } catch (error) {
+    console.error(`Error fetching search history for user ${userId}:`, error);
+    return [];
+  }
 }
