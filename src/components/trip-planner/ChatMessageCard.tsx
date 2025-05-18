@@ -5,7 +5,7 @@ import type { ChatMessage } from "@/app/(app)/planner/page";
 import type { AITripPlannerInput } from "@/ai/flows/ai-trip-planner";
 import type { Itinerary } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CardContent } from "@/components/ui/card"; // Only CardContent is needed here
+import { CardContent } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
 import { BotIcon, UserIcon, AlertTriangleIcon, SparklesIcon, Loader2Icon } from "lucide-react";
 import { format } from 'date-fns';
@@ -21,7 +21,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
   const bubbleAlignment = isUser ? "justify-end" : "justify-start";
   const bubbleClasses = isUser
     ? "bg-primary text-primary-foreground rounded-br-none shadow-md shadow-primary/30"
-    : "bg-card/70 text-card-foreground rounded-bl-none glass-card border-border/50"; // AI uses glass card
+    : "bg-card/70 text-card-foreground rounded-bl-none glass-card border-border/50";
 
   const renderPayload = () => {
     switch (message.type) {
@@ -43,7 +43,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
           <div className="space-y-3">
             {itineraries.map((itinerary) => (
               <CompactItineraryCard
-                key={itinerary.id} // Assuming temp ID is set by parent
+                key={itinerary.id}
                 itinerary={itinerary}
                 onViewDetails={() => onViewDetails(itinerary)}
               />
@@ -63,18 +63,19 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
             <p>{message.payload as string}</p>
           </div>
         );
-      case "loading": // This state is now handled by a different UI in parent
-        return null; 
+      case "loading":
+        return (
+          <div className="flex items-center text-card-foreground">
+            <SparklesIcon className="w-5 h-5 mr-3 animate-pulse text-primary" />
+            <span>BudgetRoam AI is crafting your journey...</span>
+          </div>
+        );
       default:
         return null;
     }
   };
   
   const Icon = isUser ? UserIcon : BotIcon;
-  // Loading state is now handled differently in the parent (planner/page.tsx)
-  if (message.type === 'loading') {
-    return null; // Or a very minimal inline loader if absolutely necessary
-  }
 
   if (message.type === 'system') {
      return (
@@ -83,10 +84,11 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
         </div>
      );
   }
+
    if (message.type === 'error') {
      return (
         <div className={cn("flex items-start gap-3 animate-fade-in", bubbleAlignment)}>
-            {!isUser && (
+            {!isUser && ( // Error messages are typically from AI/system
             <Avatar className="w-8 h-8 shrink-0 border-2 border-destructive">
                 <AvatarFallback className="bg-destructive text-destructive-foreground"><AlertTriangleIcon /></AvatarFallback>
             </Avatar>
@@ -99,11 +101,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
                 {format(message.timestamp, "p")}
                 </p>
             </div>
-            {isUser && ( // User messages don't typically become error bubbles themselves
-                <Avatar className="w-8 h-8 shrink-0 border border-primary/50">
-                    <AvatarFallback className="bg-muted/50"><UserIcon /></AvatarFallback>
-                </Avatar>
-            )}
+            {/* User messages don't typically become error bubbles themselves from this component's perspective */}
         </div>
      )
    }
@@ -112,15 +110,17 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
     <div className={cn("flex items-end gap-3 animate-fade-in", bubbleAlignment)}>
       {!isUser && (
         <Avatar className="w-8 h-8 shrink-0 border border-primary/50">
-          <AvatarFallback className="bg-primary/20 text-primary"><BotIcon /></AvatarFallback>
+          <AvatarFallback className={cn("bg-primary/20 text-primary", message.type === 'loading' && "bg-muted/30")}>
+            {message.type === 'loading' ? <Loader2Icon className="animate-spin" /> : <BotIcon />}
+          </AvatarFallback>
         </Avatar>
       )}
       <div className={cn("max-w-[85%] sm:max-w-[75%] p-0")}>
-        <CardContent className={cn("p-3 rounded-xl text-sm", bubbleClasses)}>
+        <CardContent className={cn("p-3 rounded-xl text-sm", bubbleClasses, message.type === 'loading' && "py-4")}>
           {renderPayload()}
         </CardContent>
         <p className={cn("text-xs text-muted-foreground mt-1 px-1", isUser ? 'text-right' : 'text-left')}>
-          {format(message.timestamp, "p")}
+          {message.type !== 'loading' ? format(message.timestamp, "p") : "Thinking..."}
         </p>
       </div>
       {isUser && (

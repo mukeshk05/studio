@@ -37,7 +37,7 @@ export default function TripPlannerPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (chatHistory.length === 0) {
+    if (chatHistory.length === 0 && currentUser) { // Only show welcome if user is logged in
       setChatHistory([
         {
           id: crypto.randomUUID(),
@@ -46,9 +46,18 @@ export default function TripPlannerPage() {
           timestamp: new Date(),
         },
       ]);
+    } else if (chatHistory.length === 0 && !currentUser && !isLoadingSavedTrips) { // isLoadingSavedTrips check prevents premature message
+        setChatHistory([
+        {
+          id: crypto.randomUUID(),
+          type: "system",
+          payload: "Please log in to start planning your trips with BudgetRoam AI.",
+          timestamp: new Date(),
+        },
+      ]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUser, isLoadingSavedTrips]); // Add isLoadingSavedTrips to prevent race condition with auth loading
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -60,6 +69,11 @@ export default function TripPlannerPage() {
   }, [chatHistory]);
 
   const handlePlanRequest = async (input: AITripPlannerInput) => {
+    if (!currentUser) {
+      toast({ title: "Authentication Required", description: "Please log in to plan a trip.", variant: "destructive" });
+      setIsInputSheetOpen(false);
+      return;
+    }
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       type: "user",
@@ -165,6 +179,8 @@ export default function TripPlannerPage() {
         trip.estimatedCost === itinerary.estimatedCost
     );
   };
+  
+  const isAiProcessing = chatHistory.some(msg => msg.type === 'loading');
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background"> {/* Adjusted height based on header */}
@@ -178,22 +194,15 @@ export default function TripPlannerPage() {
 
       <div className="p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto">
-           {chatHistory.length > 0 && chatHistory[chatHistory.length -1].type === 'loading' ? (
-             <div className="flex items-center justify-center text-muted-foreground h-11">
-                <SparklesIcon className="w-5 h-5 mr-2 animate-pulse text-primary" />
-                BudgetRoam AI is thinking...
-             </div>
-           ) : (
             <Button
               onClick={() => setIsInputSheetOpen(true)}
               className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
               size="lg"
-              disabled={!currentUser || addSavedTripMutation.isPending}
+              disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing}
             >
               <MessageSquarePlusIcon className="w-6 h-6 mr-2" />
-              Plan New Trip
+              {isAiProcessing ? "AI is thinking..." : "Plan New Trip"}
             </Button>
-           )}
         </div>
       </div>
 
