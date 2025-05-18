@@ -1,7 +1,12 @@
+
 import type {Metadata} from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
+// Toaster is now handled by Providers
+// QueryClient and QueryClientProvider are now handled by Providers
+// AuthProvider is now handled by Providers
+import { Providers } from '@/components/layout/Providers';
+
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -18,6 +23,8 @@ export const metadata: Metadata = {
   description: 'Plan your trips within budget using AI. Track prices and manage bookings effortlessly.',
 };
 
+// queryClient instance is now managed within Providers.tsx
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,8 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
-        {children}
-        <Toaster />
+        <Providers>
+          {children}
+          {/* Toaster is rendered inside Providers */}
+        </Providers>
       </body>
     </html>
   );

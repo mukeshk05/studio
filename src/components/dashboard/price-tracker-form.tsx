@@ -17,11 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trackPrice, type PriceTrackerOutput } from "@/ai/flows/price-tracker";
-import type { PriceTrackerEntry } from "@/lib/types";
 import React from "react";
 import { Loader2Icon, BellPlusIcon, PlaneIcon, HotelIcon, DollarSignIcon, TagIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAddTrackedItem } from "@/lib/firestoreHooks";
 
 const formSchema = z.object({
   itemType: z.enum(["flight", "hotel"], {
@@ -32,13 +33,12 @@ const formSchema = z.object({
   currentPrice: z.coerce.number().positive("Current price must be a positive number."),
 });
 
-type PriceTrackerFormProps = {
-  onTrackerAdded: (entry: PriceTrackerEntry) => void;
-};
-
-export function PriceTrackerForm({ onTrackerAdded }: PriceTrackerFormProps) {
+// onTrackerAdded prop is removed as we save directly to Firestore
+export function PriceTrackerForm() {
   const { toast } = useToast();
   const [aiAlert, setAiAlert] = React.useState<PriceTrackerOutput | null>(null);
+  const { currentUser } = useAuth();
+  const addTrackedItemMutation = useAddTrackedItem();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,27 +48,38 @@ export function PriceTrackerForm({ onTrackerAdded }: PriceTrackerFormProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!currentUser) {
+      toast({ title: "Authentication Required", description: "Please log in to add items to the tracker.", variant: "destructive" });
+      return;
+    }
     setAiAlert(null);
     try {
-      const result = await trackPrice(values);
-      setAiAlert(result);
+      // Call AI for initial alert status
+      const alertResult = await trackPrice(values);
+      setAiAlert(alertResult);
 
-      const newEntry: PriceTrackerEntry = {
-        id: crypto.randomUUID(),
-        ...values,
-        lastChecked: new Date().toISOString(),
-        alertStatus: result,
+      // Prepare data for Firestore (without ID)
+      const newItemData = {
+        itemType: values.itemType,
+        itemName: values.itemName,
+        targetPrice: values.targetPrice,
+        currentPrice: values.currentPrice,
+        // lastChecked, alertStatus will be set by the hook/Firestore
       };
-      onTrackerAdded(newEntry);
+      
+      await addTrackedItemMutation.mutateAsync(
+        // @ts-ignore // TODO: Fix type for newItemData to match mutation expectation if necessary
+        {...newItemData, alertStatus: alertResult} // Pass alertResult to be stored initially
+      );
       
       toast({
         title: "Price Tracker Added",
         description: `${values.itemName} is now being tracked.`,
       });
-      if(result.shouldAlert){
+      if(alertResult.shouldAlert){
          toast({
             title: "Price Alert!",
-            description: result.alertMessage,
+            description: alertResult.alertMessage,
             variant: "default",
             duration: 10000,
          });
@@ -86,10 +97,10 @@ export function PriceTrackerForm({ onTrackerAdded }: PriceTrackerFormProps) {
   }
   
   const glassEffectClasses = "bg-card/60 dark:bg-card/40 backdrop-blur-lg border-white/20 shadow-xl";
-
+  const isSubmitting = form.formState.isSubmitting || addTrackedItemMutation.isPending;
 
   return (
-    <Card className={`w-full mb-6 ${glassEffectClasses} border-none`}> {/* Applied glass effect, removed original shadow */}
+    <Card className={`w-full mb-6 ${glassEffectClasses} border-none`}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-foreground">
           <BellPlusIcon className="w-6 h-6 mr-2 text-accent" />
@@ -162,8 +173,8 @@ export function PriceTrackerForm({ onTrackerAdded }: PriceTrackerFormProps) {
                 )}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
+            <Button type="submit" className="w-full" disabled={isSubmitting || !currentUser}>
+              {isSubmitting ? (
                 <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <BellPlusIcon className="mr-2 h-4 w-4" />

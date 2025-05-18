@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon } from "lucide-react";
+import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -17,6 +17,7 @@ import {
 type BookingCardProps = {
   booking: Itinerary;
   onRemoveBooking: (bookingId: string) => void;
+  isRemoving?: boolean;
 };
 
 
@@ -63,7 +64,7 @@ function SavedDailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
 }
 const glassEffectClasses = "bg-card/60 dark:bg-card/40 backdrop-blur-lg border-white/20 shadow-xl";
 
-export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
+export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCardProps) {
   
   const hintWords = booking.destination.toLowerCase().split(/[\s,]+/);
   const aiHint = hintWords.slice(0, 2).join(" ");
@@ -168,9 +169,9 @@ export function BookingCard({ booking, onRemoveBooking }: BookingCardProps) {
 
       </CardContent>
       <CardFooter className="pt-3">
-        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30">
-          <Trash2Icon className="mr-2 h-4 w-4" />
-          Remove Trip
+        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30" disabled={isRemoving}>
+          {isRemoving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <Trash2Icon className="mr-2 h-4 w-4" />}
+          {isRemoving ? "Removing..." : "Remove Trip"}
         </Button>
       </CardFooter>
     </Card>

@@ -18,30 +18,32 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 type PriceTrackerItemProps = {
   item: PriceTrackerEntry;
-  onRemoveItem: (itemId: string) => void;
-  onUpdateItem: (item: PriceTrackerEntry) => void;
+  onRemoveItem: (itemId: string) => Promise<void>; // Made async
+  onUpdateItem: (itemId: string, dataToUpdate: Partial<Omit<PriceTrackerEntry, 'id'>>) => Promise<void>; // Made async
+  isUpdating?: boolean;
+  isRemoving?: boolean;
 };
 
 const glassEffectClasses = "bg-card/60 dark:bg-card/40 backdrop-blur-lg border-white/20 shadow-xl";
 
-export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrackerItemProps) {
+export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating, isRemoving }: PriceTrackerItemProps) {
   const { toast } = useToast();
-  const [isRechecking, setIsRechecking] = React.useState(false);
+  const [isRecheckingPriceAI, setIsRecheckingPriceAI] = React.useState(false); // For AI call during recheck
   const [newCurrentPrice, setNewCurrentPrice] = React.useState<string>(item.currentPrice.toString());
   const [isRecheckDialogOpen, setIsRecheckDialogOpen] = React.useState(false);
-  const [recheckResult, setRecheckResult] = React.useState<PriceTrackerOutput | null>(null);
+  const [recheckDialogAiAlert, setRecheckDialogAiAlert] = React.useState<PriceTrackerOutput | null>(null); // Alert for dialog
   const [isAiAdviceLoading, setIsAiAdviceLoading] = React.useState(false);
 
 
-  const handleRecheckPrice = async () => {
+  const handleRecheckPriceSubmit = async () => {
     const currentPriceNum = parseFloat(newCurrentPrice);
     if (isNaN(currentPriceNum) || currentPriceNum <= 0) {
       toast({ title: "Invalid Price", description: "Please enter a valid current price.", variant: "destructive" });
       return;
     }
 
-    setIsRechecking(true);
-    setRecheckResult(null);
+    setIsRecheckingPriceAI(true);
+    setRecheckDialogAiAlert(null);
     try {
       const input: PriceTrackerInput = {
         itemType: item.itemType,
@@ -49,33 +51,33 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
         targetPrice: item.targetPrice,
         currentPrice: currentPriceNum,
       };
-      const result = await trackPrice(input);
-      setRecheckResult(result);
+      const alertResult = await trackPrice(input);
+      setRecheckDialogAiAlert(alertResult); // Show AI alert in dialog
       
-      const updatedItem: PriceTrackerEntry = {
-        ...item,
+      const dataToUpdate: Partial<Omit<PriceTrackerEntry, 'id'>> = {
         currentPrice: currentPriceNum,
-        lastChecked: new Date().toISOString(),
-        alertStatus: result,
+        alertStatus: alertResult,
       };
-      onUpdateItem(updatedItem); 
+      await onUpdateItem(item.id, dataToUpdate); 
 
       toast({
         title: "Price Re-checked",
         description: `Latest price for ${item.itemName} updated.`,
       });
-      if (result.shouldAlert) {
+      if (alertResult.shouldAlert) {
         toast({
           title: "Price Alert!",
-          description: result.alertMessage,
+          description: alertResult.alertMessage,
           duration: 10000,
         });
       }
+      // Keep dialog open to show recheckDialogAiAlert, close manually or on success
+      // setIsRecheckDialogOpen(false); // Or close it after a delay / on success
     } catch (error) {
       console.error("Error re-checking price:", error);
       toast({ title: "Error", description: "Could not re-check price.", variant: "destructive" });
     } finally {
-      setIsRechecking(false);
+      setIsRecheckingPriceAI(false);
     }
   };
 
@@ -89,8 +91,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
         currentPrice: item.currentPrice,
       };
       const result = await getPriceAdvice(adviceInput);
-      const updatedItem = { ...item, aiAdvice: result.advice, lastChecked: new Date().toISOString() };
-      onUpdateItem(updatedItem);
+      await onUpdateItem(item.id, { aiAdvice: result.advice });
       toast({
         title: "AI Advice Received",
         description: "Check the insights below.",
@@ -104,6 +105,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
   };
   
   const Icon = item.itemType === 'flight' ? PlaneIcon : HotelIcon;
+  const isCurrentlyUpdating = isUpdating || isRecheckingPriceAI || isAiAdviceLoading;
 
   return (
     <Card className={`${glassEffectClasses} flex flex-col border-none`}>
@@ -136,7 +138,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
               </Alert>
         )}
 
-        {isAiAdviceLoading && (
+        {(isAiAdviceLoading || (isCurrentlyUpdating && !item.aiAdvice)) && (
           <div className="flex items-center justify-center p-3 bg-muted/30 dark:bg-muted/20 rounded-md">
             <Loader2Icon className="w-5 h-5 mr-2 animate-spin text-primary" />
             <span className="text-xs text-muted-foreground">Getting AI advice...</span>
@@ -154,16 +156,16 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
         )}
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
-        <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full sm:w-auto flex-1 bg-background/70 hover:bg-accent/20 border-input/70" disabled={isAiAdviceLoading}>
+        <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full sm:w-auto flex-1 bg-background/70 hover:bg-accent/20 border-input/70" disabled={isCurrentlyUpdating}>
           {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
           AI Advice
         </Button>
         <div className="flex w-full sm:w-auto gap-2">
-            <Button onClick={() => setIsRecheckDialogOpen(true)} variant="outline" size="sm" className="flex-1 bg-background/70 hover:bg-accent/20 border-input/70">
-            <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
+            <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="flex-1 bg-background/70 hover:bg-accent/20 border-input/70" disabled={isCurrentlyUpdating}>
+              <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
             </Button>
-            <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2">
-            <Trash2Icon className="h-4 w-4" />
+            <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive px-2" disabled={isRemoving || isCurrentlyUpdating}>
+              {isRemoving ? <Loader2Icon className="animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
             </Button>
         </div>
       </CardFooter>
@@ -190,22 +192,22 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem }: PriceTrac
                 placeholder={item.currentPrice.toString()}
               />
             </div>
-             {recheckResult && (
-              <Alert className={`mt-2 ${recheckResult.shouldAlert ? 'border-green-500/70 text-green-700 dark:text-green-400' : 'border-blue-500/70 text-blue-700 dark:text-blue-400'} bg-background/80 backdrop-blur-sm`}>
-                <BellIcon className={`h-4 w-4 ${recheckResult.shouldAlert ? 'text-green-700 dark:text-green-400' : 'text-blue-700 dark:text-blue-400'}`} />
-                <AlertTitle className="text-foreground">{recheckResult.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
+             {recheckDialogAiAlert && (
+              <Alert className={`mt-2 ${recheckDialogAiAlert.shouldAlert ? 'border-green-500/70 text-green-700 dark:text-green-400' : 'border-blue-500/70 text-blue-700 dark:text-blue-400'} bg-background/80 backdrop-blur-sm`}>
+                <BellIcon className={`h-4 w-4 ${recheckDialogAiAlert.shouldAlert ? 'text-green-700 dark:text-green-400' : 'text-blue-700 dark:text-blue-400'}`} />
+                <AlertTitle className="text-foreground">{recheckDialogAiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
                 <AlertDescription className="text-foreground/80">
-                  {recheckResult.alertMessage}
+                  {recheckDialogAiAlert.alertMessage}
                 </AlertDescription>
               </Alert>
             )}
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" onClick={() => {setRecheckResult(null); setIsRecheckDialogOpen(false);}} className="bg-background/70 hover:bg-accent/20 border-input/70">Cancel</Button>
+              <Button variant="outline" onClick={() => {setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(false);}} className="bg-background/70 hover:bg-accent/20 border-input/70">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleRecheckPrice} disabled={isRechecking}>
-              {isRechecking ? <RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCwIcon className="mr-2 h-4 w-4" />}
+            <Button onClick={handleRecheckPriceSubmit} disabled={isRecheckingPriceAI || isUpdating}>
+              {isRecheckingPriceAI ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCwIcon className="mr-2 h-4 w-4" />}
               Check Now
             </Button>
           </DialogFooter>

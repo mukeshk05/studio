@@ -8,19 +8,19 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import useLocalStorage from "@/hooks/use-local-storage";
-import type { PriceTrackerEntry } from "@/lib/types";
+// Removed useLocalStorage import for trackedItems
 import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon } from "lucide-react";
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
-const EMPTY_TRACKED_ITEMS: PriceTrackerEntry[] = []; // Moved constant out
 
 export default function DashboardPage() {
-  const [trackedItems, setTrackedItems] = useLocalStorage<PriceTrackerEntry[]>("trackedItems", EMPTY_TRACKED_ITEMS);
+  // trackedItems are now managed by PriceTrackerList via firestoreHooks
   const [travelTip, setTravelTip] = useState<string | null>(null);
   const [isTipLoading, setIsTipLoading] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const fetchNewTravelTip = async () => {
     setIsTipLoading(true);
@@ -42,15 +42,15 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchNewTravelTip();
+    if (currentUser) { // Fetch tip only if user is logged in, or adjust if tips are for all users
+      fetchNewTravelTip();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, [currentUser]); // Re-fetch if user logs in/out and tip is user-dependent
 
-  const handleTrackerAdded = (newEntry: PriceTrackerEntry) => {
-    setTrackedItems([...trackedItems, newEntry]);
-  };
+  // handleTrackerAdded is no longer needed here as PriceTrackerForm will directly save to Firestore.
   
-  const glassEffectClasses = "bg-card/60 dark:bg-card/40 backdrop-blur-lg border border-white/20 shadow-xl";
+  const glassEffectClasses = "bg-card/60 dark:bg-card/40 backdrop-blur-lg border-white/20 shadow-xl";
 
 
   return (
@@ -98,15 +98,13 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
         
-        {/* Apply glass effect to the container of TabsContent if needed, or individual cards within them */}
         <div className={`p-0 sm:p-2 rounded-xl ${glassEffectClasses} `}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
           <TabsContent value="price-tracker" className="mt-0">
-            {/* PriceTrackerForm already is a Card, so it will inherit from its own styling if we modify Card component globally or pass props */}
-            {/* For this example, I'm applying glass effect classes directly to PriceTrackerForm if needed or its internal Card */}
-            <PriceTrackerForm onTrackerAdded={handleTrackerAdded} />
+            {/* PriceTrackerForm no longer needs onTrackerAdded */}
+            <PriceTrackerForm /> 
             <PriceTrackerList />
           </TabsContent>
         </div>

@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { BookmarkIcon, CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, PlaneIcon, HotelIcon, ExternalLinkIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon } from "lucide-react";
+// Removed useToast as saving feedback is handled by the parent sheet/page
 import {
   Accordion,
   AccordionContent,
@@ -16,9 +16,11 @@ import {
 } from "@/components/ui/accordion"
 
 type ItineraryCardProps = {
-  itinerary: Itinerary;
-  onSaveTrip: (itinerary: Itinerary) => void;
+  itinerary: Itinerary; // Itinerary will have an ID (temp or real)
+  onSaveTrip: (itineraryData: Omit<Itinerary, 'id'>) => void; // Expects data without ID for saving
   isSaved: boolean;
+  isSaving?: boolean;
+  isDetailedView?: boolean; // To conditionally render certain elements if needed
 };
 
 function HotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
@@ -64,15 +66,12 @@ function DailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
 }
 
 
-export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardProps) {
-  const { toast } = useToast();
+export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDetailedView = false }: ItineraryCardProps) {
+  // const { toast } = useToast(); // Toast is handled by parent now
 
-  const handleSave = () => {
-    onSaveTrip(itinerary);
-    toast({
-      title: "Trip Saved!",
-      description: `${itinerary.destination} has been added to your dashboard.`,
-    });
+  const handleSaveClick = () => {
+    const { id, ...dataToSave } = itinerary; // Remove ID before passing to save handler
+    onSaveTrip(dataToSave);
   };
 
   const handleFindDeals = () => {
@@ -135,7 +134,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
           </div>
         )}
 
-        <Accordion type="multiple" className="w-full text-sm" defaultValue={['daily-plan']}>
+        <Accordion type="multiple" className="w-full text-sm" defaultValue={ isDetailedView && itinerary.dailyPlan && itinerary.dailyPlan.length > 0 ? ['daily-plan'] : []}>
           {itinerary.dailyPlan && itinerary.dailyPlan.length > 0 && (
             <AccordionItem value="daily-plan">
               <AccordionTrigger className="text-sm font-medium hover:no-underline py-2">
@@ -145,7 +144,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-1 space-y-1.5 max-h-60 overflow-y-auto">
                 {itinerary.dailyPlan.map((planItem, index) => (
-                  <DailyPlanDisplay key={`plan-${index}`} planItem={planItem} />
+                  <DailyPlanDisplay key={`plan-${itinerary.id}-${index}`} planItem={planItem} />
                 ))}
               </AccordionContent>
             </AccordionItem>
@@ -160,7 +159,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-2 space-y-2">
                 {itinerary.flightOptions.map((flight, index) => (
-                  <div key={`flight-${index}`} className="p-2 rounded-md border bg-muted/50">
+                  <div key={`flight-${itinerary.id}-${index}`} className="p-2 rounded-md border bg-muted/50">
                     <p className="font-semibold text-foreground">{flight.name} - ${flight.price.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">{flight.description}</p>
                   </div>
@@ -178,7 +177,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-2 space-y-2">
                 {itinerary.hotelOptions.map((hotel, index) => (
-                  <HotelOptionDisplay key={`hotel-${index}`} hotel={hotel} />
+                  <HotelOptionDisplay key={`hotel-${itinerary.id}-${index}`} hotel={hotel} />
                 ))}
               </AccordionContent>
             </AccordionItem>
@@ -188,13 +187,13 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row gap-3 pt-4">
         <Button 
-          onClick={handleSave} 
-          disabled={isSaved} 
+          onClick={handleSaveClick} 
+          disabled={isSaved || isSaving} 
           className="w-full sm:flex-1" 
           variant={isSaved ? "secondary" : "outline"}
         >
-          <BookmarkIcon className="mr-2 h-4 w-4" />
-          {isSaved ? "Saved" : "Save Trip"}
+          {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
+          {isSaving ? "Saving..." : isSaved ? "Saved" : "Save Trip"}
         </Button>
         <Button 
           onClick={handleFindDeals} 
@@ -208,4 +207,3 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved }: ItineraryCardP
     </Card>
   );
 }
-

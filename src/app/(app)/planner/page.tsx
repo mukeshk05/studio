@@ -4,31 +4,34 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TripInputForm } from "@/components/trip-planner/trip-input-form";
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
-import { Itinerary } from "@/lib/types";
-import { TripPlannerInputDialog } from "@/components/trip-planner/TripPlannerInputDialog";
+import type { Itinerary } from "@/lib/types";
+import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet"; // Updated import
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
 import { MessageSquarePlusIcon, SparklesIcon } from "lucide-react";
-import useLocalStorage from "@/hooks/use-local-storage";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSavedTrips, useAddSavedTrip } from "@/lib/firestoreHooks";
+import { useToast } from "@/hooks/use-toast";
 
 export interface ChatMessage {
   id: string;
   type: "user" | "ai" | "error" | "loading" | "system";
-  payload?: any; // For user: AITripPlannerInput, For AI: Itinerary[], For error: string
+  payload?: any; 
   timestamp: Date;
 }
 
-const EMPTY_SAVED_TRIPS_PLANNER: Itinerary[] = [];
-
 export default function TripPlannerPage() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [isInputDialogOpen, setIsInputDialogOpen] = useState(false);
+  const [isInputSheetOpen, setIsInputSheetOpen] = useState(false); // Renamed from isInputDialogOpen
   const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [savedTrips, setSavedTrips] = useLocalStorage<Itinerary[]>("savedTrips", EMPTY_SAVED_TRIPS_PLANNER);
+  
+  const { currentUser } = useAuth();
+  const { toast } = useToast();
+  const { data: savedTrips, isLoading: isLoadingSavedTrips } = useSavedTrips();
+  const addSavedTripMutation = useAddSavedTrip();
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +76,11 @@ export default function TripPlannerPage() {
     try {
       const result: AITripPlannerOutput = await aiTripPlanner(input);
       
-      const itinerariesWithIds: Itinerary[] = (result.itineraries || []).map((it, index) => ({
+      // Firestore will generate IDs, so we don't create them here.
+      // The 'id' will be added when fetching from Firestore or immediately after adding.
+      // For display before saving, a temporary client-side ID could be used if needed,
+      // but for now, let's assume ID is only relevant once saved.
+      const itinerariesFromAI: Omit<Itinerary, 'id'>[] = (result.itineraries || []).map((it) => ({
         ...it,
         destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
         hotelOptions: (it.hotelOptions || []).map(hotel => ({
@@ -81,13 +88,16 @@ export default function TripPlannerPage() {
           hotelImageUri: hotel.hotelImageUri || `https://placehold.co/300x200.png?text=${encodeURIComponent(hotel.name.substring(0,10))}`
         })),
         dailyPlan: it.dailyPlan || [],
-        id: `${it.destination}-${it.travelDates}-${it.estimatedCost}-${index}-${crypto.randomUUID()}` // Ensure unique ID
+        // No client-side 'id' generation here; Firestore will handle it.
+        // For viewing details of an unsaved trip, we pass the full Itinerary (Omit<Itinerary, 'id'>) object.
       }));
+
 
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         type: "ai",
-        payload: itinerariesWithIds,
+        // Pass the AI output directly. The ItineraryCard will handle unsaved items.
+        payload: itinerariesFromAI.map(it => ({...it, id: `temp-${crypto.randomUUID()}`})), // Add temp id for key prop
         timestamp: new Date(),
       };
       setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(aiMessage));
@@ -114,20 +124,56 @@ export default function TripPlannerPage() {
     }
   };
 
-  const handleViewDetails = (itinerary: Itinerary) => {
+  const handleViewDetails = (itinerary: Itinerary) => { // Expects Itinerary which might have temp id
     setSelectedItinerary(itinerary);
     setIsDetailSheetOpen(true);
   };
 
-  const handleSaveTrip = (itineraryToSave: Itinerary) => {
-    if (!savedTrips.find(trip => trip.id === itineraryToSave.id)) {
-      setSavedTrips([...savedTrips, itineraryToSave]);
+  const handleSaveTrip = async (itineraryToSave: Omit<Itinerary, 'id'>) => {
+    if (!currentUser) {
+      toast({ title: "Authentication Required", description: "Please log in to save trips.", variant: "destructive" });
+      return;
     }
-    // Optionally, provide feedback like a toast, handled in ItineraryCard itself
-  };
+    try {
+      // Check if a very similar trip (destination, travelDates, estimatedCost) already exists to avoid exact duplicates if user clicks save multiple times on an unsaved card
+      // This client-side check is basic. A more robust check could be done via Firestore query if needed.
+      const alreadyExists = savedTrips?.some(
+        (trip) => 
+          trip.destination === itineraryToSave.destination &&
+          trip.travelDates === itineraryToSave.travelDates &&
+          trip.estimatedCost === itineraryToSave.estimatedCost
+      );
 
-  const isTripSaved = (itineraryId: string): boolean => {
-    return savedTrips.some(trip => trip.id === itineraryId);
+      if (alreadyExists && !itineraryToSave.id?.startsWith('temp-')) { // only check for already saved trips
+         toast({ title: "Already Saved", description: "This trip variation seems to be already in your dashboard." });
+         return;
+      }
+
+      await addSavedTripMutation.mutateAsync(itineraryToSave);
+      toast({
+        title: "Trip Saved!",
+        description: `${itineraryToSave.destination} has been added to your dashboard.`,
+      });
+      setIsDetailSheetOpen(false); // Close sheet after saving
+    } catch (error) {
+      console.error("Error saving trip:", error);
+      toast({ title: "Error Saving Trip", description: "Could not save the trip to your dashboard.", variant: "destructive" });
+    }
+  };
+  
+  const isTripSaved = (itinerary: Itinerary | Omit<Itinerary, 'id'>): boolean => {
+    if (isLoadingSavedTrips || !savedTrips) return false;
+    // If the itinerary has a non-temporary ID, check if it's in savedTrips
+    if (itinerary.id && !itinerary.id.startsWith('temp-')) {
+      return savedTrips.some(trip => trip.id === itinerary.id);
+    }
+    // For unsaved (temporary ID) or items without ID, check by content
+    return savedTrips.some(
+      (trip) =>
+        trip.destination === itinerary.destination &&
+        trip.travelDates === itinerary.travelDates &&
+        trip.estimatedCost === itinerary.estimatedCost
+    );
   };
 
 
@@ -150,20 +196,21 @@ export default function TripPlannerPage() {
              </div>
            ) : (
             <Button
-              onClick={() => setIsInputDialogOpen(true)}
+              onClick={() => setIsInputSheetOpen(true)} // Updated to setIsInputSheetOpen
               className="w-full text-lg py-3"
               size="lg"
+              disabled={!currentUser || addSavedTripMutation.isPending}
             >
               <MessageSquarePlusIcon className="w-6 h-6 mr-2" />
-              Plan New Trip or Ask Follow-up
+              Plan New Trip
             </Button>
            )}
         </div>
       </div>
 
-      <TripPlannerInputDialog
-        isOpen={isInputDialogOpen}
-        onClose={() => setIsInputDialogOpen(false)}
+      <TripPlannerInputSheet // Updated component name
+        isOpen={isInputSheetOpen} // Updated prop name
+        onClose={() => setIsInputSheetOpen(false)} // Updated prop name
         onPlanRequest={handlePlanRequest}
       />
 
@@ -171,9 +218,10 @@ export default function TripPlannerPage() {
         <ItineraryDetailSheet
           isOpen={isDetailSheetOpen}
           onClose={() => setIsDetailSheetOpen(false)}
-          itinerary={selectedItinerary}
+          itinerary={selectedItinerary} // selectedItinerary now includes a temporary ID if unsaved
           onSaveTrip={handleSaveTrip}
-          isTripSaved={isTripSaved(selectedItinerary.id)}
+          isTripSaved={isTripSaved(selectedItinerary)}
+          isSaving={addSavedTripMutation.isPending}
         />
       )}
     </div>
