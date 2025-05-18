@@ -8,27 +8,34 @@ import { AppLogo } from '@/components/layout/app-logo';
 import { 
   ArrowRightIcon, 
   SparklesIcon, 
-  NavigationIcon, 
-  TrendingUpIcon, 
-  BrainCircuitIcon, 
-  UsersIcon, 
-  LightbulbIcon,
   ListChecksIcon,
   HeartIcon,
   LogInIcon,
+  UserPlusIcon,
   Wand2Icon,
-  CheckCircleIcon,
   BarChart3Icon, 
   UsersRoundIcon, 
   BrainIcon, 
   MessageSquareTextIcon,
   NotebookTextIcon,
-  AppWindowIcon
+  UserIcon,
+  LogOutIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import { useAuth } from "@/contexts/AuthContext"; // Added
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Added
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // Added
+import { Skeleton } from "@/components/ui/skeleton"; // Added
 
 const useStaggeredAnimation = (count: number, delayIncrement = 100, trigger: boolean) => {
   const [visibleItems, setVisibleItems] = useState(Array(count).fill(false));
@@ -54,31 +61,33 @@ const useStaggeredAnimation = (count: number, delayIncrement = 100, trigger: boo
 
 
 export default function LandingPage() {
+  const { currentUser, logout, loading: authLoading } = useAuth(); // Added useAuth
+
   const features = [
     {
-      icon: <Wand2Icon className="w-10 h-10 mb-4" />, // Updated icon
+      icon: <Wand2Icon className="w-10 h-10 mb-4" />,
       title: "AI-Powered Trip Planner",
-      description: "Personalized itineraries in seconds! Define your destination, dates, budget, mood, and Travel DNA. Our AI crafts detailed daily plans and hotel options, considering weather and risks.",
+      description: "Personalized itineraries! Define destination, dates, budget, mood, Travel DNA. AI crafts detailed plans & hotel options, considering weather/risks.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "intelligent itinerary generation"
     },
     {
-      icon: <BarChart3Icon className="w-10 h-10 mb-4" />, // Updated icon
+      icon: <BarChart3Icon className="w-10 h-10 mb-4" />,
       title: "Smart Price Suite",
-      description: "Never miss a deal. Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecasts to make informed decisions.",
+      description: "Track flight/hotel prices, get AI advice on booking, and view illustrative price forecasts to make informed decisions.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai price analysis chart"
     },
     {
       icon: <BrainIcon className="w-10 h-10 mb-4" />,
       title: "Discover Your Travel DNA",
-      description: "Take our Adventure Quiz to uncover your unique travel persona. This helps Aura AI personalize all your future travel suggestions and trip plans!",
+      description: "Take our Adventure Quiz to uncover your unique travel persona. This helps Aura AI personalize all your future travel suggestions!",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4" />, // Updated icon
-      title: "Aura AI: Natural Language Trip Search",
+      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4" />,
+      title: "Aura AI: Natural Language Search",
       description: "Ask Aura for trip ideas using natural language! Get personalized trip bundles based on your profile and search history.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
@@ -124,11 +133,10 @@ export default function LandingPage() {
 
 
   useEffect(() => {
-    // Trigger animations after mount
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); // Delay features section
-    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450); // Delay why-us section
-    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650); // Delay final CTA
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); 
+    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450); 
+    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650); 
 
     return () => {
       clearTimeout(heroTimer);
@@ -142,7 +150,6 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
-      {/* Background Image and Overlay */}
       <div className="absolute inset-0 z-[-1]">
         <Image 
           src="https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg"
@@ -165,14 +172,91 @@ export default function LandingPage() {
             <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
               <HeartIcon className="w-4 h-4" /> Why Us
             </Link>
-            <Button asChild variant="ghost" className="text-sm text-slate-100 hover:bg-primary/10 hover:text-primary">
-              <Link href="/planner" className="flex items-center gap-1.5"><LogInIcon className="w-4 h-4" /> App</Link>
-            </Button>
-             <Button asChild className={cn("text-sm hidden sm:inline-flex transform transition-transform hover:scale-105 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40")}>
-              <Link href="/planner" className="flex items-center gap-1.5">
-                <LogInIcon className="w-4 h-4" /> Get Started
-              </Link>
-            </Button>
+            
+            {/* Auth Links Start */}
+            {authLoading ? (
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-20 rounded-md bg-muted/50" />
+                <Skeleton className="h-9 w-9 rounded-full bg-muted/50 hidden sm:block" />
+              </div>
+            ) : currentUser ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 hover:bg-accent/20">
+                    <Avatar className="h-9 w-9 border border-primary/50">
+                      <AvatarImage 
+                        src={currentUser.photoURL || undefined} 
+                        alt={currentUser.displayName || currentUser.email || "User avatar"} 
+                      />
+                      <AvatarFallback className="bg-muted/50">
+                        <UserIcon className="h-5 w-5 text-foreground/80" />
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 glass-card border-border/50" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none text-foreground">
+                        {currentUser.displayName || currentUser.email?.split('@')[0]}
+                      </p>
+                      {currentUser.email && (
+                         <p className="text-xs leading-none text-muted-foreground">
+                          {currentUser.email}
+                        </p>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-border/50"/>
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer focus:bg-destructive/20 focus:text-destructive-foreground">
+                    <LogOutIcon className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link 
+                  href="/login" 
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "hidden sm:inline-flex items-center border-primary/50 text-primary hover:bg-primary/10 hover:text-primary"
+                  )}
+                >
+                  <LogInIcon className="mr-1 h-4 w-4" /> Login
+                </Link>
+                <Link 
+                  href="/login" 
+                  aria-label="Login"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon" }),
+                    "sm:hidden text-primary hover:bg-primary/10"
+                  )}
+                >
+                  <LogInIcon />
+                </Link>
+                <Link 
+                  href="/signup" 
+                  className={cn(
+                    buttonVariants({ variant: "default", size: "sm" }),
+                    "hidden sm:inline-flex items-center shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                  )}
+                >
+                  <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up
+                </Link>
+                 <Link 
+                  href="/signup" 
+                  aria-label="Sign Up"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon" }),
+                    "sm:hidden text-primary hover:bg-primary/10"
+                  )}
+                >
+                  <UserPlusIcon />
+                </Link>
+              </>
+            )}
+            {/* Auth Links End */}
           </nav>
         </div>
       </header>
@@ -252,7 +336,7 @@ export default function LandingPage() {
             <Carousel
               opts={{
                 align: "start",
-                loop: features.length > 2, // Loop only if enough items for it to make sense
+                loop: features.length > 2, 
               }}
               className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto"
             >
@@ -375,6 +459,3 @@ export default function LandingPage() {
     </div>
   );
 }
-    
-
-    
