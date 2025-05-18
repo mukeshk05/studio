@@ -14,17 +14,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Keep Card if used internally, or remove if not.
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
-import React from "react";
+import React, { useEffect } from "react"; // Added useEffect
 import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   destination: z.string().min(2, {
     message: "Destination must be at least 2 characters.",
   }),
-  travelDates: z.string().min(5, { 
+  travelDates: z.string().min(5, {
     message: "Please provide travel dates.",
   }).describe('The desired travel dates (e.g., MM/DD/YYYY-MM/DD/YYYY or "Next weekend").'),
   budget: z.coerce.number().positive({
@@ -33,10 +31,10 @@ const formSchema = z.object({
 });
 
 type TripInputFormProps = {
-  // onItinerariesFetched is no longer directly used by this form for AI calls
-  onItinerariesFetched: (itineraries: AITripPlannerOutput["itineraries"] | null) => void; 
+  onItinerariesFetched: (itineraries: AITripPlannerOutput["itineraries"] | null) => void;
   setIsLoading: (isLoading: boolean) => void;
-  onSubmitProp?: (values: AITripPlannerInput) => Promise<void>; // New prop for handling submission
+  onSubmitProp?: (values: AITripPlannerInput) => Promise<void>;
+  initialValues?: Partial<AITripPlannerInput> | null; // Added prop
 };
 
 const suggestedPrompts = [
@@ -46,24 +44,31 @@ const suggestedPrompts = [
   "Cultural exploration of Kyoto, Japan for 5 days with $1500",
 ];
 
-// Removed Card wrapping, as this form will be in a Dialog
-export function TripInputForm({ setIsLoading, onSubmitProp }: TripInputFormProps) {
-  const { toast } = useToast(); // Toast can still be used for form validation feedback if needed
+export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: TripInputFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      destination: "",
-      travelDates: "",
-      budget: 1000,
+      destination: initialValues?.destination || "",
+      travelDates: initialValues?.travelDates || "",
+      budget: initialValues?.budget || 1000,
     },
   });
+
+  useEffect(() => {
+    // Reset the form when initialValues change
+    form.reset({
+      destination: initialValues?.destination || "",
+      travelDates: initialValues?.travelDates || "",
+      budget: initialValues?.budget || 1000,
+    });
+  }, [initialValues, form]);
+
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
     if (onSubmitProp) {
       setIsLoading(true);
       await onSubmitProp(values);
       setIsLoading(false);
-      // Do not call onItinerariesFetched or toast here, parent (Dialog) will handle it
     }
   }
 
@@ -72,18 +77,18 @@ export function TripInputForm({ setIsLoading, onSubmitProp }: TripInputFormProps
     let destinationAndDates = parts[0];
     let budgetStr = parts[1]?.split(" budget $")?.[1] || parts[1]?.split(" $")?.[1];
     let destination = destinationAndDates;
-    let travelDates = "a week"; 
+    let travelDates = "a week";
 
     if (destinationAndDates.toLowerCase().includes(" to ")) {
         const destParts = destinationAndDates.split(" to ");
-        if (destParts.length > 1) { 
-            travelDates = destParts[0].trim(); 
-            destination = destParts.slice(1).join(" to ").trim(); 
+        if (destParts.length > 1) {
+            travelDates = destParts[0].trim();
+            destination = destParts.slice(1).join(" to ").trim();
             if (travelDates.toLowerCase().includes(" days")) travelDates = travelDates.split(" days")[0] + " days";
             else if (travelDates.toLowerCase().includes(" day")) travelDates = travelDates.split(" day")[0] + " day";
             else if (travelDates.toLowerCase().includes(" week")) travelDates = "a week";
         }
-    } else if (destinationAndDates.includes(",")) { 
+    } else if (destinationAndDates.includes(",")) {
         const firstComma = destinationAndDates.indexOf(",");
         destination = destinationAndDates.substring(0, firstComma).trim();
         travelDates = destinationAndDates.substring(firstComma + 1).trim();
@@ -99,8 +104,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp }: TripInputFormProps
   };
 
   return (
-    // Removed outer Card component
-    <div className="w-full"> 
+    <div className="w-full">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 py-4">
             <FormField
@@ -148,7 +152,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp }: TripInputFormProps
               ) : (
                 <SparklesIcon className="mr-2 h-5 w-5" />
               )}
-              Get AI Trip Plan
+              {initialValues ? "Update Plan" : "Get AI Trip Plan"}
             </Button>
           </form>
         </Form>
@@ -159,10 +163,10 @@ export function TripInputForm({ setIsLoading, onSubmitProp }: TripInputFormProps
           </h3>
           <div className="space-y-2">
             {suggestedPrompts.map((prompt, index) => (
-              <Button 
+              <Button
                 key={index}
-                variant="outline" 
-                size="sm" 
+                variant="outline"
+                size="sm"
                 className="w-full text-left justify-start text-muted-foreground hover:text-primary hover:border-primary/50"
                 onClick={() => handleSuggestionClick(prompt)}
               >

@@ -20,16 +20,17 @@ type TripPlannerInputSheetProps = {
   isOpen: boolean;
   onClose: () => void;
   onPlanRequest: (input: AITripPlannerInput) => Promise<void>;
+  initialValues?: Partial<AITripPlannerInput> | null; // Added optional prop
 };
 
-export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest }: TripPlannerInputSheetProps) {
+export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest, initialValues }: TripPlannerInputSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleFormSubmit = async (values: AITripPlannerInput) => {
     setIsSubmitting(true);
     await onPlanRequest(values);
     setIsSubmitting(false);
-    onClose(); 
+    onClose();
   };
 
   return (
@@ -40,7 +41,7 @@ export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest }: TripPl
             <div>
               <SheetTitle className="text-foreground">Plan Your Adventure</SheetTitle>
               <SheetDescription className="text-muted-foreground">
-                Tell us your destination, dates, and budget. BudgetRoam AI will craft amazing options for you!
+                {initialValues ? "Refining your plan..." : "Tell us your destination, dates, and budget."}
               </SheetDescription>
             </div>
             <SheetClose asChild>
@@ -50,11 +51,12 @@ export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest }: TripPl
             </SheetClose>
           </div>
         </SheetHeader>
-        <div className="flex-grow overflow-y-auto p-6 pr-4"> {/* Adjusted padding for scrollbar */}
-          <TripInputForm 
-            onItinerariesFetched={() => {}} 
-            setIsLoading={setIsSubmitting} 
-            onSubmitProp={handleFormSubmit} 
+        <div className="flex-grow overflow-y-auto p-6 pr-4">
+          <TripInputForm
+            onItinerariesFetched={() => {}}
+            setIsLoading={setIsSubmitting}
+            onSubmitProp={handleFormSubmit}
+            initialValues={initialValues} // Pass initial values to the form
           />
         </div>
       </SheetContent>

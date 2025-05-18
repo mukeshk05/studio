@@ -6,20 +6,21 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
-import type { Itinerary } from "@/lib/types";
+import type { Itinerary, SearchHistoryEntry } from "@/lib/types"; // Added SearchHistoryEntry
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
-import { MessageSquarePlusIcon, SparklesIcon } from "lucide-react";
+import { MessageSquarePlusIcon, HistoryIcon } from "lucide-react"; // Added HistoryIcon
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer"; // New import
 
 export interface ChatMessage {
   id: string;
   type: "user" | "ai" | "error" | "loading" | "system";
-  payload?: any; 
+  payload?: any;
   timestamp: Date;
 }
 
@@ -28,7 +29,10 @@ export default function TripPlannerPage() {
   const [isInputSheetOpen, setIsInputSheetOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  
+  const [isSearchHistoryDrawerOpen, setIsSearchHistoryDrawerOpen] = useState(false); // New state
+  const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null); // New state
+
+
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const { data: savedTrips, isLoading: isLoadingSavedTrips } = useSavedTrips();
@@ -38,16 +42,16 @@ export default function TripPlannerPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (chatHistory.length === 0 && currentUser) { 
+    if (chatHistory.length === 0 && currentUser) {
       setChatHistory([
         {
           id: crypto.randomUUID(),
           type: "system",
-          payload: "Welcome to BudgetRoam AI Trip Planner! Click the button below to start planning your next adventure.",
+          payload: "Welcome to BudgetRoam AI Trip Planner! Click 'Plan New Trip' below or 'View Plan History' above to get started.",
           timestamp: new Date(),
         },
       ]);
-    } else if (chatHistory.length === 0 && !currentUser && !isLoadingSavedTrips) { 
+    } else if (chatHistory.length === 0 && !currentUser && !isLoadingSavedTrips) {
         setChatHistory([
         {
           id: crypto.randomUUID(),
@@ -58,7 +62,7 @@ export default function TripPlannerPage() {
       ]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser, isLoadingSavedTrips]); 
+  }, [currentUser, isLoadingSavedTrips]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -76,7 +80,6 @@ export default function TripPlannerPage() {
       return;
     }
 
-    // Log search history
     try {
       await addSearchHistoryMutation.mutateAsync({
         destination: input.destination,
@@ -84,10 +87,8 @@ export default function TripPlannerPage() {
         budget: input.budget,
       });
     } catch (error) {
-      // Non-critical error, log and continue
       console.warn("Failed to save search history:", error);
     }
-
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -105,7 +106,6 @@ export default function TripPlannerPage() {
 
     try {
       const result: AITripPlannerOutput = await aiTripPlanner(input);
-      
       const itinerariesFromAI: Omit<Itinerary, 'id'>[] = (result.itineraries || []).map((it) => ({
         ...it,
         destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
@@ -116,11 +116,10 @@ export default function TripPlannerPage() {
         dailyPlan: it.dailyPlan || [],
       }));
 
-
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         type: "ai",
-        payload: itinerariesFromAI.map(it => ({...it, id: `temp-${crypto.randomUUID()}`})), 
+        payload: itinerariesFromAI.map(it => ({...it, id: `temp-${crypto.randomUUID()}`})),
         timestamp: new Date(),
       };
       setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(aiMessage));
@@ -134,7 +133,6 @@ export default function TripPlannerPage() {
           };
           setChatHistory((prev) => [...prev, noResultsMessage]);
       }
-
     } catch (error) {
       console.error("Error planning trip:", error);
       const errorMessage: ChatMessage = {
@@ -147,7 +145,7 @@ export default function TripPlannerPage() {
     }
   };
 
-  const handleViewDetails = (itinerary: Itinerary) => { 
+  const handleViewDetails = (itinerary: Itinerary) => {
     setSelectedItinerary(itinerary);
     setIsDetailSheetOpen(true);
   };
@@ -159,13 +157,13 @@ export default function TripPlannerPage() {
     }
     try {
       const alreadyExists = savedTrips?.some(
-        (trip) => 
+        (trip) =>
           trip.destination === itineraryToSave.destination &&
           trip.travelDates === itineraryToSave.travelDates &&
           trip.estimatedCost === itineraryToSave.estimatedCost
       );
 
-      if (alreadyExists && itineraryToSave.id && !itineraryToSave.id.startsWith('temp-')) { 
+      if (alreadyExists && itineraryToSave.id && !itineraryToSave.id.startsWith('temp-')) {
          toast({ title: "Already Saved", description: "This trip variation seems to be already in your dashboard." });
          return;
       }
@@ -181,7 +179,7 @@ export default function TripPlannerPage() {
       toast({ title: "Error Saving Trip", description: "Could not save the trip to your dashboard.", variant: "destructive" });
     }
   };
-  
+
   const isTripSaved = (itinerary: Itinerary | Omit<Itinerary, 'id'>): boolean => {
     if (isLoadingSavedTrips || !savedTrips) return false;
     if ('id' in itinerary && itinerary.id && !itinerary.id.startsWith('temp-')) {
@@ -194,11 +192,42 @@ export default function TripPlannerPage() {
         trip.estimatedCost === itinerary.estimatedCost
     );
   };
-  
+
   const isAiProcessing = chatHistory.some(msg => msg.type === 'loading');
 
+  const handleSelectHistoryEntry = (entryData: Partial<AITripPlannerInput>) => {
+    setCurrentFormInitialValues(entryData);
+    setIsSearchHistoryDrawerOpen(false);
+    setIsInputSheetOpen(true);
+  };
+
+  const handleStartNewBlankPlanFromDrawer = () => {
+    setCurrentFormInitialValues(null);
+    setIsSearchHistoryDrawerOpen(false);
+    setIsInputSheetOpen(true);
+  };
+  
+  const handleOpenInputSheetForNewPlan = () => {
+    setCurrentFormInitialValues(null); // Ensure new plan starts blank
+    setIsInputSheetOpen(true);
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background"> {/* Adjusted height based on header */}
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
+      <div className="p-3 border-b border-border/30 bg-background/80 backdrop-blur-sm flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-foreground">AI Trip Planner</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsSearchHistoryDrawerOpen(true)}
+          disabled={!currentUser || addSearchHistoryMutation.isPending}
+          className="glass-interactive border-primary/30 text-primary hover:bg-primary/20"
+        >
+          <HistoryIcon className="w-4 h-4 mr-2" />
+          View Plan History
+        </Button>
+      </div>
+
       <ScrollArea className="flex-grow p-4 sm:p-6" ref={chatContainerRef}>
         <div className="max-w-3xl mx-auto space-y-6">
           {chatHistory.map((msg) => (
@@ -210,7 +239,7 @@ export default function TripPlannerPage() {
       <div className="p-4 border-t border-border/30 bg-background/80 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto">
             <Button
-              onClick={() => setIsInputSheetOpen(true)}
+              onClick={handleOpenInputSheetForNewPlan}
               className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
               size="lg"
               disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing || addSearchHistoryMutation.isPending}
@@ -225,6 +254,14 @@ export default function TripPlannerPage() {
         isOpen={isInputSheetOpen}
         onClose={() => setIsInputSheetOpen(false)}
         onPlanRequest={handlePlanRequest}
+        initialValues={currentFormInitialValues} // Pass initial values
+      />
+
+      <SearchHistoryDrawer
+        isOpen={isSearchHistoryDrawerOpen}
+        onClose={() => setIsSearchHistoryDrawerOpen(false)}
+        onSelectHistoryEntry={handleSelectHistoryEntry}
+        onStartNewBlankPlan={handleStartNewBlankPlanFromDrawer}
       />
 
       {selectedItinerary && (
