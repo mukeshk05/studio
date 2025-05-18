@@ -10,16 +10,17 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { ItineraryCard } from "./itinerary-card"; 
+import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XIcon } from "lucide-react";
+import { XIcon, MapPinIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import React from 'react'; // Ensure React is imported
 
 type ItineraryDetailSheetProps = {
   isOpen: boolean;
   onClose: () => void;
-  itinerary: Itinerary; 
+  itinerary: Itinerary;
   onSaveTrip: (itinerary: Omit<Itinerary, 'id'>) => void;
   isTripSaved: boolean;
   isSaving?: boolean;
@@ -39,12 +40,15 @@ export function ItineraryDetailSheet({
     const { id, ...dataToSave } = itinerary;
     onSaveTrip(dataToSave);
   };
-  
-  // Ensure itinerary passed to ItineraryCard always has an ID, even if temporary
-  const itineraryForCard: Itinerary = 'id' in itinerary && itinerary.id 
-    ? itinerary 
+
+  const itineraryForCard: Itinerary = 'id' in itinerary && itinerary.id
+    ? itinerary
     : { ...itinerary, id: `temp-${crypto.randomUUID()}`};
 
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const mapEmbedUrl = mapsApiKey
+    ? `https://www.google.com/maps/embed/v1/search?key=${mapsApiKey}&q=hotels+in+${encodeURIComponent(itinerary.destination)}`
+    : "";
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -65,14 +69,40 @@ export function ItineraryDetailSheet({
           </div>
         </SheetHeader>
         <ScrollArea className="flex-grow">
-          <div className="p-4 sm:p-6">
+          <div className="p-4 sm:p-6 space-y-6">
             <ItineraryCard
               itinerary={itineraryForCard}
-              onSaveTrip={handleSave} 
+              onSaveTrip={handleSave}
               isSaved={isTripSaved}
-              isSaving={isSaving} 
-              isDetailedView={true} 
+              isSaving={isSaving}
+              isDetailedView={true}
             />
+
+            <div className={cn("mt-6 glass-card p-4")}>
+              <h3 className="text-lg font-semibold mb-3 flex items-center text-card-foreground">
+                <MapPinIcon className="w-5 h-5 mr-2 text-primary" />
+                Location & Hotels Map
+              </h3>
+              {mapsApiKey ? (
+                <div className="aspect-video w-full rounded-md overflow-hidden border border-border/50">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={mapEmbedUrl}
+                    title={`Map of hotels in ${itinerary.destination}`}
+                  ></iframe>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground bg-muted/30 p-4 rounded-md">
+                  <p>Google Maps API Key is missing.</p>
+                  <p className="text-xs">Please configure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables to enable map features.</p>
+                </div>
+              )}
+            </div>
           </div>
         </ScrollArea>
       </SheetContent>
