@@ -1,68 +1,181 @@
 
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { TripInputForm } from "@/components/trip-planner/trip-input-form";
-import { ItineraryList } from "@/components/trip-planner/itinerary-list";
-import type { AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
-import { Separator } from "@/components/ui/separator";
-import { SparklesIcon, MessageSquareIcon, Loader2Icon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
+import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
+import { Itinerary } from "@/lib/types";
+import { TripPlannerInputDialog } from "@/components/trip-planner/TripPlannerInputDialog";
+import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
+import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet";
+import { MessageSquarePlusIcon, SparklesIcon } from "lucide-react";
+import useLocalStorage from "@/hooks/use-local-storage";
+
+export interface ChatMessage {
+  id: string;
+  type: "user" | "ai" | "error" | "loading" | "system";
+  payload?: any; // For user: AITripPlannerInput, For AI: Itinerary[], For error: string
+  timestamp: Date;
+}
+
+const EMPTY_SAVED_TRIPS_PLANNER: Itinerary[] = [];
 
 export default function TripPlannerPage() {
-  const [itineraries, setItineraries] = useState<AITripPlannerOutput["itineraries"] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isInputDialogOpen, setIsInputDialogOpen] = useState(false);
+  const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [savedTrips, setSavedTrips] = useLocalStorage<Itinerary[]>("savedTrips", EMPTY_SAVED_TRIPS_PLANNER);
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatHistory.length === 0) {
+      setChatHistory([
+        {
+          id: crypto.randomUUID(),
+          type: "system",
+          payload: "Welcome to BudgetRoam AI Trip Planner! Click the button below to start planning your next adventure.",
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [chatHistory]);
+
+  const handlePlanRequest = async (input: AITripPlannerInput) => {
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      type: "user",
+      payload: input,
+      timestamp: new Date(),
+    };
+    const loadingMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      type: "loading",
+      timestamp: new Date(),
+    };
+
+    setChatHistory((prev) => [...prev, userMessage, loadingMessage]);
+
+    try {
+      const result: AITripPlannerOutput = await aiTripPlanner(input);
+      
+      const itinerariesWithIds: Itinerary[] = (result.itineraries || []).map((it, index) => ({
+        ...it,
+        destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
+        hotelOptions: (it.hotelOptions || []).map(hotel => ({
+          ...hotel,
+          hotelImageUri: hotel.hotelImageUri || `https://placehold.co/300x200.png?text=${encodeURIComponent(hotel.name.substring(0,10))}`
+        })),
+        dailyPlan: it.dailyPlan || [],
+        id: `${it.destination}-${it.travelDates}-${it.estimatedCost}-${index}-${crypto.randomUUID()}` // Ensure unique ID
+      }));
+
+      const aiMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        type: "ai",
+        payload: itinerariesWithIds,
+        timestamp: new Date(),
+      };
+      setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(aiMessage));
+
+      if (!result.itineraries || result.itineraries.length === 0) {
+         const noResultsMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            type: "system",
+            payload: "I couldn't find any itineraries based on your request. Please try different criteria.",
+            timestamp: new Date(),
+          };
+          setChatHistory((prev) => [...prev, noResultsMessage]);
+      }
+
+    } catch (error) {
+      console.error("Error planning trip:", error);
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        type: "error",
+        payload: "Sorry, I encountered an error while planning your trip. Please try again.",
+        timestamp: new Date(),
+      };
+      setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(errorMessage));
+    }
+  };
+
+  const handleViewDetails = (itinerary: Itinerary) => {
+    setSelectedItinerary(itinerary);
+    setIsDetailSheetOpen(true);
+  };
+
+  const handleSaveTrip = (itineraryToSave: Itinerary) => {
+    if (!savedTrips.find(trip => trip.id === itineraryToSave.id)) {
+      setSavedTrips([...savedTrips, itineraryToSave]);
+    }
+    // Optionally, provide feedback like a toast, handled in ItineraryCard itself
+  };
+
+  const isTripSaved = (itineraryId: string): boolean => {
+    return savedTrips.some(trip => trip.id === itineraryId);
+  };
+
 
   return (
-    <div className="container mx-auto py-8 px-4 flex flex-col items-center">
-      <TripInputForm onItinerariesFetched={setItineraries} setIsLoading={setIsLoading} />
-      
-      {isLoading && (
-        <Card className="mt-12 w-full max-w-2xl mx-auto shadow-xl animate-fade-in-up">
-          <CardContent className="p-6 sm:p-8 text-center">
-            <div className="flex justify-center items-center mb-6">
-              <SparklesIcon className="w-12 h-12 text-primary animate-bounce" />
-            </div>
-            <p className="text-xl font-semibold text-foreground mb-2">BudgetRoam AI is crafting your journey...</p>
-            <p className="text-muted-foreground mb-6">This might take a few moments. Please wait.</p>
-            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-              <div 
-                className="bg-primary h-3 rounded-full animate-pulse-loader-planner" 
-                style={{ width: '100%' }} // The animation will handle the movement
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      {!isLoading && itineraries && itineraries.length > 0 && (
-        <div className="mt-12 w-full animate-fade-in-up delay-200">
-          <Separator className="my-8" />
-          <h2 className="text-3xl font-bold tracking-tight text-center mb-8 flex items-center justify-center">
-            <MessageSquareIcon className="w-8 h-8 mr-3 text-primary" />
-            Your AI-Generated Trip Options
-          </h2>
-          <ItineraryList itineraries={itineraries} isLoading={isLoading} />
+    <div className="flex flex-col h-[calc(100vh-4rem)]"> {/* Adjust height based on header */}
+      <ScrollArea className="flex-grow p-4 sm:p-6 bg-background" ref={chatContainerRef}>
+        <div className="max-w-3xl mx-auto space-y-6">
+          {chatHistory.map((msg) => (
+            <ChatMessageCard key={msg.id} message={msg} onViewDetails={handleViewDetails} />
+          ))}
         </div>
-      )}
-      
-      {!isLoading && itineraries === null && (
-         <div className="mt-12 text-center text-muted-foreground p-8 bg-card rounded-xl shadow-lg animate-fade-in-up">
-            <SparklesIcon className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-            <p className="text-lg">Enter your travel preferences above to see AI-generated trip plans.</p>
-            <p className="text-sm">Let BudgetRoam AI inspire your next adventure!</p>
-         </div>
-      )}
+      </ScrollArea>
 
-      {!isLoading && itineraries?.length === 0 && (
-         <div className="mt-12 text-center text-muted-foreground p-8 bg-card rounded-xl shadow-lg animate-fade-in-up">
-            <SparklesIcon className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-            <p className="text-lg">No itineraries were found for your request.</p>
-            <p className="text-sm">Please try different criteria or broaden your search.</p>
-         </div>
+      <div className="p-4 border-t bg-background">
+        <div className="max-w-3xl mx-auto">
+           {chatHistory.length > 0 && chatHistory[chatHistory.length -1].type === 'loading' ? (
+             <div className="flex items-center justify-center text-muted-foreground">
+                <SparklesIcon className="w-5 h-5 mr-2 animate-pulse text-primary" />
+                BudgetRoam AI is thinking...
+             </div>
+           ) : (
+            <Button
+              onClick={() => setIsInputDialogOpen(true)}
+              className="w-full text-lg py-3"
+              size="lg"
+            >
+              <MessageSquarePlusIcon className="w-6 h-6 mr-2" />
+              Plan New Trip or Ask Follow-up
+            </Button>
+           )}
+        </div>
+      </div>
+
+      <TripPlannerInputDialog
+        isOpen={isInputDialogOpen}
+        onClose={() => setIsInputDialogOpen(false)}
+        onPlanRequest={handlePlanRequest}
+      />
+
+      {selectedItinerary && (
+        <ItineraryDetailSheet
+          isOpen={isDetailSheetOpen}
+          onClose={() => setIsDetailSheetOpen(false)}
+          itinerary={selectedItinerary}
+          onSaveTrip={handleSaveTrip}
+          isTripSaved={isTripSaved(selectedItinerary.id)}
+        />
       )}
     </div>
   );
 }
-
-    

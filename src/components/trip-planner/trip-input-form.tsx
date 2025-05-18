@@ -14,9 +14,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-// import { Textarea } from "@/components/ui/textarea"; // Not used currently
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { aiTripPlanner, type AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Keep Card if used internally, or remove if not.
+import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 import React from "react";
 import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -34,8 +33,10 @@ const formSchema = z.object({
 });
 
 type TripInputFormProps = {
-  onItinerariesFetched: (itineraries: AITripPlannerOutput["itineraries"] | null) => void;
+  // onItinerariesFetched is no longer directly used by this form for AI calls
+  onItinerariesFetched: (itineraries: AITripPlannerOutput["itineraries"] | null) => void; 
   setIsLoading: (isLoading: boolean) => void;
+  onSubmitProp?: (values: AITripPlannerInput) => Promise<void>; // New prop for handling submission
 };
 
 const suggestedPrompts = [
@@ -45,8 +46,9 @@ const suggestedPrompts = [
   "Cultural exploration of Kyoto, Japan for 5 days with $1500",
 ];
 
-export function TripInputForm({ onItinerariesFetched, setIsLoading }: TripInputFormProps) {
-  const { toast } = useToast();
+// Removed Card wrapping, as this form will be in a Dialog
+export function TripInputForm({ setIsLoading, onSubmitProp }: TripInputFormProps) {
+  const { toast } = useToast(); // Toast can still be used for form validation feedback if needed
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -56,69 +58,38 @@ export function TripInputForm({ onItinerariesFetched, setIsLoading }: TripInputF
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    onItinerariesFetched(null); 
-    try {
-      const result = await aiTripPlanner(values);
-      onItinerariesFetched(result.itineraries);
-      if (result.itineraries && result.itineraries.length > 0) {
-        toast({
-          title: "Trip Options Generated!",
-          description: "Explore the itineraries below.",
-        });
-      } else {
-        toast({
-          title: "No Itineraries Found",
-          description: "Try adjusting your criteria or broaden your search.",
-          variant: "default" 
-        });
-      }
-    } catch (error) {
-      console.error("Error planning trip:", error);
-      onItinerariesFetched(null);
-      toast({
-        title: "Error Generating Trips",
-        description: "Could not generate trip options at this time. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
+  async function handleSubmit(values: z.infer<typeof formSchema>) {
+    if (onSubmitProp) {
+      setIsLoading(true);
+      await onSubmitProp(values);
       setIsLoading(false);
+      // Do not call onItinerariesFetched or toast here, parent (Dialog) will handle it
     }
   }
 
   const handleSuggestionClick = (promptText: string) => {
-    // Basic parsing for demonstration. A more robust solution might be needed.
     const parts = promptText.split(" for ");
     let destinationAndDates = parts[0];
     let budgetStr = parts[1]?.split(" budget $")?.[1] || parts[1]?.split(" $")?.[1];
-
-    // Attempt to parse destination and dates
-    // This is a very naive parsing, works for "Destination for Dates" structure
     let destination = destinationAndDates;
-    let travelDates = "a week"; // Default if not easily parsed
+    let travelDates = "a week"; 
 
-    // A more specific parsing attempt (example)
     if (destinationAndDates.toLowerCase().includes(" to ")) {
         const destParts = destinationAndDates.split(" to ");
-        if (destParts.length > 1) { // "7-day romantic getaway to Paris"
-            travelDates = destParts[0].trim(); // "7-day romantic getaway"
-            destination = destParts.slice(1).join(" to ").trim(); // "Paris"
-             // refine travelDates
+        if (destParts.length > 1) { 
+            travelDates = destParts[0].trim(); 
+            destination = destParts.slice(1).join(" to ").trim(); 
             if (travelDates.toLowerCase().includes(" days")) travelDates = travelDates.split(" days")[0] + " days";
             else if (travelDates.toLowerCase().includes(" day")) travelDates = travelDates.split(" day")[0] + " day";
             else if (travelDates.toLowerCase().includes(" week")) travelDates = "a week";
-
-
         }
-    } else if (destinationAndDates.includes(",")) { // "Kyoto, Japan for 5 days"
+    } else if (destinationAndDates.includes(",")) { 
         const firstComma = destinationAndDates.indexOf(",");
         destination = destinationAndDates.substring(0, firstComma).trim();
         travelDates = destinationAndDates.substring(firstComma + 1).trim();
          if (travelDates.toLowerCase().includes(" days")) travelDates = travelDates.split(" days")[0] + " days";
          else if (travelDates.toLowerCase().includes(" day")) travelDates = travelDates.split(" day")[0] + " day";
     }
-
 
     form.setValue("destination", destination.trim());
     form.setValue("travelDates", travelDates.trim());
@@ -127,19 +98,11 @@ export function TripInputForm({ onItinerariesFetched, setIsLoading }: TripInputF
     }
   };
 
-
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-xl animate-fade-in-up">
-      <CardHeader>
-        <CardTitle className="flex items-center text-2xl">
-          <SparklesIcon className="w-7 h-7 mr-2 text-accent" />
-          Plan Your Next Adventure
-        </CardTitle>
-        <CardDescription>Tell us about your dream trip, and our AI will craft budget-friendly options for you!</CardDescription>
-      </CardHeader>
-      <CardContent>
+    // Removed outer Card component
+    <div className="w-full"> 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 py-4">
             <FormField
               control={form.control}
               name="destination"
@@ -185,11 +148,11 @@ export function TripInputForm({ onItinerariesFetched, setIsLoading }: TripInputF
               ) : (
                 <SparklesIcon className="mr-2 h-5 w-5" />
               )}
-              Plan My Trip
+              Get AI Trip Plan
             </Button>
           </form>
         </Form>
-        <div className="mt-8 pt-6 border-t border-border">
+        <div className="mt-2 pt-4 border-t border-border">
           <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
             <LightbulbIcon className="w-4 h-4 mr-2 text-yellow-400"/>
             Need inspiration? Try prompts like:
@@ -208,9 +171,6 @@ export function TripInputForm({ onItinerariesFetched, setIsLoading }: TripInputF
             ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
-
-    
