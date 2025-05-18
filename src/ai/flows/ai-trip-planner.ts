@@ -58,25 +58,28 @@ For example, if the mood is 'romantic' and persona is 'Adventurer', suggest adve
     Assume you have access to a general weather forecast for the destination and travel dates.
     If rain is likely for typically outdoor activities, suggest indoor alternatives or note this possibility. If the weather is expected to be pleasant, emphasize outdoor activities. This consideration should be subtly woven into the daily plan.
     {{/if}}
-2.  **Risks & Visa:**
+2.  **Risks & Visa (Journey Sentinel Mode):**
     {{#if riskContext}}
     The user has provided the following specific concerns or requests: {{{riskContext}}}.
     Please explicitly consider this information.
-    - If it mentions safety concerns, suggest appropriate precautions or safer alternatives.
+    - If it mentions safety concerns, suggest appropriate precautions or safer alternatives directly in the daily plan or trip summary.
     - If it mentions visa questions, add a reminder in the trip summary to check official visa requirements for {{{destination}}} for their nationality. Do NOT provide definitive visa advice.
-    - If it mentions accessibility needs, try to suggest suitable activities and note if some attractions might be challenging.
+    - If it mentions accessibility needs, try to suggest suitable activities and note if some attractions might be challenging in the daily plan.
     - If it mentions weather preferences (e.g., "prefer sunny activities"), try to align the plan accordingly.
     {{else}}
-    Generally consider common travel advisories or potential risks for {{{destination}}} around {{{travelDates}}} (e.g., peak tourist season, common weather issues, general safety tips).
-    Also, include a general reminder in the trip summary: "Remember to check current travel advisories and visa requirements for {{{destination}}} before your trip."
+    Proactively act as a "Journey Sentinel":
+    - Based on the destination: {{{destination}}} and travel dates: {{{travelDates}}}, identify 1-2 common, general risks or advisories (e.g., pickpocketing in crowded tourist spots, local customs to be aware of, seasonal insect activity, common tourist scams if applicable, transport reliability if generally known).
+    - If such general risks are identified, subtly integrate brief, actionable advice or precautions directly into the relevant 'activities' of the 'dailyPlan' or within the 'tripSummary'. For instance, if suggesting a market visit, you might add "Keep an eye on your belongings in crowded areas." If suggesting an outdoor activity during a potentially very hot season, add "Stay hydrated and use sun protection."
+    - Always include a general reminder in the 'tripSummary': "For a smooth journey, remember to check current travel advisories and verify visa requirements for {{{destination}}} well before your trip."
     {{/if}}
+    If you've included proactive risk advice or made adjustments based on general advisories (not directly requested by the user), briefly mention this in the 'tripSummary' as part of your comprehensive planning.
 
 **Cultural Tip:**
 Generate one concise (1-2 sentences) and helpful cultural tip relevant to the destination: {{{destination}}}. This should be practical or insightful for a first-time visitor. Place this in the 'culturalTip' field of the output.
 
 You will generate a range of possible itineraries (usually 2-3) based on the user's budget, destination and travel dates.
 For each itinerary:
-1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa reminders and reflect how preferences were fused.
+1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa reminders and reflect how preferences (including Journey Sentinel considerations) were fused.
 2.  Provide a 'dailyPlan' as an array of objects. Each object in the array should represent one day and have two fields:
     - 'day': A string for the day's label (e.g., "Day 1", "Arrival Day").
     - 'activities': A string describing the activities for that day in detail. Be engaging and descriptive. You can suggest morning, afternoon, and evening activities. Ensure this is a comprehensive plan.
@@ -118,7 +121,7 @@ const backupAiTripPlannerTextPrompt = ai.definePrompt({
   prompt: `You are a helpful backup travel assistant. The primary planner might have encountered an issue.
 Please generate 1 or 2 robust and appealing itineraries for the user based on the following details.
 Focus on common attractions and adaptable activities. Keep suggestions somewhat general if specific preferences like persona, mood, or risk context are complex.
-Briefly remind the user in the trip summary to check visa and travel advisories for the destination.
+Briefly remind the user in the trip summary to check visa and current travel advisories for {{{destination}}}.
 Also, provide one general cultural tip for {{{destination}}} in the 'culturalTip' field.
 
 Travel Dates: {{{travelDates}}}
@@ -131,11 +134,11 @@ User Persona: {{userPersona.name}} - {{userPersona.description}} (Consider this 
 Desired Mood: {{desiredMood}} (Consider this if possible)
 {{/if~}}
 {{#if riskContext~}}
-User Concerns: {{riskContext}} (Address briefly if straightforward, otherwise provide general advice)
+User Concerns: {{riskContext}} (Address briefly if straightforward, otherwise provide general advice regarding official sources)
 {{/if~}}
 
 For each itinerary:
-1.  Provide a 'tripSummary': A concise summary of the trip.
+1.  Provide a 'tripSummary': A concise summary of the trip, including a reminder to check advisories.
 2.  Provide a 'dailyPlan': An array with 'day' and 'activities' for each day.
 3.  Detail 1-2 flight options (name, description, price).
 4.  Detail 1-2 hotel options (name, description, price, rating, amenities, 1-2 rooms with name, features, roomImagePrompt).
@@ -186,7 +189,7 @@ const aiTripPlannerFlow = ai.defineFlow(
   },
   async (input: AITripPlannerInput): Promise<AITripPlannerOutput> => {
     let wasBackupPlannerUsed = false;
-    let textOutput: TextPlannerOutput | undefined; // Use the new type
+    let textOutput: TextPlannerOutput | undefined; 
 
     // Try primary prompt first
     try {
@@ -194,7 +197,7 @@ const aiTripPlannerFlow = ai.defineFlow(
         textOutput = output;
     } catch (primaryError) {
         console.warn("Primary AI Trip Planner text prompt failed:", primaryError);
-        textOutput = undefined; // Ensure it's undefined so backup is tried
+        textOutput = undefined; 
     }
 
     if (!textOutput || !textOutput.itineraries || textOutput.itineraries.length === 0) {
@@ -214,7 +217,7 @@ const aiTripPlannerFlow = ai.defineFlow(
       return { itineraries: [], personalizationNote: wasBackupPlannerUsed ? "Our backup planner couldn't generate suggestions for this request. Please try again." : "No itineraries could be generated for your request. Please try different criteria." };
     }
 
-    const { itineraries: textItineraries, culturalTip } = textOutput; // Destructure culturalTip
+    const { itineraries: textItineraries, culturalTip } = textOutput; 
 
     if (textItineraries.some(it => !it.dailyPlan || it.dailyPlan.length === 0)) {
       console.warn("Some itineraries are missing daily plans. Check AI prompt and output structure.", textItineraries);
@@ -253,11 +256,12 @@ const aiTripPlannerFlow = ai.defineFlow(
           destinationImageUri,
           hotelOptions: hotelOptionsWithImages,
           dailyPlan: dailyPlan,
-          culturalTip, // Add culturalTip to each itinerary for easy access in UI
+          culturalTip, 
         };
       })
     );
 
+    // Construct the personalizationNote
     let personalizationNoteParts: string[] = [];
     if (wasBackupPlannerUsed) {
         personalizationNoteParts.push("Suggestions provided by our backup planner.");
@@ -272,22 +276,26 @@ const aiTripPlannerFlow = ai.defineFlow(
     }
     
     let guardianConsiderations: string[] = [];
-    if(input.riskContext) guardianConsiderations.push("your specific concerns");
-    if(input.weatherContext) guardianConsiderations.push("the weather context you provided");
+    if (input.riskContext) {
+        guardianConsiderations.push("your specific concerns (" + input.riskContext.substring(0, 30) + (input.riskContext.length > 30 ? "...)" : ")"));
+    }
+    if (input.weatherContext) {
+        guardianConsiderations.push("the weather context you provided (" + input.weatherContext.substring(0,30) + (input.weatherContext.length > 30 ? "...)" : ")"));
+    }
     
-    if(guardianConsiderations.length > 0){
+    if (guardianConsiderations.length > 0) {
         fusionMessages.push(guardianConsiderations.join(' and '));
     } else {
-      // If no specific user input for risk/weather, acknowledge general guardian role
-      fusionMessages.push("general travel factors (weather, risks, visa reminders)");
+      fusionMessages.push("general travel factors (weather awareness, risk/visa reminders)");
     }
-
 
     if (fusionMessages.length > 0) {
-        personalizationNoteParts.push(`Plans were crafted by fusing ${fusionMessages.join(', ')} with your core request.`);
+        personalizationNoteParts.push(`Plans were crafted by fusing ${fusionMessages.join(', ')} with your core request for ${input.destination}.`);
+    } else {
+        personalizationNoteParts.push(`Plans for ${input.destination} were generated based on your core request.`);
     }
     
-    const personalizationNote = personalizationNoteParts.length > 0 ? personalizationNoteParts.join(' ') : undefined;
+    const personalizationNote = personalizationNoteParts.join(' ');
 
     return { 
       itineraries: itinerariesWithImages,
@@ -295,3 +303,6 @@ const aiTripPlannerFlow = ai.defineFlow(
     };
   }
 );
+
+
+    
