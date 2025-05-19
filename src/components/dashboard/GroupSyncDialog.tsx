@@ -19,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateGroupSyncReport } from "@/ai/flows/group-sync-flow";
 import type { GroupSyncInput, CompanionPreference } from "@/ai/types/group-sync-types";
 import type { Itinerary, UserTravelPersona } from "@/lib/types";
-import { Loader2Icon, PlusCircleIcon, Trash2Icon, UsersIcon, XIcon, BrainCircuitIcon } from "lucide-react"; // Added BrainCircuitIcon
+import { Loader2Icon, PlusCircleIcon, Trash2Icon, UsersIcon, XIcon, BrainCircuitIcon } from "lucide-react"; 
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -168,7 +168,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                         value={companion.name}
                         onChange={(e) => handleCompanionChange(companion.id, "name", e.target.value)}
                         placeholder="E.g., Alex"
-                        className="bg-input/70 focus:bg-input/90"
+                        className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90"
                       />
                     </div>
                     <div className="space-y-1">
@@ -178,7 +178,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                         value={companion.preferences}
                         onChange={(e) => handleCompanionChange(companion.id, "preferences", e.target.value)}
                         placeholder="E.g., Loves beaches & history, dislikes early mornings, prefers relaxed pace."
-                        className="bg-input/70 focus:bg-input/90 min-h-[60px]"
+                        className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90 min-h-[60px]"
                         rows={2}
                       />
                     </div>

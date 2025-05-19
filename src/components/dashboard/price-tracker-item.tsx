@@ -10,14 +10,14 @@ import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import { getPriceAdvice, PriceAdvisorInput, PriceAdvisorOutput } from "@/ai/flows/price-advisor-flow"; 
-import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow";
+import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow.ts";
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { PriceForecastChart } from "./PriceForecastChart"; // Import the new chart component
+import { PriceForecastChart } from "./PriceForecastChart"; 
 
 type PriceTrackerItemProps = {
   item: PriceTrackerEntry;
@@ -40,7 +40,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   
   const [isPriceForecastLoading, setIsPriceForecastLoading] = React.useState(false);
   const [isForecastChartDialogOpen, setIsForecastChartDialogOpen] = React.useState(false);
-  const [simulatedChartData, setSimulatedChartData] = React.useState<SimulatedChartDataPoint[]>([]);
+  const [simulatedChartData, setSimulatedChartData] = React.useState<Array<{ time: string; price: number | null }>>([]);
 
 
   const handleRecheckPriceSubmit = async () => {
@@ -111,24 +111,24 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     }
   };
 
-  const generateSimulatedChartData = (currentPrice: number, forecastText: string | undefined): SimulatedChartDataPoint[] => {
-    const data: SimulatedChartDataPoint[] = [
-      { time: "Past 2W", price: currentPrice * (1 + (Math.random() - 0.5) * 0.1) }, // +/- 10%
-      { time: "Past 1W", price: currentPrice * (1 + (Math.random() - 0.5) * 0.05) }, // +/- 5%
+  const generateSimulatedChartData = (currentPrice: number, forecastText: string | undefined): Array<{ time: string; price: number | null }> => {
+    const data: Array<{ time: string; price: number | null }> = [
+      { time: "Past 2W", price: Math.round(currentPrice * (1 + (Math.random() - 0.5) * 0.1) * 100)/100 }, 
+      { time: "Past 1W", price: Math.round(currentPrice * (1 + (Math.random() - 0.5) * 0.05) * 100)/100 }, 
       { time: "Now", price: currentPrice },
     ];
 
-    let trendFactor = 0; // 0 for stable, >0 for up, <0 for down
+    let trendFactor = 0; 
     if (forecastText) {
         if (forecastText.toLowerCase().includes("rise") || forecastText.toLowerCase().includes("increase")) trendFactor = 0.03;
         else if (forecastText.toLowerCase().includes("drop") || forecastText.toLowerCase().includes("decrease")) trendFactor = -0.03;
         else if (forecastText.toLowerCase().includes("stable") || forecastText.toLowerCase().includes("moderate")) trendFactor = 0.005;
     }
     
-    for (let i = 1; i <= 3; i++) { // Simulate 3 future points
+    for (let i = 1; i <= 3; i++) { 
         const prevPrice = data[data.length -1].price ?? currentPrice;
-        let nextPrice = prevPrice * (1 + trendFactor * i + (Math.random() - 0.5) * 0.02); // Add small randomness
-        nextPrice = Math.max(0, nextPrice); // Ensure price doesn't go below 0
+        let nextPrice = prevPrice * (1 + trendFactor * i + (Math.random() - 0.5) * 0.02); 
+        nextPrice = Math.max(0, nextPrice); 
         data.push({ time: `Future ${i}W`, price: Math.round(nextPrice * 100) / 100});
     }
     return data;
@@ -137,7 +137,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
 
   const handleGetPriceForecast = async () => {
     setIsPriceForecastLoading(true);
-    setSimulatedChartData([]); // Clear previous chart data
+    setSimulatedChartData([]); 
     try {
       const forecastInput: AIPFInput = {
         itemType: item.itemType,
@@ -173,7 +173,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
 
   return (
     <>
-      <Card className={cn(glassEffectClasses, "flex flex-col")}>
+      <Card className={cn(glassEffectClasses, "flex flex-col border-primary/20")}>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <CardTitle className="flex items-center text-md text-card-foreground">
@@ -239,31 +239,28 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
           )}
 
         </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-3">
-          <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:flex-row gap-2 mb-2 sm:mb-0">
-              <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
-                  {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-                  Advice
+        <CardFooter className="grid grid-cols-2 gap-2 pt-3">
+          <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
+              {isAiAdviceLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+              Advice
+          </Button>
+          <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
+              {isPriceForecastLoading ? <Loader2Icon className="animate-spin" /> : <TrendingUpIcon />}
+              Forecast
+          </Button>
+          {simulatedChartData.length > 0 && item.priceForecast && (
+              <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive col-span-2" disabled={isCurrentlyUpdating}>
+                  <LineChartIcon />
+                  View Trend Graph
               </Button>
-              <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
-                  {isPriceForecastLoading ? <Loader2Icon className="animate-spin" /> : <TrendingUpIcon />}
-                  Forecast
-              </Button>
-              {simulatedChartData.length > 0 && item.priceForecast && (
-                  <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
-                      <LineChartIcon />
-                      Trend
-                  </Button>
-              )}
-          </div>
-          <div className="flex w-full sm:w-auto gap-2">
-              <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="flex-1 glass-interactive" disabled={isCurrentlyUpdating}>
-                <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
-              </Button>
-              <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive-foreground px-2" disabled={isRemoving || isCurrentlyUpdating}>
-                {isRemoving ? <Loader2Icon className="animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
-              </Button>
-          </div>
+          )}
+           <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
+            <RefreshCwIcon className="mr-2 h-4 w-4" /> Re-check
+          </Button>
+          <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive-foreground" disabled={isRemoving || isCurrentlyUpdating}>
+            {isRemoving ? <Loader2Icon className="animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
+             <span className="ml-2">Remove</span>
+          </Button>
         </CardFooter>
       </Card> 
 
@@ -285,13 +282,13 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
                 type="number"
                 value={newCurrentPrice}
                 onChange={(e) => setNewCurrentPrice(e.target.value)}
-                className="col-span-3 bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"
+                className="col-span-3 bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90"
                 placeholder={item.currentPrice.toString()}
               />
             </div>
             {recheckDialogAiAlert && (
-              <Alert className={`mt-2 ${recheckDialogAiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400'} bg-card/80 backdrop-blur-sm`}>
-                <BellIcon className={`h-4 w-4 ${recheckDialogAiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500'}`} />
+              <Alert className={cn("mt-2 bg-card/80 backdrop-blur-sm", recheckDialogAiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400')}>
+                <BellIcon className={cn("h-4 w-4", recheckDialogAiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500')} />
                 <AlertTitle className="text-card-foreground">{recheckDialogAiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
                 <AlertDescription className="text-muted-foreground">
                   {recheckDialogAiAlert.alertMessage}
@@ -301,7 +298,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" onClick={() => {setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(false);}} className="bg-card/70 hover:bg-muted/20 border-border/70">Cancel</Button>
+              <Button variant="outline" onClick={() => {setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(false);}} className="glass-interactive bg-card/70 hover:bg-muted/20 border-border/70">Cancel</Button>
             </DialogClose>
             <Button onClick={handleRecheckPriceSubmit} disabled={isRecheckingPriceAI || isUpdating} className="shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
               {isRecheckingPriceAI ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCwIcon className="mr-2 h-4 w-4" />}
@@ -311,7 +308,6 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for Price Forecast Chart */}
       <Dialog open={isForecastChartDialogOpen} onOpenChange={setIsForecastChartDialogOpen}>
         <DialogContent className={cn(glassEffectClasses, "sm:max-w-xl md:max-w-2xl")}>
           <DialogHeader>
@@ -346,7 +342,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" className="bg-card/70 hover:bg-muted/20 border-border/70">Close</Button>
+              <Button variant="outline" className="glass-interactive bg-card/70 hover:bg-muted/20 border-border/70">Close</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>
@@ -354,4 +350,3 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     </>
   );
 }
-

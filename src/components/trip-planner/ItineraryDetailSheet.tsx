@@ -77,7 +77,7 @@ export function ItineraryDetailSheet({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <SheetContent className={cn("w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col glass-pane")}>
+        <SheetContent className={cn("w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col", "glass-pane")}>
           <SheetHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
             <div className="flex justify-between items-center">
               <div>
@@ -160,7 +160,6 @@ export function ItineraryDetailSheet({
         </SheetContent>
       </Sheet>
 
-      {/* AR/VR Preview Dialog Placeholder */}
       <AlertDialog open={isArVrDialogOpen} onOpenChange={setIsArVrDialogOpen}>
           <AlertDialogContent className={cn(glassEffectClasses, "sm:max-w-lg")}>
               <AlertDialogHeader>
@@ -191,11 +190,10 @@ export function ItineraryDetailSheet({
                   </p>
               </div>
               <AlertDialogFooter>
-                  <AlertDialogAction onClick={() => setIsArVrDialogOpen(false)} className="bg-primary hover:bg-primary/90">Awesome!</AlertDialogAction>
+                  <AlertDialogAction onClick={() => setIsArVrDialogOpen(false)} className="bg-primary hover:bg-primary/90 glass-interactive">Awesome!</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
     </>
   );
 }
-

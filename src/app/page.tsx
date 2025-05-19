@@ -82,7 +82,7 @@ export default function LandingPage() {
       icon: <Wand2Icon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI-Powered Trip Planner",
       description: "Hyper-personalized itineraries! Define destination, dates, budget, mood, and your Travel DNA. Our AI Guardian crafts detailed plans, fusing preferences with weather, risk, and visa awareness.",
-      imgSrc: "https://placehold.co/600x400.png",
+      imgSrc: "/assets/Gemini_Generated_Image_x46qaqx46qaqx46q.png",
       aiHint: "intelligent itinerary generation"
     },
     {
@@ -216,10 +216,10 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/2048x2048.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
+    { src: "/assets/Gemini_Generated_Image_ajhjmdajhjmdajhj.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "/assets/Gemini_Generated_Image_px5obrpx5obrpx5o.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
+    { src: "/assets/Gemini_Generated_Image_txizz0txizz0txiz.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
+    { src: "/assets/Gemini_Generated_Image_snatbjsnatbjsnat.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
   ];
 
   const [heroVisible, setHeroVisible] = useState(false);

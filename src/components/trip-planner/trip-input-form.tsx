@@ -17,8 +17,8 @@ import { Input } from "@/components/ui/input";
 import type { AITripPlannerInput as AITripPlannerInputTypeFromFlow, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import React, { useEffect } from "react";
 import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon, AlertTriangleIcon, CloudSunIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// Local form schema, can include UI-specific refinements or omit fields if needed
 const formSchema = z.object({
   destination: z.string().min(2, {
     message: "Destination must be at least 2 characters.",
@@ -149,9 +149,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="destination"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><MapPinIcon className="w-4 h-4 mr-2" />Destination</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><MapPinIcon className="w-4 h-4 mr-2" />Destination</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-input/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -162,9 +162,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="travelDates"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><CalendarDaysIcon className="w-4 h-4 mr-2" />Travel Dates</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><CalendarDaysIcon className="w-4 h-4 mr-2" />Travel Dates</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-input/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -175,9 +175,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="budget"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2" />Budget (USD)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Budget (USD)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 1500" {...field} className="bg-input/70 focus:bg-input/90" />
+                    <Input type="number" placeholder="e.g., 1500" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -188,9 +188,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="desiredMood"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><LightbulbIcon className="w-4 h-4 mr-2" />Desired Mood/Vibe/Sensory Palette (Optional)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><LightbulbIcon className="w-4 h-4 mr-2" />Desired Mood/Vibe/Sensory Palette (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Relaxing, Adventurous, Vibrant street food, Quiet nature" {...field} className="bg-input/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Relaxing, Adventurous, Vibrant street food, Quiet nature" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -201,9 +201,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="riskContext"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><AlertTriangleIcon className="w-4 h-4 mr-2" />Specific Concerns or Preferences (e.g., visa, accessibility)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><AlertTriangleIcon className="w-4 h-4 mr-2" />Specific Concerns or Preferences (e.g., visa, accessibility)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility/accessibility needs" {...field} className="bg-input/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility/accessibility needs" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -214,9 +214,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="weatherContext"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center"><CloudSunIcon className="w-4 h-4 mr-2" />Specific Weather Context (Optional)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><CloudSunIcon className="w-4 h-4 mr-2" />Specific Weather Context (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} className="bg-input/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -1,5 +1,6 @@
 
 import { LoginForm } from "@/components/auth/LoginForm";
+import { cn } from "@/lib/utils"; // Import cn for conditional classes if needed
 
 export default function LoginPage() {
   return (

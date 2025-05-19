@@ -1,5 +1,6 @@
 
 import { SignupForm } from "@/components/auth/SignupForm";
+import { cn } from "@/lib/utils"; // Import cn for conditional classes if needed
 
 export default function SignupPage() {
   return (

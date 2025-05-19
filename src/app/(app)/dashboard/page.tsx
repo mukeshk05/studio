@@ -27,7 +27,7 @@ import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulat
 import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder";
 import { AiCoTravelAgentPlaceholder } from "@/components/dashboard/AiCoTravelAgentPlaceholder";
 import { MoodEnergyOptimizerPlaceholder } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
-import { AiCalendarSyncPlaceholder } from "@/components/dashboard/AiCalendarSyncPlaceholder"; // New Import
+import { AiCalendarSyncPlaceholder } from "@/components/dashboard/AiCalendarSyncPlaceholder"; 
 
 
 export default function DashboardPage() {
@@ -156,7 +156,7 @@ export default function DashboardPage() {
                 <LightbulbIcon className="w-6 h-6 mr-2 text-yellow-400" />
                 AI Travel Tip
               </CardTitle>
-              <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:bg-primary/10 hover:text-primary/80">
+              <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:bg-primary/10 hover:text-primary/80 glass-interactive">
                 {isTipLoading ? <Loader2Icon className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
                 <span className="ml-2 hidden sm:inline">New Tip</span>
               </Button>

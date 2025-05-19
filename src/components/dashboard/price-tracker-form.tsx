@@ -77,7 +77,7 @@ export function PriceTrackerForm() {
          toast({
             title: "Price Alert!",
             description: alertResult.alertMessage,
-            variant: "default", // Or a success/info variant
+            variant: "default", 
             duration: 10000,
          });
       }
@@ -93,11 +93,10 @@ export function PriceTrackerForm() {
     }
   }
   
-  const glassEffectClasses = "glass-card"; // Using utility from globals.css
   const isSubmitting = form.formState.isSubmitting || addTrackedItemMutation.isPending;
 
   return (
-    <Card className={cn("w-full mb-6", glassEffectClasses, "border-primary/20")}>
+    <Card className={cn("w-full mb-6", "glass-card", "border-primary/20")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
           <BellPlusIcon className="w-6 h-6 mr-2 text-accent" />
@@ -116,7 +115,7 @@ export function PriceTrackerForm() {
                   <FormLabel className="text-card-foreground/90">Item Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90">
+                      <SelectTrigger className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90">
                         <SelectValue placeholder="Select item type (flight or hotel)" />
                       </SelectTrigger>
                     </FormControl>
@@ -136,7 +135,7 @@ export function PriceTrackerForm() {
                 <FormItem>
                   <FormLabel className="flex items-center text-card-foreground/90"><TagIcon className="w-4 h-4 mr-2" />Item Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Flight AA123 or Grand Hyatt Hotel" {...field} className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Flight AA123 or Grand Hyatt Hotel" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,7 +149,7 @@ export function PriceTrackerForm() {
                   <FormItem>
                     <FormLabel className="flex items-center text-card-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Target Price (USD)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 300" {...field} className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"/>
+                      <Input type="number" placeholder="e.g., 300" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -163,7 +162,7 @@ export function PriceTrackerForm() {
                   <FormItem>
                     <FormLabel className="flex items-center text-card-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Current Price (USD)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 350" {...field} className="bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"/>
+                      <Input type="number" placeholder="e.g., 350" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -181,8 +180,8 @@ export function PriceTrackerForm() {
           </form>
         </Form>
         {aiAlert && (
-          <Alert className={`mt-4 ${aiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400'} bg-card/80 backdrop-blur-sm`}>
-            <BellPlusIcon className={`h-4 w-4 ${aiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500'}`} />
+          <Alert className={cn("mt-4 bg-card/80 backdrop-blur-sm", aiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400' )}>
+            <BellPlusIcon className={cn("h-4 w-4", aiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500')} />
             <AlertTitle className="text-card-foreground">{aiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
             <AlertDescription className="text-muted-foreground">
               {aiAlert.alertMessage}

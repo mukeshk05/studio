@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export function NotificationSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [isSupported, setIsSupported] = useState(true); // Assume supported initially
+  const [isSupported, setIsSupported] = useState(true); 
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -29,16 +29,10 @@ export function NotificationSettings() {
     const token = await requestPermissionAndGetToken();
     if (token) {
       setNotificationsEnabled(true);
-      // Here you would typically send the token to your server
-      // e.g., await saveTokenToFirestore(currentUser.uid, token);
     }
     setIsLoading(false);
   };
   
-  // Note: Disabling/Revoking tokens is more complex and often handled server-side
-  // or by asking the user to manage permissions in their browser settings.
-  // A simple client-side "disable" here would just remove the local token.
-
   if (!isSupported) {
     return (
        <Card className={cn("glass-card", "border-muted-foreground/20")}>
@@ -76,7 +70,7 @@ export function NotificationSettings() {
       </CardHeader>
       <CardContent>
         {!notificationsEnabled && (
-          <Button onClick={handleEnableNotifications} disabled={isLoading} className="w-full">
+          <Button onClick={handleEnableNotifications} disabled={isLoading} className="w-full glass-interactive">
             {isLoading ? (
               <Loader2Icon className="animate-spin" />
             ) : (

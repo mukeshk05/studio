@@ -55,7 +55,7 @@ export function SignupForm() {
 
 
   return (
-    <Card className={cn("w-full max-w-md glass-card")}> {/* Ensured glass-card is applied */}
+    <Card className={cn("w-full max-w-md", "glass-card")}> 
       <CardHeader className="text-center">
         <CardTitle className="text-2xl flex items-center justify-center text-foreground">
           <UserPlusIcon className="w-7 h-7 mr-2 text-primary" /> Create Your Account
@@ -72,7 +72,7 @@ export function SignupForm() {
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><MailIcon className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="you@example.com" {...field} className="bg-input/70 focus:bg-input/90 dark:bg-input/50 dark:focus:bg-input/70" />
+                    <Input placeholder="you@example.com" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -85,7 +85,7 @@ export function SignupForm() {
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Create a strong password" {...field} className="bg-input/70 focus:bg-input/90 dark:bg-input/50 dark:focus:bg-input/70" />
+                    <Input type="password" placeholder="Create a strong password" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -99,7 +99,7 @@ export function SignupForm() {
         </Form>
         <Separator className="my-6 bg-border/50" />
         <div className="space-y-4">
-          <Button variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary" onClick={handleGoogleSignUp} disabled={loading}>
+          <Button variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary glass-interactive" onClick={handleGoogleSignUp} disabled={loading}>
             {loading ? <Loader2Icon className="animate-spin" /> : <GoogleIcon />}
              Sign up with Google
           </Button>

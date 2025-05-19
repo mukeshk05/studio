@@ -13,17 +13,17 @@ import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge"; // Import Badge
-import { useSaveUserTravelPersona } from "@/lib/firestoreHooks"; // Import the new hook
-import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
+import { Badge } from "@/components/ui/badge"; 
+import { useSaveUserTravelPersona } from "@/lib/firestoreHooks"; 
+import { useAuth } from "@/contexts/AuthContext"; 
 
 export default function AdventureQuizPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AdventureSuggestion[] | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const { currentUser } = useAuth(); // Get current user
-  const saveUserTravelPersona = useSaveUserTravelPersona(); // Initialize the mutation
+  const { currentUser } = useAuth(); 
+  const saveUserTravelPersona = useSaveUserTravelPersona(); 
 
   const handleSubmitQuiz = async (answers: AdventureQuizInput) => {
     setIsLoading(true);
@@ -33,7 +33,6 @@ export default function AdventureQuizPage() {
       if (result.suggestions && result.suggestions.length > 0) {
         setAiSuggestions(result.suggestions);
 
-        // Save the primary persona if user is logged in
         if (currentUser && result.suggestions[0]) {
           const primaryPersona = result.suggestions[0];
           await saveUserTravelPersona.mutateAsync({
@@ -155,7 +154,7 @@ export default function AdventureQuizPage() {
                 </Card>
               ))}
               <Separator className="my-6" />
-              <Button onClick={() => setAiSuggestions(null)} variant="outline" className="w-full">
+              <Button onClick={() => setAiSuggestions(null)} variant="outline" className="w-full glass-interactive">
                 Take the Quiz Again
               </Button>
             </div>
