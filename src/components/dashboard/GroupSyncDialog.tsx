@@ -19,11 +19,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateGroupSyncReport } from "@/ai/flows/group-sync-flow";
 import type { GroupSyncInput, CompanionPreference } from "@/ai/types/group-sync-types";
 import type { Itinerary, UserTravelPersona } from "@/lib/types";
-import { Loader2Icon, PlusCircleIcon, Trash2Icon, UsersIcon, XIcon, BrainCircuitIcon } from "lucide-react"; 
+import { Loader2Icon, PlusCircleIcon, Trash2Icon, UsersIcon, XIcon, BrainCircuitIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useGetUserTravelPersona } from "@/lib/firestoreHooks"; 
+import { useGetUserTravelPersona } from "@/lib/firestoreHooks";
 
 type GroupSyncDialogProps = {
   isOpen: boolean;
@@ -41,7 +41,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
   const [report, setReport] = useState<string | null>(null);
   const { toast } = useToast();
   const { currentUser } = useAuth();
-  const { data: plannerPersona } = useGetUserTravelPersona(); 
+  const { data: plannerPersona } = useGetUserTravelPersona();
 
   useEffect(() => {
     if (isOpen) {
@@ -80,10 +80,10 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
     }
     return true;
   };
-  
+
   const formatDailyPlanForAI = (dailyPlan: Itinerary['dailyPlan']): string => {
     if (!dailyPlan || dailyPlan.length === 0) return "No detailed daily plan available.";
-    return dailyPlan.map(day => `${day.day}: ${day.activities.substring(0, 100)}...`).join('\n');
+    return dailyPlan.map(day => `${day.day}: ${day.activities.substring(0, 100)}...`).join('\\n');
   };
 
 
@@ -129,7 +129,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
            <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
                 <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center">
-                    <BrainCircuitIcon className="w-6 h-6 mr-2 text-primary" /> 
+                    <BrainCircuitIcon className="w-6 h-6 mr-2 text-primary" />
                     AI Group Harmony & Sync Report for {trip.destination}
                 </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
@@ -168,7 +168,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                         value={companion.name}
                         onChange={(e) => handleCompanionChange(companion.id, "name", e.target.value)}
                         placeholder="E.g., Alex"
-                        className="bg-input/70 border-border/70 focus:bg-input/90"
+                        className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"
                       />
                     </div>
                     <div className="space-y-1">
@@ -178,7 +178,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                         value={companion.preferences}
                         onChange={(e) => handleCompanionChange(companion.id, "preferences", e.target.value)}
                         placeholder="E.g., Loves beaches & history, dislikes early mornings, prefers relaxed pace."
-                        className="bg-input/70 border-border/70 focus:bg-input/90 min-h-[60px]"
+                        className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 min-h-[60px]"
                         rows={2}
                       />
                     </div>
@@ -195,7 +195,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                   )}
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={handleAddCompanion} className="mt-2 glass-interactive text-lg py-3" > 
+              <Button variant="outline" size="sm" onClick={handleAddCompanion} className="mt-2 glass-interactive text-lg py-3" >
                 <PlusCircleIcon className="w-4 h-4 mr-2" /> Add Companion
               </Button>
             </div>
@@ -211,7 +211,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
               <div>
                 <h3 className="text-lg font-medium text-card-foreground mb-2">AI Group Harmony & Compatibility Report</h3>
                 <div className={cn("p-4 rounded-md border-accent/30 bg-card/50 max-h-96", glassEffectClasses)}>
-                  <ScrollArea className="h-full max-h-80"> 
+                  <ScrollArea className="h-full max-h-80">
                     <div className="prose prose-sm dark:prose-invert prose-headings:text-accent prose-strong:text-card-foreground whitespace-pre-line text-card-foreground/90">
                         {report}
                     </div>
@@ -223,7 +223,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
         </ScrollArea>
 
         <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 sticky bottom-0 z-10", "glass-pane")}>
-          <Button onClick={handleGenerateReport} disabled={isLoading || companions.length === 0} className="w-full sm:w-auto text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg">
+          <Button onClick={handleGenerateReport} disabled={isLoading || companions.length === 0} size="lg" className="w-full sm:w-auto text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
             {isLoading ? <Loader2Icon className="animate-spin" /> : <BrainCircuitIcon />}
             Generate Harmony Report
           </Button>

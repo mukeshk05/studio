@@ -13,17 +13,17 @@ import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge"; 
-import { useSaveUserTravelPersona } from "@/lib/firestoreHooks"; 
-import { useAuth } from "@/contexts/AuthContext"; 
+import { Badge } from "@/components/ui/badge";
+import { useSaveUserTravelPersona } from "@/lib/firestoreHooks";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdventureQuizPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AdventureSuggestion[] | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const { currentUser } = useAuth(); 
-  const saveUserTravelPersona = useSaveUserTravelPersona(); 
+  const { currentUser } = useAuth();
+  const saveUserTravelPersona = useSaveUserTravelPersona();
 
   const handleSubmitQuiz = async (answers: AdventureQuizInput) => {
     setIsLoading(true);
@@ -112,7 +112,7 @@ export default function AdventureQuizPage() {
                   </CardHeader>
                   <CardContent className="text-sm space-y-3">
                     <p className="text-muted-foreground">{suggestion.description}</p>
-                    
+
                     <div className={cn(glassCardClasses, "p-3 rounded-md border-border/40 bg-card/30")}>
                         <h4 className="font-semibold text-card-foreground mb-1">Why this fits you:</h4>
                         <p className="text-xs text-muted-foreground italic flex items-start">
@@ -140,11 +140,11 @@ export default function AdventureQuizPage() {
                             <p><span className="font-medium text-primary/90">Dates:</span> {suggestion.suggestedTripIdea.travelDates}</p>
                             <p><span className="font-medium text-primary/90">Budget:</span> ${suggestion.suggestedTripIdea.budget.toLocaleString()}</p>
                          </div>
-                        <Button 
-                            onClick={() => handlePlanSuggestedTrip(suggestion.suggestedTripIdea!)} 
+                        <Button
+                            onClick={() => handlePlanSuggestedTrip(suggestion.suggestedTripIdea!)}
+                            size="lg"
                             className="w-full text-lg py-3 border-primary/30 text-primary hover:bg-primary/20"
                             variant="outline"
-                            size="lg"
                         >
                           <ExternalLinkIcon className="w-4 h-4 mr-2" />
                           Plan This Trip
@@ -155,7 +155,7 @@ export default function AdventureQuizPage() {
                 </Card>
               ))}
               <Separator className="my-6" />
-              <Button onClick={() => setAiSuggestions(null)} variant="outline" className="w-full text-lg py-3" size="lg">
+              <Button onClick={() => setAiSuggestions(null)} variant="outline" size="lg" className="w-full text-lg py-3">
                 Take the Quiz Again
               </Button>
             </div>

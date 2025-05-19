@@ -13,10 +13,10 @@ import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, ExternalLinkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react"; 
+import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, ExternalLinkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import React, { useState } from 'react'; 
-import Image from 'next/image'; 
+import React, { useState } from 'react';
+import Image from 'next/image';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"; 
+} from "@/components/ui/alert-dialog";
 
 type ItineraryDetailSheetProps = {
   isOpen: boolean;
@@ -48,7 +48,7 @@ export function ItineraryDetailSheet({
   isSaving,
   onInitiateBooking,
 }: ItineraryDetailSheetProps) {
-  const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false); 
+  const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false);
 
   if (!itinerary) return null;
 
@@ -56,7 +56,7 @@ export function ItineraryDetailSheet({
     const { id, ...dataToSave } = itinerary;
     onSaveTrip(dataToSave);
   };
-  
+
   const handleBook = () => {
     onInitiateBooking(itinerary);
   };
@@ -131,20 +131,20 @@ export function ItineraryDetailSheet({
             </div>
           </ScrollArea>
            <div className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3", "glass-pane")}>
-              <Button 
-                onClick={handleSave} 
-                disabled={isTripSaved || isSaving} 
-                className="w-full text-lg py-3" 
+              <Button
+                onClick={handleSave}
+                disabled={isTripSaved || isSaving}
                 size="lg"
+                className={cn("w-full text-lg py-3", isTripSaved ? "" : "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40")}
                 variant={isTripSaved ? "secondary" : "outline"}
               >
                 {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
                 {isSaving ? "Saving..." : isTripSaved ? "Saved" : "Save Trip"}
               </Button>
-              <Button 
-                onClick={handleBook} 
-                className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
+              <Button
+                onClick={handleBook}
                 size="lg"
+                className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
                 variant="default"
               >
                 <SendIcon className="mr-2 h-4 w-4" />
@@ -153,8 +153,8 @@ export function ItineraryDetailSheet({
               <Button
                 onClick={() => setIsArVrDialogOpen(true)}
                 variant="outline"
-                className="w-full text-lg py-3"
                 size="lg"
+                className="w-full text-lg py-3"
               >
                 <ScanEyeIcon className="mr-2 h-4 w-4" />
                 AR/VR Preview
@@ -193,7 +193,7 @@ export function ItineraryDetailSheet({
                   </p>
               </div>
               <AlertDialogFooter>
-                  <AlertDialogAction onClick={() => setIsArVrDialogOpen(false)} className="bg-primary hover:bg-primary/90 glass-interactive">Awesome!</AlertDialogAction>
+                  <AlertDialogAction onClick={() => setIsArVrDialogOpen(false)} size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">Awesome!</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>

@@ -91,7 +91,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
             className="mt-1 bg-input/70 border-border/70 focus:bg-input/90"
           />
         </div>
-        <Button onClick={handleGenerateBundle} disabled={isLoading || !currentUser} className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg">
+        <Button onClick={handleGenerateBundle} disabled={isLoading || !currentUser} size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
           {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
           Let Aura AI Suggest Ideas
         </Button>
@@ -129,8 +129,8 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
                 <CardFooter>
                   <Button
                     variant="outline"
-                    className="w-full text-lg py-3 border-primary/30 text-primary hover:bg-primary/20"
                     size="lg"
+                    className="w-full text-lg py-3 border-primary/30 text-primary hover:bg-primary/20"
                     onClick={() => onPlanTripFromBundle(suggestion.tripIdea)}
                     >
                     <ExternalLinkIcon className="mr-2 h-4 w-4" />

@@ -50,12 +50,12 @@ export function SignupForm() {
   }
 
   const handleGoogleSignUp = async () => {
-    await loginWithGoogle(); 
+    await loginWithGoogle();
   };
 
 
   return (
-    <Card className={cn("w-full max-w-md", "glass-card")}> 
+    <Card className={cn("w-full max-w-md", "glass-card")}>
       <CardHeader className="text-center">
         <CardTitle className="text-2xl flex items-center justify-center text-foreground">
           <UserPlusIcon className="w-7 h-7 mr-2 text-primary" /> Create Your Account
@@ -72,7 +72,7 @@ export function SignupForm() {
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><MailIcon className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="you@example.com" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="you@example.com" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -85,13 +85,13 @@ export function SignupForm() {
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Create a strong password" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input type="password" placeholder="Create a strong password" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg" disabled={loading}>
+            <Button type="submit" size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={loading}>
               {loading ? <Loader2Icon className="animate-spin" /> : <UserPlusIcon />}
               Sign Up
             </Button>
@@ -99,7 +99,7 @@ export function SignupForm() {
         </Form>
         <Separator className="my-6 bg-border/50" />
         <div className="space-y-4">
-          <Button variant="outline" className="w-full text-lg py-3 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary glass-interactive" size="lg" onClick={handleGoogleSignUp} disabled={loading}>
+          <Button variant="outline" size="lg" className="w-full text-lg py-3 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary glass-interactive" onClick={handleGoogleSignUp} disabled={loading}>
             {loading ? <Loader2Icon className="animate-spin" /> : <GoogleIcon />}
              Sign up with Google
           </Button>

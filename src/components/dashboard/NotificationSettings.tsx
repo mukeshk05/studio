@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export function NotificationSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [isSupported, setIsSupported] = useState(true); 
+  const [isSupported, setIsSupported] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -32,7 +32,7 @@ export function NotificationSettings() {
     }
     setIsLoading(false);
   };
-  
+
   if (!isSupported) {
     return (
        <Card className={cn("glass-card", "border-muted-foreground/20")}>
@@ -70,7 +70,7 @@ export function NotificationSettings() {
       </CardHeader>
       <CardContent>
         {!notificationsEnabled && (
-          <Button onClick={handleEnableNotifications} disabled={isLoading} className="w-full text-lg py-3 glass-interactive" size="lg">
+          <Button onClick={handleEnableNotifications} disabled={isLoading} size="lg" className="w-full text-lg py-3 glass-interactive shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
             {isLoading ? (
               <Loader2Icon className="animate-spin" />
             ) : (

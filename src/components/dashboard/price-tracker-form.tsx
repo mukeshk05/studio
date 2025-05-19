@@ -63,12 +63,12 @@ export function PriceTrackerForm() {
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
       };
-      
+
       await addTrackedItemMutation.mutateAsync(
-        // @ts-ignore 
-        {...newItemData, alertStatus: alertResult} 
+        // @ts-ignore
+        {...newItemData, alertStatus: alertResult}
       );
-      
+
       toast({
         title: "Price Tracker Added",
         description: `${values.itemName} is now being tracked.`,
@@ -77,7 +77,7 @@ export function PriceTrackerForm() {
          toast({
             title: "Price Alert!",
             description: alertResult.alertMessage,
-            variant: "default", 
+            variant: "default",
             duration: 10000,
          });
       }
@@ -92,7 +92,7 @@ export function PriceTrackerForm() {
       });
     }
   }
-  
+
   const isSubmitting = form.formState.isSubmitting || addTrackedItemMutation.isPending;
 
   return (
@@ -115,7 +115,7 @@ export function PriceTrackerForm() {
                   <FormLabel className="text-card-foreground/90">Item Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="bg-input/70 border-border/70 focus:bg-input/90">
+                      <SelectTrigger className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50">
                         <SelectValue placeholder="Select item type (flight or hotel)" />
                       </SelectTrigger>
                     </FormControl>
@@ -135,7 +135,7 @@ export function PriceTrackerForm() {
                 <FormItem>
                   <FormLabel className="flex items-center text-card-foreground/90"><TagIcon className="w-4 h-4 mr-2" />Item Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Flight AA123 or Grand Hyatt Hotel" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Flight AA123 or Grand Hyatt Hotel" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -149,7 +149,7 @@ export function PriceTrackerForm() {
                   <FormItem>
                     <FormLabel className="flex items-center text-card-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Target Price (USD)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 300" {...field} className="bg-input/70 border-border/70 focus:bg-input/90"/>
+                      <Input type="number" placeholder="e.g., 300" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,14 +162,14 @@ export function PriceTrackerForm() {
                   <FormItem>
                     <FormLabel className="flex items-center text-card-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Current Price (USD)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 350" {...field} className="bg-input/70 border-border/70 focus:bg-input/90"/>
+                      <Input type="number" placeholder="e.g., 350" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            <Button type="submit" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg" disabled={isSubmitting || !currentUser}>
+            <Button type="submit" size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={isSubmitting || !currentUser}>
               {isSubmitting ? (
                 <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
               ) : (

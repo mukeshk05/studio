@@ -13,13 +13,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { SendIcon, SparklesIcon } from "lucide-react"; // Removed Loader2Icon as it's handled by isSubmitting
+import { SendIcon, SparklesIcon, Loader2Icon } from "lucide-react";
 import React from "react";
-import { AdventureQuizInputSchema, type AdventureQuizInput } from "@/ai/types/adventure-matcher-types"; 
+import { AdventureQuizInputSchema, type AdventureQuizInput } from "@/ai/types/adventure-matcher-types";
 
 interface AdventureQuizFormProps {
   onSubmit: (data: AdventureQuizInput) => void;
-  isSubmitting?: boolean; 
+  isSubmitting?: boolean;
 }
 
 const quizQuestions = [
@@ -76,8 +76,8 @@ const quizQuestions = [
 export function AdventureQuizForm({ onSubmit, isSubmitting }: AdventureQuizFormProps) {
   const form = useForm<AdventureQuizInput>({
     resolver: zodResolver(AdventureQuizInputSchema),
-    defaultValues: { 
-        pace: undefined, 
+    defaultValues: {
+        pace: undefined,
         environment: undefined,
         interest: undefined,
         style: undefined,
@@ -128,11 +128,11 @@ export function AdventureQuizForm({ onSubmit, isSubmitting }: AdventureQuizFormP
             )}
           />
         ))}
-        <Button type="submit" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg" disabled={isSubmitting || form.formState.isSubmitting}>
+        <Button type="submit" size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={isSubmitting || form.formState.isSubmitting}>
           {isSubmitting || form.formState.isSubmitting ? (
-            <SparklesIcon className="mr-2 h-5 w-5 animate-pulse" />
+            <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
           ) : (
-            <SendIcon className="mr-2 h-5 w-5" />
+            <SparklesIcon className="mr-2 h-5 w-5" />
           )}
           Find My Adventure Style
         </Button>
