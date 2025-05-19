@@ -17,21 +17,18 @@ import {
   LogOutIcon,
   CheckCircleIcon, 
   ShieldCheckIcon, 
-  MessageSquareHeartIcon, // Kept for Aura AI
   TrendingUpIcon, 
-  UsersRoundIcon, // Will use for Generational Story Weaver
-  BrainCircuitIcon, // Kept for Travel DNA
-  EarIcon, 
-  EyeIcon, 
-  CameraIcon, 
-  BookOpenCheckIcon,
-  LayoutGridIcon,
-  ActivityIcon, // New for Dynamic Itinerary Reshaper
-  BotIcon, // New for AI Guardian
-  LocateFixedIcon, // New for Serendipity Engine
-  SearchCheckIcon, // New for Authenticity Verifier
-  LeafIcon, // New for Sustainable Optimizer
-  BookHeartIcon, // Alternative for Generational Story Weaver
+  UsersRoundIcon, 
+  BrainCircuitIcon, 
+  ActivityIcon, 
+  BotIcon, 
+  LocateFixedIcon, 
+  SearchCheckIcon, 
+  LeafIcon, 
+  BookHeartIcon,
+  CameraIcon,
+  MessageCircleQuestionIcon, // New icon for Co-Travel Agent
+  LayoutGridIcon, // for Go To App
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -84,7 +81,7 @@ export default function LandingPage() {
       aiHint: "intelligent itinerary generation" 
     },
     {
-      icon: <TrendingUpIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <TrendingUpIcon className="w-10 h-10 mb-4 text-primary" />, 
       title: "Smart Price Suite",
       description: "Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecast graphs to make informed, budget-conscious decisions.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -98,8 +95,8 @@ export default function LandingPage() {
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageSquareHeartIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Aura AI: Predictive Fusion Engine",
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Aura AI: Your Smart Assistant",
       description: "Converse with Aura AI using natural language! It fuses your Travel DNA, search history, and current desires to predict and suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
@@ -112,7 +109,7 @@ export default function LandingPage() {
       aiHint: "ai group travel collaboration"
     },
     {
-      icon: <BotIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <BotIcon className="w-10 h-10 mb-4 text-primary" />, 
       title: "Proactive Journey Sentinel AI",
       description: "Our AI proactively considers general travel risks, reminds you about visa checks, and incorporates typical weather patterns into your trip plans for a safer journey.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -126,7 +123,7 @@ export default function LandingPage() {
       aiHint: "eco friendly travel ai"
     },
      {
-      icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-primary" />, 
       title: "Serendipity Engine (Conceptual)",
       description: "Imagine discovering spontaneous, hyper-local events unfolding near you in real-time, perfectly matched to your Travel DNA and current mood.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -140,7 +137,7 @@ export default function LandingPage() {
       aiHint: "ai authenticity check travel"
     },
     {
-      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <ActivityIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -152,6 +149,20 @@ export default function LandingPage() {
       description: "Beyond simple snippets, envision an AI that helps weave rich, multimedia travel diaries and uncovers travel narratives across generations.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai travel storytelling generational"
+    },
+    { // New Feature: AI Co-Travel Agent
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />, // Using a different icon here
+      title: "AI Co-Travel Agent (Ask Anything!)",
+      description: "Get instant answers to travel questions: customs, tipping, local laws, phrases, and more. Your AI companion provides dynamic checklists and insights.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "ai travel question answer"
+    },
+    { // New Feature: AI + AR Enabled Destination Preview
+      icon: <CameraIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "AI + AR Destination Preview (Conceptual)",
+      description: "See your destination hotspots in real-time AR, with AI mood tags like 'Busy now,' 'Romantic lighting,' or 'Best photo time: 6:35 PM.'",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "augmented reality travel"
     }
   ];
   
@@ -258,12 +269,12 @@ export default function LandingPage() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border/50"/>
                   <DropdownMenuItem asChild>
-                     <Link href="/planner" className="cursor-pointer focus:bg-accent/20 focus:text-accent-foreground">
+                     <Link href="/planner" className="cursor-pointer focus:bg-accent/20 focus:text-accent-foreground flex items-center">
                         <LayoutGridIcon className="mr-2 h-4 w-4" />
                         Go to App
                      </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer focus:bg-destructive/20 focus:text-destructive-foreground">
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer focus:bg-destructive/20 focus:text-destructive-foreground flex items-center">
                     <LogOutIcon className="mr-2 h-4 w-4" />
                     Log out
                   </DropdownMenuItem>
@@ -343,7 +354,7 @@ export default function LandingPage() {
                 heroVisible ? 'opacity-100 translate-y-0 delay-300' : 'opacity-0 translate-y-10'
               )}
             >
-              <Link href={currentUser ? "/planner" : "/signup"}>
+              <Link href={currentUser ? "/planner" : "/signup"} className="flex items-center">
                 <SparklesIcon className="w-5 h-5 mr-2 transition-transform group-hover:animate-pulse" />
                 {currentUser ? "Plan New Trip" : "Get Started Free"}
                 <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -492,7 +503,7 @@ export default function LandingPage() {
                     finalCtaVisible ? "opacity-100 translate-y-0 delay-200" : "opacity-0 translate-y-10"
                 )}
             >
-              <Link href={currentUser ? "/planner" : "/signup"}>
+              <Link href={currentUser ? "/planner" : "/signup"} className="flex items-center">
                 {currentUser ? "Start Planning Now" : "Unlock Your AI Travel Assistant"}
                 <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
@@ -515,5 +526,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    

@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
     // may not respect this webpack configuration, leading to persistent errors.
     // In such cases, try running `next dev` (without --turbopack) to use Webpack.
     if (!isServer) {
-      // Ensure config.resolve.fallback object exists and merge our fallbacks
+      // Ensure config.resolve object exists and merge our fallbacks
       config.resolve.fallback = {
         ...(config.resolve.fallback || {}), // Spread existing fallbacks
         'async_hooks': false,
