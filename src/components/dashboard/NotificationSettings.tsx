@@ -70,7 +70,7 @@ export function NotificationSettings() {
       </CardHeader>
       <CardContent>
         {!notificationsEnabled && (
-          <Button onClick={handleEnableNotifications} disabled={isLoading} className="w-full glass-interactive">
+          <Button onClick={handleEnableNotifications} disabled={isLoading} className="w-full text-lg py-3 glass-interactive" size="lg">
             {isLoading ? (
               <Loader2Icon className="animate-spin" />
             ) : (

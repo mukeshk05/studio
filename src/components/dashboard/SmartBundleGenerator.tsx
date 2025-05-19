@@ -64,10 +64,10 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
           <Wand2Icon className="w-6 h-6 mr-2 text-primary" />
-          Aura AI: Predictive Trip Ideas
+           Aura AI: Predictive Preference Fusion
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Tell Aura AI your travel dreams, or leave blank for inspiration! It fuses your travel persona, history, and current wishes to predict & suggest ideal trips.
+          Describe your ideal trip, or leave the fields blank and let Aura AI suggest ideas based on your travel persona and past searches! It intelligently fuses these to predict your perfect getaway.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -78,7 +78,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
             value={interests}
             onChange={(e) => setInterests(e.target.value)}
             placeholder="e.g., 'Relaxing beach vacation in Southeast Asia for two weeks around December, focus on good food and light snorkeling. Budget $2500.' or 'Weekend hiking trip in the mountains next month.'"
-            className="mt-1 bg-background/70 dark:bg-input border-border/70 focus:bg-input/90 min-h-[80px]"
+            className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 min-h-[80px]"
           />
         </div>
         <div>
@@ -88,10 +88,10 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
             value={availability}
             onChange={(e) => setAvailability(e.target.value)}
             placeholder="e.g., 'Long weekend next month', 'Free in July for 2 weeks', 'Flexible autumn dates'"
-            className="mt-1 bg-background/70 dark:bg-input border-border/70 focus:bg-input/90"
+            className="mt-1 bg-input/70 border-border/70 focus:bg-input/90"
           />
         </div>
-        <Button onClick={handleGenerateBundle} disabled={isLoading || !currentUser} className="w-full shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
+        <Button onClick={handleGenerateBundle} disabled={isLoading || !currentUser} className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg">
           {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
           Let Aura AI Suggest Ideas
         </Button>
@@ -129,8 +129,8 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
                 <CardFooter>
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="w-full glass-interactive border-primary/30 text-primary hover:bg-primary/20"
+                    className="w-full text-lg py-3 border-primary/30 text-primary hover:bg-primary/20"
+                    size="lg"
                     onClick={() => onPlanTripFromBundle(suggestion.tripIdea)}
                     >
                     <ExternalLinkIcon className="mr-2 h-4 w-4" />
@@ -150,4 +150,3 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
     </Card>
   );
 }
-

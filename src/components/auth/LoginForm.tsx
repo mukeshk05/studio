@@ -71,7 +71,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><MailIcon className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="you@example.com" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="you@example.com" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -84,13 +84,13 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
+                    <Input type="password" placeholder="••••••••" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={loading}>
+            <Button type="submit" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg" disabled={loading}>
               {loading ? <Loader2Icon className="animate-spin" /> : <LogInIcon />}
               Login
             </Button>
@@ -98,7 +98,7 @@ export function LoginForm() {
         </Form>
         <Separator className="my-6 bg-border/50" />
         <div className="space-y-4">
-          <Button variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 hover:text-primary glass-interactive" onClick={handleGoogleSignIn} disabled={loading}>
+          <Button variant="outline" className="w-full text-lg py-3 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary glass-interactive" size="lg" onClick={handleGoogleSignIn} disabled={loading}>
             {loading ? <Loader2Icon className="animate-spin" /> : <GoogleIcon />} 
             Sign in with Google
           </Button>

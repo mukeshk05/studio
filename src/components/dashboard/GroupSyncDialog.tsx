@@ -168,7 +168,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                         value={companion.name}
                         onChange={(e) => handleCompanionChange(companion.id, "name", e.target.value)}
                         placeholder="E.g., Alex"
-                        className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90"
+                        className="bg-input/70 border-border/70 focus:bg-input/90"
                       />
                     </div>
                     <div className="space-y-1">
@@ -178,7 +178,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                         value={companion.preferences}
                         onChange={(e) => handleCompanionChange(companion.id, "preferences", e.target.value)}
                         placeholder="E.g., Loves beaches & history, dislikes early mornings, prefers relaxed pace."
-                        className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90 min-h-[60px]"
+                        className="bg-input/70 border-border/70 focus:bg-input/90 min-h-[60px]"
                         rows={2}
                       />
                     </div>
@@ -195,7 +195,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                   )}
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={handleAddCompanion} className="mt-2 glass-interactive">
+              <Button variant="outline" size="sm" onClick={handleAddCompanion} className="mt-2 glass-interactive text-lg py-3" > 
                 <PlusCircleIcon className="w-4 h-4 mr-2" /> Add Companion
               </Button>
             </div>
@@ -223,7 +223,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
         </ScrollArea>
 
         <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 sticky bottom-0 z-10", "glass-pane")}>
-          <Button onClick={handleGenerateReport} disabled={isLoading || companions.length === 0} className="w-full sm:w-auto shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
+          <Button onClick={handleGenerateReport} disabled={isLoading || companions.length === 0} className="w-full sm:w-auto text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg">
             {isLoading ? <Loader2Icon className="animate-spin" /> : <BrainCircuitIcon />}
             Generate Harmony Report
           </Button>

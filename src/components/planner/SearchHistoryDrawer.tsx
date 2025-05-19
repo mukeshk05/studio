@@ -66,8 +66,9 @@ export function SearchHistoryDrawer({
         <div className="p-6 border-b border-border/30">
             <Button
                 onClick={onStartNewBlankPlan}
-                className="w-full"
-                variant="outline"
+                className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                size="lg"
+                variant="default"
             >
                 <PlusCircleIcon className="w-5 h-5 mr-2" />
                 Start New Trip Plan

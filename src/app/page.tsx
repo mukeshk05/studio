@@ -25,7 +25,7 @@ import {
   LeafIcon,
   BookHeartIcon,
   CameraIcon,
-  MessageCircleQuestionIcon,
+  MessageCircleQuestionIcon, // Changed from MessageSquareTextIcon
   LayoutGridIcon,
   AlertTriangleIcon,
   BellRingIcon,
@@ -82,7 +82,7 @@ export default function LandingPage() {
       icon: <Wand2Icon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI-Powered Trip Planner",
       description: "Hyper-personalized itineraries! Define destination, dates, budget, mood, and your Travel DNA. Our AI Guardian crafts detailed plans, fusing preferences with weather, risk, and visa awareness.",
-      imgSrc: "/assets/Gemini_Generated_Image_x46qaqx46qaqx46q.png",
+      imgSrc: "https://placehold.co/600x400.png",
       aiHint: "intelligent itinerary generation"
     },
     {
@@ -100,7 +100,7 @@ export default function LandingPage() {
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />, // Changed Icon
       title: "Aura AI: Natural Language Trip Search",
       description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -108,7 +108,7 @@ export default function LandingPage() {
     },
     {
       icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "AI Group Harmony Predictor",
+      title: "Effortless Group Planning",
       description: "Input companion preferences and let our AI generate a 'Group Sync Report.' Get insights and suggestions to harmonize the trip for everyone.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai group travel collaboration"
@@ -216,10 +216,10 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "/assets/Gemini_Generated_Image_ajhjmdajhjmdajhj.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "/assets/Gemini_Generated_Image_px5obrpx5obrpx5o.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
-    { src: "/assets/Gemini_Generated_Image_txizz0txizz0txiz.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
-    { src: "/assets/Gemini_Generated_Image_snatbjsnatbjsnat.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
+    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
+    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
   ];
 
   const [heroVisible, setHeroVisible] = useState(false);
@@ -245,7 +245,7 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
+  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/20"; // Adjusted dark mode opacity for glass card
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
@@ -387,7 +387,7 @@ export default function LandingPage() {
               asChild
               size="lg"
               className={cn(
-                "text-lg px-8 py-6 group transform transition-all duration-700 ease-out hover:shadow-xl hover:shadow-primary/50 hover:scale-105 active:scale-100",
+                "text-lg px-8 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100", // Applied reference shadow
                 "bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 text-primary-foreground",
                 heroVisible ? 'opacity-100 translate-y-0 delay-300' : 'opacity-0 translate-y-10'
               )}
@@ -412,7 +412,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-square relative">
+                      <div className="aspect-square relative"> 
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -460,7 +460,7 @@ export default function LandingPage() {
                         )}
                       >
                         <CardHeader className="items-center text-center">
-                          {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, 'text-primary') })}
+                          {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className) })}
                           <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow text-center">
@@ -537,7 +537,7 @@ export default function LandingPage() {
                 asChild
                 size="lg"
                 className={cn(
-                    "text-lg px-10 py-6 group transform transition-all duration-700 ease-out hover:shadow-xl hover:shadow-accent/40 shadow-md shadow-primary/30 hover:scale-105 active:scale-100",
+                    "text-lg px-10 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100", // Applied reference shadow
                     "bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 text-primary-foreground",
                     finalCtaVisible ? "opacity-100 translate-y-0 delay-200" : "opacity-0 translate-y-10"
                 )}
@@ -566,4 +566,3 @@ export default function LandingPage() {
     </div>
   );
 }
-

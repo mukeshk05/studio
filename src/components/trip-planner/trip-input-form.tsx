@@ -42,10 +42,10 @@ type TripInputFormProps = {
 };
 
 const suggestedPrompts = [
-  "7-day romantic getaway to Paris for $2000",
-  "Adventure trip to Costa Rican rainforests, 10 days, budget $3000, focus on wildlife and nature sounds",
-  "Budget-friendly family vacation to US national parks in California for a week, need step-free trails",
-  "Cultural exploration of Kyoto, Japan for 5 days with $1500, interested in quiet temples and traditional tea ceremonies",
+  "7-day romantic getaway to Paris for $2000, with a focus on art museums.",
+  "Adventure trip to Costa Rican rainforests, 10 days, budget $3000, focus on wildlife and nature sounds, prefer eco-lodges.",
+  "Budget-friendly family vacation to US national parks in California for a week, need step-free trails for a stroller, sunny weather preferred.",
+  "Cultural exploration of Kyoto, Japan for 5 days with $1500, interested in quiet temples and traditional tea ceremonies, also want to experience vibrant local markets.",
 ];
 
 export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: TripInputFormProps) {
@@ -91,53 +91,45 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
   }
 
   const handleSuggestionClick = (promptText: string) => {
-    const parts = promptText.split(" for ");
-    let destinationAndDates = parts[0];
-    let budgetStr = parts[1]?.split(" budget $")?.[1] || parts[1]?.split(" $")?.[1];
-    let destination = destinationAndDates;
-    let travelDates = "a week"; 
+    let destination = "";
+    let travelDates = "";
+    let budget = 1000;
+    let desiredMood = "";
+    let riskContext = "";
+    let weatherContext = "";
 
-    let mood = "";
-    let risk = "";
-
-    if (promptText.toLowerCase().includes("wildlife and nature sounds")) mood = "Wildlife and nature sounds";
-    if (promptText.toLowerCase().includes("step-free trails")) risk = "Needs step-free trails";
-    if (promptText.toLowerCase().includes("quiet temples and traditional tea ceremonies")) mood = "Quiet temples and traditional tea ceremonies";
-
-
-    const dateKeywords = [" week", " weeks", " day", " days", " getaway", " trip"];
-    let parsedDate = "";
-    for (const keyword of dateKeywords) {
-        if (destinationAndDates.toLowerCase().includes(keyword)) {
-            const splitPoint = destinationAndDates.toLowerCase().lastIndexOf(keyword);
-            if (destinationAndDates.toLowerCase().substring(0, splitPoint).trim().endsWith(" to")){
-                 // "trip to Paris for ..." - date is likely in the original string or default
-            } else {
-                parsedDate = destinationAndDates.substring(0, splitPoint + keyword.length).trim();
-                destination = destinationAndDates.substring(splitPoint + keyword.length).replace(/^to\s+/i, '').trim(); 
-                break;
-            }
-        }
-    }
-    if (parsedDate) travelDates = parsedDate;
-    else if (destinationAndDates.includes(",")) { 
-        const firstComma = destinationAndDates.indexOf(",");
-        destination = destinationAndDates.substring(0, firstComma).trim();
-        travelDates = destinationAndDates.substring(firstComma + 1).trim();
+    if (promptText.toLowerCase().includes("paris")) {
+        destination = "Paris, France";
+        travelDates = "7 days";
+        budget = 2000;
+        desiredMood = "romantic, art museums";
+    } else if (promptText.toLowerCase().includes("costa rican rainforests")) {
+        destination = "Costa Rican rainforests";
+        travelDates = "10 days";
+        budget = 3000;
+        desiredMood = "adventure, wildlife, nature sounds";
+        riskContext = "prefer eco-lodges";
+    } else if (promptText.toLowerCase().includes("us national parks in california")) {
+        destination = "California National Parks (e.g., Yosemite, Joshua Tree)";
+        travelDates = "a week";
+        budget = 1800; // Adjusted budget
+        desiredMood = "family vacation";
+        riskContext = "step-free trails for a stroller";
+        weatherContext = "sunny weather preferred";
+    } else if (promptText.toLowerCase().includes("kyoto, japan")) {
+        destination = "Kyoto, Japan";
+        travelDates = "5 days";
+        budget = 1500;
+        desiredMood = "cultural exploration, quiet temples, traditional tea ceremonies, vibrant local markets";
     }
 
 
-    form.setValue("destination", destination.trim() || "Paris, France"); 
-    form.setValue("travelDates", travelDates.trim() || "a week");
-    if (budgetStr) {
-      form.setValue("budget", parseInt(budgetStr.replace(/,/g, ''), 10) || 1000);
-    } else {
-      form.setValue("budget", 1500); 
-    }
-    
-    form.setValue("desiredMood", mood);
-    form.setValue("riskContext", risk);
-    form.setValue("weatherContext", "");
+    form.setValue("destination", destination);
+    form.setValue("travelDates", travelDates);
+    form.setValue("budget", budget);
+    form.setValue("desiredMood", desiredMood);
+    form.setValue("riskContext", riskContext);
+    form.setValue("weatherContext", weatherContext);
   };
 
   return (
@@ -151,7 +143,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><MapPinIcon className="w-4 h-4 mr-2" />Destination</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -164,7 +156,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><CalendarDaysIcon className="w-4 h-4 mr-2" />Travel Dates</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -177,7 +169,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Budget (USD)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 1500" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
+                    <Input type="number" placeholder="e.g., 1500" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -190,7 +182,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><LightbulbIcon className="w-4 h-4 mr-2" />Desired Mood/Vibe/Sensory Palette (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Relaxing, Adventurous, Vibrant street food, Quiet nature" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Relaxing, Adventurous, Vibrant street food, Quiet nature" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -203,7 +195,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><AlertTriangleIcon className="w-4 h-4 mr-2" />Specific Concerns or Preferences (e.g., visa, accessibility)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility/accessibility needs" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility/accessibility needs" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -216,13 +208,13 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><CloudSunIcon className="w-4 h-4 mr-2" />Specific Weather Context (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} className="bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full text-lg py-6 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={form.formState.isSubmitting}>
+            <Button type="submit" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (
                 <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
               ) : (
@@ -232,7 +224,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
             </Button>
           </form>
         </Form>
-        <div className="mt-2 pt-4 border-t border-border">
+        <div className="mt-2 pt-4 border-t border-border/30">
           <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
             <LightbulbIcon className="w-4 h-4 mr-2 text-yellow-400"/>
             Need inspiration? Try prompts like:

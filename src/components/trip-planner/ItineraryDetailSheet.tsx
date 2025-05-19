@@ -134,7 +134,8 @@ export function ItineraryDetailSheet({
               <Button 
                 onClick={handleSave} 
                 disabled={isTripSaved || isSaving} 
-                className="w-full glass-interactive" 
+                className="w-full text-lg py-3" 
+                size="lg"
                 variant={isTripSaved ? "secondary" : "outline"}
               >
                 {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
@@ -142,7 +143,8 @@ export function ItineraryDetailSheet({
               </Button>
               <Button 
                 onClick={handleBook} 
-                className="w-full shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
+                className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
+                size="lg"
                 variant="default"
               >
                 <SendIcon className="mr-2 h-4 w-4" />
@@ -151,7 +153,8 @@ export function ItineraryDetailSheet({
               <Button
                 onClick={() => setIsArVrDialogOpen(true)}
                 variant="outline"
-                className="w-full glass-interactive"
+                className="w-full text-lg py-3"
+                size="lg"
               >
                 <ScanEyeIcon className="mr-2 h-4 w-4" />
                 AR/VR Preview
