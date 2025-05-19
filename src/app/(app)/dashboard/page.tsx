@@ -21,7 +21,8 @@ import { onForegroundMessageListener } from "@/lib/firebaseMessaging";
 import { NotificationSettings } from "@/components/dashboard/NotificationSettings"; 
 import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder";
 import { AuthenticityVerifierPlaceholder } from "@/components/dashboard/AuthenticityVerifierPlaceholder";
-import { LocalInsiderTipsCard } from "@/components/dashboard/LocalInsiderTipsCard"; // Import new component
+import { LocalInsiderTipsCard } from "@/components/dashboard/LocalInsiderTipsCard";
+import { InteractiveMapPlaceholder } from "@/components/dashboard/InteractiveMapPlaceholder"; // New Import
 
 
 export default function DashboardPage() {
@@ -39,7 +40,7 @@ export default function DashboardPage() {
       const bundledTripData = localStorage.getItem('tripBundleToPlan');
       if (bundledTripData) {
         try {
-          const tripIdea: AITripPlannerInput = JSON.parse(bundledTripData);
+          // const tripIdea: AITripPlannerInput = JSON.parse(bundledTripData);
           // If planner page is not active, push and let it handle it
           // This is primarily to ensure the planner page can pick it up if not already there.
           if (router) { // Check if router is available
@@ -53,10 +54,23 @@ export default function DashboardPage() {
       }
     };
     
+    // Listen for custom event for same-page updates
     window.addEventListener('localStorageUpdated_tripBundleToPlan', handleLocalStorageUpdate);
+    // Also listen for direct storage events (for cross-tab or direct localStorage modification)
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'tripBundleToPlan') {
+            handleLocalStorageUpdate();
+        }
+    });
+
 
     return () => {
       window.removeEventListener('localStorageUpdated_tripBundleToPlan', handleLocalStorageUpdate);
+      window.removeEventListener('storage', (event) => {
+        if (event.key === 'tripBundleToPlan') {
+            handleLocalStorageUpdate();
+        }
+    });
     };
   }, [router]);
 
@@ -107,7 +121,8 @@ export default function DashboardPage() {
 
   const handlePlanTripFromBundle = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
-    window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
+    const event = new CustomEvent('localStorageUpdated_tripBundleToPlan');
+    window.dispatchEvent(event);
     // No direct navigation from here; let the event listener or planner page handle it
   };
 
@@ -179,10 +194,14 @@ export default function DashboardPage() {
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.35s'}}>
           <LocalInsiderTipsCard />
         </div>
+        
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.4s'}}>
+          <InteractiveMapPlaceholder />
+        </div>
 
       </div>
       
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.45s' }}>
         <NotificationSettings />
       </div>
 
@@ -192,7 +211,7 @@ export default function DashboardPage() {
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '0.45s'}}>
+          )} style={{animationDelay: '0.5s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -203,7 +222,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.5s'}}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.55s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
