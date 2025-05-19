@@ -70,10 +70,10 @@ export function NotificationSettings() {
       </CardHeader>
       <CardContent>
         {!notificationsEnabled && (
-          <Button 
-            onClick={handleEnableNotifications} 
-            disabled={isLoading} 
-            size="lg" 
+          <Button
+            onClick={handleEnableNotifications}
+            disabled={isLoading}
+            size="lg"
             className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 glass-interactive"
           >
             {isLoading ? (

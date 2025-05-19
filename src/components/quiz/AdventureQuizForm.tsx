@@ -13,7 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { SparklesIcon, Loader2Icon } from "lucide-react"; 
+import { SparklesIcon, Loader2Icon } from "lucide-react";
 import React from "react";
 import { AdventureQuizInputSchema, type AdventureQuizInput } from "@/ai/types/adventure-matcher-types";
 
@@ -128,10 +128,10 @@ export function AdventureQuizForm({ onSubmit, isSubmitting }: AdventureQuizFormP
             )}
           />
         ))}
-        <Button 
-          type="submit" 
-          size="lg" 
-          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
           disabled={isSubmitting || form.formState.isSubmitting}
         >
           {isSubmitting || form.formState.isSubmitting ? (

@@ -91,10 +91,10 @@ export function SignupForm() {
                 </FormItem>
               )}
             />
-            <Button 
-              type="submit" 
-              size="lg" 
-              className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
               disabled={loading}
             >
               {loading ? <Loader2Icon className="animate-spin" /> : <UserPlusIcon />}
@@ -104,11 +104,11 @@ export function SignupForm() {
         </Form>
         <Separator className="my-6 bg-border/50" />
         <div className="space-y-4">
-          <Button 
-            variant="outline" 
-            size="lg" 
-            className="w-full text-lg py-3 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary glass-interactive" 
-            onClick={handleGoogleSignUp} 
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full text-lg py-3 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary glass-interactive"
+            onClick={handleGoogleSignUp}
             disabled={loading}
           >
             {loading ? <Loader2Icon className="animate-spin" /> : <GoogleIcon />}

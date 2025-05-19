@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, InfoIcon, ExternalLinkIcon, Wand2Icon } from 'lucide-react'; 
+import { Loader2Icon, SparklesIcon, InfoIcon, ExternalLinkIcon, Wand2Icon } from 'lucide-react';
 import { generateSmartBundles } from '@/ai/flows/smart-bundle-flow';
 import type { SmartBundleInput, SmartBundleOutput } from '@/ai/types/smart-bundle-types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,10 +91,10 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
             className="mt-1 bg-input/70 border-border/70 focus:bg-input/90"
           />
         </div>
-        <Button 
-          onClick={handleGenerateBundle} 
-          disabled={isLoading || !currentUser} 
-          size="lg" 
+        <Button
+          onClick={handleGenerateBundle}
+          disabled={isLoading || !currentUser}
+          size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
           {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}

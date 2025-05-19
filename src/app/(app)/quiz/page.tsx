@@ -148,7 +148,7 @@ export default function AdventureQuizPage() {
                             className="w-full text-lg py-3 border-primary/30 text-primary hover:bg-primary/20"
                             variant="outline"
                         >
-                          <ExternalLinkIcon className="w-4 h-4 mr-2" />
+                          <ExternalLinkIcon className="mr-2 h-4 w-4" />
                           Plan This Trip
                         </Button>
                       </div>
@@ -157,10 +157,10 @@ export default function AdventureQuizPage() {
                 </Card>
               ))}
               <Separator className="my-6" />
-              <Button 
-                onClick={() => setAiSuggestions(null)} 
-                variant="outline" 
-                size="lg" 
+              <Button
+                onClick={() => setAiSuggestions(null)}
+                variant="outline"
+                size="lg"
                 className="w-full text-lg py-3"
               >
                 Take the Quiz Again
