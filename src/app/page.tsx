@@ -15,27 +15,25 @@ import {
   LogInIcon,
   UserPlusIcon,
   Wand2Icon,
-  ShieldCheckIcon,
-  TrendingUpIcon,
+  BarChart3Icon, // Added BarChart3Icon
   UsersRoundIcon,
-  BrainCircuitIcon,
-  ActivityIcon,
-  BotIcon,
-  LocateFixedIcon,
-  SearchCheckIcon,
-  LeafIcon,
-  BookHeartIcon,
-  CameraIcon,
-  MessageCircleQuestionIcon,
-  LayoutGridIcon,
-  BarChart3Icon,
-  MessageSquareTextIcon,
-  AlertTriangleIcon,
-  BellRingIcon,
-  SlidersHorizontalIcon,
-  GitCompareArrowsIcon,
-  MapPinnedIcon,
-  CalendarCheckIcon,
+  BrainCircuitIcon, // Added BrainCircuitIcon
+  ActivityIcon, // Added ActivityIcon
+  BotIcon, // Added BotIcon
+  LocateFixedIcon, // Added LocateFixedIcon
+  SearchCheckIcon, // Added SearchCheckIcon
+  LeafIcon, // Added LeafIcon
+  BookHeartIcon, // Added BookHeartIcon
+  CameraIcon, // Added CameraIcon
+  MessageCircleQuestionIcon, // Added MessageCircleQuestionIcon
+  LayoutGridIcon, // Added LayoutGridIcon
+  MessageSquareTextIcon, // Added MessageSquareTextIcon
+  AlertTriangleIcon, // Added AlertTriangleIcon
+  BellRingIcon, // Added BellRingIcon
+  SlidersHorizontalIcon, // Added SlidersHorizontalIcon
+  GitCompareArrowsIcon, // Added GitCompareArrowsIcon
+  MapPinnedIcon, // Added MapPinnedIcon
+  CalendarCheckIcon, // Added CalendarCheckIcon
   CheckCircleIcon, // Ensured this is imported
 } from 'lucide-react';
 import Image from 'next/image';
@@ -219,10 +217,10 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x500.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/1200x500.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
-    { src: "https://placehold.co/1200x500.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
-    { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
+    { src: "https://placehold.co/2048x2048.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
   ];
 
   const [heroVisible, setHeroVisible] = useState(false);
@@ -404,7 +402,7 @@ export default function LandingPage() {
             <div
               className={cn(
                 "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
-                "w-full", // Make carousel take full width of its container
+                "w-full", 
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -414,10 +412,10 @@ export default function LandingPage() {
               >
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
-                    <CarouselItem key={index} className={index === 3 ? "basis-full sm:basis-1/2 lg:basis-1/3" : ""}> {/* Special basis for the last smaller image */}
+                    <CarouselItem key={index} className={cn(index === 3 ? "basis-full sm:basis-1/2 lg:basis-1/3" : "")}>
                       <div className={cn(
                         "relative",
-                        index === 3 ? "aspect-[600/400]" : "aspect-[24/10]" // 24:10 for first three, original for last
+                        "aspect-square" 
                       )}>
                         <Image
                             src={image.src}
@@ -572,3 +570,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
