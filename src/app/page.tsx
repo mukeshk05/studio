@@ -31,12 +31,12 @@ import {
   CheckCircleIcon,
   LanguagesIcon,
   CubeIcon,
-  Building2Icon,
+  Building2Icon, // Keeping both options for Digital Twin as an example, choose one
   LayoutGridIcon,
   LocateFixedIcon,
   SearchCheckIcon,
-  BrainCircuitIcon,
-  MessageCircleQuestionIcon, // Added
+  MessageCircleQuestionIcon, // Ensured this is present
+  BrainCircuitIcon, // Ensured this is present
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -222,7 +222,7 @@ export default function LandingPage() {
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, // Or Building2Icon
+      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, 
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -251,9 +251,9 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); 
-    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450); 
-    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650); 
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
+    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
+    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
 
     return () => {
       clearTimeout(heroTimer);
@@ -419,7 +419,7 @@ export default function LandingPage() {
             <div
               className={cn(
                 "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
-                "w-full", 
+                "w-full",
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -430,7 +430,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-[1280/851] relative">
+                      <div className="aspect-[5/3] relative">
                         <Image
                             src={image.src}
                             alt={image.alt}
