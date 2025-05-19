@@ -25,7 +25,7 @@ import {
   LeafIcon,
   BookHeartIcon,
   CameraIcon,
-  MessageCircleQuestionIcon,
+  MessageSquareTextIcon, // Replaced MessageCircleQuestionIcon
   LayoutGridIcon,
   AlertTriangleIcon,
   BellRingIcon,
@@ -35,8 +35,8 @@ import {
   CalendarCheckIcon,
   CheckCircleIcon,
   LanguagesIcon,
-  CubeIcon,
-  Building2Icon, // Alternative for Digital Twin
+  CubeIcon, // Added CubeIcon
+  Building2Icon,
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -103,7 +103,7 @@ export default function LandingPage() {
       dataAiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Aura AI: Natural Language Trip Search",
       description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -111,8 +111,8 @@ export default function LandingPage() {
     },
     {
       icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "Effortless Group Planning",
-      description: "Input companion preferences and let our AI generate a 'Group Sync Report.' Get insights and suggestions to harmonize the trip for everyone.",
+      title: "Effortless Group Planning & Memories",
+      description: "Input companion preferences and let our AI generate a 'Group Sync Report' to harmonize the trip. Plus, get AI-generated memory snippets for your saved trips.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai group travel collaboration"
     },
@@ -429,7 +429,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-[5/3] relative"> 
+                      <div className="aspect-square relative"> 
                         <Image
                             src={image.src}
                             alt={image.alt}
