@@ -169,7 +169,12 @@ export function PriceTrackerForm() {
                 )}
               />
             </div>
-            <Button type="submit" size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" disabled={isSubmitting || !currentUser}>
+            <Button 
+              type="submit" 
+              size="lg" 
+              className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
+              disabled={isSubmitting || !currentUser}
+            >
               {isSubmitting ? (
                 <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
               ) : (

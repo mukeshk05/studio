@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react"; // Removed ExternalLinkIcon
+import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -136,7 +136,10 @@ export function ItineraryDetailSheet({
                 onClick={handleSave}
                 disabled={isTripSaved || isSaving}
                 size="lg"
-                className={cn("w-full text-lg py-3", isTripSaved ? "" : "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40")}
+                className={cn(
+                  "w-full text-lg py-3", 
+                  isTripSaved ? "" : "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                )}
                 variant={isTripSaved ? "secondary" : "outline"}
               >
                 {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
@@ -194,7 +197,11 @@ export function ItineraryDetailSheet({
                   </p>
               </div>
               <AlertDialogFooter>
-                  <AlertDialogAction onClick={() => setIsArVrDialogOpen(false)} size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">Awesome!</AlertDialogAction>
+                  <AlertDialogAction 
+                    onClick={() => setIsArVrDialogOpen(false)} 
+                    size="lg" 
+                    className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                  >Awesome!</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>

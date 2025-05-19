@@ -157,7 +157,12 @@ export default function AdventureQuizPage() {
                 </Card>
               ))}
               <Separator className="my-6" />
-              <Button onClick={() => setAiSuggestions(null)} variant="outline" size="lg" className="w-full text-lg py-3">
+              <Button 
+                onClick={() => setAiSuggestions(null)} 
+                variant="outline" 
+                size="lg" 
+                className="w-full text-lg py-3"
+              >
                 Take the Quiz Again
               </Button>
             </div>

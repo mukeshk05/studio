@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, InfoIcon, ExternalLinkIcon, Wand2Icon } from 'lucide-react'; // Removed SendIcon
+import { Loader2Icon, SparklesIcon, InfoIcon, ExternalLinkIcon, Wand2Icon } from 'lucide-react'; 
 import { generateSmartBundles } from '@/ai/flows/smart-bundle-flow';
 import type { SmartBundleInput, SmartBundleOutput } from '@/ai/types/smart-bundle-types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,7 +64,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
           <Wand2Icon className="w-6 h-6 mr-2 text-primary" />
-           Aura AI: Predictive Preference Fusion
+          Aura AI: Predictive Preference Fusion
         </CardTitle>
         <CardDescription className="text-muted-foreground">
         Describe your ideal trip, or leave the fields blank and let Aura AI suggest ideas based on your travel persona and past searches! It intelligently fuses these to predict your perfect getaway.
@@ -77,7 +77,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
             id="interests"
             value={interests}
             onChange={(e) => setInterests(e.target.value)}
-            placeholder="e.g., 'Relaxing beach vacation in Southeast Asia for two weeks around December, focus on good food and light snorkeling. Budget $2500.' or 'Weekend hiking trip in the mountains next month.'"
+            placeholder="e.g., 'A 5-day trip to see cherry blossoms in Kyoto next April, budget $2000.' or 'Relaxing beach vacation in Southeast Asia, focus on good food and light snorkeling.'"
             className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 min-h-[80px]"
           />
         </div>
@@ -91,7 +91,12 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
             className="mt-1 bg-input/70 border-border/70 focus:bg-input/90"
           />
         </div>
-        <Button onClick={handleGenerateBundle} disabled={isLoading || !currentUser} size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
+        <Button 
+          onClick={handleGenerateBundle} 
+          disabled={isLoading || !currentUser} 
+          size="lg" 
+          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+        >
           {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
           Let Aura AI Suggest Ideas
         </Button>

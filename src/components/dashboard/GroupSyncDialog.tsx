@@ -223,7 +223,12 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
         </ScrollArea>
 
         <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 sticky bottom-0 z-10", "glass-pane")}>
-          <Button onClick={handleGenerateReport} disabled={isLoading || companions.length === 0} size="lg" className="w-full sm:w-auto text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
+          <Button 
+            onClick={handleGenerateReport} 
+            disabled={isLoading || companions.length === 0} 
+            size="lg" 
+            className="w-full sm:w-auto text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+          >
             {isLoading ? <Loader2Icon className="animate-spin" /> : <BrainCircuitIcon />}
             Generate Harmony Report
           </Button>
