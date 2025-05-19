@@ -104,14 +104,14 @@ export default function LandingPage() {
     },
     {
       icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Aura AI: Natural Language Trip Search",
-      description: "Ask Aura AI your travel dreams! It fuses your Travel DNA, search history, and natural language queries to predict and suggest ideal trip bundles.",
+      title: "Ask Aura: Natural Language Trip Search",
+      description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
     },
     {
       icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "Group Harmony Predictor",
+      title: "AI Group Harmony Predictor",
       description: "Input companion preferences and let our AI generate a 'Group Sync Report.' Get insights and suggestions to harmonize the trip for everyone.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai group travel collaboration"
@@ -146,7 +146,7 @@ export default function LandingPage() {
     },
      {
       icon: <SearchCheckIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Authenticity Verifier AI (Future Vision)",
+      title: "AI Authenticity Verifier (Future Vision)",
       description: "Conceptually, verify local crafts, food, and experiences. Upload a photo, and AI provides insights on origin, value, and authenticity markers.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai authenticity check travel"
@@ -220,9 +220,9 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x900.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/1200x900.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
-    { src: "https://placehold.co/1200x900.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
+    { src: "https://placehold.co/1600x1080.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1600x1080.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
+    { src: "https://placehold.co/1600x1080.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
   ];
 
@@ -415,7 +415,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-[1200/900] relative">
+                      <div className="aspect-[40/27] relative"> {/* Updated aspect ratio */}
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -568,5 +568,5 @@ export default function LandingPage() {
     </div>
   );
 }
-
     
+
