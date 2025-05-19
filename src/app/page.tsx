@@ -25,7 +25,7 @@ import {
   LeafIcon,
   BookHeartIcon,
   CameraIcon,
-  MessageSquareTextIcon, // Replaced MessageCircleQuestionIcon
+  MessageSquareTextIcon,
   LayoutGridIcon,
   AlertTriangleIcon,
   BellRingIcon,
@@ -35,8 +35,10 @@ import {
   CalendarCheckIcon,
   CheckCircleIcon,
   LanguagesIcon,
-  CubeIcon, // Added CubeIcon
-  Building2Icon,
+  CubeIcon,
+  Building2Icon, // Keeping this in case CubeIcon isn't preferred
+  AppWindowIcon,
+  MessageCircleQuestionIcon, // Added missing icon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -215,7 +217,7 @@ export default function LandingPage() {
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, // Or Building2Icon
+      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -569,15 +571,15 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className={cn("py-8 backdrop-blur-sm border-t border-border/30 z-10 text-foreground dark:text-muted-foreground", "bg-[hsl(205_80%_85%_/_0.7)] dark:bg-black/50")}>
+      <footer className={cn("py-8 backdrop-blur-sm border-t border-border/30 z-10", "bg-[hsl(205_80%_85%_/_0.7)] dark:bg-black/50")}>
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center mb-2">
             <AppLogo />
           </div>
-          <p className="text-sm">
+          <p className="text-sm text-foreground dark:text-muted-foreground">
             &copy; {new Date().getFullYear()} BudgetRoam AI. All rights reserved.
           </p>
-          <p className="text-xs mt-1">Your smart companion for budget-friendly, AI-powered adventures.</p>
+          <p className="text-xs mt-1 text-foreground dark:text-muted-foreground">Your smart companion for budget-friendly, AI-powered adventures.</p>
         </div>
       </footer>
     </div>
