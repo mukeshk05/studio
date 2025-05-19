@@ -31,7 +31,7 @@ import {
   CheckCircleIcon,
   LanguagesIcon,
   CubeIcon,
-  Building2Icon,
+  Building2Icon, 
   LayoutGridIcon,
   LocateFixedIcon,
   SearchCheckIcon,
@@ -430,7 +430,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-square relative">
+                       <div className={cn("relative h-full w-full", image.src.includes("2048x2048") ? "aspect-square" : "aspect-[5/3]")}>
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -584,4 +584,5 @@ export default function LandingPage() {
     </div>
   );
 }
-```
+
+    
