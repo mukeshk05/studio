@@ -27,8 +27,12 @@ import {
   LeafIcon, 
   BookHeartIcon,
   CameraIcon,
-  MessageCircleQuestionIcon, // New icon for Co-Travel Agent
-  LayoutGridIcon, // for Go To App
+  MessageCircleQuestionIcon,
+  LayoutGridIcon,
+  BarChart3Icon,
+  MessageSquareTextIcon,
+  AlertTriangleIcon, // Added for Proactive Alerter
+  BellRingIcon, // Alternative for Proactive Alerter
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -81,7 +85,7 @@ export default function LandingPage() {
       aiHint: "intelligent itinerary generation" 
     },
     {
-      icon: <TrendingUpIcon className="w-10 h-10 mb-4 text-primary" />, 
+      icon: <BarChart3Icon className="w-10 h-10 mb-4 text-primary" />, 
       title: "Smart Price Suite",
       description: "Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecast graphs to make informed, budget-conscious decisions.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -95,18 +99,25 @@ export default function LandingPage() {
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "Aura AI: Your Smart Assistant",
-      description: "Converse with Aura AI using natural language! It fuses your Travel DNA, search history, and current desires to predict and suggest ideal trip bundles.",
+      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Aura AI: Natural Language Trip Search",
+      description: "Ask Aura AI your travel dreams! It fuses your Travel DNA, search history, and natural language queries to predict and suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
     },
     {
       icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />, 
-      title: "Neural Sync for Group Planning",
-      description: "Input companion preferences and let AI generate a 'Group Sync Report.' Get insights and suggestions to harmonize the trip for everyone.",
+      title: "Group Harmony Predictor",
+      description: "Input companion preferences and let our AI generate a 'Group Sync Report.' Get insights and suggestions to harmonize the trip for everyone.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai group travel collaboration"
+    },
+    {
+      icon: <BellRingIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Proactive AI Alerter & Advisor",
+      description: "Stay ahead! Our AI conceptually monitors for you. Imagine getting proactive alerts for significant price drops, major weather warnings for your trips, or even visa policy shifts (future vision). It can then offer timely rebooking advice or backup plan suggestions.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "ai proactive travel alerts"
     },
     {
       icon: <BotIcon className="w-10 h-10 mb-4 text-primary" />, 
@@ -150,14 +161,14 @@ export default function LandingPage() {
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai travel storytelling generational"
     },
-    { // New Feature: AI Co-Travel Agent
-      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />, // Using a different icon here
+    { 
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI Co-Travel Agent (Ask Anything!)",
       description: "Get instant answers to travel questions: customs, tipping, local laws, phrases, and more. Your AI companion provides dynamic checklists and insights.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai travel question answer"
     },
-    { // New Feature: AI + AR Enabled Destination Preview
+    { 
       icon: <CameraIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI + AR Destination Preview (Conceptual)",
       description: "See your destination hotspots in real-time AR, with AI mood tags like 'Busy now,' 'Romantic lighting,' or 'Best photo time: 6:35 PM.'",
@@ -177,7 +188,7 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "futuristic ai travel" },
     { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
@@ -526,3 +537,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    

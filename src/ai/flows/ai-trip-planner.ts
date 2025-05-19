@@ -14,6 +14,7 @@ import {
   type AITripPlannerOutput,
   AITripPlannerTextOutputSchema,
   type TextPlannerOutput,
+  DailyPlanItemSchema, // Import DailyPlanItemSchema
 } from '@/ai/types/trip-planner-types';
 
 
@@ -75,14 +76,16 @@ For example, if the mood is 'romantic', suggest adventurous yet romantic activit
     If you've included proactive risk advice or made adjustments based on general advisories (not directly requested by the user), or if you've addressed specific accessibility needs, briefly mention this in the 'tripSummary' as part of your comprehensive planning.
 3.  **Sustainable Travel Considerations (Conceptual):**
     When planning, and if appropriate for the destination and trip style, subtly weave in considerations for sustainable travel. This could involve suggesting public transport where efficient, mentioning eco-friendly tours if known, or highlighting locally-owned businesses or experiences. If you incorporate such suggestions, briefly mention this aspect in the trip summary.
+4.  **Conceptual Alert Response Simulation:**
+    If this trip plan were being generated *in response to a hypothetical critical alert* (e.g., a major price drop for a pre-tracked flight for this destination/dates, or a sudden severe weather warning), briefly note in the 'tripSummary' how the plan might be adjusted or what alternatives could be considered. Frame this as a conceptual example of how the AI would respond to such an alert.
 
 **Cultural Tip:**
 Generate one concise (1-2 sentences) and helpful cultural tip relevant to the destination: {{{destination}}}. This should be practical or insightful for a first-time visitor. Place this in the 'culturalTip' field of the output.
 
 You will generate a range of possible itineraries (usually 2-3) based on the user's budget, destination and travel dates.
 For each itinerary:
-1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa/accessibility reminders and reflect how preferences (including Journey Sentinel and Sustainability considerations) were fused.
-2.  Provide a 'dailyPlan' as an array of objects. Each object in the array should represent one day and have two fields:
+1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa/accessibility reminders, conceptual sustainability considerations, and the conceptual alert response simulation.
+2.  Provide a 'dailyPlan' as an array of objects matching the DailyPlanItemSchema. Each object in the array should represent one day and have two fields:
     - 'day': A string for the day's label (e.g., "Day 1", "Arrival Day").
     - 'activities': A string describing the activities for that day in detail. Be engaging and descriptive. You can suggest morning, afternoon, and evening activities. Ensure this is a comprehensive plan.
 3.  Detail 2-3 distinct flight options.
@@ -140,7 +143,7 @@ User Concerns (Risks/Accessibility): {{riskContext}} (Address briefly if straigh
 
 For each itinerary:
 1.  Provide a 'tripSummary': A concise summary of the trip, including a reminder to check advisories and to consider sustainable choices.
-2.  Provide a 'dailyPlan': An array with 'day' and 'activities' for each day.
+2.  Provide a 'dailyPlan': An array with 'day' and 'activities' for each day, matching DailyPlanItemSchema.
 3.  Detail 1-2 flight options (name, description, price).
 4.  Detail 1-2 hotel options (name, description, price, rating, amenities, 1-2 rooms with name, features, roomImagePrompt).
 5.  Provide an 'estimatedCost'.
@@ -302,3 +305,5 @@ const aiTripPlannerFlow = ai.defineFlow(
     };
   }
 );
+
+    
