@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SparklesIcon, Loader2Icon } from "lucide-react";
 import React from "react";
 import { AdventureQuizInputSchema, type AdventureQuizInput } from "@/ai/types/adventure-matcher-types";
+import { cn } from "@/lib/utils";
 
 interface AdventureQuizFormProps {
   onSubmit: (data: AdventureQuizInput) => void;
@@ -98,7 +99,7 @@ export function AdventureQuizForm({ onSubmit, isSubmitting }: AdventureQuizFormP
             control={form.control}
             name={question.name}
             render={({ field }) => (
-              <FormItem className="space-y-3 p-4 rounded-lg border border-border/50 bg-card/40">
+              <FormItem className="space-y-3 p-4 rounded-lg border border-border/50 bg-card/80 dark:bg-card/50">
                 <FormLabel className="text-md font-semibold text-card-foreground">
                   {question.label}
                 </FormLabel>

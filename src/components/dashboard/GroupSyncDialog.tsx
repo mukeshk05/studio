@@ -31,7 +31,8 @@ type GroupSyncDialogProps = {
   trip: Itinerary | null;
 };
 
-const glassEffectClasses = "glass-card";
+const glassEffectClasses = "glass-card"; // Main dialog content
+const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md"; // For inner elements like trip details
 
 export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps) {
   const [companions, setCompanions] = useState<CompanionPreference[]>([
@@ -125,7 +126,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className={cn(glassEffectClasses, "sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0")}>
-        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 backdrop-blur-sm">
+        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
            <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
                 <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center">
@@ -148,7 +149,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-medium text-card-foreground mb-2">Current Trip Details</h3>
-              <div className={cn("p-3 rounded-md text-sm border-border/30 bg-card/50", glassEffectClasses)}>
+              <div className={cn("p-3 rounded-md text-sm", innerGlassEffectClasses)}>
                 <p><span className="font-semibold">Destination:</span> {trip.destination}</p>
                 <p><span className="font-semibold">Dates:</span> {trip.travelDates}</p>
                 {trip.tripSummary && <p><span className="font-semibold">Summary:</span> {trip.tripSummary}</p>}
@@ -159,7 +160,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
             <div>
               <h3 className="text-lg font-medium text-card-foreground mb-3">Companion Preferences</h3>
               {companions.map((companion, index) => (
-                <div key={companion.id} className={cn("p-4 rounded-md mb-3 border-border/30 bg-card/50 relative", glassEffectClasses)}>
+                <div key={companion.id} className={cn("p-4 rounded-md mb-3 relative", innerGlassEffectClasses)}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label htmlFor={`companionName-${companion.id}`} className="text-xs text-card-foreground/90">Companion #{index + 1} Name</Label>
@@ -210,7 +211,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
             {report && !isLoading && (
               <div>
                 <h3 className="text-lg font-medium text-card-foreground mb-2">AI Group Harmony & Compatibility Report</h3>
-                <div className={cn("p-4 rounded-md border-accent/30 bg-card/50 max-h-96", glassEffectClasses)}>
+                <div className={cn("p-4 rounded-md max-h-96", innerGlassEffectClasses)}>
                   <ScrollArea className="h-full max-h-80">
                     <div className="prose prose-sm dark:prose-invert prose-headings:text-accent prose-strong:text-card-foreground whitespace-pre-line text-card-foreground/90">
                         {report}

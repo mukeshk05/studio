@@ -78,7 +78,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
             value={interests}
             onChange={(e) => setInterests(e.target.value)}
             placeholder="e.g., 'A 5-day trip to see cherry blossoms in Kyoto next April, budget $2000.' or 'Relaxing beach vacation in Southeast Asia, focus on good food and light snorkeling.'"
-            className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 min-h-[80px]"
+            className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 min-h-[80px]"
           />
         </div>
         <div>
@@ -88,7 +88,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
             value={availability}
             onChange={(e) => setAvailability(e.target.value)}
             placeholder="e.g., 'Long weekend next month', 'Free in July for 2 weeks', 'Flexible autumn dates'"
-            className="mt-1 bg-input/70 border-border/70 focus:bg-input/90"
+            className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"
           />
         </div>
         <Button
@@ -124,7 +124,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
                     <InfoIcon className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-primary" />
                     <span className="font-semibold mr-1 text-card-foreground/90">Aura's Reasoning:</span> {suggestion.reasoning}
                   </p>
-                  <div className={cn(glassCardClasses, "p-3 rounded-md border-border/40 bg-card/30")}>
+                  <div className={cn(glassCardClasses, "p-3 rounded-md border-border/40 bg-card/30 dark:bg-card/50")}>
                     <p className="font-semibold text-card-foreground/90">Trip Idea:</p>
                     <p><span className="font-medium">Destination:</span> {suggestion.tripIdea.destination}</p>
                     <p><span className="font-medium">Dates:</span> {suggestion.tripIdea.travelDates}</p>
@@ -135,7 +135,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
                   <Button
                     variant="outline"
                     size="lg"
-                    className="w-full text-lg py-3 border-primary/30 text-primary hover:bg-primary/20"
+                    className="w-full text-lg py-3 glass-interactive"
                     onClick={() => onPlanTripFromBundle(suggestion.tripIdea)}
                     >
                     <ExternalLinkIcon className="mr-2 h-4 w-4" />

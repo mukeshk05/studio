@@ -106,7 +106,7 @@ export function LoginForm() {
           <Button
             variant="outline"
             size="lg"
-            className="w-full text-lg py-3 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary glass-interactive"
+            className="w-full text-lg py-3 glass-interactive"
             onClick={handleGoogleSignIn}
             disabled={loading}
           >

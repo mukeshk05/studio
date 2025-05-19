@@ -19,12 +19,13 @@ type HotelDetailDialogProps = {
   destinationName: string; 
 };
 
-const glassEffectClasses = "glass-card"; 
+const glassCardClasses = "glass-card"; 
+const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
 
 function RoomCard({ room }: { room: Room }) {
   const roomImageHint = room.name.toLowerCase().split(/[\s,]+/).slice(0, 2).join(" ");
   return (
-    <div className={cn(glassEffectClasses, "p-3 rounded-lg mb-3 border border-border/40")}>
+    <div className={cn("p-3 rounded-lg mb-3 border border-border/40", innerGlassEffectClasses)}>
       <h4 className="text-md font-semibold text-card-foreground mb-1.5 flex items-center">
         <BedDoubleIcon className="w-5 h-5 mr-2 text-primary" />
         {room.name}
@@ -74,8 +75,8 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={cn(glassEffectClasses, "sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[90vh] flex flex-col p-0 border-primary/30")}>
-        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 backdrop-blur-sm">
+      <DialogContent className={cn(glassCardClasses, "sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[90vh] flex flex-col p-0 border-primary/30")}>
+        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
           <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
               <DialogTitle className="text-xl font-semibold text-foreground truncate" title={hotel.name}>
@@ -108,7 +109,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
           </div>
         )}
         {!hotel.hotelImageUri && (
-            <div className={cn("h-40 bg-muted/30 flex items-center justify-center text-muted-foreground border-b border-border/30", glassEffectClasses, "rounded-none")}>
+            <div className={cn("h-40 bg-muted/30 flex items-center justify-center text-muted-foreground border-b border-border/30", innerGlassEffectClasses, "rounded-none")}>
                 <ImageOffIcon className="w-12 h-12"/>
             </div>
         )}
@@ -126,15 +127,12 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
               <TabsTrigger value="amenities" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.amenities || hotel.amenities.length === 0}>
                 <CheckSquareIcon className="w-4 h-4" /> Amenities
               </TabsTrigger>
-              {/* <TabsTrigger value="rating" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={hotel.rating === undefined}>
-                <StarIcon className="w-4 h-4" /> Rating
-              </TabsTrigger> */}
               <TabsTrigger value="map" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
                 <MapPinIcon className="w-4 h-4" /> Map
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className={cn(glassEffectClasses, "p-4 rounded-md")}>
+            <TabsContent value="details" className={cn(glassCardClasses, "p-4 rounded-md")}>
               <h3 className="text-lg font-semibold text-card-foreground mb-2">About {hotel.name}</h3>
               <p className="text-sm text-muted-foreground mb-3">{hotel.description}</p>
               <div className="flex items-center text-lg font-semibold text-primary">
@@ -149,7 +147,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
                 )}
             </TabsContent>
 
-            <TabsContent value="rooms" className={cn(glassEffectClasses, "p-4 rounded-md")}>
+            <TabsContent value="rooms" className={cn(glassCardClasses, "p-4 rounded-md")}>
               <h3 className="text-lg font-semibold text-card-foreground mb-3">Available Rooms</h3>
               {hotel.rooms && hotel.rooms.length > 0 ? (
                 <ScrollArea className="max-h-96 pr-3">
@@ -162,7 +160,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
               )}
             </TabsContent>
             
-            <TabsContent value="amenities" className={cn(glassEffectClasses, "p-4 rounded-md")}>
+            <TabsContent value="amenities" className={cn(glassCardClasses, "p-4 rounded-md")}>
                 <h3 className="text-lg font-semibold text-card-foreground mb-3">Amenities</h3>
                 {hotel.amenities && hotel.amenities.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -178,19 +176,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
                 )}
             </TabsContent>
 
-            {/* <TabsContent value="rating" className={cn(glassEffectClasses, "p-4 rounded-md")}>
-              <h3 className="text-lg font-semibold text-card-foreground mb-3">Guest Rating</h3>
-              {hotel.rating !== undefined ? (
-                <div className="flex items-center text-2xl font-bold text-primary">
-                  <StarIcon className="w-7 h-7 mr-2 fill-amber-400 text-amber-400" />
-                  {hotel.rating.toFixed(1)} / 5.0
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Rating information not available.</p>
-              )}
-            </TabsContent> */}
-
-            <TabsContent value="map" className={cn(glassEffectClasses, "p-4 rounded-md")}>
+            <TabsContent value="map" className={cn(glassCardClasses, "p-4 rounded-md")}>
               <h3 className="text-lg font-semibold text-card-foreground mb-3">Location of {hotel.name}</h3>
               {mapsApiKey ? (
                 <div className="aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg">
@@ -206,7 +192,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
                   ></iframe>
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground bg-muted/30 p-4 rounded-md">
+                <div className="text-center py-8 text-muted-foreground bg-muted/30 dark:bg-muted/10 p-4 rounded-md">
                   <p>Google Maps API Key is missing.</p>
                   <p className="text-xs">Please configure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable map features.</p>
                 </div>

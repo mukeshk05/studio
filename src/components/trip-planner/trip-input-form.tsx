@@ -108,13 +108,13 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
         travelDates = "10 days";
         budget = 3000;
         desiredMood = "adventure, wildlife, nature sounds";
-        riskContext = "prefer eco-lodges";
+        riskContext = "prefer eco-lodges"; // Example for risk context
     } else if (promptText.toLowerCase().includes("us national parks in california")) {
         destination = "California National Parks (e.g., Yosemite, Joshua Tree)";
         travelDates = "a week";
-        budget = 1800; // Adjusted budget
+        budget = 1800;
         desiredMood = "family vacation";
-        riskContext = "step-free trails for a stroller";
+        riskContext = "step-free trails for a stroller"; // Example for risk/accessibility
         weatherContext = "sunny weather preferred";
     } else if (promptText.toLowerCase().includes("kyoto, japan")) {
         destination = "Kyoto, Japan";
@@ -143,7 +143,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><MapPinIcon className="w-4 h-4 mr-2" />Destination</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -156,7 +156,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><CalendarDaysIcon className="w-4 h-4 mr-2" />Travel Dates</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -169,7 +169,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Budget (USD)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 1500" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input type="number" placeholder="e.g., 1500" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -182,7 +182,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><LightbulbIcon className="w-4 h-4 mr-2" />Desired Mood/Vibe/Sensory Palette (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Relaxing, Adventurous, Vibrant street food, Quiet nature" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Relaxing, Adventurous, Vibrant street food, Quiet nature" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -195,7 +195,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><AlertTriangleIcon className="w-4 h-4 mr-2" />Specific Concerns or Preferences (e.g., visa, accessibility)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility/accessibility needs" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility/accessibility needs" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -208,7 +208,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><CloudSunIcon className="w-4 h-4 mr-2" />Specific Weather Context (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} className="bg-input/70 border-border/70 focus:bg-input/90" />
+                    <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

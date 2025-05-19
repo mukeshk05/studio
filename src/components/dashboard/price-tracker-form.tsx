@@ -185,7 +185,7 @@ export function PriceTrackerForm() {
           </form>
         </Form>
         {aiAlert && (
-          <Alert className={cn("mt-4 bg-card/80 backdrop-blur-sm", aiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400' )}>
+          <Alert className={cn("mt-4 bg-card/80 backdrop-blur-sm dark:bg-card/50", aiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400' )}>
             <BellPlusIcon className={cn("h-4 w-4", aiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500')} />
             <AlertTitle className="text-card-foreground">{aiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
             <AlertDescription className="text-muted-foreground">

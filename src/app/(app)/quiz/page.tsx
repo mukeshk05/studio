@@ -115,7 +115,7 @@ export default function AdventureQuizPage() {
                   <CardContent className="text-sm space-y-3">
                     <p className="text-muted-foreground">{suggestion.description}</p>
 
-                    <div className={cn(glassCardClasses, "p-3 rounded-md border-border/40 bg-card/30")}>
+                    <div className={cn(glassCardClasses, "p-3 rounded-md border-border/40 bg-card/30 dark:bg-card/50")}>
                         <h4 className="font-semibold text-card-foreground mb-1">Why this fits you:</h4>
                         <p className="text-xs text-muted-foreground italic flex items-start">
                             <InfoIcon className="w-3 h-3 mr-1.5 mt-0.5 shrink-0 text-primary" />
@@ -145,7 +145,7 @@ export default function AdventureQuizPage() {
                         <Button
                             onClick={() => handlePlanSuggestedTrip(suggestion.suggestedTripIdea!)}
                             size="lg"
-                            className="w-full text-lg py-3 border-primary/30 text-primary hover:bg-primary/20"
+                            className="w-full text-lg py-3 glass-interactive"
                             variant="outline"
                         >
                           <ExternalLinkIcon className="mr-2 h-4 w-4" />
@@ -161,7 +161,7 @@ export default function AdventureQuizPage() {
                 onClick={() => setAiSuggestions(null)}
                 variant="outline"
                 size="lg"
-                className="w-full text-lg py-3"
+                className="w-full text-lg py-3 glass-interactive"
               >
                 Take the Quiz Again
               </Button>

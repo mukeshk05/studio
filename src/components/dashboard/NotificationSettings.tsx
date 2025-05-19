@@ -74,7 +74,7 @@ export function NotificationSettings() {
             onClick={handleEnableNotifications}
             disabled={isLoading}
             size="lg"
-            className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 glass-interactive"
+            className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
           >
             {isLoading ? (
               <Loader2Icon className="animate-spin" />

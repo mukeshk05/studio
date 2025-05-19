@@ -37,7 +37,8 @@ type ItineraryDetailSheetProps = {
   onInitiateBooking: (itinerary: Itinerary) => void;
 };
 
-const glassEffectClasses = "glass-card";
+const glassPaneClasses = "glass-pane"; // For sheet content
+const glassCardClasses = "glass-card"; // For dialog content
 
 export function ItineraryDetailSheet({
   isOpen,
@@ -78,7 +79,7 @@ export function ItineraryDetailSheet({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <SheetContent className={cn("w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col", "glass-pane")}>
+        <SheetContent className={cn("w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl p-0 flex flex-col", glassPaneClasses)}>
           <SheetHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
             <div className="flex justify-between items-center">
               <div>
@@ -104,7 +105,7 @@ export function ItineraryDetailSheet({
                 isDetailedView={true}
               />
 
-              <div className={cn("mt-6 p-4", glassEffectClasses)}>
+              <div className={cn("mt-6 p-4", glassCardClasses)}>
                 <h3 className="text-lg font-semibold mb-3 flex items-center text-card-foreground">
                   <MapPinIcon className="w-5 h-5 mr-2 text-primary" />
                   Location & Hotels Map
@@ -131,14 +132,14 @@ export function ItineraryDetailSheet({
               </div>
             </div>
           </ScrollArea>
-           <div className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3", "glass-pane")}>
+           <div className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3", glassPaneClasses)}>
               <Button
                 onClick={handleSave}
                 disabled={isTripSaved || isSaving}
                 size="lg"
                 className={cn(
                   "w-full text-lg py-3",
-                  isTripSaved ? "" : "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                  isTripSaved ? "glass-interactive" : "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 glass-interactive"
                 )}
                 variant={isTripSaved ? "secondary" : "outline"}
               >
@@ -158,7 +159,7 @@ export function ItineraryDetailSheet({
                 onClick={() => setIsArVrDialogOpen(true)}
                 variant="outline"
                 size="lg"
-                className="w-full text-lg py-3"
+                className="w-full text-lg py-3 glass-interactive"
               >
                 <ScanEyeIcon className="mr-2 h-4 w-4" />
                 AR/VR Preview
@@ -168,7 +169,7 @@ export function ItineraryDetailSheet({
       </Sheet>
 
       <AlertDialog open={isArVrDialogOpen} onOpenChange={setIsArVrDialogOpen}>
-          <AlertDialogContent className={cn(glassEffectClasses, "sm:max-w-lg")}>
+          <AlertDialogContent className={cn(glassCardClasses, "sm:max-w-lg")}>
               <AlertDialogHeader>
                   <AlertDialogTitle className="flex items-center text-card-foreground">
                       <ScanEyeIcon className="w-5 h-5 mr-2 text-purple-400"/>Immersive AR/VR Preview

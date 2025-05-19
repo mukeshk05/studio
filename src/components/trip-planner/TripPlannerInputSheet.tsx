@@ -23,6 +23,8 @@ type TripPlannerInputSheetProps = {
   initialValues?: Partial<AITripPlannerInput> | null; // Added optional prop
 };
 
+const glassPaneClasses = "glass-pane";
+
 export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest, initialValues }: TripPlannerInputSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -35,7 +37,7 @@ export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest, initialV
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent className={cn("w-full sm:max-w-md md:max-w-lg flex flex-col p-0 glass-pane border-l-border/30")}>
+      <SheetContent className={cn("w-full sm:max-w-md md:max-w-lg flex flex-col p-0", glassPaneClasses)}>
         <SheetHeader className="p-6 pb-4 border-b border-border/30 sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
            <div className="flex justify-between items-center">
             <div>
@@ -51,7 +53,7 @@ export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest, initialV
             </SheetClose>
           </div>
         </SheetHeader>
-        <div className="flex-grow overflow-y-auto p-6 pr-4">
+        <div className="flex-grow overflow-y-auto p-6 pr-4"> {/* Added pr-4 to prevent scrollbar overlap */}
           <TripInputForm
             onItinerariesFetched={() => {}}
             setIsLoading={setIsSubmitting}

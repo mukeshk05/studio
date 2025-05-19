@@ -25,6 +25,9 @@ type SearchHistoryDrawerProps = {
   onStartNewBlankPlan: () => void;
 };
 
+const glassPaneClasses = "glass-pane"; // For sheet content
+const glassCardClasses = "glass-card"; // For list items
+
 export function SearchHistoryDrawer({
   isOpen,
   onClose,
@@ -43,7 +46,7 @@ export function SearchHistoryDrawer({
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent className={cn("w-full sm:max-w-md md:max-w-lg flex flex-col p-0 glass-pane border-l-border/30")}>
+      <SheetContent className={cn("w-full sm:max-w-md md:max-w-lg flex flex-col p-0", glassPaneClasses)}>
         <SheetHeader className="p-6 pb-4 border-b border-border/30 sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
           <div className="flex justify-between items-center">
             <div>
@@ -97,7 +100,8 @@ export function SearchHistoryDrawer({
                   onClick={() => handleEntryClick(entry)}
                   className={cn(
                     "w-full text-left p-3 rounded-md transition-colors",
-                    "glass-card hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/70"
+                    glassCardClasses, // Apply glass card style to each item
+                    "hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/70"
                   )}
                 >
                   <p className="font-medium text-sm text-card-foreground truncate">
