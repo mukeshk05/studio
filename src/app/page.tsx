@@ -220,9 +220,9 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
+    { src: "https://placehold.co/3840x2553.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/3840x2553.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
+    { src: "https://placehold.co/3840x2553.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
   ];
 
@@ -415,7 +415,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-[5/3] relative"> {/* Updated aspect ratio */}
+                      <div className="aspect-[1280/851] relative">
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -517,7 +517,7 @@ export default function LandingPage() {
               <div className={cn("relative aspect-square max-w-md mx-auto md:max-w-none transition-all duration-700 ease-out",  whyChooseUsSectionVisible ? "opacity-100 scale-100 delay-200" : "opacity-0 scale-90")}>
                 <Image
                     src="https://placehold.co/600x600.png"
-                    alt="Diverse travelers enjoying AI-planned trips"
+                    alt="happy diverse travelers"
                     fill
                     className="object-cover rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 hover:shadow-primary/30 transition-all duration-500 ease-out"
                     data-ai-hint="happy diverse travelers"
@@ -546,6 +546,7 @@ export default function LandingPage() {
                 )}
             >
               <Link href={currentUser ? "/planner" : "/signup"} className="flex items-center">
+                <SparklesIcon className="w-5 h-5 mr-2 transition-transform group-hover:animate-pulse" />
                 {currentUser ? "Start Planning Now" : "Unlock Your AI Travel Assistant"}
                 <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
