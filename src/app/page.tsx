@@ -16,7 +16,7 @@ import {
   UserPlusIcon,
   Wand2Icon,
   BarChart3Icon,
-  MessageSquareTextIcon, // For Aura AI
+  MessageSquareTextIcon,
   UsersRoundIcon,
   BookHeartIcon,
   BellRingIcon,
@@ -31,10 +31,12 @@ import {
   CheckCircleIcon,
   LanguagesIcon,
   CubeIcon,
+  Building2Icon,
   LayoutGridIcon,
   LocateFixedIcon,
   SearchCheckIcon,
-  MessageCircleQuestionIcon, // Added this missing icon
+  BrainCircuitIcon,
+  MessageCircleQuestionIcon, // Added
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -117,7 +119,7 @@ export default function LandingPage() {
     {
       icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Effortless Group Planning & Memories",
-      description: "Input companion preferences and let our AI generate a 'Group Sync Report' to harmonize the trip. Plus, get AI-generated memory snippets for your saved trips.",
+      description: "Input companion preferences for an AI 'Group Sync Report' to harmonize the trip. Plus, get AI-generated memory snippets for your saved trips.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai group travel collaboration"
     },
@@ -220,7 +222,7 @@ export default function LandingPage() {
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, // Or Building2Icon
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -249,9 +251,9 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
-    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
-    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); 
+    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450); 
+    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650); 
 
     return () => {
       clearTimeout(heroTimer);
@@ -359,7 +361,7 @@ export default function LandingPage() {
                   href="/signup"
                   className={cn(
                     buttonVariants({ variant: "default", size: "sm" }),
-                    "hidden sm:inline-flex items-center shadow-md shadow-primary/40 hover:shadow-lg hover:shadow-primary/50 bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary text-primary-foreground"
+                    "hidden sm:inline-flex items-center shadow-md shadow-primary/40 hover:shadow-lg hover:shadow-primary/50 bg-primary hover:bg-accent text-primary-foreground hover:text-accent-foreground"
                   )}
                 >
                   <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up
@@ -417,7 +419,7 @@ export default function LandingPage() {
             <div
               className={cn(
                 "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
-                "w-full",
+                "w-full", 
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -582,5 +584,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
