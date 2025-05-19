@@ -35,10 +35,10 @@ import {
   CalendarCheckIcon,
   CheckCircleIcon,
   LanguagesIcon,
-  CubeIcon,
-  Building2Icon, // Keeping this in case CubeIcon isn't preferred
+  CubeIcon, // Added CubeIcon
+  Building2Icon,
   AppWindowIcon,
-  MessageCircleQuestionIcon, // Added missing icon
+  MessageCircleQuestionIcon,
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -81,6 +81,13 @@ const useStaggeredAnimation = (count: number, delayIncrement = 100, trigger: boo
 
 export default function LandingPage() {
   const { currentUser, logout, loading: authLoading } = useAuth();
+
+  const heroCarouselImages = [
+    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
+    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
+  ];
 
   const features = [
     {
@@ -211,13 +218,13 @@ export default function LandingPage() {
     },
     {
       icon: <LanguagesIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "Hyper-Local Language Coach (Future Vision)",
+      title: "AI Hyper-Local Language Coach (Future Vision)",
       description: "Go beyond basic phrases! Learn local dialects, slang, and idioms. Get real-time pronunciation feedback and cultural context to engage authentically.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, // Or Building2Icon
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -234,12 +241,6 @@ export default function LandingPage() {
     "All-in-One Dashboard: Your trips, alerts, Aura AI, and memory archive in one place."
   ];
 
-  const heroCarouselImages = [
-    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
-  ];
 
   const [heroVisible, setHeroVisible] = useState(false);
   const [featuresSectionVisible, setFeaturesSectionVisible] = useState(false);
@@ -252,9 +253,9 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
-    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
-    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); // Delay for features section
+    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450); // Delay for why choose us
+    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650); // Delay for final CTA
 
     return () => {
       clearTimeout(heroTimer);
@@ -264,7 +265,7 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/20";
+  const glassCardClasses = "glass-card hover:border-primary/40 dark:bg-card/20";
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
@@ -420,7 +421,7 @@ export default function LandingPage() {
             <div
               className={cn(
                 "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
-                "w-full", 
+                "w-full", // Make carousel container full width within its parent
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -431,6 +432,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
+                       {/* Using aspect-video (16:9) for a common widescreen look */}
                       <div className="aspect-square relative"> 
                         <Image
                             src={image.src}
@@ -460,7 +462,7 @@ export default function LandingPage() {
             <Carousel
               opts={{
                 align: "start",
-                loop: features.length > 2,
+                loop: features.length > 2, // Only loop if there are more than 2 items, adjust if needed
               }}
               className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto"
             >
@@ -474,7 +476,7 @@ export default function LandingPage() {
                     <div className="p-1 h-full">
                       <Card
                         className={cn(
-                          glassCardClasses,
+                          glassCardClasses, // Using the refined glassCardClasses
                           "hover:shadow-2xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300 flex flex-col h-full transform border-primary/20 hover:border-accent/40"
                         )}
                       >
@@ -585,3 +587,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
