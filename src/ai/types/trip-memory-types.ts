@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Trip Memory Generator.
  */
@@ -17,3 +16,4 @@ export const GenerateTripMemoryOutputSchema = z.object({
   memoryText: z.string().describe("A short, evocative memory or diary-style snippet about the trip, focusing on highlights and the overall feel."),
 });
 export type GenerateTripMemoryOutput = z.infer<typeof GenerateTripMemoryOutputSchema>;
+
