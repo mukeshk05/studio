@@ -220,9 +220,9 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "futuristic ai travel" },
-    { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
-    { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
+    { src: "/assets/Gemini_Generated_Image_ajhjmdajhjmdajhj.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "futuristic ai travel" },
+    { src: "/assets/Gemini_Generated_Image_ajhjmdajhjmdajhj.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
+    { src: "/assets/Gemini_Generated_Image_ajhjmdajhjmdajhj.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
   ];
 
