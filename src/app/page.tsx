@@ -16,29 +16,25 @@ import {
   UserPlusIcon,
   Wand2Icon,
   BarChart3Icon,
+  MessageSquareTextIcon, // For Aura AI
   UsersRoundIcon,
-  BrainCircuitIcon,
-  ActivityIcon,
-  BotIcon,
-  LocateFixedIcon,
-  SearchCheckIcon,
-  LeafIcon,
   BookHeartIcon,
-  CameraIcon,
-  MessageSquareTextIcon,
-  LayoutGridIcon,
-  AlertTriangleIcon,
   BellRingIcon,
+  BotIcon,
+  LeafIcon,
+  ActivityIcon,
+  CameraIcon,
   SlidersHorizontalIcon,
   GitCompareArrowsIcon,
   MapPinnedIcon,
   CalendarCheckIcon,
   CheckCircleIcon,
   LanguagesIcon,
-  CubeIcon, // Added CubeIcon
-  Building2Icon,
-  AppWindowIcon,
-  MessageCircleQuestionIcon,
+  CubeIcon,
+  LayoutGridIcon,
+  LocateFixedIcon,
+  SearchCheckIcon,
+  MessageCircleQuestionIcon, // Added this missing icon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -224,7 +220,7 @@ export default function LandingPage() {
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, // Or Building2Icon
+      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -253,9 +249,9 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); // Delay for features section
-    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450); // Delay for why choose us
-    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650); // Delay for final CTA
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
+    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
+    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
 
     return () => {
       clearTimeout(heroTimer);
@@ -363,7 +359,7 @@ export default function LandingPage() {
                   href="/signup"
                   className={cn(
                     buttonVariants({ variant: "default", size: "sm" }),
-                    "hidden sm:inline-flex items-center shadow-md shadow-primary/40 hover:shadow-lg hover:shadow-primary/50 bg-primary hover:bg-accent text-primary-foreground hover:text-accent-foreground"
+                    "hidden sm:inline-flex items-center shadow-md shadow-primary/40 hover:shadow-lg hover:shadow-primary/50 bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary text-primary-foreground"
                   )}
                 >
                   <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up
@@ -407,7 +403,7 @@ export default function LandingPage() {
               asChild
               size="lg"
               className={cn(
-                "text-lg px-8 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100", 
+                "text-lg px-8 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100",
                 "bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 text-primary-foreground",
                 heroVisible ? 'opacity-100 translate-y-0 delay-300' : 'opacity-0 translate-y-10'
               )}
@@ -421,7 +417,7 @@ export default function LandingPage() {
             <div
               className={cn(
                 "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
-                "w-full", // Make carousel container full width within its parent
+                "w-full",
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -432,8 +428,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                       {/* Using aspect-video (16:9) for a common widescreen look */}
-                      <div className="aspect-square relative"> 
+                      <div className="aspect-[1280/851] relative">
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -462,7 +457,7 @@ export default function LandingPage() {
             <Carousel
               opts={{
                 align: "start",
-                loop: features.length > 2, // Only loop if there are more than 2 items, adjust if needed
+                loop: features.length > 2,
               }}
               className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto"
             >
@@ -476,7 +471,7 @@ export default function LandingPage() {
                     <div className="p-1 h-full">
                       <Card
                         className={cn(
-                          glassCardClasses, // Using the refined glassCardClasses
+                          glassCardClasses,
                           "hover:shadow-2xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300 flex flex-col h-full transform border-primary/20 hover:border-accent/40"
                         )}
                       >
@@ -558,7 +553,7 @@ export default function LandingPage() {
                 asChild
                 size="lg"
                 className={cn(
-                    "text-lg px-10 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100", 
+                    "text-lg px-10 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100",
                     "bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 text-primary-foreground",
                     finalCtaVisible ? "opacity-100 translate-y-0 delay-200" : "opacity-0 translate-y-10"
                 )}
@@ -588,3 +583,4 @@ export default function LandingPage() {
   );
 }
 
+    
