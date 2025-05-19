@@ -33,7 +33,10 @@ import {
   MessageSquareTextIcon,
   AlertTriangleIcon,
   BellRingIcon,
-  SlidersHorizontalIcon, // New icon for Mood & Energy Optimizer
+  SlidersHorizontalIcon,
+  GitCompareArrowsIcon, // For What If Simulator
+  MapPinnedIcon, // For Interactive Map
+  CalendarCheckIcon, // For Calendar Sync
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -149,6 +152,34 @@ export default function LandingPage() {
       aiHint: "ai authenticity check travel"
     },
     {
+      icon: <MapPinnedIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Interactive Map with Smart Clusters (Future Vision)",
+      description: "Visually explore destinations with AI-curated points of interest, smart clustering, and personalized filters based on your Travel DNA.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "interactive map trip planning"
+    },
+    {
+      icon: <GitCompareArrowsIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "AI 'What If' Travel Simulator (Future Vision)",
+      description: "Explore alternative travel scenarios with AI. 'What if I went to Vietnam instead of Bali?' Get comparisons of cost, weather, activities, and vibe.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "ai travel scenario comparison"
+    },
+    {
+      icon: <CameraIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "AI + AR Destination Preview (Future Vision)",
+      description: "See your destination hotspots in real-time AR, with AI mood tags like 'Busy now,' 'Romantic lighting,' or 'Best photo time: 6:35 PM.'",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "augmented reality travel"
+    },
+    { 
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "AI Co-Travel Agent (Ask Anything!)",
+      description: "Get instant answers to travel questions: customs, tipping, local laws, phrases, and more. Your AI companion provides dynamic checklists and insights.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "ai travel question answer"
+    },
+    {
       icon: <SlidersHorizontalIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Mood & Energy Optimizer (Future Vision)",
       description: "Adjust your day's intensity with a slider, and Aura AI reshuffles your schedule, considering mood, energy, and even wearable data in the future.",
@@ -169,19 +200,12 @@ export default function LandingPage() {
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai travel storytelling generational"
     },
-    { 
-      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "AI Co-Travel Agent (Ask Anything!)",
-      description: "Get instant answers to travel questions: customs, tipping, local laws, phrases, and more. Your AI companion provides dynamic checklists and insights.",
+    {
+      icon: <CalendarCheckIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "AI Calendar SyncUp (Future Vision)",
+      description: "BudgetRoam AI syncs with your calendar, identifies free slots, and proactively suggests personalized trip ideas that fit your schedule.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai travel question answer"
-    },
-    { 
-      icon: <CameraIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "AI + AR Destination Preview (Conceptual)",
-      description: "See your destination hotspots in real-time AR, with AI mood tags like 'Busy now,' 'Romantic lighting,' or 'Best photo time: 6:35 PM.'",
-      imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "augmented reality travel"
+      aiHint: "ai calendar travel scheduling"
     }
   ];
   
@@ -196,7 +220,7 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "futuristic ai travel" },
+    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
