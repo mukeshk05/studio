@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, TrendingUpIcon, MapPinIcon } from "lucide-react";
+import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, TrendingUpIcon, MapPinIcon } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +25,8 @@ import { LocalInsiderTipsCard } from "@/components/dashboard/LocalInsiderTipsCar
 import { InteractiveMapPlaceholder } from "@/components/dashboard/InteractiveMapPlaceholder";
 import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulatorPlaceholder";
 import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder";
-import { AiCoTravelAgentPlaceholder } from "@/components/dashboard/AiCoTravelAgentPlaceholder"; // New Import
+import { AiCoTravelAgentPlaceholder } from "@/components/dashboard/AiCoTravelAgentPlaceholder";
+import { MoodEnergyOptimizerPlaceholder } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder"; // New Import
 
 
 export default function DashboardPage() {
@@ -45,8 +46,6 @@ export default function DashboardPage() {
         try {
           if (router) { 
             router.push('/planner');
-            // Dispatch a custom event that the planner page can listen to if it's already active.
-            // This is more reliable than relying on the planner page always picking up localStorage on route change.
             window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
           }
         } catch (e) {
@@ -120,9 +119,9 @@ export default function DashboardPage() {
 
   const handlePlanTripFromBundle = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
-    const event = new CustomEvent('localStorageUpdated_tripBundleToPlan'); // Dispatch custom event
+    const event = new CustomEvent('localStorageUpdated_tripBundleToPlan');
     window.dispatchEvent(event);
-    router.push('/planner'); // Also navigate directly
+    router.push('/planner'); 
   };
 
   return (
@@ -210,9 +209,13 @@ export default function DashboardPage() {
           <AiCoTravelAgentPlaceholder />
         </div>
 
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.6s'}}>
+          <MoodEnergyOptimizerPlaceholder />
+        </div>
+
       </div>
       
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.65s' }}>
         <NotificationSettings />
       </div>
 
@@ -222,7 +225,7 @@ export default function DashboardPage() {
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '0.65s'}}>
+          )} style={{animationDelay: '0.7s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -233,7 +236,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.7s'}}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.75s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>

@@ -31,8 +31,9 @@ import {
   LayoutGridIcon,
   BarChart3Icon,
   MessageSquareTextIcon,
-  AlertTriangleIcon, // Added for Proactive Alerter
-  BellRingIcon, // Alternative for Proactive Alerter
+  AlertTriangleIcon,
+  BellRingIcon,
+  SlidersHorizontalIcon, // New icon for Mood & Energy Optimizer
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -148,6 +149,13 @@ export default function LandingPage() {
       aiHint: "ai authenticity check travel"
     },
     {
+      icon: <SlidersHorizontalIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Mood & Energy Optimizer (Future Vision)",
+      description: "Adjust your day's intensity with a slider, and Aura AI reshuffles your schedule, considering mood, energy, and even wearable data in the future.",
+      imgSrc: "https://placehold.co/600x400.png",
+      aiHint: "travel wellness planning slider"
+    },
+    {
       icon: <ActivityIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
@@ -205,7 +213,6 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    // Delay subsequent section animations
     const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); 
     const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
     const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
@@ -537,5 +544,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
