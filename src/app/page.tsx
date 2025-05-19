@@ -30,8 +30,8 @@ import {
   CalendarCheckIcon,
   CheckCircleIcon,
   LanguagesIcon,
-  CubeIcon,
-  Building2Icon, 
+  CubeIcon, // Added CubeIcon here
+  Building2Icon,
   LayoutGridIcon,
   LocateFixedIcon,
   SearchCheckIcon,
