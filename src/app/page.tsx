@@ -220,9 +220,9 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x800.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/1200x800.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
-    { src: "https://placehold.co/1200x800.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
+    { src: "https://placehold.co/1200x900.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1200x900.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
+    { src: "https://placehold.co/1200x900.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
   ];
 
@@ -333,7 +333,7 @@ export default function LandingPage() {
                 >
                   <LogInIcon className="mr-1 h-4 w-4" /> Login
                 </Link>
-                <Link
+                 <Link
                   href="/login"
                   aria-label="Login"
                   className={cn(
@@ -415,7 +415,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-[1200/800] relative"> {/* Adjusted aspect ratio */}
+                      <div className="aspect-[1200/900] relative">
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -569,3 +569,4 @@ export default function LandingPage() {
   );
 }
 
+    
