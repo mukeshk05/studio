@@ -209,7 +209,6 @@ export default function LandingPage() {
     }
   ];
 
-
   const whyChooseUsPoints = [
     "Hyper-Personalized with Travel DNA: Itineraries and bundles uniquely tailored to *your* style.",
     "Predictive Preference Fusion: Aura AI intelligently fuses your history, persona, and queries.",
@@ -223,7 +222,7 @@ export default function LandingPage() {
     { src: "https://placehold.co/1920x1080.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "futuristic ai travel" },
     { src: "https://placehold.co/1920x1080.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
     { src: "https://placehold.co/1920x1080.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
-    { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
+    { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" }, // Kept one smaller for variety or specific content
   ];
 
   const [heroVisible, setHeroVisible] = useState(false);
@@ -385,7 +384,7 @@ export default function LandingPage() {
                 heroVisible ? 'opacity-100 translate-y-0 delay-200' : 'opacity-0 translate-y-10'
               )}
             >
-              BudgetRoam leverages cutting-edge AI to craft hyper-personalized trips, track prices, offer predictive insights, and even sync group plans, all tailored to your unique Travel DNA. Let Aura AI be your smart travel companion!
+             BudgetRoam leverages cutting-edge AI to craft hyper-personalized trips, track prices, offer predictive insights, and even sync group plans, all tailored to your unique Travel DNA and enriched by real-time (conceptual) local insights. Let Aura AI be your smart travel companion!
             </p>
             <Button
               asChild
@@ -405,6 +404,7 @@ export default function LandingPage() {
             <div
               className={cn(
                 "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
+                "w-full", // Make carousel take full width of its container
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -569,5 +569,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
