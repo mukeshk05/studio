@@ -15,26 +15,25 @@ import {
   LogInIcon,
   UserPlusIcon,
   Wand2Icon,
-  BarChart3Icon, // Added BarChart3Icon
+  BarChart3Icon,
   UsersRoundIcon,
-  BrainCircuitIcon, // Added BrainCircuitIcon
-  ActivityIcon, // Added ActivityIcon
-  BotIcon, // Added BotIcon
-  LocateFixedIcon, // Added LocateFixedIcon
-  SearchCheckIcon, // Added SearchCheckIcon
-  LeafIcon, // Added LeafIcon
-  BookHeartIcon, // Added BookHeartIcon
-  CameraIcon, // Added CameraIcon
-  MessageCircleQuestionIcon, // Added MessageCircleQuestionIcon
-  LayoutGridIcon, // Added LayoutGridIcon
-  MessageSquareTextIcon, // Added MessageSquareTextIcon
-  AlertTriangleIcon, // Added AlertTriangleIcon
-  BellRingIcon, // Added BellRingIcon
-  SlidersHorizontalIcon, // Added SlidersHorizontalIcon
-  GitCompareArrowsIcon, // Added GitCompareArrowsIcon
-  MapPinnedIcon, // Added MapPinnedIcon
-  CalendarCheckIcon, // Added CalendarCheckIcon
-  CheckCircleIcon, // Ensured this is imported
+  BrainCircuitIcon,
+  ActivityIcon,
+  BotIcon,
+  LocateFixedIcon,
+  SearchCheckIcon,
+  LeafIcon,
+  BookHeartIcon,
+  CameraIcon,
+  MessageCircleQuestionIcon,
+  LayoutGridIcon,
+  AlertTriangleIcon,
+  BellRingIcon,
+  SlidersHorizontalIcon,
+  GitCompareArrowsIcon,
+  MapPinnedIcon,
+  CalendarCheckIcon,
+  CheckCircleIcon,
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -101,7 +100,7 @@ export default function LandingPage() {
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Aura AI: Natural Language Trip Search",
       description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -412,11 +411,8 @@ export default function LandingPage() {
               >
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
-                    <CarouselItem key={index} className={cn(index === 3 ? "basis-full sm:basis-1/2 lg:basis-1/3" : "")}>
-                      <div className={cn(
-                        "relative",
-                        "aspect-square" 
-                      )}>
+                    <CarouselItem key={index}>
+                      <div className="aspect-square relative">
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -464,7 +460,7 @@ export default function LandingPage() {
                         )}
                       >
                         <CardHeader className="items-center text-center">
-                          {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, index % 2 === 0 ? 'text-primary' : 'text-accent') })}
+                          {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, 'text-primary') })}
                           <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow text-center">
