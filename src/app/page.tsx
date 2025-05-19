@@ -220,10 +220,10 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/840x553.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "tablet displaying world map travel route" },
-    { src: "https://placehold.co/840x553.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
-    { src: "https://placehold.co/840x553.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
-    { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
+    { src: "https://placehold.co/1920x1080.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "futuristic ai travel" },
+    { src: "https://placehold.co/1920x1080.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
+    { src: "https://placehold.co/1920x1080.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
+    { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
   ];
 
   const [heroVisible, setHeroVisible] = useState(false);
@@ -404,7 +404,7 @@ export default function LandingPage() {
             </Button>
             <div
               className={cn(
-                "mt-16 relative max-w-4xl mx-auto rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
+                "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -415,7 +415,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-[840/553] relative">
+                      <div className="aspect-video relative">
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -569,4 +569,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
     
