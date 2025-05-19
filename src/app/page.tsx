@@ -104,7 +104,7 @@ export default function LandingPage() {
     },
     {
       icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Ask Aura: Natural Language Trip Search",
+      title: "Aura AI: Natural Language Trip Search",
       description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
@@ -220,9 +220,9 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/3840x2553.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/3840x2553.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
-    { src: "https://placehold.co/3840x2553.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
+    { src: "https://placehold.co/840x553.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "tablet displaying world map travel route" },
+    { src: "https://placehold.co/840x553.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
+    { src: "https://placehold.co/840x553.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
   ];
 
@@ -415,7 +415,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-[1280/851] relative">
+                      <div className="aspect-[840/553] relative">
                         <Image
                             src={image.src}
                             alt={image.alt}
