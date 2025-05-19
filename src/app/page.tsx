@@ -220,9 +220,9 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x700.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/1200x700.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
-    { src: "https://placehold.co/1200x700.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
+    { src: "https://placehold.co/1200x800.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1200x800.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
+    { src: "https://placehold.co/1200x800.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/600x400.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
   ];
 
@@ -415,7 +415,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-video relative">
+                      <div className="aspect-[1200/800] relative"> {/* Adjusted aspect ratio */}
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -463,7 +463,7 @@ export default function LandingPage() {
                         )}
                       >
                         <CardHeader className="items-center text-center">
-                          {feature.icon}
+                          {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, index % 2 === 0 ? 'text-primary' : 'text-accent') })}
                           <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow text-center">
@@ -568,3 +568,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
