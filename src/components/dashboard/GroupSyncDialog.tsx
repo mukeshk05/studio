@@ -195,7 +195,7 @@ export function GroupSyncDialog({ isOpen, onClose, trip }: GroupSyncDialogProps)
                   )}
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={handleAddCompanion} className="mt-2 glass-interactive text-lg py-3" >
+              <Button variant="outline" size="sm" onClick={handleAddCompanion} className="mt-2 glass-interactive py-2 px-4" >
                 <PlusCircleIcon className="w-4 h-4 mr-2" /> Add Companion
               </Button>
             </div>

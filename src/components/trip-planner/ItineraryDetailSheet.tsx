@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, ExternalLinkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react";
+import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react"; // Removed ExternalLinkIcon
 import { cn } from "@/lib/utils";
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -53,6 +53,7 @@ export function ItineraryDetailSheet({
   if (!itinerary) return null;
 
   const handleSave = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...dataToSave } = itinerary;
     onSaveTrip(dataToSave);
   };

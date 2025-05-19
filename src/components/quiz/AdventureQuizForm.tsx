@@ -13,7 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { SendIcon, SparklesIcon, Loader2Icon } from "lucide-react";
+import { SparklesIcon, Loader2Icon } from "lucide-react"; // Removed SendIcon as it's not used
 import React from "react";
 import { AdventureQuizInputSchema, type AdventureQuizInput } from "@/ai/types/adventure-matcher-types";
 

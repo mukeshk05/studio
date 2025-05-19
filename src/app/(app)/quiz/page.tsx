@@ -66,6 +66,8 @@ export default function AdventureQuizPage() {
 
   const handlePlanSuggestedTrip = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
+    const event = new CustomEvent('localStorageUpdated_tripBundleToPlan');
+    window.dispatchEvent(event);
     router.push('/planner');
   };
 

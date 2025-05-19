@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, SendIcon, InfoIcon, ExternalLinkIcon, Wand2Icon } from 'lucide-react';
+import { Loader2Icon, SparklesIcon, InfoIcon, ExternalLinkIcon, Wand2Icon } from 'lucide-react'; // Removed SendIcon
 import { generateSmartBundles } from '@/ai/flows/smart-bundle-flow';
 import type { SmartBundleInput, SmartBundleOutput } from '@/ai/types/smart-bundle-types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -67,7 +67,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
            Aura AI: Predictive Preference Fusion
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Describe your ideal trip, or leave the fields blank and let Aura AI suggest ideas based on your travel persona and past searches! It intelligently fuses these to predict your perfect getaway.
+        Describe your ideal trip, or leave the fields blank and let Aura AI suggest ideas based on your travel persona and past searches! It intelligently fuses these to predict your perfect getaway.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
