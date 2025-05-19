@@ -29,6 +29,7 @@ import { AiCoTravelAgentPlaceholder } from "@/components/dashboard/AiCoTravelAge
 import { MoodEnergyOptimizerPlaceholder } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
 import { AiCalendarSyncPlaceholder } from "@/components/dashboard/AiCalendarSyncPlaceholder"; 
 import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/HyperLocalLanguageCoachPlaceholder";
+import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTwinExplorerPlaceholder"; // Added import
 
 
 export default function DashboardPage() {
@@ -223,9 +224,13 @@ export default function DashboardPage() {
           <HyperLocalLanguageCoachPlaceholder />
         </div>
 
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.75s'}}>
+          <DigitalTwinExplorerPlaceholder />
+        </div>
+
       </div>
       
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.75s' }}>
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
         <NotificationSettings />
       </div>
 
@@ -235,7 +240,7 @@ export default function DashboardPage() {
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '0.8s'}}>
+          )} style={{animationDelay: '0.85s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -246,7 +251,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.85s'}}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.9s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
@@ -259,4 +264,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

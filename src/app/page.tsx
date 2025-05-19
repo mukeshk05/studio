@@ -25,7 +25,7 @@ import {
   LeafIcon,
   BookHeartIcon,
   CameraIcon,
-  MessageCircleQuestionIcon, // Changed from MessageSquareTextIcon
+  MessageCircleQuestionIcon,
   LayoutGridIcon,
   AlertTriangleIcon,
   BellRingIcon,
@@ -34,6 +34,9 @@ import {
   MapPinnedIcon,
   CalendarCheckIcon,
   CheckCircleIcon,
+  LanguagesIcon,
+  CubeIcon,
+  Building2Icon, // Alternative for Digital Twin
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -83,126 +86,140 @@ export default function LandingPage() {
       title: "AI-Powered Trip Planner",
       description: "Hyper-personalized itineraries! Define destination, dates, budget, mood, and your Travel DNA. Our AI Guardian crafts detailed plans, fusing preferences with weather, risk, and visa awareness.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "intelligent itinerary generation"
+      dataAiHint: "intelligent itinerary generation"
     },
     {
       icon: <BarChart3Icon className="w-10 h-10 mb-4 text-accent" />,
       title: "Smart Price Suite",
       description: "Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecast graphs to make informed, budget-conscious decisions.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai price analysis chart"
+      dataAiHint: "ai price analysis chart"
     },
     {
       icon: <BrainCircuitIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Discover Your Travel DNA",
       description: "Our Adventure Quiz uncovers your unique travel persona. This 'Travel DNA' empowers Aura AI to personalize all future travel suggestions and plans for you.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai travel preferences quiz"
+      dataAiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />, // Changed Icon
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Aura AI: Natural Language Trip Search",
       description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "conversational ai travel chat"
+      dataAiHint: "conversational ai travel chat"
     },
     {
       icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Effortless Group Planning",
       description: "Input companion preferences and let our AI generate a 'Group Sync Report.' Get insights and suggestions to harmonize the trip for everyone.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai group travel collaboration"
+      dataAiHint: "ai group travel collaboration"
     },
     {
       icon: <BellRingIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Proactive AI Alerter & Advisor",
       description: "Stay ahead! Our AI conceptually monitors for you. Imagine getting proactive alerts for significant price drops, major weather warnings for your trips, or even visa policy shifts (future vision). It can then offer timely rebooking advice or backup plan suggestions.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai proactive travel alerts"
+      dataAiHint: "ai proactive travel alerts"
     },
     {
       icon: <BotIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Proactive Journey Sentinel AI",
       description: "Our AI proactively considers general travel risks, reminds you about visa checks, and incorporates typical weather patterns into your trip plans for a safer journey.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "travel safety shield ai"
+      dataAiHint: "travel safety shield ai"
     },
     {
       icon: <LeafIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Sustainable Footprint Optimizer AI",
       description: "Conceptually, our AI considers sustainable travel options, suggesting eco-friendly choices and promoting awareness for responsible tourism.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "eco friendly travel ai"
+      dataAiHint: "eco friendly travel ai"
     },
      {
       icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Serendipity Engine (Future Vision)",
       description: "Imagine discovering spontaneous, hyper-local events unfolding near you in real-time, perfectly matched to your Travel DNA and current mood.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "real time local discovery ai"
+      dataAiHint: "real time local discovery ai"
     },
      {
       icon: <SearchCheckIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "AI Authenticity Verifier (Future Vision)",
       description: "Conceptually, verify local crafts, food, and experiences. Upload a photo, and AI provides insights on origin, value, and authenticity markers.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai authenticity check travel"
+      dataAiHint: "ai authenticity check travel"
     },
     {
       icon: <MapPinnedIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Interactive Smart Map (Future Vision)",
       description: "Visually explore destinations with AI-curated points of interest, smart clustering, and personalized filters based on your Travel DNA.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "interactive map trip planning"
+      dataAiHint: "interactive map trip planning"
     },
     {
       icon: <GitCompareArrowsIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "AI 'What If' Travel Simulator (Future Vision)",
       description: "Explore alternative travel scenarios with AI. 'What if I went to Vietnam instead of Bali?' Get comparisons of cost, weather, activities, and vibe.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai travel scenario comparison"
+      dataAiHint: "ai travel scenario comparison"
     },
     {
       icon: <CameraIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI + AR Destination Preview (Conceptual)",
       description: "See your destination hotspots in real-time AR, with AI mood tags like 'Busy now,' 'Romantic lighting,' or 'Best photo time: 6:35 PM.'",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "augmented reality travel"
+      dataAiHint: "augmented reality travel"
     },
     {
       icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "AI Co-Travel Agent (Ask Anything!)",
       description: "Get instant answers to travel questions: customs, tipping, local laws, phrases, and more. Your AI companion provides dynamic checklists and insights.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai travel question answer"
+      dataAiHint: "ai travel question answer"
     },
     {
       icon: <SlidersHorizontalIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Mood & Energy Optimizer (Future Vision)",
       description: "Adjust your day's intensity with a slider, and Aura AI reshuffles your schedule, considering mood, energy, and even wearable data in the future.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "travel wellness planning slider"
+      dataAiHint: "travel wellness planning slider"
     },
     {
       icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "bio feedback travel ai"
+      dataAiHint: "bio feedback travel ai"
     },
     {
       icon: <BookHeartIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Generational Story Weaver AI (Evolved Diary)",
       description: "Beyond simple snippets, envision an AI that helps weave rich, multimedia travel diaries and uncovers travel narratives across generations.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai travel storytelling generational"
+      dataAiHint: "ai travel storytelling generational"
     },
     {
       icon: <CalendarCheckIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "AI Calendar SyncUp (Future Vision)",
       description: "BudgetRoam AI syncs with your calendar, identifies free slots, and proactively suggests personalized trip ideas that fit your schedule.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "ai calendar travel scheduling"
+      dataAiHint: "ai calendar travel scheduling"
+    },
+    {
+      icon: <LanguagesIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Hyper-Local Language Coach (Future Vision)",
+      description: "Go beyond basic phrases! Learn local dialects, slang, and idioms. Get real-time pronunciation feedback and cultural context to engage authentically.",
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "ai language learning app"
+    },
+    {
+      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, // Or Building2Icon
+      title: "Predictive 'Digital Twin' Explorer (Future Vision)",
+      description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "ai digital twin city simulation"
     }
   ];
 
@@ -216,10 +233,10 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", aiHint: "futuristic travel interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", aiHint: "digital world map" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "glowing data streams journey" },
+    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
+    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
   ];
 
   const [heroVisible, setHeroVisible] = useState(false);
@@ -245,7 +262,7 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/20"; // Adjusted dark mode opacity for glass card
+  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/20";
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
@@ -387,7 +404,7 @@ export default function LandingPage() {
               asChild
               size="lg"
               className={cn(
-                "text-lg px-8 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100", // Applied reference shadow
+                "text-lg px-8 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100", 
                 "bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 text-primary-foreground",
                 heroVisible ? 'opacity-100 translate-y-0 delay-300' : 'opacity-0 translate-y-10'
               )}
@@ -412,13 +429,13 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-square relative"> 
+                      <div className="aspect-[5/3] relative"> 
                         <Image
                             src={image.src}
                             alt={image.alt}
                             fill
                             className="object-cover rounded-lg"
-                            data-ai-hint={image.aiHint}
+                            data-ai-hint={image.dataAiHint}
                             priority={index === 0}
                         />
                       </div>
@@ -460,7 +477,7 @@ export default function LandingPage() {
                         )}
                       >
                         <CardHeader className="items-center text-center">
-                          {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className) })}
+                          {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, index % 2 === 0 ? 'text-primary' : 'text-accent') })}
                           <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow text-center">
@@ -470,7 +487,7 @@ export default function LandingPage() {
                                   alt={feature.title}
                                   fill
                                   className="object-cover rounded-md group-hover:scale-110 transition-transform duration-300"
-                                  data-ai-hint={feature.aiHint}
+                                  data-ai-hint={feature.dataAiHint}
                               />
                           </div>
                           <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -537,7 +554,7 @@ export default function LandingPage() {
                 asChild
                 size="lg"
                 className={cn(
-                    "text-lg px-10 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100", // Applied reference shadow
+                    "text-lg px-10 py-3 group transform transition-all duration-700 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 hover:scale-105 active:scale-100", 
                     "bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 text-primary-foreground",
                     finalCtaVisible ? "opacity-100 translate-y-0 delay-200" : "opacity-0 translate-y-10"
                 )}
