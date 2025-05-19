@@ -48,52 +48,52 @@ body {
   }
 
   .dark {
-    /* Dark Blue Theme (variation of the sky blue idea) - CURRENTLY ACTIVE */
-    --background: 210 30% 10%; /* Dark Desaturated Blue */
-    --foreground: 200 20% 90%; /* Light Gray/Off-white text */
+    /* Futuristic Dark Theme inspired by reference */
+    --background: 220 20% 7%; /* Very Dark Desaturated Blue/Almost Black */
+    --foreground: 210 20% 95%; /* Bright Off-white/Light Gray text */
     
-    --card: 210 25% 18%; /* Darker blue-gray for cards, will be used with opacity for glass */
-    --card-foreground: 200 20% 88%;
+    --card: 220 15% 12%; /* Darker blue-gray for cards, with more transparency for glass */
+    --card-foreground: 210 20% 90%;
     
-    --popover: 210 25% 15%; /* Darker popover */
-    --popover-foreground: 200 20% 88%;
+    --popover: 220 15% 10%; /* Darker popover */
+    --popover-foreground: 210 20% 90%;
     
-    --primary: 205 70% 60%; /* Lighter, vibrant Sky Blue for dark mode primary */
-    --primary-foreground: 220 100% 10%; /* Dark text on primary */
+    --primary: 190 90% 58%; /* Vibrant Cyan/Electric Blue */
+    --primary-foreground: 220 30% 10%; /* Dark text on primary */
     
-    --secondary: 210 20% 25%; /* Slightly lighter dark shade for secondary elements */
-    --secondary-foreground: 200 20% 80%;
+    --secondary: 220 15% 20%; /* Slightly lighter dark shade for secondary elements */
+    --secondary-foreground: 210 20% 85%;
     
-    --muted: 210 15% 30%; /* Muted dark shade */
-    --muted-foreground: 200 15% 60%; /* Lighter muted text */
+    --muted: 220 10% 25%; /* Muted dark shade */
+    --muted-foreground: 210 15% 65%; /* Lighter muted text */
     
-    --accent: 180 60% 55%; /* Teal/Cyan accent for dark mode */
-    --accent-foreground: 220 100% 10%;
+    --accent: 330 90% 60%; /* Vibrant Pink/Magenta */
+    --accent-foreground: 220 30% 10%; /* Dark text on accent */
     
-    --destructive: 0 60% 50%;
+    --destructive: 0 70% 55%; /* Keep destructive noticeable */
     --destructive-foreground: 0 0% 100%;
     
-    --border: 210 20% 30%; /* Subtle borders for general elements */
-    --input: 210 20% 22%; /* Dark input fields */
-    --ring: 205 70% 65%; /* Ring matching primary, slightly lighter for glow */
+    --border: 210 15% 28%; /* Subtle borders, can be accented on glass cards */
+    --input: 220 15% 15%; /* Dark input fields */
+    --ring: 190 90% 60%; /* Ring matching primary */
 
-    --chart-1: 205 70% 55%;
-    --chart-2: 180 65% 50%;
-    --chart-3: 220 75% 60%;
-    --chart-4: 170 70% 53%;
-    --chart-5: 200 70% 50%;
+    --chart-1: 190 80% 55%;
+    --chart-2: 330 80% 60%;
+    --chart-3: 210 70% 65%;
+    --chart-4: 250 75% 60%;
+    --chart-5: 170 75% 50%;
     
     --radius: 0.75rem;
 
     /* Sidebar variables (dark theme) */
-    --sidebar-background: 210 30% 12%; 
-    --sidebar-foreground: 200 20% 85%;
-    --sidebar-primary: 205 70% 60%;
-    --sidebar-primary-foreground: 220 100% 10%;
-    --sidebar-accent: 180 60% 55%;
-    --sidebar-accent-foreground: 220 100% 10%;
-    --sidebar-border: 210 20% 25%;
-    --sidebar-ring: 205 70% 65%;
+    --sidebar-background: 220 20% 9%; 
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 190 90% 58%;
+    --sidebar-primary-foreground: 220 30% 10%;
+    --sidebar-accent: 330 90% 60%;
+    --sidebar-accent-foreground: 220 30% 10%;
+    --sidebar-border: 210 15% 25%;
+    --sidebar-ring: 190 90% 60%;
   }
 }
 
@@ -121,14 +121,14 @@ body {
   }
   
   /* Refined Glass Effects */
-  .glass-card { /* For individual content cards */
-    @apply bg-card/60 dark:bg-card/40 backdrop-blur-xl border border-white/15 dark:border-white/10 shadow-2xl rounded-lg; /* Increased blur, adjusted border */
+  .glass-card { 
+    @apply bg-card/30 dark:bg-card/20 backdrop-blur-lg border border-white/10 dark:border-[hsl(var(--primary)/0.2)] shadow-2xl rounded-lg;
   }
-  .glass-pane { /* For larger panes like headers, sidebars, sheet backgrounds */
-    @apply bg-background/75 dark:bg-background/60 backdrop-blur-2xl border-white/10 dark:border-black/20; /* Increased blur, adjusted opacity */
+  .glass-pane { 
+    @apply bg-background/60 dark:bg-background/50 backdrop-blur-xl border-white/5 dark:border-black/10;
   }
-  .glass-interactive { /* For interactive elements like buttons or input backgrounds if needed */
-    @apply bg-primary/20 dark:bg-primary/10 backdrop-blur-md border border-primary/30 hover:bg-primary/30 dark:hover:bg-primary/20 transition-colors duration-150;
+  .glass-interactive { 
+    @apply bg-primary/10 dark:bg-primary/5 backdrop-blur-md border border-primary/20 hover:bg-primary/20 dark:hover:bg-primary/10 transition-colors duration-150;
   }
 }
 
@@ -146,4 +146,3 @@ body {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
-

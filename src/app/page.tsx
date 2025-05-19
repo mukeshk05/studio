@@ -9,22 +9,22 @@ import {
   ArrowRightIcon,
   SparklesIcon,
   ListChecksIcon,
-  LogInIcon,
-  UserPlusIcon,
-  Wand2Icon, 
   HeartIcon,
   UserIcon,
   LogOutIcon,
-  CheckCircleIcon, 
-  ShieldCheckIcon, 
-  TrendingUpIcon, 
-  UsersRoundIcon, 
-  BrainCircuitIcon, 
-  ActivityIcon, 
-  BotIcon, 
-  LocateFixedIcon, 
-  SearchCheckIcon, 
-  LeafIcon, 
+  LogInIcon,
+  UserPlusIcon,
+  Wand2Icon,
+  CheckCircleIcon,
+  ShieldCheckIcon,
+  TrendingUpIcon,
+  UsersRoundIcon,
+  BrainCircuitIcon,
+  ActivityIcon,
+  BotIcon,
+  LocateFixedIcon,
+  SearchCheckIcon,
+  LeafIcon,
   BookHeartIcon,
   CameraIcon,
   MessageCircleQuestionIcon,
@@ -34,9 +34,9 @@ import {
   AlertTriangleIcon,
   BellRingIcon,
   SlidersHorizontalIcon,
-  GitCompareArrowsIcon, // For What If Simulator
-  MapPinnedIcon, // For Interactive Map
-  CalendarCheckIcon, // For Calendar Sync
+  GitCompareArrowsIcon,
+  MapPinnedIcon,
+  CalendarCheckIcon,
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -86,10 +86,10 @@ export default function LandingPage() {
       title: "AI-Powered Trip Planner",
       description: "Hyper-personalized itineraries! Define destination, dates, budget, mood, and your Travel DNA. Our AI Guardian crafts detailed plans, fusing preferences with weather, risk, and visa awareness.",
       imgSrc: "https://placehold.co/600x400.png",
-      aiHint: "intelligent itinerary generation" 
+      aiHint: "intelligent itinerary generation"
     },
     {
-      icon: <BarChart3Icon className="w-10 h-10 mb-4 text-primary" />, 
+      icon: <BarChart3Icon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
       title: "Smart Price Suite",
       description: "Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecast graphs to make informed, budget-conscious decisions.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -103,63 +103,63 @@ export default function LandingPage() {
       aiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "Aura AI: Natural Language Trip Search",
+      icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
+      title: "Ask Aura: Natural Language Trip Search",
       description: "Ask Aura AI your travel dreams! It fuses your Travel DNA, search history, and natural language queries to predict and suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "conversational ai travel chat"
     },
     {
-      icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />, 
+      icon: <UsersRoundIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Group Harmony Predictor",
       description: "Input companion preferences and let our AI generate a 'Group Sync Report.' Get insights and suggestions to harmonize the trip for everyone.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai group travel collaboration"
     },
     {
-      icon: <BellRingIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <BellRingIcon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
       title: "Proactive AI Alerter & Advisor",
       description: "Stay ahead! Our AI conceptually monitors for you. Imagine getting proactive alerts for significant price drops, major weather warnings for your trips, or even visa policy shifts (future vision). It can then offer timely rebooking advice or backup plan suggestions.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai proactive travel alerts"
     },
     {
-      icon: <BotIcon className="w-10 h-10 mb-4 text-primary" />, 
+      icon: <BotIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "Proactive Journey Sentinel AI",
       description: "Our AI proactively considers general travel risks, reminds you about visa checks, and incorporates typical weather patterns into your trip plans for a safer journey.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "travel safety shield ai"
     },
     {
-      icon: <LeafIcon className="w-10 h-10 mb-4 text-primary" />, 
+      icon: <LeafIcon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
       title: "Sustainable Footprint Optimizer AI",
       description: "Conceptually, our AI considers sustainable travel options, suggesting eco-friendly choices and promoting awareness for responsible tourism.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "eco friendly travel ai"
     },
      {
-      icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-primary" />, 
-      title: "Serendipity Engine (Conceptual)",
+      icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Serendipity Engine (Future Vision)",
       description: "Imagine discovering spontaneous, hyper-local events unfolding near you in real-time, perfectly matched to your Travel DNA and current mood.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "real time local discovery ai"
     },
      {
-      icon: <SearchCheckIcon className="w-10 h-10 mb-4 text-primary" />, 
-      title: "Authenticity Verifier AI (Conceptual)",
+      icon: <SearchCheckIcon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
+      title: "Authenticity Verifier AI (Future Vision)",
       description: "Conceptually, verify local crafts, food, and experiences. Upload a photo, and AI provides insights on origin, value, and authenticity markers.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai authenticity check travel"
     },
     {
       icon: <MapPinnedIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "Interactive Map with Smart Clusters (Future Vision)",
+      title: "Interactive Smart Map (Future Vision)",
       description: "Visually explore destinations with AI-curated points of interest, smart clustering, and personalized filters based on your Travel DNA.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "interactive map trip planning"
     },
     {
-      icon: <GitCompareArrowsIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <GitCompareArrowsIcon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
       title: "AI 'What If' Travel Simulator (Future Vision)",
       description: "Explore alternative travel scenarios with AI. 'What if I went to Vietnam instead of Bali?' Get comparisons of cost, weather, activities, and vibe.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -172,8 +172,8 @@ export default function LandingPage() {
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "augmented reality travel"
     },
-    { 
-      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />,
+    {
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
       title: "AI Co-Travel Agent (Ask Anything!)",
       description: "Get instant answers to travel questions: customs, tipping, local laws, phrases, and more. Your AI companion provides dynamic checklists and insights.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -187,7 +187,7 @@ export default function LandingPage() {
       aiHint: "travel wellness planning slider"
     },
     {
-      icon: <ActivityIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -201,14 +201,14 @@ export default function LandingPage() {
       aiHint: "ai travel storytelling generational"
     },
     {
-      icon: <CalendarCheckIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <CalendarCheckIcon className="w-10 h-10 mb-4 text-accent" />, // Alternating color
       title: "AI Calendar SyncUp (Future Vision)",
       description: "BudgetRoam AI syncs with your calendar, identifies free slots, and proactively suggests personalized trip ideas that fit your schedule.",
       imgSrc: "https://placehold.co/600x400.png",
       aiHint: "ai calendar travel scheduling"
     }
   ];
-  
+
 
   const whyChooseUsPoints = [
     "Hyper-Personalized with Travel DNA: Itineraries and bundles uniquely tailored to *your* style.",
@@ -220,7 +220,7 @@ export default function LandingPage() {
   ];
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "ai powered trip planner interface" },
+    { src: "https://placehold.co/1200x678.png", alt: "AI visualization of a travel planning app on a tablet", aiHint: "futuristic ai travel" },
     { src: "https://placehold.co/1200x675.png", alt: "Futuristic Travel Interface Mockup", aiHint: "digital travel interface" },
     { src: "https://placehold.co/1200x675.png", alt: "Digital World Map with Glowing Connections", aiHint: "global travel network" },
     { src: "https://placehold.co/1200x675.png", alt: "Conceptual Image of AI Assisting in Travel Planning", aiHint: "ai assisted planning" },
@@ -237,7 +237,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); 
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
     const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
     const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
 
@@ -249,7 +249,7 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
+  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/60 dark:bg-card/30";
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
@@ -262,7 +262,7 @@ export default function LandingPage() {
           quality={90}
           priority
         />
-        <div className="absolute inset-0 bg-black/40 dark:bg-black/40"></div>
+        <div className="absolute inset-0 bg-black/40 dark:bg-black/40"></div> {/* Consistent overlay */}
       </div>
 
       <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
@@ -273,7 +273,7 @@ export default function LandingPage() {
               <ListChecksIcon className="w-4 h-4" /> Features
             </Link>
             <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
-              <HeartIcon className="w-4 h-4" /> Why Us 
+              <HeartIcon className="w-4 h-4" /> Why Us
             </Link>
 
             {authLoading ? (
@@ -290,8 +290,8 @@ export default function LandingPage() {
                         src={currentUser.photoURL || undefined}
                         alt={currentUser.displayName || currentUser.email || "User avatar"}
                       />
-                      <AvatarFallback className="bg-muted/50">
-                        <UserIcon className="h-5 w-5 text-foreground/80" />
+                      <AvatarFallback className="bg-primary/20">
+                        <UserIcon className="h-5 w-5 text-primary" />
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -328,7 +328,7 @@ export default function LandingPage() {
                   href="/login"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
-                    "hidden sm:inline-flex items-center glass-interactive" 
+                    "hidden sm:inline-flex items-center text-primary-foreground bg-primary/10 border-primary/30 hover:bg-primary/20 glass-interactive"
                   )}
                 >
                   <LogInIcon className="mr-1 h-4 w-4" /> Login
@@ -338,7 +338,7 @@ export default function LandingPage() {
                   aria-label="Login"
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon" }),
-                    "sm:hidden text-primary hover:bg-primary/10"
+                    "sm:hidden text-primary hover:bg-primary/20"
                   )}
                 >
                   <LogInIcon />
@@ -347,7 +347,7 @@ export default function LandingPage() {
                   href="/signup"
                   className={cn(
                     buttonVariants({ variant: "default", size: "sm" }),
-                    "hidden sm:inline-flex items-center shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                    "hidden sm:inline-flex items-center shadow-md shadow-primary/40 hover:shadow-lg hover:shadow-primary/50 bg-primary hover:bg-accent text-primary-foreground hover:text-accent-foreground"
                   )}
                 >
                   <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up
@@ -357,7 +357,7 @@ export default function LandingPage() {
                   aria-label="Sign Up"
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon" }),
-                    "sm:hidden text-primary hover:bg-primary/10"
+                    "sm:hidden text-primary hover:bg-primary/20"
                   )}
                 >
                   <UserPlusIcon />
@@ -373,7 +373,7 @@ export default function LandingPage() {
           <div className="container mx-auto px-4">
             <h1
               className={cn(
-                "text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-6 transition-all duration-700 ease-out",
+                "text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-6 transition-all duration-700 ease-out",
                 heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
               )}
             >
@@ -392,7 +392,7 @@ export default function LandingPage() {
               size="lg"
               className={cn(
                 "text-lg px-8 py-6 group transform transition-all duration-700 ease-out hover:shadow-xl hover:shadow-primary/50 hover:scale-105 active:scale-100",
-                "bg-primary hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30",
+                "bg-primary hover:bg-primary/80 focus-visible:ring-4 focus-visible:ring-primary/40 text-primary-foreground",
                 heroVisible ? 'opacity-100 translate-y-0 delay-300' : 'opacity-0 translate-y-10'
               )}
             >
@@ -404,7 +404,7 @@ export default function LandingPage() {
             </Button>
             <div
               className={cn(
-                "mt-16 relative max-w-4xl mx-auto rounded-xl shadow-2xl overflow-hidden border-4 border-card/50 transition-all duration-1000 ease-out",
+                "mt-16 relative max-w-4xl mx-auto rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -428,8 +428,8 @@ export default function LandingPage() {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary" />
-                <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/30 hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary" />
+                <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary" />
+                <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary" />
               </Carousel>
             </div>
           </div>
@@ -437,7 +437,7 @@ export default function LandingPage() {
 
         <section id="features" className={cn("py-16 md:py-24 transition-opacity duration-1000", featuresSectionVisible ? 'opacity-100' : 'opacity-0')}>
           <div className="container mx-auto px-4">
-            <h2 className={cn("text-3xl sm:text-4xl font-bold text-center text-white mb-4 transition-all duration-700 ease-out", featuresSectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5')}>Explore Our Cutting-Edge AI Travel Features</h2>
+            <h2 className={cn("text-3xl sm:text-4xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4 transition-all duration-700 ease-out", featuresSectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5')}>Explore Our Cutting-Edge AI Travel Features</h2>
             <p className={cn("text-lg text-slate-200 dark:text-muted-foreground text-center mb-12 max-w-xl mx-auto transition-all duration-700 ease-out", featuresSectionVisible ? 'opacity-100 translate-y-0 delay-100' : 'opacity-0 translate-y-5')}>
               Discover how BudgetRoam's AI makes travel planning smarter, easier, and more personalized than ever.
             </p>
@@ -458,8 +458,8 @@ export default function LandingPage() {
                     <div className="p-1 h-full">
                       <Card
                         className={cn(
-                          glassCardClasses, 
-                          "hover:shadow-2xl hover:shadow-primary/30 hover:scale-[1.03] transition-all duration-300 flex flex-col h-full transform"
+                          glassCardClasses,
+                          "hover:shadow-2xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300 flex flex-col h-full transform border-primary/20 hover:border-accent/40"
                         )}
                       >
                         <CardHeader className="items-center text-center">
@@ -493,7 +493,7 @@ export default function LandingPage() {
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className={cn("transition-all duration-700 ease-out", whyChooseUsSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10")}>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+                <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-6">
                   Why Choose <span className="text-primary">BudgetRoam AI</span>?
                 </h2>
                 <p className="text-lg text-slate-200 dark:text-muted-foreground mb-8">
@@ -508,7 +508,7 @@ export default function LandingPage() {
                         whyChooseUsListVisible[index] ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-5'
                       )}
                     >
-                      <CheckCircleIcon className="w-6 h-6 text-green-400 mr-3 mt-0.5 shrink-0" />
+                      <CheckCircleIcon className="w-6 h-6 text-accent mr-3 mt-0.5 shrink-0" />
                       <span className="text-slate-200 dark:text-muted-foreground">{point}</span>
                     </li>
                   ))}
@@ -529,7 +529,7 @@ export default function LandingPage() {
 
         <section className={cn("py-20 md:py-28 text-center transition-opacity duration-1000", finalCtaVisible ? 'opacity-100' : 'opacity-0')}>
           <div className="container mx-auto px-4">
-            <h2 className={cn("text-3xl sm:text-4xl font-bold text-white mb-6 flex items-center justify-center transition-all duration-700 ease-out", finalCtaVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10")}>
+            <h2 className={cn("text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-6 flex items-center justify-center transition-all duration-700 ease-out", finalCtaVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10")}>
               <SparklesIcon className="w-10 h-10 mr-3 text-primary animate-pulse" />
               Ready to Redefine Your Travels?
             </h2>
@@ -540,8 +540,8 @@ export default function LandingPage() {
                 asChild
                 size="lg"
                 className={cn(
-                    "text-lg px-10 py-6 group transform transition-all duration-700 ease-out hover:shadow-xl hover:shadow-primary/40 shadow-md shadow-primary/30 hover:scale-105 active:scale-100",
-                    "bg-primary hover:bg-primary/90 focus-visible:ring-4 focus-visible:ring-primary/30",
+                    "text-lg px-10 py-6 group transform transition-all duration-700 ease-out hover:shadow-xl hover:shadow-accent/40 shadow-md shadow-primary/30 hover:scale-105 active:scale-100",
+                    "bg-gradient-to-r from-primary to-accent hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 text-primary-foreground",
                     finalCtaVisible ? "opacity-100 translate-y-0 delay-200" : "opacity-0 translate-y-10"
                 )}
             >
@@ -554,7 +554,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className={cn("py-8 backdrop-blur-sm border-t border-border/30 z-10", "bg-[hsl(205_80%_85%_/_0.7)] dark:bg-black/50")}>
+      <footer className={cn("py-8 backdrop-blur-sm border-t border-border/30 z-10", "bg-[hsl(220_20%_7%_/_0.7)] dark:bg-black/50")}>
         <div className="container mx-auto px-4 text-center text-foreground dark:text-muted-foreground">
           <div className="flex justify-center mb-2">
             <AppLogo />
