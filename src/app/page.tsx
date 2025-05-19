@@ -31,12 +31,12 @@ import {
   CheckCircleIcon,
   LanguagesIcon,
   CubeIcon,
-  Building2Icon, // Keeping both options for Digital Twin as an example, choose one
+  Building2Icon,
   LayoutGridIcon,
   LocateFixedIcon,
   SearchCheckIcon,
-  MessageCircleQuestionIcon, // Ensured this is present
-  BrainCircuitIcon, // Ensured this is present
+  BrainCircuitIcon,
+  MessageCircleQuestionIcon,
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -430,7 +430,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className="aspect-[5/3] relative">
+                      <div className="aspect-square relative">
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -584,3 +584,4 @@ export default function LandingPage() {
     </div>
   );
 }
+```
