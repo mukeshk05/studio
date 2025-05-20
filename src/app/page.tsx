@@ -47,7 +47,7 @@ import {
   CalendarCheckIcon,
   CameraIcon,
   CheckCircleIcon,
-  Cube, // Changed from CubeIcon
+  Cube, 
   DollarSignIcon,
   EyeIcon,
   GiftIcon,
@@ -56,6 +56,7 @@ import {
   HeartPulseIcon,
   LanguagesIcon,
   LayoutGridIcon,
+  LayersIcon, // Added for the updated feature
   LeafIcon,
   ListChecksIcon,
   ListPlusIcon,
@@ -234,7 +235,7 @@ const features = [
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <Cube className="w-10 h-10 mb-4 text-accent" />, // Changed from CubeIcon
+      icon: <Cube className="w-10 h-10 mb-4 text-accent" />, 
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -271,14 +272,14 @@ const features = [
     {
       icon: <SearchHeartIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI Unexpected Opportunity Hunter (Future Vision)",
-      description: "Imagine AI constantly scanning for last-minute, hyper-personalized opportunities aligned with your Travel DNA & current trip context! From niche show tickets to exclusive local pop-ups.",
+      description: "The AI constantly scans for last-minute, high-value, and highly personalized opportunities aligned with your \"Travel DNA\" and current itinerary context. This could be a just-released discounted ticket to a niche show matching your interests, a renowned local chef doing a one-night-only pop-up that fits your culinary profile, a sudden opening on a popular, usually booked-out small-group tour, or even an alert about a rare celestial event visible from your location. Proactive identification and alerting of fleeting, highly personalized opportunities that align with deep user preferences, beyond generic deals.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel opportunity discovery"
     },
     {
       icon: <PiggyBankIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Dynamic AI Travel Budget Re-balancer & Forecaster (Future Vision)",
-      description: "AI tracks spending, forecasts if you're on track, and suggests re-balancing options if you splurge, keeping your budget in check.",
+      description: "Users set an overall trip budget. As they make bookings or the AI suggests options, the AI tracks spending against categories in real-time. If a user overspends on a luxury hotel, the AI might proactively suggest more budget-friendly (but still persona-aligned) dining or free activities. It could also forecast if you're on track and offer re-balancing scenarios.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai budget travel forecast"
     },
@@ -295,6 +296,13 @@ const features = [
       description: "Upload a photo of a hotel or destination to find similar options, or compare flights/hotels side-by-side with AI-extracted feature analysis.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai visual search travel"
+    },
+    { // Updated Feature
+      icon: <LayersIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "AI Post-Trip Synthesizer & Trajectory Mapper",
+      description: "Share photos, journals, and feedback. AI analyzes this to refine your Travel DNA and uniquely maps future 'travel trajectories'—a series of evolving experiences based on your positive past travels.",
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "ai travel trajectory"
     }
   ];
 
