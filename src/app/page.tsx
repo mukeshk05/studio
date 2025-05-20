@@ -81,10 +81,11 @@ export default function LandingPage() {
   const { currentUser, logout, loading: authLoading } = useAuth();
 
   const heroCarouselImages = [
-    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "ai powered trip planner interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
+    { src: "/assets/Gemini_Generated_Image_mizzt7mizzt7mizz.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "ai powered trip planner interface" },
+    { src: "/assets/Gemini_Generated_Image_px5obrpx5obrpx5o.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
+    { src: "/assets/Gemini_Generated_Image_snatbjsnatbjsnat.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
+    { src: "/assets/Gemini_Generated_Image_txizz0txizz0txiz.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
+    { src: "/assets/Gemini_Generated_Image_x46qaqx46qaqx46q.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" }
   ];
 
   const features = [
@@ -222,7 +223,7 @@ export default function LandingPage() {
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />, 
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
