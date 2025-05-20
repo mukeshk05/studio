@@ -97,9 +97,9 @@ import {
 
 
 const heroCarouselImages = [
-    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "futuristic ai travel" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
-    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
+    { src: "https://placehold.co/2048x2048.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "futuristic ai travel" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
     { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
 ];
 
@@ -311,7 +311,6 @@ const whyChooseUsPoints = [
     "All-in-One Dashboard: Your trips, alerts, Aura AI, and memory archive in one place."
   ];
 
-// Custom hook for staggered animations
 function useStaggeredAnimation(count: number, delayIncrement: number, trigger: boolean) {
   const [visibility, setVisibility] = useState(Array(count).fill(false));
 
@@ -327,11 +326,8 @@ function useStaggeredAnimation(count: number, delayIncrement: number, trigger: b
         }, index * delayIncrement)
       );
       return () => timers.forEach(clearTimeout);
-    } else {
-      // Optional: reset if trigger becomes false
-      // setVisibility(Array(count).fill(false));
     }
-  }, [trigger, count, delayIncrement]);
+  }, [trigger, count, delayIncrement, visibility]); // Added visibility to dependencies as per ESLint suggestion
 
   return visibility;
 }
@@ -528,7 +524,7 @@ export default function LandingPage() {
                     <CarouselContent>
                       {heroCarouselImages.map((image, index) => (
                         <CarouselItem key={index}>
-                          <div className={cn("relative w-full", index === 3 ? "aspect-square" : "aspect-[5/3]")}>
+                          <div className={cn("relative w-full", "aspect-square")}>
                             <Image
                                 src={image.src}
                                 alt={image.alt}
@@ -683,5 +679,3 @@ export default function LandingPage() {
   );
 }
 ```
-
-I have removed the extraneous markdown characters from the end of the file. This should resolve the syntax error.
