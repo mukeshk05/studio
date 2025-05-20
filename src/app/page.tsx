@@ -6,40 +6,41 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppLogo } from '@/components/layout/app-logo';
 import {
-  ArrowRightIcon,
-  SparklesIcon,
-  ListChecksIcon,
-  HeartIcon,
-  UserIcon,
-  LogOutIcon,
-  LogInIcon,
-  UserPlusIcon,
-  Wand2Icon,
-  BarChart3Icon,
-  MessageSquareTextIcon,
-  UsersRoundIcon,
-  BookHeartIcon,
-  BellRingIcon,
-  BotIcon,
-  LeafIcon,
+  AccessibilityIcon,
   ActivityIcon,
-  CameraIcon,
-  SlidersHorizontalIcon,
-  GitCompareArrowsIcon,
-  MapPinnedIcon,
-  CalendarCheckIcon,
-  CheckCircleIcon,
-  LanguagesIcon,
-  CubeIcon, 
-  Building2Icon,
-  LayoutGridIcon,
-  LocateFixedIcon,
-  SearchCheckIcon,
+  ArrowRightIcon,
+  BarChart3Icon,
+  BellRingIcon,
+  BookHeartIcon,
+  BotIcon,
   BrainCircuitIcon,
-  MessageCircleQuestionIcon,
+  Building2Icon,
+  CalendarCheckIcon,
+  CameraIcon,
+  CheckCircleIcon,
+  CubeIcon,
+  GitCompareArrowsIcon,
+  HeartIcon,
   HeartPulseIcon,
-  ShieldCheckIcon, // Added
-  ScaleIcon,       // Added
+  LanguagesIcon,
+  LayoutGridIcon,
+  LeafIcon,
+  ListChecksIcon,
+  LocateFixedIcon,
+  LogInIcon,
+  LogOutIcon,
+  MapPinnedIcon,
+  MessageCircleQuestionIcon,
+  MessageSquareTextIcon,
+  ScaleIcon,
+  SearchCheckIcon,
+  ShieldCheckIcon,
+  SlidersHorizontalIcon,
+  SparklesIcon,
+  UserIcon,
+  UserPlusIcon,
+  UsersRoundIcon,
+  Wand2Icon,
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -80,17 +81,14 @@ const useStaggeredAnimation = (count: number, delayIncrement = 100, trigger: boo
 };
 
 
-export default function LandingPage() {
-  const { currentUser, logout, loading: authLoading } = useAuth();
-
-  const heroCarouselImages = [
+const heroCarouselImages = [
     { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "futuristic ai travel" },
     { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
     { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
     { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
-  ];
+];
 
-  const features = [
+const features = [
     {
       icon: <Wand2Icon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI-Powered Trip Planner",
@@ -114,8 +112,8 @@ export default function LandingPage() {
     },
     {
       icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Aura AI: Natural Language Trip Search",
-      description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
+      title: "Aura AI: Predictive Preference Fusion",
+      description: "Describe your ideal trip, or leave fields blank! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "conversational ai travel chat"
     },
@@ -140,103 +138,110 @@ export default function LandingPage() {
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "travel safety shield ai"
     },
-    {
-      icon: <LeafIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "AI Ethical & Sustainable Impact Auditor (Future Vision)",
-      description: "Beyond simple eco-labels! AI analyzes your itinerary's ethical/sustainable impact (fair wages, animal welfare, over-tourism, community support) and suggests vetted alternatives for a truly responsible journey.",
-      imgSrc: "https://placehold.co/600x400.png",
-      dataAiHint: "ethical sustainable travel audit"
-    },
      {
-      icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Serendipity Engine (Future Vision)",
       description: "Imagine discovering spontaneous, hyper-local events unfolding near you in real-time, perfectly matched to your Travel DNA and current mood.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "real time local discovery ai"
     },
      {
-      icon: <SearchCheckIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <SearchCheckIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI Authenticity Verifier (Future Vision)",
       description: "Conceptually, verify local crafts, food, and experiences. Upload a photo, and AI provides insights on origin, value, and authenticity markers.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai authenticity check travel"
     },
     {
-      icon: <MapPinnedIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <MapPinnedIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Interactive Smart Map (Future Vision)",
       description: "Visually explore destinations with AI-curated points of interest, smart clustering, and personalized filters based on your Travel DNA.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "interactive map trip planning"
     },
     {
-      icon: <GitCompareArrowsIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <GitCompareArrowsIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI 'What If' Travel Simulator (Future Vision)",
       description: "Explore alternative travel scenarios with AI. 'What if I went to Vietnam instead of Bali?' Get comparisons of cost, weather, activities, and vibe.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel scenario comparison"
     },
     {
-      icon: <CameraIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <CameraIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "AI + AR Destination Preview (Conceptual)",
       description: "See your destination hotspots in real-time AR, with AI mood tags like 'Busy now,' 'Romantic lighting,' or 'Best photo time: 6:35 PM.'",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "augmented reality travel"
     },
     {
-      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <MessageCircleQuestionIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI Co-Travel Agent (Ask Anything!)",
       description: "Get instant answers to travel questions: customs, tipping, local laws, phrases, and more. Your AI companion provides dynamic checklists and insights.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel question answer"
     },
     {
-      icon: <SlidersHorizontalIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "Mood & Energy Optimizer (Future Vision)",
+      icon: <SlidersHorizontalIcon className="w-10 h-10 mb-4 text-accent" />,
+      title: "Travel Mood & Energy Optimizer (Future Vision)",
       description: "Adjust your day's intensity with a slider, and Aura AI reshuffles your schedule, considering mood, energy, and even wearable data in the future.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "travel wellness planning slider"
     },
     {
-      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <ActivityIcon className="w-10 h-10 mb-4 text-primary" />, 
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "bio feedback travel ai"
     },
     {
-      icon: <BookHeartIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <BookHeartIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Generational Story Weaver AI (Evolved Diary)",
       description: "Beyond simple snippets, envision an AI that helps weave rich, multimedia travel diaries and uncovers travel narratives across generations.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel storytelling generational"
     },
     {
-      icon: <CalendarCheckIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <CalendarCheckIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI Calendar SyncUp (Future Vision)",
       description: "BudgetRoam AI syncs with your calendar, identifies free slots, and proactively suggests personalized trip ideas that fit your schedule.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai calendar travel scheduling"
     },
     {
-      icon: <LanguagesIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <LanguagesIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "AI Hyper-Local Language Coach (Future Vision)",
       description: "Go beyond basic phrases! Learn local dialects, slang, and idioms. Get real-time pronunciation feedback and cultural context to engage authentically.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <CubeIcon className="w-10 h-10 mb-4 text-primary" />, 
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai digital twin city simulation"
     },
     {
-      icon: <HeartPulseIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <HeartPulseIcon className="w-10 h-10 mb-4 text-accent" />,
       title: "Affective Group Vibe Optimizer (Future Vision)",
       description: "AI (with consent) subtly sensing group vibe to suggest adjustments for better cohesion & enjoyment.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai group mood travel"
+    },
+    {
+      icon: <ShieldCheckIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "AI Ethical & Sustainable Impact Auditor",
+      description: "Deep ethical/sustainability audit of your itinerary, with vetted alternatives for responsible travel, considering fair wages, animal welfare, over-tourism, and community support.",
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "ethical travel audit ai"
+    },
+    {
+      icon: <AccessibilityIcon className="w-10 h-10 mb-4 text-accent" />,
+      title: "AI Personalized Accessibility Scout",
+      description: "Detail your specific accessibility needs (step-free, quiet zones, dietary restrictions). Our AI (future vision) will deeply vet every aspect of your trip for a truly tailored and comfortable experience.",
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "inclusive accessible travel ai"
     }
   ];
 
@@ -257,11 +262,11 @@ export default function LandingPage() {
 
   const whyChooseUsListVisible = useStaggeredAnimation(whyChooseUsPoints.length, 100, whyChooseUsSectionVisible);
   const featureCardsVisible = useStaggeredAnimation(features.length, 150, featuresSectionVisible);
-
+  const { currentUser, logout, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); // Start features animation earlier
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); 
     const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
     const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
 
@@ -348,44 +353,44 @@ export default function LandingPage() {
               </DropdownMenu>
             ) : (
               <>
-                <Link
-                  href="/login"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "hidden sm:inline-flex items-center text-primary-foreground bg-primary/10 border-primary/30 hover:bg-primary/20 glass-interactive"
-                  )}
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className={cn("hidden sm:inline-flex items-center text-primary-foreground bg-primary/10 border-primary/30 hover:bg-primary/20 glass-interactive")}
                 >
-                  <LogInIcon className="mr-1 h-4 w-4" /> Login
-                </Link>
-                 <Link
-                  href="/login"
-                  aria-label="Login"
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "icon" }),
-                    "sm:hidden text-primary hover:bg-primary/20"
-                  )}
+                  <Link href="/login" className="flex items-center">
+                    <LogInIcon className="mr-1 h-4 w-4" /> Login
+                  </Link>
+                </Button>
+                 <Button
+                    asChild
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Login"
+                    className={cn("sm:hidden text-primary hover:bg-primary/20")}
+                  >
+                    <Link href="/login"><LogInIcon /></Link>
+                  </Button>
+                <Button
+                  asChild
+                  variant="default"
+                  size="sm"
+                  className={cn("hidden sm:inline-flex items-center shadow-md shadow-primary/40 hover:shadow-lg hover:shadow-primary/50 bg-primary hover:bg-accent text-primary-foreground hover:text-accent-foreground")}
                 >
-                  <LogInIcon />
-                </Link>
-                <Link
-                  href="/signup"
-                  className={cn(
-                    buttonVariants({ variant: "default", size: "sm" }),
-                    "hidden sm:inline-flex items-center shadow-md shadow-primary/40 hover:shadow-lg hover:shadow-primary/50 bg-primary hover:bg-accent text-primary-foreground hover:text-accent-foreground"
-                  )}
-                >
-                  <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up
-                </Link>
-                 <Link
-                  href="/signup"
+                  <Link href="/signup" className="flex items-center">
+                    <UserPlusIcon className="mr-1 h-4 w-4" /> Sign Up
+                  </Link>
+                </Button>
+                 <Button
+                  asChild
+                  variant="ghost"
+                  size="icon"
                   aria-label="Sign Up"
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "icon" }),
-                    "sm:hidden text-primary hover:bg-primary/20"
-                  )}
-                >
-                  <UserPlusIcon />
-                </Link>
+                  className={cn("sm:hidden text-primary hover:bg-primary/20")}
+                 >
+                  <Link href="/signup"><UserPlusIcon /></Link>
+                </Button>
               </>
             )}
           </nav>
@@ -440,7 +445,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className={cn("relative w-full", "aspect-square")}>
+                      <div className={cn("relative w-full", index === 3 ? "aspect-square" : "aspect-[5/3]")}>
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -594,3 +599,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
