@@ -67,7 +67,6 @@ import {
   MapPinIcon,
   MessageCircleQuestionIcon,
   MessageSquareTextIcon,
-  MicIcon,
   MoonIcon,
   PanelLeft,
   PiggyBankIcon,
@@ -127,7 +126,7 @@ const features = [
     },
     {
       icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Aura AI: Predictive Preference Fusion",
+      title: "Aura AI: Predictive Preference Fusion Engine",
       description: "Describe your ideal trip, or leave fields blank! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "conversational ai travel chat"
@@ -253,14 +252,14 @@ const features = [
     },
     {
       icon: <ShieldCheckIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "AI Ethical & Sustainable Impact Auditor",
+      title: "AI Ethical & Sustainable Impact Auditor (Future Vision)",
       description: "Deep ethical/sustainability audit of your itinerary, with vetted alternatives for responsible travel, considering fair wages, animal welfare, over-tourism, and community support.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ethical travel audit ai"
     },
     {
       icon: <AccessibilityIcon className="w-10 h-10 mb-4 text-primary" />,
-      title: "AI Personalized Accessibility Scout",
+      title: "AI Personalized Accessibility Scout (Future Vision)",
       description: "Detail your specific accessibility needs (step-free, quiet zones, dietary restrictions). Our AI (future vision) will deeply vet every aspect of your trip for a truly tailored and comfortable experience.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "inclusive accessible travel ai"
@@ -327,7 +326,8 @@ function useStaggeredAnimation(count: number, delayIncrement: number, trigger: b
       );
       return () => timers.forEach(clearTimeout);
     }
-  }, [trigger, count, delayIncrement, visibility]); // Added visibility to dependencies as per ESLint suggestion
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger, count, delayIncrement]); 
 
   return visibility;
 }
@@ -524,7 +524,7 @@ export default function LandingPage() {
                     <CarouselContent>
                       {heroCarouselImages.map((image, index) => (
                         <CarouselItem key={index}>
-                          <div className={cn("relative w-full", "aspect-square")}>
+                          <div className={cn("relative w-full aspect-square")}>
                             <Image
                                 src={image.src}
                                 alt={image.alt}

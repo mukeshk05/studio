@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, TrendingUpIcon, MapPinIcon } from 'lucide-react';
+import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, TrendingUpIcon, BrainCircuitIcon } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +33,9 @@ import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveC
 import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
 import { PersonalizedAccessibilityScoutPlaceholder } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder";
 import { LocalLegendNarratorPlaceholder } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
+import { PostTripSynthesizerPlaceholder } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
+import { AiItineraryAssistancePlaceholder } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
+import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
 
 
 export default function DashboardPage() {
@@ -45,37 +48,55 @@ export default function DashboardPage() {
   const { data: savedTrips, isLoading: isLoadingTrips } = useSavedTrips();
   const { data: trackedItems, isLoading: isLoadingTrackedItems } = useTrackedItems();
 
+  const fetchNewTravelTip = useCallback(async () => {
+    setIsTipLoading(true);
+    setTravelTip(null);
+    try {
+      const result: TravelTipOutput = await getTravelTip();
+      setTravelTip(result.tip);
+    } catch (error) {
+      console.error("Error fetching travel tip:", error);
+      setTravelTip("Could not fetch a new tip at this moment. Please try again later.");
+      toast({
+        title: "Error Fetching Tip",
+        description: "Failed to get a new travel tip.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTipLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     const handleLocalStorageUpdate = () => {
       const bundledTripData = localStorage.getItem('tripBundleToPlan');
       if (bundledTripData) {
         try {
           if (router) {
-            router.push('/planner');
-            // Dispatch event after navigation setup to ensure listener on planner page can catch it
+            // Dispatch event *before* navigation to ensure listener on planner page can potentially catch it
+            // if it's already mounted and listening.
             window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
+            router.push('/planner');
           }
         } catch (e) {
           console.error("Error parsing trip bundle/quiz data from localStorage:", e);
         }
       }
     };
-
-    window.addEventListener('localStorageUpdated_tripBundleToPlan', handleLocalStorageUpdate);
-    window.addEventListener('storage', (event) => { // Listen for changes from other tabs/windows
+    
+    const storageHandlerFunction = (event: StorageEvent) => {
         if (event.key === 'tripBundleToPlan') {
             handleLocalStorageUpdate();
         }
-    });
+    };
+
+    window.addEventListener('localStorageUpdated_tripBundleToPlan', handleLocalStorageUpdate);
+    window.addEventListener('storage', storageHandlerFunction);
 
 
     return () => {
       window.removeEventListener('localStorageUpdated_tripBundleToPlan', handleLocalStorageUpdate);
-      window.removeEventListener('storage', (event) => {
-        if (event.key === 'tripBundleToPlan') {
-            handleLocalStorageUpdate();
-        }
-    });
+      window.removeEventListener('storage', storageHandlerFunction);
     };
   }, [router]);
 
@@ -93,32 +114,11 @@ export default function DashboardPage() {
     }
   }, [currentUser]);
 
-
-  const fetchNewTravelTip = async () => {
-    setIsTipLoading(true);
-    setTravelTip(null);
-    try {
-      const result: TravelTipOutput = await getTravelTip();
-      setTravelTip(result.tip);
-    } catch (error) {
-      console.error("Error fetching travel tip:", error);
-      setTravelTip("Could not fetch a new tip at this moment. Please try again later.");
-      toast({
-        title: "Error Fetching Tip",
-        description: "Failed to get a new travel tip.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTipLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (currentUser) {
       fetchNewTravelTip();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
+  }, [currentUser, fetchNewTravelTip]);
 
   const userName = currentUser?.displayName || currentUser?.email?.split('@')[0] || "Explorer";
   const numSavedTrips = savedTrips?.length || 0;
@@ -126,7 +126,6 @@ export default function DashboardPage() {
 
   const handlePlanTripFromBundle = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
-    // Dispatch event after setting item, so planner page can react if already open
     window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
     router.push('/planner');
   };
@@ -247,10 +246,22 @@ export default function DashboardPage() {
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.95s'}}>
           <LocalLegendNarratorPlaceholder />
         </div>
+        
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.0s'}}>
+          <PostTripSynthesizerPlaceholder />
+        </div>
+
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.05s'}}>
+          <AiItineraryAssistancePlaceholder />
+        </div>
+        
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.1s'}}>
+          <VisualSearchPlaceholder />
+        </div>
 
       </div>
       
-      <div className="mb-8 animate-fade-in-up glass-card" style={{ animationDelay: '1s' }}>
+      <div className="mb-8 animate-fade-in-up glass-card" style={{ animationDelay: '1.15s' }}>
         <NotificationSettings />
       </div>
 
@@ -260,7 +271,7 @@ export default function DashboardPage() {
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '1.05s'}}>
+          )} style={{animationDelay: '1.2s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -271,7 +282,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '1.1s'}}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '1.25s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
