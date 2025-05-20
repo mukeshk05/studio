@@ -30,7 +30,7 @@ import {
   CalendarCheckIcon,
   CheckCircleIcon,
   LanguagesIcon,
-  CubeIcon, // Added CubeIcon here
+  CubeIcon, 
   Building2Icon,
   LayoutGridIcon,
   LocateFixedIcon,
@@ -111,7 +111,7 @@ export default function LandingPage() {
     },
     {
       icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Aura AI: Natural Language Trip Search",
+      title: "Aura AI: Your Smart Assistant",
       description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "conversational ai travel chat"
@@ -263,7 +263,7 @@ export default function LandingPage() {
     };
   }, []);
 
-  const glassCardClasses = "glass-card hover:border-primary/40 dark:bg-card/20";
+  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
 
   return (
     <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
@@ -419,7 +419,7 @@ export default function LandingPage() {
             <div
               className={cn(
                 "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
-                "w-full",
+                "w-full", 
                 heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
               )}
             >
@@ -430,7 +430,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                       <div className={cn("relative h-full w-full", image.src.includes("2048x2048") ? "aspect-square" : "aspect-[5/3]")}>
+                      <div className={cn("relative w-full", image.src.includes("2048x2048") ? "aspect-square" : "aspect-[5/3]")}>
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -459,7 +459,7 @@ export default function LandingPage() {
             <Carousel
               opts={{
                 align: "start",
-                loop: features.length > 2,
+                loop: features.length > 2, 
               }}
               className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto"
             >
@@ -584,5 +584,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
