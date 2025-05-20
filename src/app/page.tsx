@@ -37,6 +37,7 @@ import {
   SearchCheckIcon,
   BrainCircuitIcon,
   MessageCircleQuestionIcon,
+  HeartPulseIcon, // Added icon
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -81,10 +82,10 @@ export default function LandingPage() {
   const { currentUser, logout, loading: authLoading } = useAuth();
 
   const heroCarouselImages = [
-    { src: "/assets/Gemini_Generated_Image_mizzt7mizzt7mizz.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "ai powered trip planner interface" },
-    { src: "/assets/Gemini_Generated_Image_px5obrpx5obrpx5o.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
-    { src: "/assets/Gemini_Generated_Image_snatbjsnatbjsnat.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
-    { src: "/assets/Gemini_Generated_Image_txizz0txizz0txiz.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
+    { src: "https://placehold.co/1800x1080.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "futuristic ai travel" },
+    { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
+    { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
+    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
     { src: "/assets/Gemini_Generated_Image_x46qaqx46qaqx46q.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" }
   ];
 
@@ -112,7 +113,7 @@ export default function LandingPage() {
     },
     {
       icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Aura AI: Your Smart Assistant",
+      title: "Aura AI: Natural Language Trip Search",
       description: "Type your travel ideas in natural language! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "conversational ai travel chat"
@@ -195,7 +196,7 @@ export default function LandingPage() {
       dataAiHint: "travel wellness planning slider"
     },
     {
-      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />,
+      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />, 
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -223,11 +224,18 @@ export default function LandingPage() {
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, 
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai digital twin city simulation"
+    },
+    {
+      icon: <HeartPulseIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "Affective Group Vibe Optimizer (Future Vision)",
+      description: "AI (with consent) subtly sensing group vibe to suggest adjustments for better cohesion & enjoyment.",
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "ai group mood travel"
     }
   ];
 
@@ -252,7 +260,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); // Start features animation earlier
     const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
     const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
 
@@ -431,7 +439,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className={cn("relative w-full", image.src.includes("2048x2048") ? "aspect-square" : "aspect-[5/3]")}>
+                      <div className={cn("relative w-full", "aspect-[5/3]")}>
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -585,3 +593,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+```

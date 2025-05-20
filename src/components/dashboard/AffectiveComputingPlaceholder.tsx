@@ -1,31 +1,27 @@
-
 "use client";
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BrainCircuitIcon, ClockIcon, CubeIcon, CurlyBracesIcon } from 'lucide-react'; 
+import { HeartPulseIcon, UsersIcon, SparklesIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
-export function DigitalTwinExplorerPlaceholder() {
+export function AffectiveComputingPlaceholder() {
   return (
-    <Card className={cn("glass-card border-sky-500/30", "animate-fade-in-up")}>
+    <Card className={cn("glass-card border-rose-500/30", "animate-fade-in-up")}>
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center text-lg text-card-foreground">
-            <span className="relative mr-2">
-              <CurlyBracesIcon className="w-6 h-6 text-sky-400" />
-              <BrainCircuitIcon className="w-3.5 h-3.5 text-sky-600 absolute -top-1 -right-1 opacity-80" />
-            </span>
-            Predictive 'Digital Twin' Explorer
+            <HeartPulseIcon className="w-6 h-6 mr-2 text-rose-400" />
+            Affective Group Vibe Optimizer
           </CardTitle>
           <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" disabled>
             (Future Vision)
           </Button>
         </div>
         <CardDescription className="text-muted-foreground pt-1">
-          Virtually 'feel' a place before you go! AI simulates crowds, queues, and ambiance.
+          AI that (with consent) helps enhance group travel enjoyment and cohesion.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -33,21 +29,21 @@ export function DigitalTwinExplorerPlaceholder() {
           <div className="relative aspect-video w-full rounded-md overflow-hidden mb-3 border border-border/30 group">
             <Image
                 src="https://placehold.co/600x400.png"
-                alt="Conceptual AI Digital Twin of a city for travel planning"
+                alt="Conceptual AI interface for group mood optimization"
                 fill
                 className="object-cover rounded-md group-hover:scale-105 transition-transform duration-300"
-                data-ai-hint="ai digital twin city simulation"
+                data-ai-hint="ai group mood travel"
             />
           </div>
           <p>
-            Before your trip, explore a dynamic, AI-generated "digital twin" of a city or specific attractions. This isn't just a 3D model; it simulates crowd flows, potential queue times, and ambiance at different times of the day. Predictions are based on historical data, upcoming local events, and even weather forecasts.
+            Imagine AI, with full consent, subtly sensing the group's vibe via check-ins or future wearable integrations. If energy seems low or stressed, it might proactively suggest a universally appealing break, a fun shared snack, or a calming activity tailored to your group's combined personas.
           </p>
           <div className="flex items-center justify-center py-2 gap-3">
-            <ClockIcon className="w-7 h-7 text-sky-400/50 animate-pulse" />
-            <CurlyBracesIcon className="w-8 h-8 text-primary/40 absolute animate-ping" style={{ animationDuration: '2.8s' }}/>
+            <UsersIcon className="w-7 h-7 text-rose-400/50 animate-pulse" />
+            <SparklesIcon className="w-8 h-8 text-primary/40 absolute animate-ping" style={{ animationDuration: '3.2s' }}/>
           </div>
           <p className="text-xs text-muted-foreground text-center">
-            Experience predictive travel planning like never before.
+            Enhancing shared experiences through intelligent, empathetic suggestions.
           </p>
         </div>
       </CardContent>
