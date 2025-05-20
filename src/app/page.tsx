@@ -47,7 +47,7 @@ import {
   CalendarCheckIcon,
   CameraIcon,
   CheckCircleIcon,
-  CubeIcon,
+  Cube, // Changed from CubeIcon
   DollarSignIcon,
   EyeIcon,
   GiftIcon,
@@ -80,11 +80,8 @@ import {
   SearchHeartIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
-  SmilePlusIcon,
   SparklesIcon,
   StampIcon,
-  TargetIcon,
-  TrendingUpIcon,
   UserIcon,
   UserPlusIcon,
   UsersIcon,
@@ -237,7 +234,7 @@ const features = [
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CubeIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <Cube className="w-10 h-10 mb-4 text-accent" />, // Changed from CubeIcon
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
