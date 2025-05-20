@@ -12,6 +12,7 @@ import {
   BarChart3Icon,
   BellRingIcon,
   BookHeartIcon,
+  BookOpenTextIcon,
   BotIcon,
   BrainCircuitIcon,
   Building2Icon,
@@ -32,6 +33,8 @@ import {
   MapPinnedIcon,
   MessageCircleQuestionIcon,
   MessageSquareTextIcon,
+  MicIcon,
+  PanelLeft,
   ScaleIcon,
   SearchCheckIcon,
   ShieldCheckIcon,
@@ -40,6 +43,7 @@ import {
   UserIcon,
   UserPlusIcon,
   UsersRoundIcon,
+  Volume2Icon,
   Wand2Icon,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -112,7 +116,7 @@ const features = [
     },
     {
       icon: <MessageSquareTextIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Aura AI: Predictive Preference Fusion",
+      title: "Aura AI: Natural Language Trip Search",
       description: "Describe your ideal trip, or leave fields blank! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "conversational ai travel chat"
@@ -242,6 +246,13 @@ const features = [
       description: "Detail your specific accessibility needs (step-free, quiet zones, dietary restrictions). Our AI (future vision) will deeply vet every aspect of your trip for a truly tailored and comfortable experience.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "inclusive accessible travel ai"
+    },
+    {
+      icon: <BookOpenTextIcon className="w-10 h-10 mb-4 text-primary" />,
+      title: "AI Local Legend & Folklore Narrator (Future Vision)",
+      description: "Explore with an AI narrator! Get obscure local legends, folklore, and historical anecdotes tied to your precise location, bringing the intangible cultural heritage of a place to life as you experience it.",
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "ai storytelling travel folklore"
     }
   ];
 
@@ -599,5 +610,3 @@ const features = [
     </div>
   );
 }
-
-    

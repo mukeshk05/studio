@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -33,6 +32,7 @@ import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTw
 import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder";
 import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
 import { PersonalizedAccessibilityScoutPlaceholder } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder";
+import { LocalLegendNarratorPlaceholder } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
 
 
 export default function DashboardPage() {
@@ -244,9 +244,13 @@ export default function DashboardPage() {
           <PersonalizedAccessibilityScoutPlaceholder />
         </div>
 
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.95s'}}>
+          <LocalLegendNarratorPlaceholder />
+        </div>
+
       </div>
       
-      <div className="mb-8 animate-fade-in-up glass-card" style={{ animationDelay: '0.95s' }}>
+      <div className="mb-8 animate-fade-in-up glass-card" style={{ animationDelay: '1s' }}>
         <NotificationSettings />
       </div>
 
@@ -256,7 +260,7 @@ export default function DashboardPage() {
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '1s'}}>
+          )} style={{animationDelay: '1.05s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -267,7 +271,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '1.05s'}}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '1.1s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
