@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/context_backup
 
 # next.js
 /.next/
