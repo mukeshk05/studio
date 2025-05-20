@@ -17,8 +17,8 @@ import { cn } from "@/lib/utils";
 import { SmartBundleGenerator } from "@/components/dashboard/SmartBundleGenerator";
 import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useRouter } from 'next/navigation';
-import { onForegroundMessageListener } from "@/lib/firebaseMessaging"; 
-import { NotificationSettings } from "@/components/dashboard/NotificationSettings"; 
+import { onForegroundMessageListener } from "@/lib/firebaseMessaging";
+import { NotificationSettings } from "@/components/dashboard/NotificationSettings";
 import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder";
 import { AuthenticityVerifierPlaceholder } from "@/components/dashboard/AuthenticityVerifierPlaceholder";
 import { LocalInsiderTipsCard } from "@/components/dashboard/LocalInsiderTipsCard";
@@ -27,10 +27,11 @@ import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulat
 import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder";
 import { AiCoTravelAgentPlaceholder } from "@/components/dashboard/AiCoTravelAgentPlaceholder";
 import { MoodEnergyOptimizerPlaceholder } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
-import { AiCalendarSyncPlaceholder } from "@/components/dashboard/AiCalendarSyncPlaceholder"; 
+import { AiCalendarSyncPlaceholder } from "@/components/dashboard/AiCalendarSyncPlaceholder";
 import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/HyperLocalLanguageCoachPlaceholder";
 import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTwinExplorerPlaceholder";
-import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder"; // Added import
+import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder";
+import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
 
 
 export default function DashboardPage() {
@@ -48,7 +49,7 @@ export default function DashboardPage() {
       const bundledTripData = localStorage.getItem('tripBundleToPlan');
       if (bundledTripData) {
         try {
-          if (router) { 
+          if (router) {
             router.push('/planner');
             // Dispatch event after navigation setup to ensure listener on planner page can catch it
             window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
@@ -58,7 +59,7 @@ export default function DashboardPage() {
         }
       }
     };
-    
+
     window.addEventListener('localStorageUpdated_tripBundleToPlan', handleLocalStorageUpdate);
     window.addEventListener('storage', (event) => { // Listen for changes from other tabs/windows
         if (event.key === 'tripBundleToPlan') {
@@ -125,8 +126,8 @@ export default function DashboardPage() {
   const handlePlanTripFromBundle = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
     // Dispatch event after setting item, so planner page can react if already open
-    window.dispatchEvent(new Event('localStorageUpdated_tripBundleToPlan')); 
-    router.push('/planner'); 
+    window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
+    router.push('/planner');
   };
 
   return (
@@ -234,9 +235,13 @@ export default function DashboardPage() {
           <AffectiveComputingPlaceholder />
         </div>
 
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.85s'}}>
+          <EthicalImpactAuditorPlaceholder />
+        </div>
+
       </div>
       
-      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.85s' }}>
+      <div className="mb-8 animate-fade-in-up glass-card" style={{ animationDelay: '0.9s' }}>
         <NotificationSettings />
       </div>
 
@@ -246,7 +251,7 @@ export default function DashboardPage() {
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '0.9s'}}>
+          )} style={{animationDelay: '0.95s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecksIcon className="w-5 h-5" />
             My Saved Trips
@@ -257,10 +262,16 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.95s'}}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '1s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
           <TabsContent value="price-tracker" className="mt-0">
             <PriceTrackerForm />
-            <Price
+            <PriceTrackerList />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
+  );
+}

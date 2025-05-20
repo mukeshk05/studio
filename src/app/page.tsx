@@ -37,7 +37,9 @@ import {
   SearchCheckIcon,
   BrainCircuitIcon,
   MessageCircleQuestionIcon,
-  HeartPulseIcon, // Added icon
+  HeartPulseIcon,
+  ShieldCheckIcon, // Added
+  ScaleIcon,       // Added
 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -86,7 +88,6 @@ export default function LandingPage() {
     { src: "https://placehold.co/1800x1080.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
     { src: "https://placehold.co/1800x1080.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
     { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
-    { src: "/assets/Gemini_Generated_Image_x46qaqx46qaqx46q.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" }
   ];
 
   const features = [
@@ -141,10 +142,10 @@ export default function LandingPage() {
     },
     {
       icon: <LeafIcon className="w-10 h-10 mb-4 text-accent" />,
-      title: "Sustainable Footprint Optimizer AI",
-      description: "Conceptually, our AI considers sustainable travel options, suggesting eco-friendly choices and promoting awareness for responsible tourism.",
+      title: "AI Ethical & Sustainable Impact Auditor (Future Vision)",
+      description: "Beyond simple eco-labels! AI analyzes your itinerary's ethical/sustainable impact (fair wages, animal welfare, over-tourism, community support) and suggests vetted alternatives for a truly responsible journey.",
       imgSrc: "https://placehold.co/600x400.png",
-      dataAiHint: "eco friendly travel ai"
+      dataAiHint: "ethical sustainable travel audit"
     },
      {
       icon: <LocateFixedIcon className="w-10 h-10 mb-4 text-primary" />,
@@ -439,7 +440,7 @@ export default function LandingPage() {
                 <CarouselContent>
                   {heroCarouselImages.map((image, index) => (
                     <CarouselItem key={index}>
-                      <div className={cn("relative w-full", "aspect-[5/3]")}>
+                      <div className={cn("relative w-full", "aspect-square")}>
                         <Image
                             src={image.src}
                             alt={image.alt}
@@ -593,5 +594,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-```
