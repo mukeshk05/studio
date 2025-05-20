@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CubeIcon, BrainCircuitIcon, ClockIcon } from 'lucide-react'; // Added CubeIcon, BrainCircuitIcon, ClockIcon
+import { BrainCircuitIcon, ClockIcon, CubeIcon, CurlyBracesIcon } from 'lucide-react'; // Added CubeIcon and ClockIcon
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -15,7 +15,7 @@ export function DigitalTwinExplorerPlaceholder() {
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center text-lg text-card-foreground">
             <span className="relative mr-2">
-              <CubeIcon className="w-6 h-6 text-sky-400" />
+              <CurlyBracesIcon className="w-6 h-6 text-sky-400" />
               <BrainCircuitIcon className="w-3.5 h-3.5 text-sky-600 absolute -top-1 -right-1 opacity-80" />
             </span>
             Predictive 'Digital Twin' Explorer
@@ -54,4 +54,3 @@ export function DigitalTwinExplorerPlaceholder() {
     </Card>
   );
 }
-
