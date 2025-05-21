@@ -5,11 +5,11 @@ import type { PriceTrackerEntry, PriceForecast } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon, TrendingUpIcon, LineChartIcon, CalendarIcon } from "lucide-react";
+import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon, TrendingUpIcon, LineChartIcon, CalendarIcon, MapPinIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
-import { getPriceAdvice, PriceAdvisorInput, PriceAdvisorOutput } from "@/ai/flows/price-advisor-flow"; 
+import { getPriceAdvice, PriceAdvisorInput as AIPAdInput } from "@/ai/flows/price-advisor-flow"; 
 import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow.ts";
 import React from "react";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
       const input: PriceTrackerInput = {
         itemType: item.itemType,
         itemName: item.itemName,
+        // destination: item.destination, // This is not used by trackPrice flow, but good to have for consistency
         targetPrice: item.targetPrice,
         currentPrice: currentPriceNum,
       };
@@ -91,9 +92,10 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   const handleGetAiAdvice = async () => {
     setIsAiAdviceLoading(true);
     try {
-      const adviceInput: PriceAdvisorInput = {
+      const adviceInput: AIPAdInput = {
         itemType: item.itemType,
         itemName: item.itemName,
+        destination: item.destination,
         targetPrice: item.targetPrice,
         currentPrice: item.currentPrice,
       };
@@ -142,8 +144,9 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
       const forecastInput: AIPFInput = {
         itemType: item.itemType,
         itemName: item.itemName,
+        destination: item.destination,
         currentPrice: item.currentPrice,
-        travelDates: item.travelDates || "Not specified", // Use actual travelDates
+        travelDates: item.travelDates || "Not specified",
       };
       const result = await getPriceForecast(forecastInput);
       const newForecast: PriceForecast = {
@@ -189,7 +192,8 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-2 flex-grow text-card-foreground/90">
-          <p className="flex items-center"><TagIcon className="w-4 h-4 mr-2 text-muted-foreground" />Type: <span className="font-medium ml-1">{item.itemType}</span></p>
+          <p className="flex items-center"><TagIcon className="w-4 h-4 mr-2 text-muted-foreground" />Type: <span className="font-medium ml-1 capitalize">{item.itemType}</span></p>
+          {item.destination && <p className="flex items-center"><MapPinIcon className="w-4 h-4 mr-2 text-muted-foreground" />{item.itemType === 'hotel' ? 'Location' : 'Destination'}: <span className="font-medium ml-1">{item.destination}</span></p>}
           {item.travelDates && <p className="flex items-center"><CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />Dates: <span className="font-medium ml-1">{item.travelDates}</span></p>}
           <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Target: <span className="font-medium ml-1">${item.targetPrice.toLocaleString()}</span></p>
           <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Current: <span className="font-medium ml-1">${item.currentPrice.toLocaleString()}</span></p>
@@ -314,7 +318,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
           <DialogHeader>
             <DialogTitle className="text-card-foreground flex items-center">
               <LineChartIcon className="mr-2 h-5 w-5 text-purple-400" />
-              Price Trend for {item.itemName}
+              Price Trend for {item.itemName}{item.destination ? ` in ${item.destination}` : ''}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Illustrative trend based on AI forecast. Current: ${item.currentPrice.toLocaleString()}, Target: ${item.targetPrice.toLocaleString()}.

@@ -12,6 +12,7 @@ export type Itinerary = SingleItineraryFromAI & {
     generatedAt: string; 
   };
   culturalTip?: string; // Added from AITripPlannerOutputSchema implicitly
+  weatherContext?: string; // Added as it's in booking-card
 };
 
 // Type for a single hotel option, derived from the itinerary type
@@ -30,10 +31,11 @@ export interface PriceForecast {
 export interface PriceTrackerEntry {
   id: string;
   itemType: "flight" | "hotel";
-  itemName: string;
+  itemName: string; // For hotels: Hotel Name. For flights: Flight number/route
+  destination?: string; // For hotels: Location/City. For flights: Arrival city
   targetPrice: number;
   currentPrice: number; 
-  travelDates?: string; // Added optional travelDates
+  travelDates?: string;
   lastChecked: string; 
   createdAt?: any; 
   alertStatus?: {

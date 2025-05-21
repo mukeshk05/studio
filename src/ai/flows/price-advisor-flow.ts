@@ -13,7 +13,8 @@ import {z} from 'genkit';
 
 const PriceAdvisorInputSchema = z.object({
   itemType: z.enum(['flight', 'hotel']).describe('The type of item: flight or hotel.'),
-  itemName: z.string().describe('The name or identifier of the item (e.g., "Flight UA123 to Paris for December", "Grand Hyatt Hotel New York for Christmas week"). This provides context for the AI.'),
+  itemName: z.string().describe('The name or identifier of the item (e.g., "Flight UA123 to Paris", "Grand Hyatt Hotel"). This provides specific context for the AI.'),
+  destination: z.string().optional().describe("The destination city/area for the flight or hotel, for broader market context."),
   targetPrice: z.number().describe('The user desired target price in USD.'),
   currentPrice: z.number().describe('The current market price in USD.'),
 });
@@ -33,16 +34,19 @@ const prompt = ai.definePrompt({
   input: {schema: PriceAdvisorInputSchema},
   output: {schema: PriceAdvisorOutputSchema},
   prompt: `You are an AI travel price advisor.
-Based on the item type, item name (which may include destination and time of year), the user's target price, and the current market price, provide brief, actionable advice.
+Based on the item type, item name (which may include specific flight/hotel details), the destination, the user's target price, and the current market price, provide brief, actionable advice.
 Your advice should be 1-2 sentences.
-Consider if the target price is realistic, if it's a good time to buy, or general price trends for similar items based on the context from the item name.
+Consider if the target price is realistic, if it's a good time to buy, or general price trends for similar items based on the context from the item name and destination.
 
 Item Type: {{{itemType}}}
 Item Name: {{{itemName}}}
+{{#if destination}}Destination: {{{destination}}}{{/if}}
 Target Price (USD): {{{targetPrice}}}
 Current Price (USD): {{{currentPrice}}}
 
-Provide your advice. For example: "Flights to popular European destinations in December are in high demand. Your target price of $${"{{targetPrice}}"} is competitive. Monitor closely and consider booking if it drops further." or "Hotel prices in New York during Christmas week are typically high. $${"{{targetPrice}}"} is an ambitious target. You might need to be flexible with dates or consider alternative locations for a better deal."
+Provide your advice. For example:
+- If item is a flight to 'Paris' in December: "Flights to {{{destination}}} in December are in high demand. Your target price of $${"{{targetPrice}}"} is competitive. Monitor closely and consider booking if it drops further."
+- If item is a hotel 'The Grand Hotel' in 'New York' for Christmas: "Hotel prices for '{{{itemName}}}' in {{{destination}}} during Christmas week are typically high. $${"{{targetPrice}}"} is an ambitious target. You might need to be flexible with dates or consider alternative locations for a better deal."
 `,
 });
 
@@ -54,6 +58,9 @@ const priceAdvisorFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output || !output.advice) {
+      return { advice: "Could not generate price advice at this moment. Please try again later." };
+    }
+    return output;
   }
 );

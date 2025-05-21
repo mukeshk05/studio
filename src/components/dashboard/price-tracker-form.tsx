@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trackPrice, type PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import React from "react";
-import { Loader2Icon, BellPlusIcon, PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, CalendarIcon } from "lucide-react";
+import { Loader2Icon, BellPlusIcon, PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, CalendarIcon, MapPinIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,10 +29,11 @@ const formSchema = z.object({
   itemType: z.enum(["flight", "hotel"], {
     required_error: "You need to select an item type.",
   }),
-  itemName: z.string().min(2, "Item name must be at least 2 characters."),
+  itemName: z.string().min(2, "Item name/hotel name must be at least 2 characters."),
+  destination: z.string().optional(), // For flight destination or hotel location/city
   targetPrice: z.coerce.number().positive("Target price must be a positive number."),
   currentPrice: z.coerce.number().positive("Current price must be a positive number."),
-  travelDates: z.string().optional(), // Added optional travelDates
+  travelDates: z.string().optional(),
 });
 
 export function PriceTrackerForm() {
@@ -45,26 +46,47 @@ export function PriceTrackerForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       itemName: "",
+      destination: "",
       travelDates: "",
     },
   });
+
+  const itemType = form.watch("itemType");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!currentUser) {
       toast({ title: "Authentication Required", description: "Please log in to add items to the tracker.", variant: "destructive" });
       return;
     }
+    if (itemType === "hotel" && !values.destination?.trim()) {
+      form.setError("destination", { type: "manual", message: "Hotel location/city is required." });
+      return;
+    }
+     if (itemType === "flight" && !values.destination?.trim()) {
+      form.setError("destination", { type: "manual", message: "Flight destination city is required." });
+      return;
+    }
+
     setAiAlert(null);
     try {
-      const alertResult = await trackPrice(values);
+      const alertResult = await trackPrice({
+        itemType: values.itemType,
+        itemName: values.itemName, // This will be Hotel Name or Flight Name/Route
+        // For AI context, we might concatenate itemName and destination if needed by trackPrice flow,
+        // but trackPrice currently only uses itemName for identification in its alert message.
+        // The main benefit of destination here is for storage and other AI flows.
+        targetPrice: values.targetPrice,
+        currentPrice: values.currentPrice,
+      });
       setAiAlert(alertResult);
 
       const newItemData = {
         itemType: values.itemType,
         itemName: values.itemName,
+        destination: values.destination,
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
-        travelDates: values.travelDates || undefined, // Save if provided
+        travelDates: values.travelDates || undefined,
       };
 
       await addTrackedItemMutation.mutateAsync(
@@ -74,7 +96,7 @@ export function PriceTrackerForm() {
 
       toast({
         title: "Price Tracker Added",
-        description: `${values.itemName} is now being tracked.`,
+        description: `${values.itemName} ${values.destination ? `in ${values.destination}` : ''} is now being tracked.`,
       });
       if(alertResult.shouldAlert){
          toast({
@@ -116,7 +138,10 @@ export function PriceTrackerForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-card-foreground/90">Item Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => {
+                    field.onChange(value);
+                    form.setValue("destination", ""); // Reset destination on type change
+                  }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50">
                         <SelectValue placeholder="Select item type (flight or hotel)" />
@@ -131,19 +156,51 @@ export function PriceTrackerForm() {
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="itemName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-card-foreground/90"><TagIcon className="w-4 h-4 mr-2" />Item Name</FormLabel>
+                  <FormLabel className="flex items-center text-card-foreground/90">
+                    <TagIcon className="w-4 h-4 mr-2" />
+                    {itemType === 'hotel' ? 'Hotel Name' : 'Flight Name/Route'}
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Flight AA123 or Grand Hyatt Hotel" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
+                    <Input 
+                      placeholder={itemType === 'hotel' ? "e.g., Grand Hyatt Hotel" : "e.g., Flight AA123, NYC to London"} 
+                      {...field} 
+                      className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {itemType && (
+              <FormField
+                control={form.control}
+                name="destination"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center text-card-foreground/90">
+                      <MapPinIcon className="w-4 h-4 mr-2" />
+                      {itemType === 'hotel' ? 'Hotel Location/City *' : 'Flight Destination City *'}
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder={itemType === 'hotel' ? "e.g., Paris, France" : "e.g., Tokyo, Japan"} 
+                        {...field} 
+                        className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
              <FormField
               control={form.control}
               name="travelDates"

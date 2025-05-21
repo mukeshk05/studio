@@ -23,16 +23,21 @@ Your task is to analyze the provided travel item details and predict the likely 
 Item Details:
 - Type: {{{itemType}}}
 - Name/Route: {{{itemName}}}
+{{#if destination}}- Destination: {{{destination}}}{{/if}}
 - Current Price (USD): {{{currentPrice}}}
 - Travel Dates: {{{travelDates}}}
 
-Based on this information, especially considering the travel dates for seasonality and potential demand shifts (e.g., holidays, peak season for the destination implied in itemName), provide a concise forecast.
-The forecast should be 1-2 sentences.
-Optionally, provide a confidence level ('low', 'medium', 'high') for your forecast.
+Based on this information, especially considering the travel dates for seasonality and potential demand shifts (e.g., holidays, peak season for the destination '{{{destination}}}' if provided, or inferred from '{{{itemName}}}' or '{{{travelDates}}}').
+If the item is a hotel, '{{{itemName}}}' is the hotel name, and '{{{destination}}}' is its city/location.
+If the item is a flight, '{{{itemName}}}' is the flight route, and '{{{destination}}}' is the arrival city.
+Use the 'destination' for broader market trends and 'itemName' for specifics of the hotel or flight.
+
+Provide a concise forecast (1-2 sentences).
+Optionally, include a confidence level ('low', 'medium', 'high') for your forecast.
 
 Example Forecasts:
-- For a flight to a popular European city in late December: "Flight prices for European destinations during the Christmas holidays tend to rise significantly. Booking well in advance is recommended. Confidence: high."
-- For a hotel in a beach resort town during the shoulder season (e.g., April): "Hotel prices might see some fluctuations but are generally moderate during this period. You might find better deals closer to the date, but popular options could sell out. Confidence: medium."
+- For a flight to a popular European city like '{{{destination}}}' in late December: "Flight prices for European destinations during the Christmas holidays tend to rise significantly. Booking well in advance is recommended. Confidence: high."
+- For a hotel named '{{{itemName}}}' in a beach resort town '{{{destination}}}' during the shoulder season (e.g., April): "Hotel prices for {{{itemName}}} might see some fluctuations but are generally moderate during this period. You might find better deals closer to the date, but popular options could sell out. Confidence: medium."
 - For a flight with very generic information or far-off dates: "It's too early to make a precise forecast for these dates. Monitor prices regularly. Confidence: low."
 
 Generate the forecast.
