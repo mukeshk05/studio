@@ -4,27 +4,43 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2Icon, SparklesIcon, MapPinIcon, SearchIcon, LightbulbIcon, TrendingUpIcon, UsersIcon, ClockIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2Icon, SparklesIcon, MapPinIcon, SearchIcon, LightbulbIcon, TrendingUpIcon, ClockIcon, InfoIcon } from 'lucide-react';
 import { getLocalInsiderTips, LocalInsiderTipsInput, LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
+const glassCardClasses = "glass-card";
+const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
+
 export function LocalInsiderTipsCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [tipsData, setTipsData] = useState<LocalInsiderTipsOutput | null>(null);
+  const [destination, setDestination] = useState(''); // User input for destination
+  const [lastFetchedDestination, setLastFetchedDestination] = useState('');
   const { toast } = useToast();
 
-  const demoDestination = "Paris, France";
+  // Predefined mood and weather for this demo
   const demoMood = "curious and adventurous";
   const demoWeather = "a pleasant sunny afternoon";
 
   const handleFetchTips = async () => {
+    if (!destination.trim()) {
+      toast({
+        title: "Destination Required",
+        description: "Please enter a destination to get insider tips.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsLoading(true);
     setTipsData(null);
+    setLastFetchedDestination(destination); // Store the destination for which tips are being fetched
     try {
       const input: LocalInsiderTipsInput = {
-        destination: demoDestination,
+        destination: destination,
         desiredMood: demoMood,
         weatherContext: demoWeather,
       };
@@ -43,79 +59,112 @@ export function LocalInsiderTipsCard() {
   };
 
   return (
-    <Card className={cn("glass-card w-full border-accent/30", "animate-fade-in-up")}>
+    <Card className={cn(glassCardClasses, "w-full border-accent/30", "animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
           <MapPinIcon className="w-6 h-6 mr-2 text-accent" />
           Aura Local Lens: Insider Tips
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Discover what's buzzing, hidden gems, and daily picks, as if you have a local friend everywhere! (Demo for {demoDestination})
+          Enter a destination to discover what's buzzing, hidden gems, and daily picks, tailored for a "{demoMood}" mood and "{demoWeather}".
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!tipsData && !isLoading && (
+        <div>
+          <Label htmlFor="insider-destination" className="text-card-foreground/90">Destination</Label>
+          <Input
+            id="insider-destination"
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+            placeholder="e.g., Tokyo, Japan or Rome, Italy"
+            className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"
+          />
+        </div>
+
+        {!tipsData && !isLoading && !lastFetchedDestination && (
           <p className="text-sm text-center text-muted-foreground py-4">
-            Click the button below to get today's AI-powered insider scoop for {demoDestination}, tailored for a "{demoMood}" mood and "{demoWeather}".
+            Enter a destination and click the button below to get today's AI-powered insider scoop!
           </p>
         )}
+         {!tipsData && !isLoading && lastFetchedDestination && (
+           <p className="text-sm text-center text-muted-foreground py-4">
+             No tips found for {lastFetchedDestination}. Try another destination or broaden your search.
+           </p>
+        )}
+
 
         {isLoading && (
           <div className="text-center py-6 text-muted-foreground">
             <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-accent" />
-            <p>Aura is tuning into local vibes...</p>
+            <p>Aura is tuning into local vibes for {lastFetchedDestination}...</p>
           </div>
         )}
 
-        {tipsData && !isLoading && (
-          <div className="space-y-4 text-sm">
-            <div>
-              <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                <TrendingUpIcon className="w-4 h-4 mr-2 text-primary" />
-                Trending Spots Summary:
-              </h4>
-              <p className="text-muted-foreground pl-6 text-xs italic">{tipsData.trendingSpotsSummary}</p>
-            </div>
-            <Separator />
-            <div>
-              <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                <SearchIcon className="w-4 h-4 mr-2 text-primary" />
-                Hidden Gem Pick: {tipsData.hiddenGemPick.name}
-              </h4>
-              <p className="text-muted-foreground pl-6 text-xs">{tipsData.hiddenGemPick.description}</p>
-              <p className="text-muted-foreground pl-6 text-xs mt-0.5"><span className="font-medium text-primary/80">Why it fits:</span> {tipsData.hiddenGemPick.reason}</p>
-            </div>
-            <Separator />
-            <div>
-              <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                <LightbulbIcon className="w-4 h-4 mr-2 text-primary" />
-                Daily Activity Pick: {tipsData.dailyActivityPick.name}
-              </h4>
-              <p className="text-muted-foreground pl-6 text-xs">{tipsData.dailyActivityPick.description}</p>
-              <p className="text-muted-foreground pl-6 text-xs mt-0.5"><span className="font-medium text-primary/80">Why it fits:</span> {tipsData.dailyActivityPick.reason}</p>
-            </div>
-            <Separator />
-            <div>
-              <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                <ClockIcon className="w-4 h-4 mr-2 text-primary" />
-                Availability Notes:
-              </h4>
-              <p className="text-muted-foreground pl-6 text-xs italic">{tipsData.availabilityNotes}</p>
-            </div>
-          </div>
+        {tipsData && !isLoading && lastFetchedDestination && (
+          <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
+            <CardHeader className="p-0 pb-3">
+                <CardTitle className="text-lg text-accent flex items-center">
+                    <SparklesIcon className="w-5 h-5 mr-2" />
+                    Insider Scoop for {lastFetchedDestination}
+                </CardTitle>
+                 <CardDescription className="text-xs text-muted-foreground">
+                    (Simulated for a "{demoMood}" mood & "{demoWeather}")
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 space-y-3 text-sm">
+              <div>
+                <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
+                  <TrendingUpIcon className="w-4 h-4 mr-2 text-primary" />
+                  Trending Spots Summary:
+                </h4>
+                <p className="text-muted-foreground pl-6 text-xs italic">{tipsData.trendingSpotsSummary}</p>
+              </div>
+              <Separator className="bg-border/40"/>
+              <div>
+                <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
+                  <SearchIcon className="w-4 h-4 mr-2 text-primary" />
+                  Hidden Gem Pick: {tipsData.hiddenGemPick.name}
+                </h4>
+                <p className="text-muted-foreground pl-6 text-xs">{tipsData.hiddenGemPick.description}</p>
+                <p className="text-muted-foreground pl-6 text-xs mt-0.5"><span className="font-medium text-primary/80">Why it fits:</span> {tipsData.hiddenGemPick.reason}</p>
+              </div>
+              <Separator className="bg-border/40"/>
+              <div>
+                <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
+                  <LightbulbIcon className="w-4 h-4 mr-2 text-primary" />
+                  Daily Activity Pick: {tipsData.dailyActivityPick.name}
+                </h4>
+                <p className="text-muted-foreground pl-6 text-xs">{tipsData.dailyActivityPick.description}</p>
+                <p className="text-muted-foreground pl-6 text-xs mt-0.5"><span className="font-medium text-primary/80">Why it fits:</span> {tipsData.dailyActivityPick.reason}</p>
+              </div>
+              <Separator className="bg-border/40"/>
+              <div>
+                <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
+                  <ClockIcon className="w-4 h-4 mr-2 text-primary" />
+                  Availability Notes:
+                </h4>
+                <p className="text-muted-foreground pl-6 text-xs italic">{tipsData.availabilityNotes}</p>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex-col gap-2">
         <Button
           onClick={handleFetchTips}
-          disabled={isLoading}
-          className="w-full glass-interactive border-accent/50 text-accent hover:bg-accent/20 hover:text-accent-foreground"
-          variant="outline"
+          disabled={isLoading || !destination.trim()}
+          size="lg"
+          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
           {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
-          Get Today's Scoop for {demoDestination.split(',')[0]}!
+          Get Insider Tips!
         </Button>
+        <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
+          <InfoIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+          AI simulates real-time local data. Actual availability may vary.
+        </p>
       </CardFooter>
     </Card>
   );
 }
+
