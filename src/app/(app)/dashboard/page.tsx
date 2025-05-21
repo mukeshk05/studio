@@ -32,8 +32,8 @@ import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/Hyper
 import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTwinExplorerPlaceholder";
 import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder";
 import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
-import { PersonalizedAccessibilityScoutPlaceholder } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder";
-import { LocalLegendNarratorCard } from "@/components/dashboard/LocalLegendNarratorPlaceholder"; // Updated import
+import { PersonalizedAccessibilityScoutCard } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder"; // Updated import
+import { LocalLegendNarratorCard } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
 import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
 import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
 import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
@@ -241,7 +241,7 @@ export default function DashboardPage() {
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.9s'}}>
-          <PersonalizedAccessibilityScoutPlaceholder />
+          <PersonalizedAccessibilityScoutCard />
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.95s'}}>

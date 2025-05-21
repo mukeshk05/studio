@@ -16,4 +16,5 @@ import '@/ai/flows/generate-trip-memory-flow.ts';
 import '@/ai/flows/local-insider-tips-flow.ts'; 
 import '@/ai/flows/itinerary-assistance-flow.ts';
 import '@/ai/flows/post-trip-synthesizer-flow.ts';
-import '@/ai/flows/local-legend-narrator-flow.ts'; // Added new flow
+import '@/ai/flows/local-legend-narrator-flow.ts';
+import '@/ai/flows/personalized-accessibility-scout-flow.ts'; // Added new flow
