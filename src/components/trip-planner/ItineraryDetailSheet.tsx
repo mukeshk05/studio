@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetClose as SheetDialogClose,
+  SheetClose as SheetDialogClose, // Renamed to avoid conflict if Sheet also had a Close
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
