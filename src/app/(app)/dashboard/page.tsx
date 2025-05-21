@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader, TrendingUpIcon, BrainCircuitIcon } from 'lucide-react';
+import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -143,11 +143,11 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-2 mt-4 sm:mt-0">
                 <Button variant="outline" size="sm" className="glass-interactive" onClick={() => document.getElementById('my-trips-trigger')?.click()}>
-                    <ListChecksIcon className="w-4 h-4 mr-2" />
+                    <ListChecks className="w-4 h-4 mr-2" />
                     View Trips
                 </Button>
                  <Button variant="outline" size="sm" className="glass-interactive" onClick={() => document.getElementById('price-tracker-trigger')?.click()}>
-                    <TrendingUpIcon className="w-4 h-4 mr-2" />
+                    <TrendingUp className="w-4 h-4 mr-2" />
                     Price Tracker
                 </Button>
             </div>
@@ -159,11 +159,11 @@ export default function DashboardPage() {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center text-lg text-card-foreground">
-                <LightbulbIcon className="w-6 h-6 mr-2 text-yellow-400" />
+                <Lightbulb className="w-6 h-6 mr-2 text-yellow-400" />
                 AI Travel Tip
               </CardTitle>
               <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:bg-primary/10 hover:text-primary/80 glass-interactive">
-                {isTipLoading ? <Loader className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
+                {isTipLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                 <span className="ml-2 hidden sm:inline">New Tip</span>
               </Button>
             </div>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
           <CardContent>
             {isTipLoading && !travelTip && (
               <div className="flex items-center text-muted-foreground">
-                <Loader className="w-5 h-5 mr-2 animate-spin" />
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 <span>Fetching inspiration...</span>
               </div>
             )}
@@ -274,11 +274,11 @@ export default function DashboardPage() {
             "animate-fade-in-up"
           )} style={{animationDelay: '1.2s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-            <ListChecksIcon className="w-5 h-5" />
+            <ListChecks className="w-5 h-5" />
             My Saved Trips
           </TabsTrigger>
           <TabsTrigger value="price-tracker" id="price-tracker-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-            <BellRingIcon className="w-5 h-5" />
+            <BellRing className="w-5 h-5" />
             Price Tracker
           </TabsTrigger>
         </TabsList>
@@ -296,3 +296,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
