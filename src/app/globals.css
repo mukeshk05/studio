@@ -130,6 +130,36 @@ body {
   .glass-interactive { 
     @apply bg-primary/10 dark:bg-primary/5 backdrop-blur-md border border-primary/20 hover:bg-primary/20 dark:hover:bg-primary/10 transition-colors duration-150;
   }
+
+  /* Custom Google Maps Marker */
+  .custom-map-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: hsl(var(--primary));
+    border-radius: 50%;
+    border: 2px solid hsl(var(--primary-foreground));
+    box-shadow: 0 0 8px hsla(var(--primary), 0.7);
+    cursor: pointer;
+    transform: translate(-50%, -50%); /* Center the marker */
+    transition: transform 0.2s ease-out;
+  }
+  .custom-map-marker:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  .custom-map-marker-pulse {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: hsla(var(--primary), 0.5);
+    animation: pulse-animation 2s infinite ease-out;
+    pointer-events: none; /* So it doesn't interfere with clicks on the marker itself */
+  }
+
 }
 
 @keyframes fadeIn {
@@ -145,4 +175,19 @@ body {
 @keyframes pulse-loader-planner {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-animation {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
 }

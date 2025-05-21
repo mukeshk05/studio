@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { AppLogo } from '@/components/layout/app-logo';
 import { cn } from '@/lib/utils';
-import { Search, Plane, Hotel, Compass, Briefcase, Camera, MapPin as MapPinIconLucide, ImageOff, Loader2, AlertTriangle } from 'lucide-react'; // Renamed MapPin to avoid conflict
+import { Search, Plane, Hotel, Compass, Briefcase, Camera, MapPin as MapPinIconLucide, ImageOff, Loader2, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 
@@ -18,7 +18,7 @@ const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-x
 
 const exploreCategories = [
   { name: "Flights", icon: <Plane className="w-5 h-5" />, href: "/planner" },
-  { name: "Hotels", icon: <Hotel className="w-5 h-5" />, href: "/travel#" }, // Placeholder for now
+  { name: "Hotels", icon: <Hotel className="w-5 h-5" />, href: "/travel#" }, 
   { name: "Things to do", icon: <Compass className="w-5 h-5" />, href: "/travel#" },
   { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/travel#" },
 ];
@@ -30,93 +30,95 @@ const popularDestinations = [
   { name: "Bali", country: "Indonesia", imageSrc: "https://placehold.co/600x400.png", dataAiHint: "bali beach tropical", description: "Tropical beaches and serene temples.", lat: -8.3405, lng: 115.0920 },
 ];
 
-// Modern map style (darker, desaturated with accent highlights)
 const modernMapStyle = [
   { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-  {
-    featureType: "administrative.locality",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#d59563" }],
-  },
-  {
-    featureType: "poi",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#d59563" }],
-  },
-  {
-    featureType: "poi.park",
-    elementType: "geometry",
-    stylers: [{ color: "#263c3f" }],
-  },
-  {
-    featureType: "poi.park",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#6b9a76" }],
-  },
-  {
-    featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: "#38414e" }],
-  },
-  {
-    featureType: "road",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#212a37" }],
-  },
-  {
-    featureType: "road",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#9ca5b3" }],
-  },
-  {
-    featureType: "road.highway",
-    elementType: "geometry",
-    stylers: [{ color: "hsl(var(--primary))" }, { lightness: -20 } ], // Using primary color from theme
-  },
-  {
-    featureType: "road.highway",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#1f2835" }],
-  },
-  {
-    featureType: "road.highway",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#f3d19c" }],
-  },
-  {
-    featureType: "transit",
-    elementType: "geometry",
-    stylers: [{ color: "#2f3948" }],
-  },
-  {
-    featureType: "transit.station",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#d59563" }],
-  },
-  {
-    featureType: "water",
-    elementType: "geometry",
-    stylers: [{ color: "#17263c" }],
-  },
-  {
-    featureType: "water",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#515c6d" }],
-  },
-  {
-    featureType: "water",
-    elementType: "labels.text.stroke",
-    stylers: [{ color: "#17263c" }],
-  },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "hsl(var(--primary))" }, { lightness: -20 }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+  { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
 ];
+
+interface CustomMarkerOverlayProps {
+  latlng: google.maps.LatLngLiteral;
+  map: google.maps.Map;
+  destination: typeof popularDestinations[0];
+  onClick: () => void;
+}
+
+class CustomMarkerOverlay extends google.maps.OverlayView {
+  private latlng: google.maps.LatLng;
+  private div: HTMLDivElement | null = null;
+  private destination: typeof popularDestinations[0];
+  private onClick: () => void;
+
+  constructor(props: CustomMarkerOverlayProps) {
+    super();
+    this.latlng = new google.maps.LatLng(props.latlng.lat, props.latlng.lng);
+    this.destination = props.destination;
+    this.onClick = props.onClick;
+    this.setMap(props.map);
+  }
+
+  onAdd() {
+    this.div = document.createElement('div');
+    this.div.className = 'custom-map-marker';
+    this.div.title = this.destination.name;
+    
+    const pulse = document.createElement('div');
+    pulse.className = 'custom-map-marker-pulse';
+    this.div.appendChild(pulse);
+
+    this.div.addEventListener('click', this.onClick);
+
+    const panes = this.getPanes();
+    if (panes) {
+      panes.overlayMouseTarget.appendChild(this.div);
+    }
+  }
+
+  draw() {
+    const projection = this.getProjection();
+    if (!projection || !this.div) {
+      return;
+    }
+    const point = projection.fromLatLngToDivPixel(this.latlng);
+    if (point) {
+      this.div.style.left = point.x + 'px';
+      this.div.style.top = point.y + 'px';
+    }
+  }
+
+  onRemove() {
+    if (this.div) {
+      this.div.removeEventListener('click', this.onClick);
+      this.div.parentNode?.removeChild(this.div);
+      this.div = null;
+    }
+  }
+  
+  getPosition() {
+    return this.latlng;
+  }
+}
 
 
 export default function TravelPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [markers, setMarkers] = useState<CustomMarkerOverlay[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
   const [selectedDestination, setSelectedDestination] = useState<(typeof popularDestinations)[0] | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -127,137 +129,153 @@ export default function TravelPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const initGoogleMapsApi = useCallback(() => {
-    console.log("Google Maps API script loaded, window.google:", window.google);
+    console.log("Travel Page: Google Maps API script loaded, window.google:", window.google);
     setIsMapsScriptLoaded(true);
   }, []);
 
 
   useEffect(() => {
     if (!apiKey) {
-      console.error("Google Maps API key is missing. Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.");
+      console.error("Travel Page: Google Maps API key is missing.");
       setMapsApiError("Google Maps API key is missing. Map functionality is disabled.");
       return;
     }
 
     if (window.google && window.google.maps) {
-      console.log("Google Maps API already loaded.");
-      setIsMapsScriptLoaded(true);
-      return;
-    }
-
-    if (document.getElementById('google-maps-script')) {
-      console.log("Google Maps script tag already present.");
-      // It might be loaded but not yet available on window.google, wait for callback
+      console.log("Travel Page: Google Maps API already loaded.");
+      if (!isMapsScriptLoaded) setIsMapsScriptLoaded(true);
       return;
     }
     
-    console.log("Loading Google Maps API script...");
+    const scriptId = 'google-maps-travel-page-script';
+    if (document.getElementById(scriptId)) {
+      console.log("Travel Page: Google Maps script tag already present.");
+      // If script is present but not loaded, initGoogleMapsApi might not have been called
+      // Or it might be loading. We rely on isMapsScriptLoaded state.
+      return;
+    }
+    
+    console.log("Travel Page: Loading Google Maps API script...");
     const script = document.createElement('script');
-    script.id = 'google-maps-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApi`;
+    script.id = scriptId;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiTravelPage`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
-      console.error("Failed to load Google Maps API script.");
-      setMapsApiError("Failed to load Google Maps. Please check your API key and network connection.");
-      setIsMapsScriptLoaded(false); // Ensure it's marked as not loaded on error
+      console.error("Travel Page: Failed to load Google Maps API script.");
+      setMapsApiError("Failed to load Google Maps. Please check API key and network.");
+      setIsMapsScriptLoaded(false); 
     };
-    (window as any).initGoogleMapsApi = initGoogleMapsApi;
+    (window as any).initGoogleMapsApiTravelPage = initGoogleMapsApi;
     document.head.appendChild(script);
 
     return () => {
-      // Clean up the global callback
-      delete (window as any).initGoogleMapsApi;
+      delete (window as any).initGoogleMapsApiTravelPage;
+      // Consider removing the script tag if component unmounts, though usually not critical
     };
-  }, [apiKey, initGoogleMapsApi]);
+  }, [apiKey, initGoogleMapsApi, isMapsScriptLoaded]);
 
 
   useEffect(() => {
     if (isMapsScriptLoaded && mapRef.current && !map) {
-      console.log("Maps API script loaded, initializing map...");
+      console.log("Travel Page: Maps API script loaded, initializing map...");
       setIsMapInitializing(true);
       if (!mapRef.current) {
-        console.error("Map container ref is not available at initialization.");
+        console.error("Travel Page: Map container ref is not available at initialization.");
         setIsMapInitializing(false);
         return;
       }
-      console.log("Map container dimensions:", mapRef.current.offsetWidth, mapRef.current.offsetHeight);
-      if (mapRef.current.offsetWidth === 0 || mapRef.current.offsetHeight === 0) {
-        console.warn("Map container has zero dimensions. Map might not render correctly.");
-        // You might want to retry or wait for dimensions to be set
+      
+      try {
+        const initialMap = new window.google.maps.Map(mapRef.current, {
+          center: { lat: 20, lng: 0 },
+          zoom: 2,
+          styles: modernMapStyle,
+          mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: google.maps.ControlPosition.TOP_RIGHT,
+          },
+          streetViewControl: false,
+          fullscreenControl: true,
+        });
+        setMap(initialMap);
+        console.log("Travel Page: Map initialized:", initialMap);
+      } catch (error) {
+        console.error("Travel Page: Error initializing map:", error);
+        setMapsApiError("Error initializing the map.");
+      } finally {
+        setIsMapInitializing(false);
       }
-
-      const initialMap = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 20, lng: 0 }, // Default center
-        zoom: 2,
-        styles: modernMapStyle, // Apply modern style
-        mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID, // Optional: For cloud-based styling
-        zoomControl: true,
-        mapTypeControl: true,
-        mapTypeControlOptions: {
-          style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-          position: google.maps.ControlPosition.TOP_RIGHT,
-        },
-        streetViewControl: false,
-        fullscreenControl: true,
-      });
-      setMap(initialMap);
-      setIsMapInitializing(false);
-      console.log("Map initialized:", initialMap);
     }
   }, [isMapsScriptLoaded, map, apiKey]);
 
 
+  const handleSelectDestination = useCallback((dest: typeof popularDestinations[0]) => {
+    setSelectedDestination(dest);
+    setIsDialogOpen(true);
+    if (map) {
+      const targetLatLng = { lat: dest.lat, lng: dest.lng };
+      const currentZoom = map.getZoom() || 2;
+      const targetZoom = 8; // Zoom level for viewing a city
+
+      // Smooth pan and zoom sequence
+      if (Math.abs(currentZoom - targetZoom) > 2 || 
+          google.maps.geometry.spherical.computeDistanceBetween(map.getCenter()!, new google.maps.LatLng(targetLatLng)) > 1000000 // If very far
+         ) {
+         map.setZoom(Math.min(currentZoom, 4)); // Quickly zoom out if far or zoom levels are very different
+      }
+      
+      map.panTo(targetLatLng);
+
+      // Listen for idle event to ensure pan is mostly complete before zooming
+      const listener = google.maps.event.addListenerOnce(map, 'idle', () => {
+          map.setZoom(targetZoom);
+      });
+      // Fallback in case idle doesn't fire quickly (e.g., map already centered)
+      setTimeout(() => {
+        if (map.getZoom() !== targetZoom) {
+            map.setZoom(targetZoom);
+        }
+        google.maps.event.removeListener(listener);
+      }, 800); // Adjust delay as needed
+    }
+  }, [map]);
+
   useEffect(() => {
-    if (map && popularDestinations.length > 0) {
-      // Clear existing markers before adding new ones
-      markers.forEach(marker => marker.setMap(null));
-      const newMarkers: google.maps.Marker[] = [];
+    if (map && popularDestinations.length > 0 && window.google && window.google.maps && window.google.maps.OverlayView) {
+      markers.forEach(marker => marker.setMap(null)); // Clear existing custom overlays
+      const newMarkers: CustomMarkerOverlay[] = [];
 
       popularDestinations.forEach(dest => {
-        const marker = new window.google.maps.Marker({
-          position: { lat: dest.lat, lng: dest.lng },
-          map: map,
-          title: dest.name,
-           // icon: { // Example for custom marker (optional)
-          //   url: '/path/to/custom-marker.svg', // Replace with your SVG or image
-          //   scaledSize: new window.google.maps.Size(30, 30),
-          // },
-        });
-        marker.addListener('click', () => {
-          setSelectedDestination(dest);
-          setIsDialogOpen(true);
-          map.panTo(marker.getPosition() as google.maps.LatLng);
-          map.setZoom(Math.max(map.getZoom() || 8, 8)); // Zoom in a bit if not already
+        const marker = new CustomMarkerOverlay({
+            latlng: { lat: dest.lat, lng: dest.lng },
+            map: map,
+            destination: dest,
+            onClick: () => handleSelectDestination(dest)
         });
         newMarkers.push(marker);
       });
       setMarkers(newMarkers);
 
-      // Fit map to markers if there are destinations
       if (newMarkers.length > 0) {
         const bounds = new window.google.maps.LatLngBounds();
         popularDestinations.forEach(dest => {
           bounds.extend(new window.google.maps.LatLng(dest.lat, dest.lng));
         });
         map.fitBounds(bounds);
-        // Adjust zoom after fitBounds if it's too zoomed in for a single marker
         if (newMarkers.length === 1) {
             map.setZoom(6);
-        } else if (newMarkers.length > 1) {
+        } else {
              const currentZoom = map.getZoom() || 2;
-             if (currentZoom > 5) map.setZoom(currentZoom -1); // Prevent over-zooming
+             if (currentZoom > 5) map.setZoom(Math.max(2, currentZoom -1)); 
         }
-
       }
     }
-     // Cleanup markers when component unmounts or map changes
     return () => {
         markers.forEach(marker => marker.setMap(null));
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, popularDestinations]); // Re-run if map or popularDestinations changes
-
+  }, [map, popularDestinations, handleSelectDestination]); // handleSelectDestination is stable due to useCallback
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -333,15 +351,10 @@ export default function TravelPage() {
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6">Popular Destinations</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {popularDestinations.map((dest) => (
-              <Card key={dest.name} className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 cursor-pointer")}
-                onClick={() => {
-                  setSelectedDestination(dest);
-                  setIsDialogOpen(true);
-                  if(map) {
-                    map.panTo({lat: dest.lat, lng: dest.lng});
-                    map.setZoom(Math.max(map.getZoom() || 8, 8));
-                  }
-                }}
+              <Card 
+                key={dest.name} 
+                className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 cursor-pointer")}
+                onClick={() => handleSelectDestination(dest)}
               >
                 <div className="relative w-full aspect-[16/10]">
                   <Image
@@ -412,7 +425,6 @@ export default function TravelPage() {
                     <p className="text-sm text-muted-foreground leading-relaxed">
                         {selectedDestination.description}
                     </p>
-                     {/* Add more details here as needed, e.g., links to plan trip, things to do */}
                     <Button asChild size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 mt-4">
                         <Link href={`/planner?destination=${encodeURIComponent(selectedDestination.name)}`}>
                             <Plane className="mr-2 h-5 w-5" />
