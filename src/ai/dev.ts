@@ -25,5 +25,5 @@ import '@/ai/flows/what-if-simulator-flow.ts';
 import '@/ai/flows/smart-map-concept-flow.ts';
 import '@/ai/flows/authenticity-verifier-flow.ts';
 import '@/ai/flows/serendipity-engine-flow.ts';
-import '@/ai/flows/popular-destinations-flow.ts'; // Added new flow
-
+import '@/ai/flows/popular-destinations-flow.ts';
+import '@/ai/flows/generate-feature-image-flow.ts'; // Added new flow for feature images
