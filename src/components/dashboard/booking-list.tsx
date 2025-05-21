@@ -3,7 +3,7 @@
 
 import { BookingCard } from "./booking-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ListChecksIcon, Loader2Icon } from "lucide-react";
+import { ListChecks, Loader2 } from "lucide-react"; // Corrected
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useRemoveSavedTrip } from "@/lib/firestoreHooks";
@@ -36,7 +36,7 @@ export function BookingList() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10 text-muted-foreground">
-        <Loader2Icon className="w-12 h-12 animate-spin mb-4" />
+        <Loader2 className="w-12 h-12 animate-spin mb-4" />
         <h3 className="text-xl font-semibold">Loading Your Saved Trips...</h3>
       </div>
     );
@@ -45,7 +45,7 @@ export function BookingList() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10 text-destructive">
-        <ListChecksIcon className="w-16 h-16 mb-4" />
+        <ListChecks className="w-16 h-16 mb-4" />
         <h3 className="text-xl font-semibold">Error Loading Trips</h3>
         <p>{error.message}</p>
       </div>
@@ -55,7 +55,7 @@ export function BookingList() {
   if (!currentUser) {
      return (
       <div className="flex flex-col items-center justify-center text-center py-10 text-muted-foreground">
-        <ListChecksIcon className="w-16 h-16 mb-4" />
+        <ListChecks className="w-16 h-16 mb-4" />
         <h3 className="text-xl font-semibold">Please Log In</h3>
         <p>Log in to see your saved trips.</p>
       </div>
@@ -65,7 +65,7 @@ export function BookingList() {
   if (!savedTrips || savedTrips.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10 text-muted-foreground">
-        <ListChecksIcon className="w-16 h-16 mb-4" />
+        <ListChecks className="w-16 h-16 mb-4" />
         <h3 className="text-xl font-semibold">No Saved Trips Yet</h3>
         <p>Plan a trip and save your favorite itineraries here!</p>
       </div>
@@ -87,3 +87,4 @@ export function BookingList() {
     </ScrollArea>
   );
 }
+
