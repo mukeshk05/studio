@@ -8,6 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { z } from 'genkit'; // Added missing Zod import
 import {
   MoodEnergyOptimizerInputSchema,
   type MoodEnergyOptimizerInput,
