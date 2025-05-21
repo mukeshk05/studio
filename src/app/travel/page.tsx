@@ -5,13 +5,19 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AppLogo } from '@/components/layout/app-logo';
 import { cn } from '@/lib/utils';
-import { Search, Plane, Hotel, Compass, Briefcase, Camera, MapPin as MapPinIconLucide, ImageOff, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, Plane, Hotel, Compass, Briefcase, Camera, MapPin as MapPinIconLucide, ImageOff, Loader2, AlertTriangle, Sparkles, Building, Route, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { X } from "lucide-react";
+import { getPopularDestinations } from '@/ai/flows/popular-destinations-flow';
+import type { PopularDestinationsOutput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+
 
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-xl";
@@ -23,7 +29,8 @@ const exploreCategories = [
   { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/travel#" },
 ];
 
-const popularDestinations = [
+// Static popular destinations for the map markers (AI suggestions will be separate)
+const staticPopularDestinations = [
   { name: "Paris", country: "France", imageSrc: "https://placehold.co/600x400.png", dataAiHint: "paris eiffel tower", description: "Iconic landmarks, art, and romance.", lat: 48.8566, lng: 2.3522 },
   { name: "Rome", country: "Italy", imageSrc: "https://placehold.co/600x400.png", dataAiHint: "rome colosseum", description: "Ancient history and delicious cuisine.", lat: 41.9028, lng: 12.4964 },
   { name: "Tokyo", country: "Japan", imageSrc: "https://placehold.co/600x400.png", dataAiHint: "tokyo cityscape modern", description: "Futuristic cityscapes and rich traditions.", lat: 35.6895, lng: 139.6917 },
@@ -54,96 +61,80 @@ const modernMapStyle = [
 interface CustomMarkerOverlayProps {
     latlng: google.maps.LatLngLiteral;
     map: google.maps.Map;
-    destination: typeof popularDestinations[0];
+    destination: typeof staticPopularDestinations[0];
     onClick: () => void;
   }
+
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+}
 
 export default function TravelPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const markersRef = useRef<any[]>([]); // Use any for OverlayView if CustomMarkerOverlay not defined yet
+  const markersRef = useRef<any[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
-  const [selectedDestination, setSelectedDestination] = useState<(typeof popularDestinations)[0] | null>(null);
+  const [selectedMapDestination, setSelectedMapDestination] = useState<(typeof staticPopularDestinations)[0] | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
   const [isMapInitializing, setIsMapInitializing] = useState(false);
 
+  const [aiDestinations, setAiDestinations] = useState<AiDestinationSuggestion[]>([]);
+  const [isFetchingAiDestinations, setIsFetchingAiDestinations] = useState(false);
+  const [aiDestinationsError, setAiDestinationsError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [geolocationError, setGeolocationError] = useState<string | null>(null);
+  const [aiContextualNote, setAiContextualNote] = useState<string | null>(null);
+  const { toast } = useToast();
+
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const initGoogleMapsApi = useCallback(() => {
-    console.log("Travel Page: Google Maps API script has loaded, window.google:", window.google);
     setIsMapsScriptLoaded(true);
   }, []);
 
-
   useEffect(() => {
     if (!apiKey) {
-      console.error("Travel Page: Google Maps API key is missing.");
       setMapsApiError("Google Maps API key is missing. Map functionality is disabled.");
       return;
     }
-
     if (window.google && window.google.maps) {
-      console.log("Travel Page: Google Maps API already loaded.");
       if (!isMapsScriptLoaded) setIsMapsScriptLoaded(true);
       return;
     }
-    
     const scriptId = 'google-maps-travel-page-script';
-    if (document.getElementById(scriptId)) {
-      console.log("Travel Page: Google Maps script tag already present.");
-      return;
-    }
+    if (document.getElementById(scriptId)) return;
     
-    console.log("Travel Page: Loading Google Maps API script...");
     const script = document.createElement('script');
     script.id = scriptId;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiTravelPage&libraries=geometry,marker`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
-      console.error("Travel Page: Failed to load Google Maps API script.");
       setMapsApiError("Failed to load Google Maps. Please check API key and network.");
       setIsMapsScriptLoaded(false); 
     };
     (window as any).initGoogleMapsApiTravelPage = initGoogleMapsApi;
     document.head.appendChild(script);
-
-    return () => {
-      delete (window as any).initGoogleMapsApiTravelPage;
-    };
+    return () => { delete (window as any).initGoogleMapsApiTravelPage; };
   }, [apiKey, initGoogleMapsApi, isMapsScriptLoaded]);
-
 
   useEffect(() => {
     if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing) {
-      console.log("Travel Page: Maps API script loaded, attempting to initialize map...");
       setIsMapInitializing(true);
-      if (!mapRef.current) {
-        console.error("Travel Page: Map container ref is not available at initialization.");
-        setIsMapInitializing(false);
-        return;
-      }
-      
       try {
         const initialMap = new window.google.maps.Map(mapRef.current, {
           center: { lat: 20, lng: 0 },
           zoom: 2,
           styles: modernMapStyle,
           mapTypeControl: true,
-          mapTypeControlOptions: {
-            style: window.google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-            position: window.google.maps.ControlPosition.TOP_RIGHT,
-          },
-          streetViewControl: false,
-          fullscreenControl: true,
-          zoomControl: true,
+          mapTypeControlOptions: { style: window.google.maps.MapTypeControlStyle.HORIZONTAL_BAR, position: window.google.maps.ControlPosition.TOP_RIGHT },
+          streetViewControl: false, fullscreenControl: true, zoomControl: true,
         });
         setMap(initialMap);
-        console.log("Travel Page: Map initialized successfully:", initialMap);
       } catch (error) {
-        console.error("Travel Page: Error initializing map:", error);
         setMapsApiError("Error initializing the map.");
       } finally {
         setIsMapInitializing(false);
@@ -151,32 +142,19 @@ export default function TravelPage() {
     }
   }, [isMapsScriptLoaded, map, apiKey, isMapInitializing]);
 
-
-  const handleSelectDestination = useCallback((dest: typeof popularDestinations[0]) => {
-    setSelectedDestination(dest);
+  const handleSelectMapDestination = useCallback((dest: typeof staticPopularDestinations[0]) => {
+    setSelectedMapDestination(dest);
     setIsDialogOpen(true);
     if (map && window.google && window.google.maps) {
       const targetLatLng = { lat: dest.lat, lng: dest.lng };
       const currentZoom = map.getZoom() || 2;
       const targetZoom = 8; 
-
-      if (Math.abs(currentZoom - targetZoom) > 2 || 
-          (map.getCenter() && window.google.maps.geometry && window.google.maps.geometry.spherical.computeDistanceBetween(map.getCenter()!, new window.google.maps.LatLng(targetLatLng)) > 1000000)
-         ) {
+      if (Math.abs(currentZoom - targetZoom) > 2 || (map.getCenter() && window.google.maps.geometry && window.google.maps.geometry.spherical.computeDistanceBetween(map.getCenter()!, new window.google.maps.LatLng(targetLatLng)) > 1000000)) {
          map.setZoom(Math.min(currentZoom, 4)); 
       }
-      
       map.panTo(targetLatLng);
-
-      const listener = window.google.maps.event.addListenerOnce(map, 'idle', () => {
-          map.setZoom(targetZoom);
-      });
-      setTimeout(() => {
-        if (map.getZoom() !== targetZoom) {
-            map.setZoom(targetZoom);
-        }
-        window.google.maps.event.removeListener(listener);
-      }, 800); 
+      const listener = window.google.maps.event.addListenerOnce(map, 'idle', () => map.setZoom(targetZoom));
+      setTimeout(() => { if (map.getZoom() !== targetZoom) map.setZoom(targetZoom); window.google.maps.event.removeListener(listener); }, 800); 
     }
   }, [map]);
 
@@ -187,109 +165,111 @@ export default function TravelPage() {
       return; 
     }
 
-    // Define CustomMarkerOverlay class INSIDE this useEffect, after google.maps.OverlayView is confirmed
     class CustomMarkerOverlay extends window.google.maps.OverlayView {
         private latlng: google.maps.LatLng;
         private div: HTMLDivElement | null = null;
-        private destination: typeof popularDestinations[0];
+        private destination: typeof staticPopularDestinations[0];
         private onClick: () => void;
-
         constructor(props: CustomMarkerOverlayProps) {
-            super();
-            this.latlng = new window.google.maps.LatLng(props.latlng.lat, props.latlng.lng);
-            this.destination = props.destination;
-            this.onClick = props.onClick;
-            this.setMap(props.map);
+            super(); this.latlng = new window.google.maps.LatLng(props.latlng.lat, props.latlng.lng);
+            this.destination = props.destination; this.onClick = props.onClick; this.setMap(props.map);
         }
-
         onAdd() {
-            this.div = document.createElement('div');
-            this.div.className = 'custom-map-marker';
-            this.div.title = this.destination.name;
-            
-            const pulse = document.createElement('div');
-            pulse.className = 'custom-map-marker-pulse';
-            this.div.appendChild(pulse);
-
+            this.div = document.createElement('div'); this.div.className = 'custom-map-marker'; this.div.title = this.destination.name;
+            const pulse = document.createElement('div'); pulse.className = 'custom-map-marker-pulse'; this.div.appendChild(pulse);
             this.div.addEventListener('click', this.onClick);
-
             const panes = this.getPanes();
-            if (panes && panes.overlayMouseTarget) { // Check overlayMouseTarget
-                panes.overlayMouseTarget.appendChild(this.div);
-            } else {
-                console.warn("CustomMarkerOverlay: overlayMouseTarget pane is not available.");
-                // Fallback or alternative pane if needed, though overlayMouseTarget is standard
-            }
+            if (panes && panes.overlayMouseTarget) panes.overlayMouseTarget.appendChild(this.div);
         }
-
         draw() {
-            const projection = this.getProjection();
-            if (!projection || !this.div) {
-            return;
-            }
+            const projection = this.getProjection(); if (!projection || !this.div) return;
             const point = projection.fromLatLngToDivPixel(this.latlng);
-            if (point) {
-            this.div.style.left = point.x + 'px';
-            this.div.style.top = point.y + 'px';
-            }
+            if (point) { this.div.style.left = point.x + 'px'; this.div.style.top = point.y + 'px'; }
         }
-
-        onRemove() {
-            if (this.div) {
-            this.div.removeEventListener('click', this.onClick);
-            if (this.div.parentNode) {
-                this.div.parentNode.removeChild(this.div);
-            }
-            this.div = null;
-            }
-        }
-        
-        getPosition() {
-            return this.latlng;
-        }
+        onRemove() { if (this.div) { this.div.removeEventListener('click', this.onClick); if (this.div.parentNode) this.div.parentNode.removeChild(this.div); this.div = null; } }
+        getPosition() { return this.latlng; }
     }
 
-
-    // Clear existing custom overlays
     markersRef.current.forEach(marker => marker.setMap(null)); 
-    const newMarkers: any[] = []; // Use any[] to store OverlayView instances
-
-    popularDestinations.forEach(dest => {
-      const marker = new CustomMarkerOverlay({ // Instantiate the locally defined class
-          latlng: { lat: dest.lat, lng: dest.lng },
-          map: map,
-          destination: dest,
-          onClick: () => handleSelectDestination(dest)
-      });
+    const newMarkers: any[] = [];
+    staticPopularDestinations.forEach(dest => {
+      const marker = new CustomMarkerOverlay({ latlng: { lat: dest.lat, lng: dest.lng }, map: map, destination: dest, onClick: () => handleSelectMapDestination(dest) });
       newMarkers.push(marker);
     });
     markersRef.current = newMarkers;
 
     if (newMarkers.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
-      popularDestinations.forEach(dest => {
-        bounds.extend(new window.google.maps.LatLng(dest.lat, dest.lng));
-      });
+      staticPopularDestinations.forEach(dest => bounds.extend(new window.google.maps.LatLng(dest.lat, dest.lng)));
       map.fitBounds(bounds);
-      if (newMarkers.length === 1) {
-          map.setZoom(6);
-      } else {
-           const currentZoom = map.getZoom() || 2;
-           if (currentZoom > 5) map.setZoom(Math.max(2, currentZoom -1)); 
-      }
+      if (newMarkers.length === 1) map.setZoom(6);
+      else { const currentZoom = map.getZoom() || 2; if (currentZoom > 5) map.setZoom(Math.max(2, currentZoom -1)); }
     }
-    
-    // Cleanup function for the useEffect
-    return () => {
-        markersRef.current.forEach(marker => marker.setMap(null));
-        markersRef.current = [];
-    };
-  }, [map, isMapsScriptLoaded, popularDestinations, handleSelectDestination]);
+    return () => { markersRef.current.forEach(marker => marker.setMap(null)); markersRef.current = []; };
+  }, [map, isMapsScriptLoaded, handleSelectMapDestination]);
+
+  const handleFetchAiDestinations = () => {
+    setIsFetchingAiDestinations(true);
+    setAiDestinationsError(null);
+    setGeolocationError(null);
+    setAiContextualNote(null);
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ latitude, longitude });
+          try {
+            const result = await getPopularDestinations({ userLatitude: latitude, userLongitude: longitude });
+            setAiDestinations(result.destinations);
+            setAiContextualNote(result.contextualNote || "AI-powered suggestions based on your area.");
+          } catch (error) {
+            console.error("Error fetching AI destinations with location:", error);
+            setAiDestinationsError("Could not fetch location-based suggestions. Showing general ideas.");
+            // Fallback to general suggestions
+            fetchGeneralAiDestinations();
+          } finally {
+            setIsFetchingAiDestinations(false);
+          }
+        },
+        async (error) => {
+          console.warn(`Geolocation error: ${error.message}`);
+          setGeolocationError(`Could not get your location: ${error.message}. Showing general suggestions.`);
+          setUserLocation(null);
+          // Fallback to general suggestions if location fails
+          await fetchGeneralAiDestinations();
+          setIsFetchingAiDestinations(false);
+        },
+        { timeout: 10000 } // 10 second timeout for geolocation
+      );
+    } else {
+      setGeolocationError("Geolocation is not supported by your browser. Showing general suggestions.");
+      fetchGeneralAiDestinations().finally(() => setIsFetchingAiDestinations(false));
+    }
+  };
+
+  const fetchGeneralAiDestinations = async () => {
+    setIsFetchingAiDestinations(true); // Ensure loading state is true for this path too
+     setAiDestinationsError(null);
+    try {
+      const result = await getPopularDestinations({}); // No location data
+      setAiDestinations(result.destinations);
+      setAiContextualNote(result.contextualNote || "General popular destination ideas.");
+    } catch (error) {
+      console.error("Error fetching general AI destinations:", error);
+      setAiDestinationsError("Could not fetch general destination suggestions at this time.");
+      setAiDestinations([]); // Clear previous suggestions on error
+    } finally {
+         setIsFetchingAiDestinations(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className={cn("sticky top-0 z-40 w-full border-b border-border/30", glassPaneClasses)}>
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Header content ... (same as before) */}
+         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <AppLogo />
           <div className="relative w-full max-w-lg hidden md:block">
             <SearchInput initialSearchTerm={searchTerm} onSearch={setSearchTerm} />
@@ -307,7 +287,8 @@ export default function TravelPage() {
 
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <section className="mb-12 text-center animate-fade-in-up">
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4">
+          {/* Search section ... (same as before) */}
+           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4">
             Where to next?
           </h1>
           <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
@@ -319,7 +300,8 @@ export default function TravelPage() {
         </section>
 
         <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
-          <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-3 rounded-xl", glassCardClasses, "border-primary/10")}>
+          {/* Explore categories ... (same as before) */}
+           <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-3 rounded-xl", glassCardClasses, "border-primary/10")}>
             {exploreCategories.map((category) => (
               <Link key={category.name} href={category.href} passHref>
                 <Button
@@ -339,17 +321,15 @@ export default function TravelPage() {
         <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.3s'}}>
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6">Explore on the Map</h2>
           <Card className={cn(glassCardClasses, "h-[500px] p-2 border-primary/20")}>
-            {mapsApiError && (
+            {/* Map rendering ... (same as before) */}
+             {mapsApiError && (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-destructive/10 text-destructive-foreground p-4 rounded-md">
-                    <AlertTriangle className="w-12 h-12 mb-3"/>
-                    <p className="font-semibold text-lg">Map Error</p>
-                    <p className="text-sm text-center">{mapsApiError}</p>
+                    <AlertTriangle className="w-12 h-12 mb-3"/> <p className="font-semibold text-lg">Map Error</p> <p className="text-sm text-center">{mapsApiError}</p>
                 </div>
             )}
             {!mapsApiError && isMapInitializing && (
                  <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                    <Loader2 className="w-10 h-10 animate-spin mb-3 text-primary"/>
-                    <p className="text-sm">Initializing Modern Map...</p>
+                    <Loader2 className="w-10 h-10 animate-spin mb-3 text-primary"/> <p className="text-sm">Initializing Modern Map...</p>
                 </div>
             )}
             <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing) ? "hidden" : "")} />
@@ -357,38 +337,67 @@ export default function TravelPage() {
         </section>
 
         <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6">Popular Destinations</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {popularDestinations.map((dest) => (
-              <Card 
-                key={dest.name} 
-                className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 cursor-pointer")}
-                onClick={() => handleSelectDestination(dest)}
-              >
-                <div className="relative w-full aspect-[16/10]">
-                  <Image
-                    src={dest.imageSrc}
-                    alt={dest.name}
-                    fill
-                    className="object-cover"
-                    data-ai-hint={dest.dataAiHint}
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                </div>
-                <CardHeader className="p-4">
-                  <CardTitle className="text-lg text-card-foreground">{dest.name}</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground">{dest.country}</CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <p className="text-sm text-muted-foreground line-clamp-2">{dest.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+              AI-Powered Destination Ideas
+            </h2>
+            <Button onClick={handleFetchAiDestinations} disabled={isFetchingAiDestinations} className="glass-interactive shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30">
+              {isFetchingAiDestinations ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
+              {isFetchingAiDestinations ? "Discovering..." : "Discover AI Suggestions"}
+            </Button>
           </div>
+          {geolocationError && (
+            <Alert variant="default" className={cn("mb-4 bg-yellow-500/10 border-yellow-500/30 text-yellow-300")}>
+              <Info className="h-4 w-4 !text-yellow-400" />
+              <AlertTitle className="text-yellow-200">Location Notice</AlertTitle>
+              <AlertDescription className="text-yellow-400/80">
+                {geolocationError}
+              </AlertDescription>
+            </Alert>
+          )}
+           {aiContextualNote && !isFetchingAiDestinations && (
+            <p className="text-sm text-muted-foreground italic mb-4 text-center sm:text-left">{aiContextualNote}</p>
+          )}
+
+          {isFetchingAiDestinations && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, index) => (
+                <Card key={index} className={cn(glassCardClasses, "overflow-hidden animate-pulse")}>
+                  <div className="relative w-full aspect-[16/10] bg-muted/40"></div>
+                  <CardHeader className="p-4"><div className="h-5 w-3/4 bg-muted/40 rounded"></div><div className="h-3 w-1/2 bg-muted/40 rounded mt-1"></div></CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-1.5"><div className="h-3 w-full bg-muted/40 rounded"></div><div className="h-3 w-5/6 bg-muted/40 rounded"></div></CardContent>
+                  <CardFooter className="p-4 grid grid-cols-2 gap-2"><div className="h-8 bg-muted/40 rounded"></div><div className="h-8 bg-muted/40 rounded"></div></CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {!isFetchingAiDestinations && aiDestinationsError && (
+            <Card className={cn(glassCardClasses, "border-destructive/30")}>
+              <CardContent className="p-6 text-center text-destructive">
+                <AlertTriangle className="w-10 h-10 mx-auto mb-2" />
+                <p className="font-semibold">{aiDestinationsError}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {!isFetchingAiDestinations && aiDestinations.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {aiDestinations.map((dest, index) => (
+                <AiDestinationCard key={dest.name + index} destination={dest} />
+              ))}
+            </div>
+          )}
+           {!isFetchingAiDestinations && !aiDestinationsError && aiDestinations.length === 0 && (
+             <Card className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
+                 Click the button above to let Aura AI suggest some destinations for you!
+             </Card>
+           )}
         </section>
         
         <section className="animate-fade-in-up" style={{animationDelay: '0.6s'}}>
-            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6">More to Explore (Conceptual)</h2>
+            {/* More to Explore ... (same as before) */}
+             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6">More to Explore (Conceptual)</h2>
             <div className={cn("p-6 text-center text-muted-foreground rounded-xl", glassCardClasses, "border-primary/10")}>
                 <Camera className="w-12 h-12 mx-auto mb-3 text-primary/70"/>
                 <p>Imagine personalized suggestions appearing here based on your recent searches or saved trips! </p>
@@ -397,14 +406,15 @@ export default function TravelPage() {
         </section>
       </main>
 
-      {selectedDestination && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {selectedMapDestination && (
+        // Dialog for static map destinations ... (same as before)
+         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent className={cn("sm:max-w-lg md:max-w-xl p-0", glassCardClasses, "border-primary/30")}>
                 <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
                     <div className="flex justify-between items-center">
                          <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
                             <MapPinIconLucide className="w-5 h-5 mr-2 text-primary" />
-                            {selectedDestination.name}
+                            {selectedMapDestination.name}
                          </DialogTitle>
                         <DialogClose asChild>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
@@ -412,17 +422,17 @@ export default function TravelPage() {
                             </Button>
                         </DialogClose>
                     </div>
-                     <DialogDescription className="text-sm text-muted-foreground">{selectedDestination.country}</DialogDescription>
+                     <DialogDescription className="text-sm text-muted-foreground">{selectedMapDestination.country}</DialogDescription>
                 </DialogHeader>
                 <div className="p-4 sm:p-6 space-y-4">
                     <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg">
-                        {selectedDestination.imageSrc ? (
+                        {selectedMapDestination.imageSrc ? (
                             <Image
-                                src={selectedDestination.imageSrc}
-                                alt={`Image of ${selectedDestination.name}`}
+                                src={selectedMapDestination.imageSrc}
+                                alt={`Image of ${selectedMapDestination.name}`}
                                 fill
                                 className="object-cover"
-                                data-ai-hint={selectedDestination.dataAiHint}
+                                data-ai-hint={selectedMapDestination.dataAiHint}
                                 sizes="(max-width: 640px) 90vw, 500px"
                             />
                         ) : (
@@ -432,12 +442,12 @@ export default function TravelPage() {
                         )}
                     </div>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                        {selectedDestination.description}
+                        {selectedMapDestination.description}
                     </p>
                     <Button asChild size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 mt-4">
-                        <Link href={`/planner?destination=${encodeURIComponent(selectedDestination.name)}`}>
+                        <Link href={`/planner?destination=${encodeURIComponent(selectedMapDestination.name)}`}>
                             <Plane className="mr-2 h-5 w-5" />
-                            Plan a Trip to {selectedDestination.name}
+                            Plan a Trip to {selectedMapDestination.name}
                         </Link>
                     </Button>
                 </div>
@@ -446,7 +456,8 @@ export default function TravelPage() {
       )}
 
       <footer className={cn("py-6 border-t border-border/30 mt-auto", glassPaneClasses)}>
-        <div className="container mx-auto px-4 text-center">
+        {/* Footer content ... (same as before) */}
+         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} BudgetRoam. Explore the world your way.
           </p>
@@ -456,20 +467,73 @@ export default function TravelPage() {
   );
 }
 
+function AiDestinationCard({ destination }: { destination: AiDestinationSuggestion }) {
+  const imageHint = destination.imageUri?.startsWith('https://placehold.co') 
+    ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" ")) 
+    : undefined;
+
+  return (
+    <Card className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col")}>
+      <div className="relative w-full aspect-[16/10]">
+        {destination.imageUri ? (
+          <Image
+            src={destination.imageUri}
+            alt={destination.name}
+            fill
+            className="object-cover"
+            data-ai-hint={imageHint}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="w-full h-full bg-muted/30 flex items-center justify-center">
+            <ImageOff className="w-10 h-10 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      <CardHeader className="p-3 pb-2">
+        <CardTitle className="text-md font-semibold text-card-foreground">{destination.name}</CardTitle>
+        <CardDescription className="text-xs text-muted-foreground">{destination.country}</CardDescription>
+      </CardHeader>
+      <CardContent className="p-3 pt-0 text-xs text-muted-foreground flex-grow space-y-1.5">
+        <p className="line-clamp-3">{destination.description}</p>
+        {destination.hotelIdea && (
+          <div className="text-xs border-t border-border/20 pt-1.5 mt-1.5">
+            <p className="font-medium text-card-foreground/90 flex items-center"><Building className="w-3 h-3 mr-1.5 text-primary/70"/>Hotel Idea:</p>
+            <p className="pl-4 text-muted-foreground">{destination.hotelIdea.type} ({destination.hotelIdea.priceRange})</p>
+          </div>
+        )}
+        {destination.flightIdea && (
+          <div className="text-xs border-t border-border/20 pt-1.5 mt-1.5">
+            <p className="font-medium text-card-foreground/90 flex items-center"><Route className="w-3 h-3 mr-1.5 text-primary/70"/>Flight Idea:</p>
+            <p className="pl-4 text-muted-foreground">{destination.flightIdea.description} ({destination.flightIdea.priceRange})</p>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="p-3 pt-2">
+          <Button asChild size="sm" className="w-full glass-interactive text-primary hover:bg-primary/20 hover:text-primary-foreground">
+             <Link href={`/planner?destination=${encodeURIComponent(destination.name)}&country=${encodeURIComponent(destination.country)}`}>
+                <Sparkles className="mr-2 h-4 w-4" /> Plan Trip
+             </Link>
+          </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+
 interface SearchInputProps {
   initialSearchTerm?: string;
   onSearch?: (term: string) => void;
   placeholder?: string;
 }
 function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search destinations, hotels, flights..."}: SearchInputProps) {
-  const [term, setTerm] = useState(initialSearchTerm);
-
+  // SearchInput implementation (same as before)
+   const [term, setTerm] = useState(initialSearchTerm);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch) onSearch(term);
     console.log("Conceptual search submitted:", term);
   };
-
   return (
     <form onSubmit={handleSubmit} className="relative w-full">
       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
@@ -484,6 +548,3 @@ function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search d
     </form>
   );
 }
-
-    
-    
