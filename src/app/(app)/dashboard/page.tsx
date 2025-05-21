@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card';
+import { Button } from "@/components/ui/button';
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
@@ -26,8 +26,8 @@ import { InteractiveMapPlaceholder } from "@/components/dashboard/InteractiveMap
 import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulatorPlaceholder";
 import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder";
 import { AiCoTravelAgentPlaceholder } from "@/components/dashboard/AiCoTravelAgentPlaceholder";
-import { MoodEnergyOptimizerPlaceholder } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
-import { AiCalendarSyncCard } from "@/components/dashboard/AiCalendarSyncPlaceholder"; // Updated import
+import { MoodEnergyOptimizerCard } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder"; // Updated import
+import { AiCalendarSyncCard } from "@/components/dashboard/AiCalendarSyncPlaceholder";
 import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/HyperLocalLanguageCoachPlaceholder";
 import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTwinExplorerPlaceholder";
 import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder";
@@ -217,7 +217,7 @@ export default function DashboardPage() {
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.6s'}}>
-          <MoodEnergyOptimizerPlaceholder />
+          <MoodEnergyOptimizerCard />
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.65s'}}>
