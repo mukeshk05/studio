@@ -33,7 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from '@/lib/utils';
 import {
   Accessibility,
-  Activity, // Corrected from ActivityIcon
+  Activity,
   AlertTriangle,
   ArrowRight,
   BarChart3,
@@ -206,7 +206,7 @@ const features = [
       dataAiHint: "travel wellness planning slider"
     },
     {
-      icon: <Activity className="w-10 h-10 mb-4 text-accent" />, // Corrected from ActivityIcon
+      icon: <Activity className="w-10 h-10 mb-4 text-accent" />,
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -685,3 +685,5 @@ export default function LandingPage() {
         </div>
   );
 }
+
+    

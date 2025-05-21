@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trackPrice, type PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import React from "react";
-import { Loader2Icon, BellPlusIcon, PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, CalendarIcon, MapPinIcon } from "lucide-react";
+import { Loader2, BellPlus, Plane, Hotel, DollarSign, Tag, CalendarDays, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +30,7 @@ const formSchema = z.object({
     required_error: "You need to select an item type.",
   }),
   itemName: z.string().min(2, "Item name/hotel name must be at least 2 characters."),
-  originCity: z.string().optional(), // Added for flights
+  originCity: z.string().optional(),
   destination: z.string().optional(), 
   targetPrice: z.coerce.number().positive("Target price must be a positive number."),
   currentPrice: z.coerce.number().positive("Current price must be a positive number."),
@@ -129,7 +129,7 @@ export function PriceTrackerForm() {
     <Card className={cn("w-full mb-6", "glass-card", "border-primary/20")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <BellPlusIcon className="w-6 h-6 mr-2 text-accent" />
+          <BellPlus className="w-6 h-6 mr-2 text-accent" />
           Add Item to Price Tracker
         </CardTitle>
         <CardDescription className="text-muted-foreground">Get alerts when prices drop for your desired flights or hotels.</CardDescription>
@@ -154,8 +154,8 @@ export function PriceTrackerForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="glass-pane border-border/50">
-                      <SelectItem value="flight"><PlaneIcon className="inline-block mr-2 h-4 w-4" />Flight</SelectItem>
-                      <SelectItem value="hotel"><HotelIcon className="inline-block mr-2 h-4 w-4" />Hotel</SelectItem>
+                      <SelectItem value="flight"><Plane className="inline-block mr-2 h-4 w-4" />Flight</SelectItem>
+                      <SelectItem value="hotel"><Hotel className="inline-block mr-2 h-4 w-4" />Hotel</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -169,7 +169,7 @@ export function PriceTrackerForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center text-card-foreground/90">
-                    <TagIcon className="w-4 h-4 mr-2" />
+                    <Tag className="w-4 h-4 mr-2" />
                     {itemType === 'hotel' ? 'Hotel Name' : 'Flight Name/Route'}
                   </FormLabel>
                   <FormControl>
@@ -191,7 +191,7 @@ export function PriceTrackerForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center text-card-foreground/90">
-                      <MapPinIcon className="w-4 h-4 mr-2" />
+                      <MapPin className="w-4 h-4 mr-2" />
                       Origin City *
                     </FormLabel>
                     <FormControl>
@@ -214,7 +214,7 @@ export function PriceTrackerForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center text-card-foreground/90">
-                      <MapPinIcon className="w-4 h-4 mr-2" />
+                      <MapPin className="w-4 h-4 mr-2" />
                       {itemType === 'hotel' ? 'Hotel Location/City *' : 'Flight Destination City *'}
                     </FormLabel>
                     <FormControl>
@@ -235,7 +235,7 @@ export function PriceTrackerForm() {
               name="travelDates"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-card-foreground/90"><CalendarIcon className="w-4 h-4 mr-2" />Travel Dates (Optional)</FormLabel>
+                  <FormLabel className="flex items-center text-card-foreground/90"><CalendarDays className="w-4 h-4 mr-2" />Travel Dates (Optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Dec 10-17, Next Summer, Mid-July" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -249,7 +249,7 @@ export function PriceTrackerForm() {
                 name="targetPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-card-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Target Price (USD)</FormLabel>
+                    <FormLabel className="flex items-center text-card-foreground/90"><DollarSign className="w-4 h-4 mr-2" />Target Price (USD)</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="e.g., 300" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"/>
                     </FormControl>
@@ -262,7 +262,7 @@ export function PriceTrackerForm() {
                 name="currentPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-card-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Current Price (USD)</FormLabel>
+                    <FormLabel className="flex items-center text-card-foreground/90"><DollarSign className="w-4 h-4 mr-2" />Current Price (USD)</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="e.g., 350" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"/>
                     </FormControl>
@@ -278,9 +278,9 @@ export function PriceTrackerForm() {
               disabled={isSubmitting || !currentUser}
             >
               {isSubmitting ? (
-                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <BellPlusIcon className="mr-2 h-4 w-4" />
+                <BellPlus className="mr-2 h-4 w-4" />
               )}
               Add to Tracker
             </Button>
@@ -288,7 +288,7 @@ export function PriceTrackerForm() {
         </Form>
         {aiAlert && (
           <Alert className={cn("mt-4 bg-card/80 backdrop-blur-sm dark:bg-card/50", aiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400' )}>
-            <BellPlusIcon className={cn("h-4 w-4", aiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500')} />
+            <BellPlus className={cn("h-4 w-4", aiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500')} />
             <AlertTitle className="text-card-foreground">{aiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
             <AlertDescription className="text-muted-foreground">
               {aiAlert.alertMessage}
