@@ -282,11 +282,16 @@ Remember to compare prices and check cancellation policies before booking. Happy
       <div className={cn("p-3 border-b border-border/30 flex justify-between items-center", "glass-pane")}>
         <h2 className="text-lg font-semibold text-foreground">AI Trip Planner</h2>
         <Button
-          variant="outline"
           size="sm"
           onClick={() => setIsSearchHistoryDrawerOpen(true)}
           disabled={!currentUser || addSearchHistoryMutation.isPending || isAiProcessing}
-          className="glass-interactive"
+          className={cn(
+            "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+            "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+            "hover:from-accent hover:to-primary",
+            "focus-visible:ring-2 focus-visible:ring-primary/40", // Adjusted ring for sm size
+            "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+          )}
         >
           <History className="w-4 h-4 mr-2" />
           View Plan History
@@ -349,5 +354,3 @@ Remember to compare prices and check cancellation policies before booking. Happy
     </div>
   );
 }
-
-    
