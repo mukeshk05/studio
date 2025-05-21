@@ -8,7 +8,7 @@ import type { Itinerary } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card, CardHeader, CardTitle
 import { CompactItineraryCard } from "./CompactItineraryCard";
-import { BotIcon, UserIcon, AlertTriangleIcon, SparklesIcon, Loader2Icon, InfoIcon, SendIcon } from "lucide-react"; // Added SendIcon
+import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send } from "lucide-react"; // Corrected
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link"; // Added Link for markdown-like links
@@ -88,7 +88,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
                 "p-2 mb-3 rounded-md text-xs italic",
                 "bg-primary/10 text-primary border border-primary/20 flex items-center gap-2"
               )}>
-                <InfoIcon className="w-4 h-4 shrink-0" />
+                <Info className="w-4 h-4 shrink-0" />
                 <span>{aiOutput.personalizationNote}</span>
               </div>
             )}
@@ -104,7 +104,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
       case "error":
         return (
           <div className="flex items-center text-destructive-foreground bg-destructive/80 p-3 rounded-md">
-            <AlertTriangleIcon className="w-5 h-5 mr-2" />
+            <AlertTriangle className="w-5 h-5 mr-2" />
             <p>{message.payload as string}</p>
           </div>
         );
@@ -117,7 +117,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
       case "loading":
         return (
           <div className="flex items-center text-card-foreground">
-            <SparklesIcon className="w-5 h-5 mr-3 animate-pulse text-primary" />
+            <Sparkles className="w-5 h-5 mr-3 animate-pulse text-primary" />
             <span>BudgetRoam AI is crafting your journey...</span>
           </div>
         );
@@ -126,7 +126,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
           <Card className={cn("shadow-none border-none p-0 bg-transparent")}>
             <CardHeader className="p-0 pb-2">
               <CardTitle className="text-base flex items-center text-card-foreground">
-                <SendIcon className="w-4 h-4 mr-2 text-primary" />
+                <Send className="w-4 h-4 mr-2 text-primary" />
                 {message.title || "Booking Guidance"}
               </CardTitle>
             </CardHeader>
@@ -140,7 +140,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
     }
   };
   
-  const Icon = isUser ? UserIcon : BotIcon;
+  const Icon = isUser ? User : Bot;
 
   if (message.type === 'system') {
      return (
@@ -155,7 +155,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
         <div className={cn("flex items-start gap-3 animate-fade-in", bubbleAlignment)}>
             {!isUser && ( 
             <Avatar className="w-8 h-8 shrink-0 border-2 border-destructive">
-                <AvatarFallback className="bg-destructive text-destructive-foreground"><AlertTriangleIcon /></AvatarFallback>
+                <AvatarFallback className="bg-destructive text-destructive-foreground"><AlertTriangle /></AvatarFallback>
             </Avatar>
             )}
             <div className={cn("max-w-[75%] p-0")}>
@@ -175,8 +175,8 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
       {!isUser && (
         <Avatar className="w-8 h-8 shrink-0 border border-primary/50">
           <AvatarFallback className={cn("bg-primary/20 text-primary", message.type === 'loading' && "bg-muted/30", message.type === 'booking_guidance' && "bg-accent/20 text-accent")}>
-            {message.type === 'loading' ? <Loader2Icon className="animate-spin" /> : 
-             message.type === 'booking_guidance' ? <SendIcon /> : <BotIcon />}
+            {message.type === 'loading' ? <Loader2 className="animate-spin" /> : 
+             message.type === 'booking_guidance' ? <Send /> : <Bot />}
           </AvatarFallback>
         </Avatar>
       )}
@@ -190,7 +190,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
       </div>
       {isUser && (
         <Avatar className="w-8 h-8 shrink-0 border border-primary/50">
-           <AvatarFallback className="bg-muted/50"><UserIcon /></AvatarFallback>
+           <AvatarFallback className="bg-muted/50"><User /></AvatarFallback>
         </Avatar>
       )}
     </div>

@@ -13,7 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { SparklesIcon, Loader2Icon } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react"; // Corrected
 import React from "react";
 import { AdventureQuizInputSchema, type AdventureQuizInput } from "@/ai/types/adventure-matcher-types";
 import { cn } from "@/lib/utils";
@@ -136,9 +136,9 @@ export function AdventureQuizForm({ onSubmit, isSubmitting }: AdventureQuizFormP
           disabled={isSubmitting || form.formState.isSubmitting}
         >
           {isSubmitting || form.formState.isSubmitting ? (
-            <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           ) : (
-            <SparklesIcon className="mr-2 h-5 w-5" />
+            <Sparkles className="mr-2 h-5 w-5" />
           )}
           Find My Adventure Style
         </Button>

@@ -9,7 +9,7 @@ import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
-import { HistoryIcon, SendIcon } from "lucide-react"; 
+import { History, Send } from "lucide-react"; // Corrected
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
@@ -288,7 +288,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
           disabled={!currentUser || addSearchHistoryMutation.isPending || isAiProcessing}
           className="glass-interactive"
         >
-          <HistoryIcon className="w-4 h-4 mr-2" />
+          <History className="w-4 h-4 mr-2" />
           View Plan History
         </Button>
       </div>
@@ -309,7 +309,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
               size="lg"
               disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing || addSearchHistoryMutation.isPending}
             >
-              {isAiProcessing ? <SendIcon className="w-6 h-6 mr-2 animate-pulse" /> : <SendIcon className="w-6 h-6 mr-2" />} 
+              {isAiProcessing ? <Send className="w-6 h-6 mr-2 animate-pulse" /> : <Send className="w-6 h-6 mr-2" />} 
               {isAiProcessing ? "AI is responding..." : "Compose Trip Request"}
             </Button>
         </div>

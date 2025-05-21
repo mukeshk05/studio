@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, EyeIcon, LandmarkIcon, ImageOffIcon } from "lucide-react";
+import { CalendarDays, DollarSign, Eye, Landmark, ImageOff } from "lucide-react"; // Corrected
 import { cn } from "@/lib/utils";
 
 type CompactItineraryCardProps = {
@@ -38,17 +38,17 @@ export function CompactItineraryCard({ itinerary, onViewDetails }: CompactItiner
         )}
         {!itinerary.destinationImageUri && (
             <div className="w-24 h-36 sm:w-32 bg-muted/50 flex items-center justify-center shrink-0">
-                <ImageOffIcon className="w-8 h-8 text-muted-foreground" />
+                <ImageOff className="w-8 h-8 text-muted-foreground" />
             </div>
         )}
         <div className="flex flex-col flex-grow p-3">
           <CardHeader className="p-0 pb-1">
             <CardTitle className="text-base flex items-center text-card-foreground">
-              <LandmarkIcon className="w-4 h-4 mr-1.5 text-primary shrink-0" />
+              <Landmark className="w-4 h-4 mr-1.5 text-primary shrink-0" />
               {itinerary.destination}
             </CardTitle>
             <CardDescription className="text-xs flex items-center text-muted-foreground">
-              <CalendarDaysIcon className="w-3 h-3 mr-1 shrink-0" />
+              <CalendarDays className="w-3 h-3 mr-1 shrink-0" />
               {itinerary.travelDates}
             </CardDescription>
           </CardHeader>
@@ -57,11 +57,11 @@ export function CompactItineraryCard({ itinerary, onViewDetails }: CompactItiner
           </CardContent>
           <CardFooter className="p-0 flex justify-between items-center">
             <Badge variant="secondary" className="py-0.5 px-2 text-xs bg-primary/20 text-primary border-primary/30">
-              <DollarSignIcon className="w-3 h-3 mr-1" />
+              <DollarSign className="w-3 h-3 mr-1" />
               {itinerary.estimatedCost.toLocaleString()}
             </Badge>
             <Button onClick={onViewDetails} size="sm" variant="outline" className="text-xs h-7 px-2.5 border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
-              <EyeIcon className="w-3.5 h-3.5 mr-1" />
+              <Eye className="w-3.5 h-3.5 mr-1" />
               Details
             </Button>
           </CardFooter>

@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { AITripPlannerInput as AITripPlannerInputTypeFromFlow, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import React, { useEffect } from "react";
-import { Loader2Icon, MapPinIcon, CalendarDaysIcon, DollarSignIcon, SparklesIcon, LightbulbIcon, AlertTriangleIcon, CloudSunIcon } from "lucide-react";
+import { Loader2, MapPin, CalendarDays, DollarSign, Sparkles, Lightbulb, AlertTriangle, CloudSun } from "lucide-react"; // Corrected
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -141,7 +141,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="destination"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><MapPinIcon className="w-4 h-4 mr-2" />Destination</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><MapPin className="w-4 h-4 mr-2" />Destination</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -154,7 +154,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="travelDates"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><CalendarDaysIcon className="w-4 h-4 mr-2" />Travel Dates</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><CalendarDays className="w-4 h-4 mr-2" />Travel Dates</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -167,7 +167,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="budget"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><DollarSignIcon className="w-4 h-4 mr-2" />Budget (USD)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><DollarSign className="w-4 h-4 mr-2" />Budget (USD)</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="e.g., 1500" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -180,7 +180,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="desiredMood"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><LightbulbIcon className="w-4 h-4 mr-2" />Desired Mood/Vibe/Sensory Palette (Optional)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><Lightbulb className="w-4 h-4 mr-2" />Desired Mood/Vibe/Sensory Palette (Optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Relaxing, Adventurous, Vibrant street food, Quiet nature" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -193,7 +193,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="riskContext"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><AlertTriangleIcon className="w-4 h-4 mr-2" />Specific Concerns or Preferences (e.g., visa, accessibility)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><AlertTriangle className="w-4 h-4 mr-2" />Specific Concerns or Preferences (e.g., visa, accessibility)</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Visa questions, prefer sunny weather, mobility/accessibility needs" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -206,7 +206,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               name="weatherContext"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><CloudSunIcon className="w-4 h-4 mr-2" />Specific Weather Context (Optional)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><CloudSun className="w-4 h-4 mr-2" />Specific Weather Context (Optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., 'Expecting lots of sun', 'Might be rainy season'" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -216,9 +216,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
             />
             <Button type="submit" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (
-                <Loader2Icon className="mr-2 h-5 w-5 animate-spin" />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
-                <SparklesIcon className="mr-2 h-5 w-5" />
+                <Sparkles className="mr-2 h-5 w-5" />
               )}
               {initialValues ? "Update Plan" : "Get AI Trip Plan"}
             </Button>
@@ -226,7 +226,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
         </Form>
         <div className="mt-2 pt-4 border-t border-border/30">
           <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-            <LightbulbIcon className="w-4 h-4 mr-2 text-yellow-400"/>
+            <Lightbulb className="w-4 h-4 mr-2 text-yellow-400"/>
             Need inspiration? Try prompts like:
           </h3>
           <div className="space-y-2">

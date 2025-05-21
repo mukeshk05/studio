@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XIcon, MapPinIcon, SendIcon, BookmarkIcon, Loader2Icon, ScanEyeIcon } from "lucide-react";
+import { X, MapPin, Send, Bookmark, Loader2, ScanEye } from "lucide-react"; // Corrected
 import { cn } from "@/lib/utils";
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -90,7 +90,7 @@ export function ItineraryDetailSheet({
               </div>
               <SheetClose asChild>
                 <Button variant="ghost" size="icon" className="ml-2 text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
-                  <XIcon className="h-5 w-5" />
+                  <X className="h-5 w-5" />
                 </Button>
               </SheetClose>
             </div>
@@ -107,7 +107,7 @@ export function ItineraryDetailSheet({
 
               <div className={cn("mt-6 p-4", glassCardClasses)}>
                 <h3 className="text-lg font-semibold mb-3 flex items-center text-card-foreground">
-                  <MapPinIcon className="w-5 h-5 mr-2 text-primary" />
+                  <MapPin className="w-5 h-5 mr-2 text-primary" />
                   Location & Hotels Map
                 </h3>
                 {mapsApiKey ? (
@@ -143,7 +143,7 @@ export function ItineraryDetailSheet({
                 )}
                 variant={isTripSaved ? "secondary" : "outline"}
               >
-                {isSaving ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <BookmarkIcon className="mr-2 h-4 w-4" />}
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
                 {isSaving ? "Saving..." : isTripSaved ? "Saved" : "Save Trip"}
               </Button>
               <Button
@@ -152,7 +152,7 @@ export function ItineraryDetailSheet({
                 className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
                 variant="default"
               >
-                <SendIcon className="mr-2 h-4 w-4" />
+                <Send className="mr-2 h-4 w-4" />
                 Start Booking
               </Button>
               <Button
@@ -161,7 +161,7 @@ export function ItineraryDetailSheet({
                 size="lg"
                 className="w-full text-lg py-3 glass-interactive"
               >
-                <ScanEyeIcon className="mr-2 h-4 w-4" />
+                <ScanEye className="mr-2 h-4 w-4" />
                 AR/VR Preview
               </Button>
           </div>
@@ -172,7 +172,7 @@ export function ItineraryDetailSheet({
           <AlertDialogContent className={cn(glassCardClasses, "sm:max-w-lg")}>
               <AlertDialogHeader>
                   <AlertDialogTitle className="flex items-center text-card-foreground">
-                      <ScanEyeIcon className="w-5 h-5 mr-2 text-purple-400"/>Immersive AR/VR Preview
+                      <ScanEye className="w-5 h-5 mr-2 text-purple-400"/>Immersive AR/VR Preview
                   </AlertDialogTitle>
                   <AlertDialogDescription className="text-muted-foreground">
                       Get a glimpse of {itinerary.destination}!

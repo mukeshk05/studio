@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { AdventureQuizForm } from "@/components/quiz/AdventureQuizForm";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BrainIcon, Loader2Icon, SparklesIcon, ExternalLinkIcon, InfoIcon } from "lucide-react";
+import { Brain, Loader2, Sparkles, ExternalLink, Info } from "lucide-react"; // Corrected
 import { cn } from "@/lib/utils";
 import { matchAdventure } from "@/ai/flows/adventure-matcher-flow";
 import type { AdventureQuizInput, AdventureMatcherOutput, AdventureSuggestion } from "@/ai/types/adventure-matcher-types";
@@ -78,7 +78,7 @@ export default function AdventureQuizPage() {
       <Card className={cn("w-full max-w-2xl mx-auto", glassCardClasses)}>
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold tracking-tight text-foreground flex items-center justify-center">
-            <BrainIcon className="w-8 h-8 mr-3 text-primary" />
+            <Brain className="w-8 h-8 mr-3 text-primary" />
             Discover Your Travel Persona
           </CardTitle>
           <CardDescription className="text-muted-foreground mt-2">
@@ -92,7 +92,7 @@ export default function AdventureQuizPage() {
 
           {isLoading && (
             <div className="text-center py-10 text-muted-foreground">
-              <Loader2Icon className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+              <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
               <p className="text-lg">Our AI is discovering your travel style...</p>
               <p className="text-sm">This might take a moment.</p>
             </div>
@@ -101,14 +101,14 @@ export default function AdventureQuizPage() {
           {aiSuggestions && !isLoading && (
             <div className="space-y-6 mt-8">
               <h2 className="text-2xl font-semibold text-center text-foreground mb-4 flex items-center justify-center">
-                <SparklesIcon className="w-7 h-7 mr-2 text-accent" />
+                <Sparkles className="w-7 h-7 mr-2 text-accent" />
                 Your Adventure Matches!
               </h2>
               {aiSuggestions.map((suggestion, index) => (
                 <Card key={index} className={cn(glassCardClasses, "border-accent/30 animate-fade-in-up")} style={{animationDelay: `${index * 100}ms`}}>
                   <CardHeader>
                     <CardTitle className="text-xl text-accent flex items-center">
-                       <SparklesIcon className="w-5 h-5 mr-2"/>
+                       <Sparkles className="w-5 h-5 mr-2"/>
                       {suggestion.name}
                     </CardTitle>
                   </CardHeader>
@@ -118,7 +118,7 @@ export default function AdventureQuizPage() {
                     <div className={cn(glassCardClasses, "p-3 rounded-md border-border/40 bg-card/30 dark:bg-card/50")}>
                         <h4 className="font-semibold text-card-foreground mb-1">Why this fits you:</h4>
                         <p className="text-xs text-muted-foreground italic flex items-start">
-                            <InfoIcon className="w-3 h-3 mr-1.5 mt-0.5 shrink-0 text-primary" />
+                            <Info className="w-3 h-3 mr-1.5 mt-0.5 shrink-0 text-primary" />
                             {suggestion.matchReasoning}
                         </p>
                     </div>
@@ -148,7 +148,7 @@ export default function AdventureQuizPage() {
                             className="w-full text-lg py-3 glass-interactive"
                             variant="outline"
                         >
-                          <ExternalLinkIcon className="mr-2 h-4 w-4" />
+                          <ExternalLink className="mr-2 h-4 w-4" />
                           Plan This Trip
                         </Button>
                       </div>

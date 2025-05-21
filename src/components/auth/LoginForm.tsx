@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2Icon, LogInIcon, MailIcon, KeyRoundIcon } from "lucide-react";
+import { Loader2, LogIn, Mail, KeyRound } from "lucide-react"; // Corrected
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +57,7 @@ export function LoginForm() {
     <Card className={cn("w-full max-w-md", "glass-card")}>
       <CardHeader className="text-center">
         <CardTitle className="text-2xl flex items-center justify-center text-foreground">
-          <LogInIcon className="w-7 h-7 mr-2 text-primary" /> Login to BudgetRoam
+          <LogIn className="w-7 h-7 mr-2 text-primary" /> Login to BudgetRoam
         </CardTitle>
         <CardDescription className="text-muted-foreground">Access your personalized travel plans and tools.</CardDescription>
       </CardHeader>
@@ -69,7 +69,7 @@ export function LoginForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><MailIcon className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><Mail className="w-4 h-4 mr-2 text-muted-foreground" />Email</FormLabel>
                   <FormControl>
                     <Input placeholder="you@example.com" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -82,7 +82,7 @@ export function LoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><KeyRoundIcon className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><KeyRound className="w-4 h-4 mr-2 text-muted-foreground" />Password</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -96,7 +96,7 @@ export function LoginForm() {
               className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
               disabled={loading}
             >
-              {loading ? <Loader2Icon className="animate-spin" /> : <LogInIcon />}
+              {loading ? <Loader2 className="animate-spin" /> : <LogIn />}
               Login
             </Button>
           </form>
@@ -110,7 +110,7 @@ export function LoginForm() {
             onClick={handleGoogleSignIn}
             disabled={loading}
           >
-            {loading ? <Loader2Icon className="animate-spin" /> : <GoogleIcon />}
+            {loading ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
             Sign in with Google
           </Button>
           <p className="text-center text-sm text-muted-foreground">

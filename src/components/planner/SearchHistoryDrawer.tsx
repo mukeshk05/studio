@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSearchHistory } from "@/lib/firestoreHooks";
 import type { SearchHistoryEntry, AITripPlannerInput } from "@/lib/types";
-import { HistoryIcon, Loader2Icon, PlusCircleIcon, XIcon } from "lucide-react";
+import { History, Loader2, PlusCircle, X } from "lucide-react"; // Corrected
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from "@/lib/utils";
 
@@ -51,7 +51,7 @@ export function SearchHistoryDrawer({
           <div className="flex justify-between items-center">
             <div>
               <SheetTitle className="text-foreground flex items-center">
-                <HistoryIcon className="w-5 h-5 mr-2 text-primary" />
+                <History className="w-5 h-5 mr-2 text-primary" />
                 Your Plan History
               </SheetTitle>
               <SheetDescription className="text-muted-foreground">
@@ -60,7 +60,7 @@ export function SearchHistoryDrawer({
             </div>
             <SheetClose asChild>
               <Button variant="ghost" size="icon" className="ml-2 text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
-                <XIcon className="h-5 w-5" />
+                <X className="h-5 w-5" />
               </Button>
             </SheetClose>
           </div>
@@ -73,7 +73,7 @@ export function SearchHistoryDrawer({
                 className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
                 variant="default"
             >
-                <PlusCircleIcon className="w-5 h-5 mr-2" />
+                <PlusCircle className="w-5 h-5 mr-2" />
                 Start New Trip Plan
             </Button>
         </div>
@@ -81,13 +81,13 @@ export function SearchHistoryDrawer({
         <ScrollArea className="flex-grow p-6 pt-2">
           {isLoading && (
             <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2Icon className="w-8 h-8 animate-spin mr-3" />
+              <Loader2 className="w-8 h-8 animate-spin mr-3" />
               Loading history...
             </div>
           )}
           {!isLoading && (!history || history.length === 0) && (
             <div className="text-center py-10 text-muted-foreground">
-              <HistoryIcon className="w-12 h-12 mx-auto mb-3" />
+              <History className="w-12 h-12 mx-auto mb-3" />
               <p className="font-semibold">No plan history found.</p>
               <p className="text-sm">Start planning a new trip to see your history here.</p>
             </div>
