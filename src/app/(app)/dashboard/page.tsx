@@ -24,8 +24,8 @@ import { AuthenticityVerifierPlaceholder } from "@/components/dashboard/Authenti
 import { LocalInsiderTipsCard } from "@/components/dashboard/LocalInsiderTipsCard";
 import { InteractiveMapPlaceholder } from "@/components/dashboard/InteractiveMapPlaceholder";
 import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulatorPlaceholder";
-import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder";
-import { AiCoTravelAgentCard } from "@/components/dashboard/AiCoTravelAgentPlaceholder"; // Updated import
+import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder"; // Placeholder name, but functional card
+import { AiCoTravelAgentCard } from "@/components/dashboard/AiCoTravelAgentPlaceholder"; 
 import { MoodEnergyOptimizerCard } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
 import { AiCalendarSyncCard } from "@/components/dashboard/AiCalendarSyncPlaceholder";
 import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/HyperLocalLanguageCoachPlaceholder";
