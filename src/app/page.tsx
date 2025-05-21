@@ -33,7 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from '@/lib/utils';
 import {
   Accessibility,
-  Activity,
+  Activity, // Corrected from ActivityIcon
   AlertTriangle,
   ArrowRight,
   BarChart3,
@@ -55,7 +55,7 @@ import {
   HeartPulse,
   Languages,
   LayoutGrid,
-  Layers, 
+  Layers,
   Leaf,
   ListChecks,
   ListPlus,
@@ -88,8 +88,7 @@ import {
   Volume2,
   Wand2,
   Zap,
-  ActivityIcon, // Keep ActivityIcon if it was specifically requested for a feature
-  Cube, // Corrected from CubeIcon
+  Cube,
 } from 'lucide-react';
 
 
@@ -207,7 +206,7 @@ const features = [
       dataAiHint: "travel wellness planning slider"
     },
     {
-      icon: <Activity className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <Activity className="w-10 h-10 mb-4 text-accent" />, // Corrected from ActivityIcon
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -235,7 +234,7 @@ const features = [
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <Cube className="w-10 h-10 mb-4 text-accent" />, // Corrected from CubeIcon
+      icon: <Cube className="w-10 h-10 mb-4 text-accent" />,
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -270,7 +269,7 @@ const features = [
       dataAiHint: "ai storytelling travel folklore"
     },
     {
-      icon: <Zap className="w-10 h-10 mb-4 text-primary" />, // Changed from SearchHeartIcon, Zap seems more fitting
+      icon: <Zap className="w-10 h-10 mb-4 text-primary" />,
       title: "AI Unexpected Opportunity Hunter (Future Vision)",
       description: "The AI constantly scans for last-minute, high-value, and highly personalized opportunities aligned with your \"Travel DNA\" and current itinerary context. This could be a just-released discounted ticket to a niche show matching your interests, a renowned local chef doing a one-night-only pop-up that fits your culinary profile, a sudden opening on a popular, usually booked-out small-group tour, or even an alert about a rare celestial event visible from your location. Novelty: Proactive identification and alerting of fleeting, highly personalized opportunities that align with deep user preferences, beyond generic deals.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -297,7 +296,7 @@ const features = [
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai visual search travel"
     },
-    { 
+    {
       icon: <Layers className="w-10 h-10 mb-4 text-primary" />,
       title: "AI Post-Trip Synthesizer & Trajectory Mapper",
       description: "Share photos, journals, and feedback. AI analyzes this to refine your Travel DNA and uniquely maps future 'travel trajectories'—a series of evolving experiences based on your positive past travels.",
@@ -332,7 +331,7 @@ function useStaggeredAnimation(count: number, delayIncrement: number, trigger: b
       return () => timers.forEach(clearTimeout);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trigger, count, delayIncrement]); 
+  }, [trigger, count, delayIncrement]);
 
   return visibility;
 }
@@ -350,7 +349,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250); 
+    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
     const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
     const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
 
@@ -361,9 +360,9 @@ export default function LandingPage() {
       clearTimeout(ctaTimer);
     };
   }, []);
-    
+
       const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
-        
+
   return (
         <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
           <div className="absolute inset-0 z-[-1]">
@@ -377,7 +376,7 @@ export default function LandingPage() {
             />
             <div className="absolute inset-0 bg-black/40 dark:bg-black/40"></div>
           </div>
-    
+
           <header className="sticky top-0 z-50 w-full border-b border-border/30 glass-pane">
             <div className="container mx-auto flex h-20 items-center justify-between px-4">
               <AppLogo />
@@ -391,7 +390,7 @@ export default function LandingPage() {
                 <Link href="#why-us" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
                   <Heart className="w-4 h-4" /> Why Us
                 </Link>
-    
+
                 {authLoading ? (
                   <div className="flex items-center gap-2">
                     <Skeleton className="h-8 w-20 rounded-md bg-muted/50" />
@@ -483,7 +482,7 @@ export default function LandingPage() {
               </nav>
             </div>
           </header>
-    
+
           <main className="flex-grow z-10">
             <section className="py-20 md:py-32 text-center">
               <div className="container mx-auto px-4">
@@ -521,7 +520,7 @@ export default function LandingPage() {
                 <div
                   className={cn(
                     "mt-16 relative rounded-xl shadow-2xl overflow-hidden border-2 border-primary/30 transition-all duration-1000 ease-out",
-                    "w-full", 
+                    "w-full",
                     heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
                   )}
                 >
@@ -551,7 +550,7 @@ export default function LandingPage() {
                 </div>
               </div>
             </section>
-    
+
             <section id="features" className={cn("py-16 md:py-24 transition-opacity duration-1000", featuresSectionVisible ? 'opacity-100' : 'opacity-0')}>
               <div className="container mx-auto px-4">
                 <h2 className={cn("text-3xl sm:text-4xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4 transition-all duration-700 ease-out", featuresSectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5')}>Explore Our Cutting-Edge AI Travel Features</h2>
@@ -561,7 +560,7 @@ export default function LandingPage() {
                 <Carousel
                   opts={{
                     align: "start",
-                    loop: features.length > 2, 
+                    loop: features.length > 2,
                   }}
                   className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto"
                 >
@@ -605,7 +604,7 @@ export default function LandingPage() {
                 </Carousel>
               </div>
             </section>
-    
+
             <section id="why-us" className={cn("py-16 md:py-24 transition-opacity duration-1000", whyChooseUsSectionVisible ? 'opacity-100' : 'opacity-0')}>
               <div className="container mx-auto px-4">
                 <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -643,7 +642,7 @@ export default function LandingPage() {
                 </div>
               </div>
             </section>
-    
+
             <section className={cn("py-20 md:py-28 text-center transition-opacity duration-1000", finalCtaVisible ? 'opacity-100' : 'opacity-0')}>
               <div className="container mx-auto px-4">
                 <h2 className={cn("text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-6 flex items-center justify-center transition-all duration-700 ease-out", finalCtaVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10")}>
@@ -671,7 +670,7 @@ export default function LandingPage() {
               </div>
             </section>
           </main>
-    
+
           <footer className={cn("py-8 backdrop-blur-sm border-t border-border/30 z-10", "bg-[hsl(205_80%_85%_/_0.7)] dark:bg-black/50")}>
             <div className="container mx-auto px-4 text-center">
               <div className="flex justify-center mb-2">
@@ -686,6 +685,3 @@ export default function LandingPage() {
         </div>
   );
 }
-
-
-    
