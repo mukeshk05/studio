@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader2Icon, TrendingUpIcon, BrainCircuitIcon } from 'lucide-react';
+import { ListChecksIcon, BellRingIcon, LightbulbIcon, RefreshCwIcon, Loader, TrendingUpIcon, BrainCircuitIcon } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -163,7 +163,7 @@ export default function DashboardPage() {
                 AI Travel Tip
               </CardTitle>
               <Button onClick={fetchNewTravelTip} variant="ghost" size="sm" disabled={isTipLoading} className="text-primary hover:bg-primary/10 hover:text-primary/80 glass-interactive">
-                {isTipLoading ? <Loader2Icon className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
+                {isTipLoading ? <Loader className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
                 <span className="ml-2 hidden sm:inline">New Tip</span>
               </Button>
             </div>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
           <CardContent>
             {isTipLoading && !travelTip && (
               <div className="flex items-center text-muted-foreground">
-                <Loader2Icon className="w-5 h-5 mr-2 animate-spin" />
+                <Loader className="w-5 h-5 mr-2 animate-spin" />
                 <span>Fetching inspiration...</span>
               </div>
             )}

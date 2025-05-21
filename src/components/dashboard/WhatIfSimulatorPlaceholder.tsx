@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, GitCompareArrowsIcon, ImageOffIcon, InfoIcon, MapPinIcon, LightbulbIcon } from 'lucide-react';
-import { getWhatIfAnalysis } from '@/ai/flows/what-if-simulator-flow';
+import { Loader, SparklesIcon, GitCompareArrowsIcon, ImageOffIcon, InfoIcon, MapPinIcon, LightbulbIcon } from 'lucide-react';
+import { getWhatIfAnalysis } from "@/ai/flows/what-if-simulator-flow";
 import type { WhatIfSimulatorInput, WhatIfSimulatorOutput, DestinationAnalysis } from '@/ai/types/what-if-simulator-types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -160,13 +160,13 @@ export function WhatIfSimulatorPlaceholder() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader className="animate-spin" /> : <SparklesIcon />}
           Compare Destinations with AI
         </Button>
 
         {isLoading && !analysisResult && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-orange-400" />
+            <Loader className="w-10 h-10 animate-spin mx-auto mb-3 text-orange-400" />
             <p>Aura is simulating and comparing your options...</p>
           </div>
         )}
