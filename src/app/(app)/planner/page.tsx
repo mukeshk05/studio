@@ -9,13 +9,13 @@ import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
-import { History, Send } from "lucide-react"; // Corrected
+import { History, Send } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
-import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet"; // Ensure this is imported
+import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet"; 
 
 export interface ChatMessage {
   id: string;
@@ -305,7 +305,13 @@ Remember to compare prices and check cancellation policies before booking. Happy
         <div className="max-w-3xl mx-auto">
             <Button
               onClick={handleOpenInputSheetForNewPlan}
-              className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+              className={cn(
+                "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+                "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+                "hover:from-accent hover:to-primary",
+                "focus-visible:ring-4 focus-visible:ring-primary/40",
+                "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+              )}
               size="lg"
               disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing || addSearchHistoryMutation.isPending}
             >
