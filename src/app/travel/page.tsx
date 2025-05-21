@@ -9,15 +9,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { AppLogo } from '@/components/layout/app-logo';
 import { cn } from '@/lib/utils';
-import { Search, Plane, Hotel, Compass, Briefcase, Camera, MapPin as MapPinIconLucide, ImageOff, Loader2, AlertTriangle, Sparkles, Building, Route, Info, LocateFixed } from 'lucide-react';
+import { Search, Plane, Hotel, Compass, Briefcase, Camera, MapPin as MapPinIconLucide, ImageOff, Loader2, AlertTriangle, Sparkles, Building, Route, Info, LocateFixed, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { getPopularDestinations } from '@/ai/flows/popular-destinations-flow';
 import type { PopularDestinationsOutput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
+import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription} from '@/components/ui/alert';
+import { useRouter } from 'next/navigation';
 
 
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
@@ -66,7 +68,7 @@ interface UserLocation {
 export default function TravelPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const markersRef = useRef<any[]>([]); // Can store CustomMarkerOverlay instances
+  const markersRef = useRef<any[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
   const [selectedMapDestination, setSelectedMapDestination] = useState<AiDestinationSuggestion | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -81,6 +83,7 @@ export default function TravelPage() {
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
   const [aiContextualNote, setAiContextualNote] = useState<string | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -122,11 +125,12 @@ export default function TravelPage() {
     (window as any).initGoogleMapsApiTravelPage = initGoogleMapsApi;
     document.head.appendChild(script);
     return () => { 
-        delete (window as any).initGoogleMapsApiTravelPage; 
+        if ((window as any).initGoogleMapsApiTravelPage) {
+            delete (window as any).initGoogleMapsApiTravelPage;
+        }
     };
   }, [apiKey, initGoogleMapsApi, isMapsScriptLoaded]);
 
-  // Map Initialization Effect
   useEffect(() => {
     if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing) {
       console.log("Initializing Google Map...");
@@ -152,26 +156,25 @@ export default function TravelPage() {
         }
       };
 
-      // Attempt to get user's location for initial centering
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
             setUserLocation({ latitude: userCoords.lat, longitude: userCoords.lng });
             console.log("User location fetched for initial map center:", userCoords);
-            initializeMap(userCoords, 10); // Zoom in closer if user location is available
+            initializeMap(userCoords, 10);
           },
           (error) => {
             console.warn("Could not get user location for initial map center:", error.message);
             setGeolocationError(`Could not get your location: ${error.message}. Map centered globally.`);
-            initializeMap({ lat: 20, lng: 0 }, 2); // Default global view
+            initializeMap({ lat: 20, lng: 0 }, 2);
           },
           { timeout: 8000 }
         );
       } else {
         console.warn("Geolocation is not supported by this browser for initial map center.");
         setGeolocationError("Geolocation not supported. Map centered globally.");
-        initializeMap({ lat: 20, lng: 0 }, 2); // Default global view
+        initializeMap({ lat: 20, lng: 0 }, 2);
       }
     }
   }, [isMapsScriptLoaded, map, apiKey, isMapInitializing]);
@@ -187,21 +190,20 @@ export default function TravelPage() {
       map.panTo(targetLatLng);
       
       const listener = window.google.maps.event.addListenerOnce(map, 'idle', () => {
-        console.log(`Map idle after pan, setting zoom to 12 for ${dest.name}`); // Zoom closer for selected destination
+        console.log(`Map idle after pan, setting zoom to 12 for ${dest.name}`);
         map.setZoom(12);
       });
       setTimeout(() => { 
         if (map.getZoom() !== 12) { 
             map.setZoom(12); 
         }
-        window.google.maps.event.removeListener(listener); 
+        if (listener) window.google.maps.event.removeListener(listener); 
       }, 800); 
     } else if (map) {
       console.warn(`No coordinates for ${dest.name}, cannot pan map.`);
     }
   }, [map]);
 
-  // Effect for creating/updating map markers from AI destinations
   useEffect(() => {
     if (!map || !isMapsScriptLoaded || !(window.google && window.google.maps && window.google.maps.OverlayView)) {
       markersRef.current.forEach(marker => marker.setMap(null));
@@ -212,32 +214,32 @@ export default function TravelPage() {
     class CustomMarkerOverlay extends window.google.maps.OverlayView {
         private latlng: google.maps.LatLng;
         private div: HTMLDivElement | null = null;
-        private destination: AiDestinationSuggestion;
-        private onClick: () => void;
+        private destinationData: AiDestinationSuggestion;
+        private clickHandler: () => void;
         private mapInstance: google.maps.Map;
 
         constructor(props: CustomMarkerOverlayProps) {
             super();
             this.latlng = new window.google.maps.LatLng(props.latlng.lat, props.latlng.lng);
-            this.destination = props.destination;
-            this.onClick = props.onClick;
-            this.mapInstance = props.map; // Store map instance
+            this.destinationData = props.destination;
+            this.clickHandler = props.onClick;
+            this.mapInstance = props.map;
             this.setMap(props.map);
         }
         onAdd() {
             this.div = document.createElement('div');
             this.div.className = 'custom-map-marker';
-            this.div.title = this.destination.name;
+            this.div.title = this.destinationData.name;
             const pulse = document.createElement('div');
             pulse.className = 'custom-map-marker-pulse';
             this.div.appendChild(pulse);
-            this.div.addEventListener('click', this.onClick);
+            this.div.addEventListener('click', this.clickHandler);
             const panes = this.getPanes();
             if (panes && panes.overlayMouseTarget) {
                 panes.overlayMouseTarget.appendChild(this.div);
             } else {
-                 console.warn("CustomMarkerOverlay: overlayMouseTarget pane not available for marker:", this.destination.name, ". Appending to map div as fallback.");
-                 this.mapInstance.getDiv().appendChild(this.div); // Fallback to map div
+                 console.warn("CustomMarkerOverlay: overlayMouseTarget pane not available for marker:", this.destinationData.name, ". Appending to map div as fallback.");
+                 this.mapInstance.getDiv().appendChild(this.div);
             }
         }
         draw() {
@@ -247,7 +249,7 @@ export default function TravelPage() {
         }
         onRemove() {
             if (this.div) {
-                this.div.removeEventListener('click', this.onClick);
+                this.div.removeEventListener('click', this.clickHandler);
                 if (this.div.parentNode) {
                     this.div.parentNode.removeChild(this.div);
                 }
@@ -258,9 +260,9 @@ export default function TravelPage() {
     }
 
     console.log("Updating map markers based on AI destinations...");
-    markersRef.current.forEach(marker => marker.setMap(null)); // Clear existing custom markers
+    markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
-    const newMarkers: CustomMarkerOverlay[] = []; // Ensure type is CustomMarkerOverlay
+    const newMarkers: any[] = [];
     const validAiDestinations = aiDestinations.filter(dest => dest.latitude != null && dest.longitude != null);
 
     validAiDestinations.forEach(dest => {
@@ -282,15 +284,14 @@ export default function TravelPage() {
       console.log("Map bounds fitted to AI markers.");
       
       const listenerId = google.maps.event.addListenerOnce(map, 'idle', () => {
-        if (map.getZoom()! > 15) { // Don't zoom in too much if bounds are very tight
+        if (map.getZoom()! > 15) { 
             map.setZoom(15);
         }
-        if (newMarkers.length === 1 && map.getZoom()! < 10 ) { // Zoom in more for single results
+        if (newMarkers.length === 1 && map.getZoom()! < 10 ) {
              map.setZoom(10);
         }
       });
     }
-    // No explicit else for map centering, as it's centered on user location initially or default.
 
     return () => {
         console.log("Cleaning up AI map markers.");
@@ -302,11 +303,11 @@ export default function TravelPage() {
   const handleFetchAiDestinations = async () => {
     setIsFetchingAiDestinations(true);
     setAiDestinationsError(null);
-    setGeolocationError(null); // Clear previous geo error
+    setGeolocationError(null); 
     setAiContextualNote(null);
     setAiDestinations([]);
 
-    const fetchDestinations = async (lat?: number, lon?: number) => {
+    const fetchDestinationsWithLocation = async (lat?: number, lon?: number) => {
       try {
         console.log(`Fetching AI destinations ${lat && lon ? `for location: ${lat}, ${lon}` : 'globally'}.`);
         const result = await getPopularDestinations({ userLatitude: lat, userLongitude: lon });
@@ -331,21 +332,43 @@ export default function TravelPage() {
           const { latitude, longitude } = position.coords;
           console.log(`Location fetched for AI suggestions: ${latitude}, ${longitude}`);
           setUserLocation({ latitude, longitude });
-          fetchDestinations(latitude, longitude);
+          fetchDestinationsWithLocation(latitude, longitude);
         },
         (error) => {
           console.warn(`Geolocation error for AI suggestions: ${error.message}`);
           setGeolocationError(`Could not get your location for personalized suggestions: ${error.message}. Showing general ideas.`);
           setUserLocation(null);
-          fetchDestinations(); // Fetch general suggestions
+          fetchDestinationsWithLocation(); 
         },
         { timeout: 10000 }
       );
     } else {
       console.warn("Geolocation is not supported for AI suggestions.");
       setGeolocationError("Geolocation not supported. Showing general suggestions.");
-      fetchDestinations(); // Fetch general suggestions
+      fetchDestinationsWithLocation();
     }
+  };
+
+  const parseBudget = (priceRange?: string): number => {
+    if (!priceRange) return 2000; // Default budget
+    const match = priceRange.match(/\$(\d+)/);
+    return match ? parseInt(match[1], 10) * 5 : 2000; // Multiply by 5 for a week, or default
+  };
+
+  const handleInitiatePlanningFromTravelPage = (destinationSuggestion: AiDestinationSuggestion) => {
+    const plannerInputData: AITripPlannerInput = {
+        destination: destinationSuggestion.name + (destinationSuggestion.country ? `, ${destinationSuggestion.country}` : ''),
+        travelDates: "Next month for 7 days", // Default dates
+        budget: parseBudget(destinationSuggestion.hotelIdea?.priceRange || destinationSuggestion.flightIdea?.priceRange),
+    };
+
+    localStorage.setItem('tripBundleToPlan', JSON.stringify(plannerInputData));
+    window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
+    router.push('/planner');
+    toast({
+        title: `Planning Trip to ${destinationSuggestion.name}`,
+        description: "Planner opened with destination details. Adjust dates and budget as needed.",
+    });
   };
 
 
@@ -474,7 +497,12 @@ export default function TravelPage() {
           {!isFetchingAiDestinations && aiDestinations.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {aiDestinations.map((dest, index) => (
-                <AiDestinationCard key={dest.name + index} destination={dest} onSelect={() => handleSelectDestination(dest)}/>
+                <AiDestinationCard 
+                    key={dest.name + index} 
+                    destination={dest} 
+                    onSelect={() => handleSelectDestination(dest)}
+                    onPlanTrip={() => handleInitiatePlanningFromTravelPage(dest)}
+                />
               ))}
             </div>
           )}
@@ -536,11 +564,13 @@ export default function TravelPage() {
                             <p className="pl-5 text-muted-foreground">{selectedMapDestination.flightIdea.description} ({selectedMapDestination.flightIdea.priceRange})</p>
                         </div>
                     )}
-                    <Button asChild size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 mt-4">
-                        <Link href={`/planner?destination=${encodeURIComponent(selectedMapDestination.name)}&country=${encodeURIComponent(selectedMapDestination.country || '')}`}>
-                            <Plane className="mr-2 h-5 w-5" />
-                            Plan a Trip to {selectedMapDestination.name}
-                        </Link>
+                    <Button 
+                        onClick={() => handleInitiatePlanningFromTravelPage(selectedMapDestination)}
+                        size="lg" 
+                        className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 mt-4"
+                    >
+                        <ExternalLink className="mr-2 h-5 w-5" />
+                        Plan a Trip to {selectedMapDestination.name}
                     </Button>
                 </div>
             </DialogContent>
@@ -558,7 +588,13 @@ export default function TravelPage() {
   );
 }
 
-function AiDestinationCard({ destination, onSelect }: { destination: AiDestinationSuggestion, onSelect: () => void }) {
+interface AiDestinationCardProps {
+  destination: AiDestinationSuggestion;
+  onSelect: () => void;
+  onPlanTrip: () => void; // New prop
+}
+
+function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationCardProps) {
   const imageHint = destination.imageUri?.startsWith('https://placehold.co') 
     ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" ")) 
     : undefined;
@@ -566,7 +602,8 @@ function AiDestinationCard({ destination, onSelect }: { destination: AiDestinati
   return (
     <Card 
         className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col cursor-pointer")}
-        onClick={onSelect}
+        // Keep onSelect for opening dialog if that's still a separate interaction for the card itself
+        onClick={onSelect} 
     >
       <div className="relative w-full aspect-[16/10]">
         {destination.imageUri ? (
@@ -604,10 +641,15 @@ function AiDestinationCard({ destination, onSelect }: { destination: AiDestinati
         )}
       </CardContent>
       <CardFooter className="p-3 pt-2">
-          <Button asChild size="sm" className="w-full glass-interactive text-primary hover:bg-primary/20 hover:text-primary-foreground" onClick={(e) => e.stopPropagation()}>
-             <Link href={`/planner?destination=${encodeURIComponent(destination.name)}&country=${encodeURIComponent(destination.country || '')}`}>
-                <Sparkles className="mr-2 h-4 w-4" /> Plan Trip
-             </Link>
+          <Button 
+            size="sm" 
+            className="w-full glass-interactive text-primary hover:bg-primary/20 hover:text-primary-foreground" 
+            onClick={(e) => {
+                e.stopPropagation(); // Prevent card's onSelect from firing if button is clicked
+                onPlanTrip();
+            }}
+          >
+             <ExternalLink className="mr-2 h-4 w-4" /> Plan Trip
           </Button>
       </CardFooter>
     </Card>
