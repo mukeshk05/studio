@@ -30,7 +30,8 @@ const formSchema = z.object({
     required_error: "You need to select an item type.",
   }),
   itemName: z.string().min(2, "Item name/hotel name must be at least 2 characters."),
-  destination: z.string().optional(), // For flight destination or hotel location/city
+  originCity: z.string().optional(), // Added for flights
+  destination: z.string().optional(), 
   targetPrice: z.coerce.number().positive("Target price must be a positive number."),
   currentPrice: z.coerce.number().positive("Current price must be a positive number."),
   travelDates: z.string().optional(),
@@ -46,6 +47,7 @@ export function PriceTrackerForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       itemName: "",
+      originCity: "",
       destination: "",
       travelDates: "",
     },
@@ -66,15 +68,17 @@ export function PriceTrackerForm() {
       form.setError("destination", { type: "manual", message: "Flight destination city is required." });
       return;
     }
+    if (itemType === "flight" && !values.originCity?.trim()) {
+      form.setError("originCity", { type: "manual", message: "Flight origin city is required." });
+      return;
+    }
+
 
     setAiAlert(null);
     try {
       const alertResult = await trackPrice({
         itemType: values.itemType,
-        itemName: values.itemName, // This will be Hotel Name or Flight Name/Route
-        // For AI context, we might concatenate itemName and destination if needed by trackPrice flow,
-        // but trackPrice currently only uses itemName for identification in its alert message.
-        // The main benefit of destination here is for storage and other AI flows.
+        itemName: values.itemName,
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
       });
@@ -83,6 +87,7 @@ export function PriceTrackerForm() {
       const newItemData = {
         itemType: values.itemType,
         itemName: values.itemName,
+        originCity: values.itemType === 'flight' ? values.originCity : undefined,
         destination: values.destination,
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
@@ -96,7 +101,7 @@ export function PriceTrackerForm() {
 
       toast({
         title: "Price Tracker Added",
-        description: `${values.itemName} ${values.destination ? `in ${values.destination}` : ''} is now being tracked.`,
+        description: `${values.itemName} ${values.destination ? `(from ${values.originCity || 'N/A'} to ${values.destination})` : ''} is now being tracked.`,
       });
       if(alertResult.shouldAlert){
          toast({
@@ -140,7 +145,8 @@ export function PriceTrackerForm() {
                   <FormLabel className="text-card-foreground/90">Item Type</FormLabel>
                   <Select onValueChange={(value) => {
                     field.onChange(value);
-                    form.setValue("destination", ""); // Reset destination on type change
+                    form.setValue("destination", ""); 
+                    form.setValue("originCity", "");
                   }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50">
@@ -168,7 +174,7 @@ export function PriceTrackerForm() {
                   </FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder={itemType === 'hotel' ? "e.g., Grand Hyatt Hotel" : "e.g., Flight AA123, NYC to London"} 
+                      placeholder={itemType === 'hotel' ? "e.g., Grand Hyatt Hotel" : "e.g., Flight AA123, BudgetAir X100"} 
                       {...field} 
                       className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" 
                     />
@@ -177,6 +183,29 @@ export function PriceTrackerForm() {
                 </FormItem>
               )}
             />
+
+            {itemType === "flight" && (
+               <FormField
+                control={form.control}
+                name="originCity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center text-card-foreground/90">
+                      <MapPinIcon className="w-4 h-4 mr-2" />
+                      Origin City *
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="e.g., New York, USA" 
+                        {...field} 
+                        className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {itemType && (
               <FormField

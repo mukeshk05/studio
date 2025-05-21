@@ -7,6 +7,7 @@ import { z } from 'genkit';
 export const PriceForecastInputSchema = z.object({
   itemType: z.enum(['flight', 'hotel']).describe('The type of item: flight or hotel.'),
   itemName: z.string().describe('The name or identifier of the item (e.g., "Flight UA123 to Paris", "Grand Hyatt Hotel"). This provides specific context for the AI.'),
+  originCity: z.string().optional().describe("The origin city, if itemType is 'flight'."),
   destination: z.string().optional().describe("The destination city/area for the flight or hotel, for broader market context."),
   currentPrice: z.number().describe('The current market price in USD.'),
   travelDates: z.string().describe('The travel dates, crucial for inferring seasonality and demand (e.g., "December 10-17", "Mid-July for 2 weeks").')

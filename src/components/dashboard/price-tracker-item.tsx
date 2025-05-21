@@ -56,7 +56,6 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
       const input: PriceTrackerInput = {
         itemType: item.itemType,
         itemName: item.itemName,
-        // destination: item.destination, // This is not used by trackPrice flow, but good to have for consistency
         targetPrice: item.targetPrice,
         currentPrice: currentPriceNum,
       };
@@ -95,6 +94,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
       const adviceInput: AIPAdInput = {
         itemType: item.itemType,
         itemName: item.itemName,
+        originCity: item.itemType === 'flight' ? item.originCity : undefined,
         destination: item.destination,
         targetPrice: item.targetPrice,
         currentPrice: item.currentPrice,
@@ -144,6 +144,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
       const forecastInput: AIPFInput = {
         itemType: item.itemType,
         itemName: item.itemName,
+        originCity: item.itemType === 'flight' ? item.originCity : undefined,
         destination: item.destination,
         currentPrice: item.currentPrice,
         travelDates: item.travelDates || "Not specified",
@@ -193,6 +194,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         </CardHeader>
         <CardContent className="text-sm space-y-2 flex-grow text-card-foreground/90">
           <p className="flex items-center"><TagIcon className="w-4 h-4 mr-2 text-muted-foreground" />Type: <span className="font-medium ml-1 capitalize">{item.itemType}</span></p>
+          {item.itemType === 'flight' && item.originCity && <p className="flex items-center"><MapPinIcon className="w-4 h-4 mr-2 text-muted-foreground" />Origin: <span className="font-medium ml-1">{item.originCity}</span></p>}
           {item.destination && <p className="flex items-center"><MapPinIcon className="w-4 h-4 mr-2 text-muted-foreground" />{item.itemType === 'hotel' ? 'Location' : 'Destination'}: <span className="font-medium ml-1">{item.destination}</span></p>}
           {item.travelDates && <p className="flex items-center"><CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />Dates: <span className="font-medium ml-1">{item.travelDates}</span></p>}
           <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Target: <span className="font-medium ml-1">${item.targetPrice.toLocaleString()}</span></p>

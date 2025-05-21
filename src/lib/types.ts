@@ -32,6 +32,7 @@ export interface PriceTrackerEntry {
   id: string;
   itemType: "flight" | "hotel";
   itemName: string; // For hotels: Hotel Name. For flights: Flight number/route
+  originCity?: string; // Specifically for flights
   destination?: string; // For hotels: Location/City. For flights: Arrival city
   targetPrice: number;
   currentPrice: number; 
