@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, MapPinnedIcon, LayersIcon, LightbulbIcon, InfoIcon } from 'lucide-react';
+import { Loader2, Sparkles, MapPinned, Layers, Lightbulb, Info } from 'lucide-react';
 import { generateSmartMapConcept } from '@/ai/flows/smart-map-concept-flow';
 import type { SmartMapConceptInput, SmartMapConceptOutput } from '@/ai/types/smart-map-concept-types';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +58,7 @@ export function InteractiveMapPlaceholder() {
     <Card className={cn(glassCardClasses, "w-full border-purple-500/30 animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <LayersIcon className="w-6 h-6 mr-2 text-purple-400" />
+          <Layers className="w-6 h-6 mr-2 text-purple-400" />
           AI Interactive Smart Map Concept
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -83,13 +83,13 @@ export function InteractiveMapPlaceholder() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Generate Smart Map Concept
         </Button>
 
         {isLoading && !mapConcept && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-purple-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-purple-400" />
             <p>Aura is envisioning your smart map...</p>
           </div>
         )}
@@ -98,7 +98,7 @@ export function InteractiveMapPlaceholder() {
           <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
             <CardHeader className="p-0 pb-3">
               <CardTitle className="text-lg text-accent flex items-center">
-                <SparklesIcon className="w-5 h-5 mr-2" />
+                <Sparkles className="w-5 h-5 mr-2" />
                 AI Smart Map Concept for {destination}
               </CardTitle>
             </CardHeader>
@@ -114,7 +114,7 @@ export function InteractiveMapPlaceholder() {
                 />
               </div>
               <div>
-                <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><LightbulbIcon className="w-4 h-4 mr-1.5 text-primary" />Map Vision:</h4>
+                <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><Lightbulb className="w-4 h-4 mr-1.5 text-primary" />Map Vision:</h4>
                 <p className="text-muted-foreground pl-6">{mapConcept.mapConceptDescription}</p>
               </div>
               
@@ -122,7 +122,7 @@ export function InteractiveMapPlaceholder() {
 
               {mapConcept.suggestedLayers && mapConcept.suggestedLayers.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><LayersIcon className="w-4 h-4 mr-1.5 text-primary" />Suggested Personalized Layers:</h4>
+                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><Layers className="w-4 h-4 mr-1.5 text-primary" />Suggested Personalized Layers:</h4>
                   <div className="flex flex-wrap gap-1.5 pl-6">
                     {mapConcept.suggestedLayers.map((layer, idx) => <Badge key={`layer-${idx}`} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{layer}</Badge>)}
                   </div>
@@ -131,7 +131,7 @@ export function InteractiveMapPlaceholder() {
 
               {mapConcept.examplePois && mapConcept.examplePois.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><MapPinnedIcon className="w-4 h-4 mr-1.5 text-primary" />Example Unique POIs to Highlight:</h4>
+                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><MapPinned className="w-4 h-4 mr-1.5 text-primary" />Example Unique POIs to Highlight:</h4>
                   <ul className="list-none space-y-1 pl-6">
                     {mapConcept.examplePois.map((poi, idx) => <li key={`poi-${idx}`} className="text-xs text-muted-foreground before:content-['\272A'] before:mr-2 before:text-accent">{poi}</li>)}
                   </ul>
@@ -143,7 +143,7 @@ export function InteractiveMapPlaceholder() {
       </CardContent>
        <CardFooter className="pt-2">
          <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
-            <InfoIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+            <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
             This is a conceptual demonstration using AI to generate ideas. Actual map interface is a future vision.
           </p>
        </CardFooter>

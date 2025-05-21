@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2Icon, SparklesIcon, BookOpenTextIcon, MapPinIcon, LandmarkIcon, ImageOffIcon, InfoIcon } from 'lucide-react';
+import { Loader2, Sparkles, BookOpenText, MapPin, Landmark, ImageOff, Info } from 'lucide-react';
 import { narrateLocalLegend } from '@/ai/flows/local-legend-narrator-flow';
 import type { LocalLegendNarratorInput, LocalLegendNarratorOutput } from '@/ai/types/local-legend-narrator-types';
 import { useToast } from '@/hooks/use-toast';
@@ -73,7 +73,7 @@ export function LocalLegendNarratorCard() {
     <Card className={cn(glassCardClasses, "w-full border-yellow-500/30 animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <BookOpenTextIcon className="w-6 h-6 mr-2 text-yellow-400" />
+          <BookOpenText className="w-6 h-6 mr-2 text-yellow-400" />
           AI Local Legend & Folklore Narrator
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -106,7 +106,7 @@ export function LocalLegendNarratorCard() {
 
         {isLoading && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-yellow-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-yellow-400" />
             <p>Aura is consulting the ancient spirits and local chronicles...</p>
           </div>
         )}
@@ -115,7 +115,7 @@ export function LocalLegendNarratorCard() {
           <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
             <CardHeader className="p-0 pb-3">
               <CardTitle className="text-lg text-accent flex items-center">
-                <SparklesIcon className="w-5 h-5 mr-2" />
+                <Sparkles className="w-5 h-5 mr-2" />
                 {legendData.legendTitle}
               </CardTitle>
             </CardHeader>
@@ -134,7 +134,7 @@ export function LocalLegendNarratorCard() {
               )}
               {!legendData.imageUri && (
                 <div className="aspect-video w-full bg-muted/50 flex items-center justify-center rounded-md mb-3 border border-border/30">
-                    <ImageOffIcon className="w-12 h-12 text-muted-foreground" />
+                    <ImageOff className="w-12 h-12 text-muted-foreground" />
                 </div>
               )}
               <ScrollArea className="max-h-60">
@@ -142,13 +142,13 @@ export function LocalLegendNarratorCard() {
               </ScrollArea>
               {legendData.historicalContext && (
                 <div className="pt-2 mt-2 border-t border-border/30">
-                  <h4 className="text-xs font-semibold text-card-foreground mb-0.5 flex items-center"><InfoIcon className="w-3 h-3 mr-1.5 text-primary" />Historical Context:</h4>
+                  <h4 className="text-xs font-semibold text-card-foreground mb-0.5 flex items-center"><Info className="w-3 h-3 mr-1.5 text-primary" />Historical Context:</h4>
                   <p className="text-xs text-muted-foreground italic pl-5">{legendData.historicalContext}</p>
                 </div>
               )}
               {legendData.relatedLandmarks && legendData.relatedLandmarks.length > 0 && (
                 <div className="pt-2 mt-2 border-t border-border/30">
-                  <h4 className="text-xs font-semibold text-card-foreground mb-1 flex items-center"><LandmarkIcon className="w-3 h-3 mr-1.5 text-primary" />Related Landmarks:</h4>
+                  <h4 className="text-xs font-semibold text-card-foreground mb-1 flex items-center"><Landmark className="w-3 h-3 mr-1.5 text-primary" />Related Landmarks:</h4>
                   <div className="flex flex-wrap gap-1.5 pl-5">
                     {legendData.relatedLandmarks.map((landmark, idx) => (
                       <Badge key={idx} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{landmark}</Badge>
@@ -167,7 +167,7 @@ export function LocalLegendNarratorCard() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Uncover Local Legends
         </Button>
       </CardFooter>

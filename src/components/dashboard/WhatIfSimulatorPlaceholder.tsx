@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader, SparklesIcon, GitCompareArrowsIcon, ImageOffIcon, InfoIcon, MapPinIcon, LightbulbIcon } from 'lucide-react';
+import { Loader2, Sparkles, GitCompareArrows, ImageOff, Info, MapPin, Lightbulb } from 'lucide-react';
 import { getWhatIfAnalysis } from "@/ai/flows/what-if-simulator-flow.ts";
 import type { WhatIfSimulatorInput, WhatIfSimulatorOutput, DestinationAnalysis } from '@/ai/types/what-if-simulator-types';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ function DestinationAnalysisCard({ analysis, imageName }: { analysis: Destinatio
     <Card className={cn(innerGlassEffectClasses, "flex flex-col h-full")}>
       <CardHeader className="pb-2 pt-3">
         <CardTitle className="text-md font-semibold text-card-foreground flex items-center">
-          <MapPinIcon className="w-4 h-4 mr-2 text-primary" />
+          <MapPin className="w-4 h-4 mr-2 text-primary" />
           {analysis.name}
         </CardTitle>
       </CardHeader>
@@ -45,7 +45,7 @@ function DestinationAnalysisCard({ analysis, imageName }: { analysis: Destinatio
       )}
       {!analysis.imageUri && (
         <div className="aspect-video w-full bg-muted/50 flex items-center justify-center">
-          <ImageOffIcon className="w-12 h-12 text-muted-foreground" />
+          <ImageOff className="w-12 h-12 text-muted-foreground" />
         </div>
       )}
       <CardContent className="text-xs space-y-2 pt-3 flex-grow">
@@ -113,7 +113,7 @@ export function WhatIfSimulatorPlaceholder() {
     <Card className={cn(glassCardClasses, "w-full border-orange-500/30 animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <GitCompareArrowsIcon className="w-6 h-6 mr-2 text-orange-400" />
+          <GitCompareArrows className="w-6 h-6 mr-2 text-orange-400" />
           AI 'What If' Travel Simulator
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -160,13 +160,13 @@ export function WhatIfSimulatorPlaceholder() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Compare Destinations with AI
         </Button>
 
         {isLoading && !analysisResult && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader className="w-10 h-10 animate-spin mx-auto mb-3 text-orange-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-orange-400" />
             <p>Aura is simulating and comparing your options...</p>
           </div>
         )}
@@ -176,7 +176,7 @@ export function WhatIfSimulatorPlaceholder() {
             <Separator className="bg-orange-500/30" />
             
             <div className={cn("p-3 rounded-md text-sm italic", innerGlassEffectClasses, "border-primary/20 bg-primary/5")}>
-                <InfoIcon className="w-4 h-4 mr-1.5 text-primary float-left mt-0.5" />
+                <Info className="w-4 h-4 mr-1.5 text-primary float-left mt-0.5" />
                 <strong className="text-primary/90">AI Comparison Summary:</strong> {analysisResult.comparisonSummary}
             </div>
 
@@ -192,7 +192,7 @@ export function WhatIfSimulatorPlaceholder() {
             {analysisResult.aiRecommendation && (
               <div className={cn("mt-4 p-3 rounded-md", innerGlassEffectClasses, "border-accent/20 bg-accent/5")}>
                 <h4 className="text-sm font-semibold text-accent mb-1 flex items-center">
-                  <LightbulbIcon className="w-4 h-4 mr-1.5" />
+                  <Lightbulb className="w-4 h-4 mr-1.5" />
                   Aura's Recommendation:
                 </h4>
                 <p className="text-xs italic text-muted-foreground">{analysisResult.aiRecommendation}</p>

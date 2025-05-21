@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, CompassIcon, LightbulbIcon, InfoIcon, ImageOffIcon } from 'lucide-react';
+import { Loader2, Sparkles, Compass, Lightbulb, Info, ImageOff } from 'lucide-react';
 import { getSerendipitySuggestions } from '@/ai/flows/serendipity-engine-flow';
 import type { SerendipityInput, SerendipitySuggestion, SerendipityOutput } from '@/ai/types/serendipity-engine-types';
 import { useToast } from '@/hooks/use-toast';
@@ -38,19 +38,19 @@ function SerendipitySuggestionCard({ suggestion }: { suggestion: SerendipitySugg
                 </div>
             ) : (
                 <div className="aspect-video w-full bg-muted/50 flex items-center justify-center">
-                    <ImageOffIcon className="w-12 h-12 text-muted-foreground" />
+                    <ImageOff className="w-12 h-12 text-muted-foreground" />
                 </div>
             )}
             <CardHeader className="pb-2 pt-3">
                 <CardTitle className="text-md font-semibold text-card-foreground flex items-center">
-                    <SparklesIcon className="w-4 h-4 mr-2 text-accent" />
+                    <Sparkles className="w-4 h-4 mr-2 text-accent" />
                     {suggestion.name}
                 </CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground space-y-1.5 pt-0 pb-2">
                 <p>{suggestion.description}</p>
                 <div className={cn("p-2 rounded-md border-border/40 bg-card/30 dark:bg-card/50 text-xs")}>
-                    <p className="font-medium text-primary/90 flex items-start"><InfoIcon className="w-3.5 h-3.5 mr-1.5 mt-0.5 shrink-0 text-primary"/>AI Reasoning:</p> 
+                    <p className="font-medium text-primary/90 flex items-start"><Info className="w-3.5 h-3.5 mr-1.5 mt-0.5 shrink-0 text-primary"/>AI Reasoning:</p> 
                     <p className="italic pl-5">{suggestion.reasoning}</p>
                 </div>
             </CardContent>
@@ -108,7 +108,7 @@ export function SerendipityEnginePlaceholder() {
     <Card className={cn(glassCardClasses, "w-full border-accent/30 animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <CompassIcon className="w-6 h-6 mr-2 text-accent" />
+          <Compass className="w-6 h-6 mr-2 text-accent" />
           AI Serendipity Engine
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -145,13 +145,13 @@ export function SerendipityEnginePlaceholder() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Discover Serendipity with AI
         </Button>
 
         {isLoading && !suggestions && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-accent" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-accent" />
             <p>Aura is scanning for unique local moments...</p>
           </div>
         )}
@@ -160,7 +160,7 @@ export function SerendipityEnginePlaceholder() {
           <div className="mt-6 space-y-5">
             <Separator className="my-4 bg-accent/30" />
             <h3 className="text-lg font-semibold text-card-foreground flex items-center">
-               <LightbulbIcon className="w-5 h-5 mr-2 text-primary" /> AI's Serendipitous Finds:
+               <Lightbulb className="w-5 h-5 mr-2 text-primary" /> AI's Serendipitous Finds:
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {suggestions.map((suggestion, index) => (
@@ -177,7 +177,7 @@ export function SerendipityEnginePlaceholder() {
       </CardContent>
        <CardFooter className="pt-2">
          <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
-            <InfoIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+            <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
             This feature uses live AI calls to generate creative, plausible suggestions. Actual event availability is conceptual for this demo.
           </p>
        </CardFooter>

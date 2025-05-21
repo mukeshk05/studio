@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, MessageCircleQuestionIcon, LightbulbIcon, SendIcon, InfoIcon } from 'lucide-react';
+import { Loader2, Sparkles, MessageCircleQuestion, Lightbulb, Send, Info } from 'lucide-react';
 import { getCoTravelAgentResponse } from '@/ai/flows/co-travel-agent-flow'; // Updated import path
 import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
 import { useToast } from '@/hooks/use-toast';
@@ -70,7 +70,7 @@ export function AiCoTravelAgentCard() {
     <Card className={cn(glassCardClasses, "w-full border-teal-500/30 animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <MessageCircleQuestionIcon className="w-6 h-6 mr-2 text-teal-400" />
+          <MessageCircleQuestion className="w-6 h-6 mr-2 text-teal-400" />
           AI Co-Travel Agent (Aura)
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -107,13 +107,13 @@ export function AiCoTravelAgentCard() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
           Ask Aura AI
         </Button>
 
         {isLoading && !aiResponse && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-teal-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-teal-400" />
             <p>Aura is thinking...</p>
           </div>
         )}
@@ -122,7 +122,7 @@ export function AiCoTravelAgentCard() {
           <div className={cn("mt-5 animate-fade-in space-y-3", innerGlassEffectClasses, "p-4 rounded-lg")}>
             <div>
               <h3 className="text-md font-semibold text-card-foreground mb-1 flex items-center">
-                <SparklesIcon className="w-5 h-5 mr-2 text-primary" />
+                <Sparkles className="w-5 h-5 mr-2 text-primary" />
                 Aura's Answer:
               </h3>
               <ScrollArea className="max-h-48">
@@ -134,7 +134,7 @@ export function AiCoTravelAgentCard() {
               <div>
                 <Separator className="my-2 bg-border/40" />
                 <h4 className="text-sm font-semibold text-card-foreground mb-1 flex items-center">
-                  <LightbulbIcon className="w-4 h-4 mr-1.5 text-accent" />
+                  <Lightbulb className="w-4 h-4 mr-1.5 text-accent" />
                   Relevant Tips from Aura:
                 </h4>
                 <ul className="list-disc list-inside space-y-1 pl-3">
@@ -149,7 +149,7 @@ export function AiCoTravelAgentCard() {
       </CardContent>
        <CardFooter className="pt-2">
          <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
-            <InfoIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+            <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
             Aura AI provides information based on its training. Always verify critical details.
           </p>
        </CardFooter>

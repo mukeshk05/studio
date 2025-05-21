@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2Icon, SparklesIcon, ListPlusIcon, InfoIcon, ExternalLinkIcon, ImageOffIcon } from 'lucide-react';
+import { Loader2, Sparkles, ListPlus, Info, ExternalLink, ImageOff } from 'lucide-react';
 import { getItineraryAssistance } from '@/ai/flows/itinerary-assistance-flow';
 import type { ItineraryAssistanceInput, SuggestedAddition } from '@/ai/types/itinerary-assistance-types';
 import { useToast } from '@/hooks/use-toast';
@@ -35,12 +35,12 @@ function SuggestedAdditionCard({ suggestion }: { suggestion: SuggestedAddition }
       )}
       {!suggestion.imageUri && (
         <div className="aspect-video w-full bg-muted/50 flex items-center justify-center">
-            <ImageOffIcon className="w-12 h-12 text-muted-foreground" />
+            <ImageOff className="w-12 h-12 text-muted-foreground" />
         </div>
       )}
       <CardHeader className="pb-2 pt-3">
         <CardTitle className="text-md font-semibold text-card-foreground flex items-center">
-          <SparklesIcon className="w-4 h-4 mr-2 text-accent" />
+          <Sparkles className="w-4 h-4 mr-2 text-accent" />
           {suggestion.name}
         </CardTitle>
         <Badge variant="outline" className="text-xs w-fit mt-1 capitalize bg-accent/10 text-accent border-accent/30">{suggestion.type.replace("_", " ")}</Badge>
@@ -48,7 +48,7 @@ function SuggestedAdditionCard({ suggestion }: { suggestion: SuggestedAddition }
       <CardContent className="text-xs text-muted-foreground space-y-1.5 pt-0 pb-2">
         <p>{suggestion.description}</p>
         <div className={cn("p-2 rounded-md border-border/40 bg-card/30 dark:bg-card/50 text-xs")}>
-            <p className="font-medium text-primary/90 flex items-start"><InfoIcon className="w-3.5 h-3.5 mr-1.5 mt-0.5 shrink-0 text-primary"/>AI Reasoning:</p> 
+            <p className="font-medium text-primary/90 flex items-start"><Info className="w-3.5 h-3.5 mr-1.5 mt-0.5 shrink-0 text-primary"/>AI Reasoning:</p> 
             <p className="italic pl-5">{suggestion.relevanceReasoning}</p>
         </div>
         {suggestion.estimatedCost && (
@@ -59,7 +59,7 @@ function SuggestedAdditionCard({ suggestion }: { suggestion: SuggestedAddition }
         <CardFooter className="pt-1 pb-3">
           <Button variant="link" size="sm" asChild className="text-xs p-0 h-auto text-accent hover:text-accent/80">
             <a href={suggestion.bookingLink} target="_blank" rel="noopener noreferrer">
-              Learn More / Book <ExternalLinkIcon className="w-3 h-3 ml-1" />
+              Learn More / Book <ExternalLink className="w-3 h-3 ml-1" />
             </a>
           </Button>
         </CardFooter>
@@ -128,7 +128,7 @@ export function AiItineraryAssistanceCard() {
     <Card className={cn("glass-card w-full border-sky-500/30", "animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <ListPlusIcon className="w-6 h-6 mr-2 text-sky-400" />
+          <ListPlus className="w-6 h-6 mr-2 text-sky-400" />
           AI Itinerary Enhancer
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -144,7 +144,7 @@ export function AiItineraryAssistanceCard() {
 
         {isLoading && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-sky-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-sky-400" />
             <p>Aura AI is finding enriching experiences...</p>
           </div>
         )}
@@ -153,7 +153,7 @@ export function AiItineraryAssistanceCard() {
           <div className="space-y-4">
             {assistanceSummary && (
                  <div className={cn("p-3 rounded-md text-sm italic", "bg-primary/10 text-primary border border-primary/20 flex items-start gap-2")}>
-                    <InfoIcon className="w-5 h-5 shrink-0 mt-0.5" />
+                    <Info className="w-5 h-5 shrink-0 mt-0.5" />
                     <span><strong>Aura's Tip:</strong> {assistanceSummary}</span>
                 </div>
             )}
@@ -172,7 +172,7 @@ export function AiItineraryAssistanceCard() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           {assistanceData ? "Refresh Sample Suggestions" : "Get Sample Assistance"}
         </Button>
          <p className="text-xs text-muted-foreground text-center">

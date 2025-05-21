@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2Icon, SparklesIcon, SlidersHorizontalIcon, InfoIcon, ZapIcon, ImageOffIcon, ActivityIcon, BrainIcon, MoonIcon, CoffeeIcon, SunIcon } from 'lucide-react';
+import { Loader2, Sparkles, SlidersHorizontal, Info, Zap, ImageOff, Activity, Brain, Moon, Coffee, Sun } from 'lucide-react';
 import { optimizeDayPlanByMood } from '@/ai/flows/mood-energy-optimizer-flow';
 import type { MoodEnergyOptimizerInput, MoodEnergyOptimizerOutput, SuggestedAdjustment } from '@/ai/types/mood-energy-optimizer-types';
 import { useToast } from '@/hooks/use-toast';
@@ -41,12 +41,12 @@ function AdjustmentDetailCard({ adjustment }: { adjustment: SuggestedAdjustment 
       )}
       {!adjustment.imageUri && (
         <div className="aspect-video w-full bg-muted/50 flex items-center justify-center">
-            <ImageOffIcon className="w-12 h-12 text-muted-foreground" />
+            <ImageOff className="w-12 h-12 text-muted-foreground" />
         </div>
       )}
       <CardHeader className="pb-2 pt-3">
         <CardTitle className="text-sm font-semibold text-card-foreground flex items-center">
-          <SparklesIcon className="w-4 h-4 mr-2 text-accent" />
+          <Sparkles className="w-4 h-4 mr-2 text-accent" />
           {adjustment.adjustmentType}
         </CardTitle>
         <Badge variant="outline" className="text-xs w-fit mt-1 capitalize bg-accent/10 text-accent border-accent/30">{adjustment.energyImpact}</Badge>
@@ -104,7 +104,7 @@ export function MoodEnergyOptimizerCard() {
     <Card className={cn(glassCardClasses, "w-full border-green-500/30 animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <SlidersHorizontalIcon className="w-6 h-6 mr-2 text-green-400" />
+          <SlidersHorizontal className="w-6 h-6 mr-2 text-green-400" />
           AI Mood & Energy Optimizer
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -131,9 +131,9 @@ export function MoodEnergyOptimizerCard() {
             className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3"
           >
             {[
-              { value: "low", label: "Relaxing / Low Energy", icon: <MoonIcon className="w-4 h-4 mr-2 text-blue-400" /> },
-              { value: "medium", label: "Balanced / Medium Energy", icon: <CoffeeIcon className="w-4 h-4 mr-2 text-orange-400" /> },
-              { value: "high", label: "Action-Packed / High Energy", icon: <SunIcon className="w-4 h-4 mr-2 text-red-400" /> },
+              { value: "low", label: "Relaxing / Low Energy", icon: <Moon className="w-4 h-4 mr-2 text-blue-400" /> },
+              { value: "medium", label: "Balanced / Medium Energy", icon: <Coffee className="w-4 h-4 mr-2 text-orange-400" /> },
+              { value: "high", label: "Action-Packed / High Energy", icon: <Sun className="w-4 h-4 mr-2 text-red-400" /> },
             ].map(opt => (
               <Label
                 key={opt.value}
@@ -158,13 +158,13 @@ export function MoodEnergyOptimizerCard() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <BrainIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Brain />}
           Optimize My Day with AI
         </Button>
 
         {isLoading && !optimizationResult && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-green-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-green-400" />
             <p>Aura AI is tuning your day for the perfect vibe...</p>
           </div>
         )}
@@ -173,7 +173,7 @@ export function MoodEnergyOptimizerCard() {
           <div className="mt-6 space-y-5">
             <Separator className="my-4 bg-green-500/30" />
             <div className={cn("p-3 rounded-md text-sm italic", innerGlassEffectClasses, "border-primary/20 bg-primary/5")}>
-                <InfoIcon className="w-4 h-4 mr-1.5 text-primary float-left mt-0.5" />
+                <Info className="w-4 h-4 mr-1.5 text-primary float-left mt-0.5" />
                 <strong className="text-primary/90">Aura's Optimization Summary:</strong> {optimizationResult.optimizationSummary}
             </div>
             

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Loader2Icon, SparklesIcon, AccessibilityIcon, InfoIcon, AlertTriangleIcon, SearchCheckIcon, ImageOffIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon } from 'lucide-react';
+import { Loader2, Sparkles, Accessibility, Info, AlertTriangle, SearchCheck, ImageOff, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { getPersonalizedAccessibilityScout } from '@/ai/flows/personalized-accessibility-scout-flow';
 import type { PersonalizedAccessibilityScoutInput, PersonalizedAccessibilityScoutOutput } from '@/ai/types/personalized-accessibility-scout-types';
 import { useToast } from '@/hooks/use-toast';
@@ -77,7 +77,7 @@ export function PersonalizedAccessibilityScoutCard() {
     <Card className={cn(glassCardClasses, "w-full border-blue-500/30 animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <AccessibilityIcon className="w-6 h-6 mr-2 text-blue-400" />
+          <Accessibility className="w-6 h-6 mr-2 text-blue-400" />
           AI Personalized Accessibility Scout
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -114,13 +114,13 @@ export function PersonalizedAccessibilityScoutCard() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SearchCheckIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <SearchCheck />}
           Scout Accessibility with AI
         </Button>
 
         {isLoading && !scoutResult && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-blue-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-blue-400" />
             <p>Aura is researching accessibility insights for {destination}...</p>
           </div>
         )}
@@ -129,7 +129,7 @@ export function PersonalizedAccessibilityScoutCard() {
           <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
             <CardHeader className="p-0 pb-3">
               <CardTitle className="text-lg text-accent flex items-center">
-                <SparklesIcon className="w-5 h-5 mr-2" />
+                <Sparkles className="w-5 h-5 mr-2" />
                 Accessibility Scout Report for {destination}
               </CardTitle>
             </CardHeader>
@@ -148,12 +148,12 @@ export function PersonalizedAccessibilityScoutCard() {
               )}
               {!scoutResult.imageUri && (
                 <div className="aspect-video w-full bg-muted/50 flex items-center justify-center rounded-md mb-3 border border-border/30">
-                    <ImageOffIcon className="w-12 h-12 text-muted-foreground" />
+                    <ImageOff className="w-12 h-12 text-muted-foreground" />
                 </div>
               )}
 
               <div>
-                <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-1.5 text-primary" />Overall Assessment:</h4>
+                <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><Info className="w-4 h-4 mr-1.5 text-primary" />Overall Assessment:</h4>
                 <p className="text-sm text-muted-foreground pl-6">{scoutResult.overallAssessment}</p>
               </div>
               
@@ -161,7 +161,7 @@ export function PersonalizedAccessibilityScoutCard() {
 
               {scoutResult.positiveAspects && scoutResult.positiveAspects.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><CheckCircleIcon className="w-4 h-4 mr-1.5 text-green-500" />Potential Positives:</h4>
+                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><CheckCircle className="w-4 h-4 mr-1.5 text-green-500" />Potential Positives:</h4>
                   <ul className="list-none space-y-1 pl-6">
                     {scoutResult.positiveAspects.map((item, idx) => <li key={`pos-${idx}`} className="text-sm text-muted-foreground before:content-['\2713'] before:mr-2 before:text-green-500">{item}</li>)}
                   </ul>
@@ -170,7 +170,7 @@ export function PersonalizedAccessibilityScoutCard() {
 
               {scoutResult.potentialChallenges && scoutResult.potentialChallenges.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><XCircleIcon className="w-4 h-4 mr-1.5 text-red-500" />Potential Challenges:</h4>
+                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><XCircle className="w-4 h-4 mr-1.5 text-red-500" />Potential Challenges:</h4>
                   <ul className="list-none space-y-1 pl-6">
                     {scoutResult.potentialChallenges.map((item, idx) => <li key={`chal-${idx}`} className="text-sm text-muted-foreground before:content-['\2717'] before:mr-2 before:text-red-500">{item}</li>)}
                   </ul>
@@ -179,7 +179,7 @@ export function PersonalizedAccessibilityScoutCard() {
 
               {scoutResult.specificSuggestions && scoutResult.specificSuggestions.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><SparklesIcon className="w-4 h-4 mr-1.5 text-accent" />Specific Suggestions & Next Steps:</h4>
+                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><Sparkles className="w-4 h-4 mr-1.5 text-accent" />Specific Suggestions & Next Steps:</h4>
                   <ul className="list-none space-y-1 pl-6">
                     {scoutResult.specificSuggestions.map((item, idx) => <li key={`sug-${idx}`} className="text-sm text-muted-foreground before:content-['\2022'] before:mr-2 before:text-accent">{item}</li>)}
                   </ul>
@@ -189,7 +189,7 @@ export function PersonalizedAccessibilityScoutCard() {
               <Separator className="bg-border/40 my-3" />
               
               <div className={cn("p-3 rounded-md text-xs", "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-start gap-2")}>
-                <AlertTriangleIcon className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
                 <p><strong>Important Disclaimer:</strong> {scoutResult.disclaimer}</p>
               </div>
             </CardContent>

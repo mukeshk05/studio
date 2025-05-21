@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, CameraIcon, UploadCloudIcon, EyeIcon, ImageOffIcon, InfoIcon, TagIcon, ClockIcon, Trash2Icon } from 'lucide-react';
+import { Loader2, Sparkles, Camera, UploadCloud, Eye, ImageOff, Info, Tag, Clock, Trash2 } from 'lucide-react';
 import { getAiArPreview } from '@/ai/flows/ai-ar-preview-flow';
 import type { AiArPreviewInput, AiArPreviewOutput } from '@/ai/types/ai-ar-preview-types';
 import { useToast } from '@/hooks/use-toast';
@@ -103,8 +103,8 @@ export function AiArPreviewPlaceholder() { // Keeping the filename as placeholde
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
           <span className="relative mr-2">
-            <CameraIcon className="w-6 h-6 text-pink-400" />
-            <SparklesIcon className="w-3.5 h-3.5 text-yellow-300 absolute -top-1 -right-1 opacity-90" />
+            <Camera className="w-6 h-6 text-pink-400" />
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300 absolute -top-1 -right-1 opacity-90" />
           </span>
           AI + AR Live Preview Insights
         </CardTitle>
@@ -137,7 +137,7 @@ export function AiArPreviewPlaceholder() { // Keeping the filename as placeholde
             />
             {uploadedPhotoPreview && (
               <Button variant="ghost" size="icon" onClick={removeUploadedPhoto} className="text-destructive hover:bg-destructive/10 h-9 w-9">
-                <Trash2Icon className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" />
               </Button>
             )}
           </div>
@@ -154,13 +154,13 @@ export function AiArPreviewPlaceholder() { // Keeping the filename as placeholde
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <EyeIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Eye />}
           Get Live AR Insights (Simulated)
         </Button>
 
         {isLoading && !arPreviewData && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-pink-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-pink-400" />
             <p>Aura Lens is analyzing the scene in real-time...</p>
           </div>
         )}
@@ -169,7 +169,7 @@ export function AiArPreviewPlaceholder() { // Keeping the filename as placeholde
           <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
             <CardHeader className="p-0 pb-3">
               <CardTitle className="text-lg text-accent flex items-center">
-                <SparklesIcon className="w-5 h-5 mr-2" />
+                <Sparkles className="w-5 h-5 mr-2" />
                 Simulated AR Insights for {landmarkName}
               </CardTitle>
             </CardHeader>
@@ -188,12 +188,12 @@ export function AiArPreviewPlaceholder() { // Keeping the filename as placeholde
               )}
               {!displayImageUri && (
                  <div className="aspect-video w-full bg-muted/50 flex items-center justify-center rounded-md mb-3 border border-border/30">
-                    <ImageOffIcon className="w-12 h-12 text-muted-foreground" />
+                    <ImageOff className="w-12 h-12 text-muted-foreground" />
                  </div>
               )}
 
               <div>
-                <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-1.5 text-primary" />Scene Description (Now):</h4>
+                <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><Info className="w-4 h-4 mr-1.5 text-primary" />Scene Description (Now):</h4>
                 <p className="text-sm text-muted-foreground pl-6">{arPreviewData.sceneDescription}</p>
               </div>
               
@@ -201,13 +201,13 @@ export function AiArPreviewPlaceholder() { // Keeping the filename as placeholde
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><TagIcon className="w-4 h-4 mr-1.5 text-primary" />Current Mood:</h4>
+                    <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><Tag className="w-4 h-4 mr-1.5 text-primary" />Current Mood:</h4>
                     <div className="flex flex-wrap gap-1.5 pl-6">
                         {arPreviewData.moodTags.map((tag, idx) => <Badge key={`mood-${idx}`} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{tag}</Badge>)}
                     </div>
                 </div>
                 <div>
-                    <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><TagIcon className="w-4 h-4 mr-1.5 text-primary" />Suggested Activities (Now):</h4>
+                    <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><Tag className="w-4 h-4 mr-1.5 text-primary" />Suggested Activities (Now):</h4>
                     <div className="flex flex-wrap gap-1.5 pl-6">
                         {arPreviewData.activityTags.map((tag, idx) => <Badge key={`activity-${idx}`} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{tag}</Badge>)}
                     </div>
@@ -216,7 +216,7 @@ export function AiArPreviewPlaceholder() { // Keeping the filename as placeholde
 
               {arPreviewData.optimalPhotoTime && (
                 <div>
-                  <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><ClockIcon className="w-4 h-4 mr-1.5 text-primary" />Optimal Photo Time:</h4>
+                  <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><Clock className="w-4 h-4 mr-1.5 text-primary" />Optimal Photo Time:</h4>
                   <p className="text-sm text-muted-foreground pl-6">{arPreviewData.optimalPhotoTime}</p>
                 </div>
               )}
