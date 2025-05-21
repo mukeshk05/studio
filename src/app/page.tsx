@@ -88,7 +88,7 @@ import {
   Volume2,
   Wand2,
   Zap,
-  Cube,
+  CurlyBraces
 } from 'lucide-react';
 
 
@@ -234,7 +234,7 @@ const features = [
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <Cube className="w-10 h-10 mb-4 text-accent" />,
+      icon: <CurlyBraces className="w-10 h-10 mb-4 text-accent" />,
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
