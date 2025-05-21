@@ -13,7 +13,7 @@ const AlertDialogTrigger = AlertDialogPrimitive.Trigger
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal
 
-const AlertDialogClose = AlertDialogPrimitive.Close // Define AlertDialogClose
+// Removed AlertDialogClose definition as it doesn't exist on AlertDialogPrimitive
 
 const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
@@ -141,5 +141,5 @@ export {
   AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogClose, // Ensure AlertDialogClose is exported
+  // AlertDialogClose removed from exports
 }

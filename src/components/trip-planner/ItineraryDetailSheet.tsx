@@ -23,12 +23,13 @@ import Image from 'next/image';
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogClose, // Ensure AlertDialogClose is imported
+  // AlertDialogClose removed from here
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogCancel, // Added AlertDialogCancel if needed for other parts, or can be removed if not used
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 
@@ -228,11 +229,16 @@ export function ItineraryDetailSheet({
                     <AlertDialogTitle className="text-xl font-semibold text-foreground flex items-center">
                         <ScanEye className="w-5 h-5 mr-2 text-purple-400"/>Simulated AR Preview
                     </AlertDialogTitle>
-                    <AlertDialogClose asChild>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground shrink-0">
-                            <X className="h-5 w-5" />
-                        </Button>
-                    </AlertDialogClose>
+                    {/* Use a standard Button with onClick to close the AlertDialog */}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground shrink-0"
+                      onClick={() => setIsArVrDialogOpen(false)}
+                    >
+                        <X className="h-5 w-5" />
+                        <span className="sr-only">Close</span>
+                    </Button>
                   </div>
                   <AlertDialogDescription className="text-sm text-muted-foreground">
                       AI-generated insights for {itinerary.destination} as if viewed through AR.
