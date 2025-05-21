@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSearchHistory } from "@/lib/firestoreHooks";
 import type { SearchHistoryEntry, AITripPlannerInput } from "@/lib/types";
-import { History, Loader2, PlusCircle, X } from "lucide-react"; // Corrected
+import { History, Loader2, PlusCircle, X } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from "@/lib/utils";
 
@@ -70,8 +70,14 @@ export function SearchHistoryDrawer({
             <Button
                 onClick={onStartNewBlankPlan}
                 size="lg"
-                className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
-                variant="default"
+                className={cn(
+                  "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+                  "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+                  "hover:from-accent hover:to-primary",
+                  "focus-visible:ring-4 focus-visible:ring-primary/40",
+                  "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+                )}
+                variant="default" // Explicitly set to default to ensure gradient and text color apply correctly
             >
                 <PlusCircle className="w-5 h-5 mr-2" />
                 Start New Trip Plan
