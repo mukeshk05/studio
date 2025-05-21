@@ -27,6 +27,8 @@ export const AiDestinationSuggestionSchema = z.object({
   name: z.string().describe("Name of the suggested destination."),
   country: z.string().describe("Country where the destination is located."),
   description: z.string().describe("A short, captivating description of the destination (2-3 sentences)."),
+  latitude: z.number().optional().describe("Approximate latitude of the destination."),
+  longitude: z.number().optional().describe("Approximate longitude of the destination."),
   imagePrompt: z.string().describe("A concise text prompt suitable for generating an iconic image of this destination."),
   imageUri: z.string().optional().describe("Data URI of the AI-generated image for the destination."),
   hotelIdea: HotelIdeaSchema.optional().describe("Conceptual hotel idea for this destination."),
@@ -35,7 +37,7 @@ export const AiDestinationSuggestionSchema = z.object({
 export type AiDestinationSuggestion = z.infer<typeof AiDestinationSuggestionSchema>;
 
 export const PopularDestinationsOutputSchema = z.object({
-  destinations: z.array(AiDestinationSuggestionSchema).describe("An array of AI-suggested popular travel destinations."),
+  destinations: z.array(AiDestinationSuggestionSchema).describe("An array of AI-suggested popular travel destinations, potentially with coordinates."),
   contextualNote: z.string().optional().describe("A note about how the suggestions were derived, e.g., based on location or general popularity.")
 });
 export type PopularDestinationsOutput = z.infer<typeof PopularDestinationsOutputSchema>;

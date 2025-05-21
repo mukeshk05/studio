@@ -17,7 +17,7 @@ import type { PopularDestinationsOutput, AiDestinationSuggestion } from '@/ai/ty
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription} from '@/components/ui/alert';
 
 
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
@@ -28,14 +28,6 @@ const exploreCategories = [
   { name: "Hotels", icon: <Hotel className="w-5 h-5" />, href: "/travel#" }, 
   { name: "Things to do", icon: <Compass className="w-5 h-5" />, href: "/travel#" },
   { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/travel#" },
-];
-
-// Static popular destinations for the map markers
-const staticPopularDestinations = [
-  { name: "Paris", country: "France", imageSrc: "https://placehold.co/600x400.png", dataAiHint: "paris eiffel tower", description: "Iconic landmarks, art, and romance.", lat: 48.8566, lng: 2.3522 },
-  { name: "Rome", country: "Italy", imageSrc: "https://placehold.co/600x400.png", dataAiHint: "rome colosseum", description: "Ancient history and delicious cuisine.", lat: 41.9028, lng: 12.4964 },
-  { name: "Tokyo", country: "Japan", imageSrc: "https://placehold.co/600x400.png", dataAiHint: "tokyo cityscape modern", description: "Futuristic cityscapes and rich traditions.", lat: 35.6895, lng: 139.6917 },
-  { name: "Bali", country: "Indonesia", imageSrc: "https://placehold.co/600x400.png", dataAiHint: "bali beach tropical", description: "Tropical beaches and serene temples.", lat: -8.3405, lng: 115.0920 },
 ];
 
 const modernMapStyle = [
@@ -62,7 +54,7 @@ const modernMapStyle = [
 interface CustomMarkerOverlayProps {
     latlng: google.maps.LatLngLiteral;
     map: google.maps.Map;
-    destination: typeof staticPopularDestinations[0];
+    destination: AiDestinationSuggestion; // Updated to use AI suggestion type
     onClick: () => void;
 }
 
@@ -76,7 +68,7 @@ export default function TravelPage() {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const markersRef = useRef<any[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
-  const [selectedMapDestination, setSelectedMapDestination] = useState<(typeof staticPopularDestinations)[0] | null>(null);
+  const [selectedMapDestination, setSelectedMapDestination] = useState<AiDestinationSuggestion | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
@@ -111,8 +103,6 @@ export default function TravelPage() {
     const scriptId = 'google-maps-travel-page-script';
     if (document.getElementById(scriptId)) {
         console.log("Google Maps script tag already exists.");
-        // If script exists but isMapsScriptLoaded is false, it might mean the callback didn't fire
-        // or an error occurred. Check if window.google is available to be sure.
         if (window.google && window.google.maps && !isMapsScriptLoaded) {
             setIsMapsScriptLoaded(true);
         }
@@ -133,10 +123,6 @@ export default function TravelPage() {
     (window as any).initGoogleMapsApiTravelPage = initGoogleMapsApi;
     document.head.appendChild(script);
     return () => { 
-        const existingScript = document.getElementById(scriptId);
-        if (existingScript) {
-            // document.head.removeChild(existingScript); // Not always safe to remove if other components might rely on it
-        }
         delete (window as any).initGoogleMapsApiTravelPage; 
     };
   }, [apiKey, initGoogleMapsApi, isMapsScriptLoaded]);
@@ -165,12 +151,12 @@ export default function TravelPage() {
     }
   }, [isMapsScriptLoaded, map, apiKey, isMapInitializing]);
 
-  const handleSelectDestination = useCallback((dest: typeof staticPopularDestinations[0]) => {
+  const handleSelectDestination = useCallback((dest: AiDestinationSuggestion) => {
     setSelectedMapDestination(dest);
     setIsDialogOpen(true);
-    if (map && window.google && window.google.maps) {
-      console.log(`Panning and zooming to: ${dest.name}`);
-      const targetLatLng = { lat: dest.lat, lng: dest.lng };
+    if (map && window.google && window.google.maps && dest.latitude && dest.longitude) {
+      console.log(`Panning and zooming to AI destination: ${dest.name}`);
+      const targetLatLng = { lat: dest.latitude, lng: dest.longitude };
       
       map.panTo(targetLatLng);
       
@@ -178,14 +164,15 @@ export default function TravelPage() {
         console.log(`Map idle after pan, setting zoom to 8 for ${dest.name}`);
         map.setZoom(8);
       });
-      // Fallback zoom in case idle event doesn't fire quickly
       setTimeout(() => { 
-        if (map.getZoom() !== 8) {
+        if (map.getZoom() !== 8) { // Check if zoom was already set
             console.log(`Fallback zoom for ${dest.name}`);
             map.setZoom(8); 
         }
         window.google.maps.event.removeListener(listener); 
       }, 800); 
+    } else if (map) {
+      console.warn(`No coordinates for ${dest.name}, cannot pan map.`);
     }
   }, [map]);
 
@@ -196,11 +183,10 @@ export default function TravelPage() {
       return; 
     }
 
-    // Define CustomMarkerOverlay inside useEffect or ensure it's defined only after google.maps is available
     class CustomMarkerOverlay extends window.google.maps.OverlayView {
         private latlng: google.maps.LatLng;
         private div: HTMLDivElement | null = null;
-        private destination: typeof staticPopularDestinations[0];
+        private destination: AiDestinationSuggestion; // Use AiDestinationSuggestion
         private onClick: () => void;
         private mapInstance: google.maps.Map;
 
@@ -225,7 +211,6 @@ export default function TravelPage() {
                 panes.overlayMouseTarget.appendChild(this.div);
             } else {
                 console.warn("overlayMouseTarget pane not available for marker:", this.destination.name);
-                // Fallback if overlayMouseTarget isn't available, though less ideal
                 this.mapInstance.getDiv().appendChild(this.div); 
             }
         }
@@ -246,12 +231,14 @@ export default function TravelPage() {
         getPosition() { return this.latlng; }
     }
 
-    console.log("Updating map markers...");
+    console.log("Updating map markers based on AI destinations...");
     markersRef.current.forEach(marker => marker.setMap(null)); 
     const newMarkers: any[] = [];
-    staticPopularDestinations.forEach(dest => {
+    const validAiDestinations = aiDestinations.filter(dest => dest.latitude != null && dest.longitude != null);
+
+    validAiDestinations.forEach(dest => {
       const marker = new CustomMarkerOverlay({ 
-          latlng: { lat: dest.lat, lng: dest.lng }, 
+          latlng: { lat: dest.latitude!, lng: dest.longitude! }, 
           map: map, 
           destination: dest, 
           onClick: () => handleSelectDestination(dest) 
@@ -259,37 +246,38 @@ export default function TravelPage() {
       newMarkers.push(marker);
     });
     markersRef.current = newMarkers;
-    console.log(`${newMarkers.length} custom markers created.`);
+    console.log(`${newMarkers.length} custom AI markers created.`);
 
     if (newMarkers.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
-      staticPopularDestinations.forEach(dest => bounds.extend(new window.google.maps.LatLng(dest.lat, dest.lng)));
+      validAiDestinations.forEach(dest => bounds.extend(new window.google.maps.LatLng(dest.latitude!, dest.longitude!)));
       map.fitBounds(bounds);
-      console.log("Map bounds fitted to markers.");
+      console.log("Map bounds fitted to AI markers.");
       if (newMarkers.length === 1) {
-        map.setZoom(6);
-      } else { 
-        const currentZoom = map.getZoom() || 2; 
-        if (currentZoom > 5) { // Don't zoom out too much if already reasonably zoomed
-            map.setZoom(Math.max(2, currentZoom -1));
-        } else {
-            map.setZoom(2); // Default zoom for multiple markers
-        }
+        map.setZoom(6); // Zoom in a bit for a single marker
+      } else if (map.getZoom() && map.getZoom()! > 10) { // Don't zoom out too much if already reasonably zoomed
+        map.setZoom(Math.max(2, map.getZoom()! - 1));
+      } else if (newMarkers.length > 1) {
+        map.setZoom(Math.max(1,map.getZoom() || 2)); // Adjust zoom for multiple AI markers, don't go below 1
       }
+    } else if (newMarkers.length === 0 && map) {
+        map.setCenter({ lat: 20, lng: 0 });
+        map.setZoom(2);
     }
+
     return () => { 
-        console.log("Cleaning up map markers.");
+        console.log("Cleaning up AI map markers.");
         markersRef.current.forEach(marker => marker.setMap(null)); 
         markersRef.current = []; 
     };
-  }, [map, isMapsScriptLoaded, handleSelectDestination]); // popularDestinations is stable
+  }, [map, isMapsScriptLoaded, aiDestinations, handleSelectDestination]);
 
   const handleFetchAiDestinations = () => {
     setIsFetchingAiDestinations(true);
     setAiDestinationsError(null);
     setGeolocationError(null);
     setAiContextualNote(null);
-    setAiDestinations([]); // Clear previous AI suggestions
+    setAiDestinations([]); 
 
     console.log("Attempting to fetch user location...");
     if (navigator.geolocation) {
@@ -435,10 +423,10 @@ export default function TravelPage() {
           {geolocationError && (
             <Alert variant="default" className={cn("mb-4 bg-yellow-500/10 border-yellow-500/30 text-yellow-300")}>
               <Info className="h-4 w-4 !text-yellow-400" />
-              <AlertTitle className="text-yellow-200">Location Notice</AlertTitle>
-              <AlertDescription className="text-yellow-400/80">
+              <ShadcnAlertTitle className="text-yellow-200">Location Notice</ShadcnAlertTitle>
+              <ShadcnAlertDescription className="text-yellow-400/80">
                 {geolocationError}
-              </AlertDescription>
+              </ShadcnAlertDescription>
             </Alert>
           )}
            {aiContextualNote && !isFetchingAiDestinations && (
@@ -510,13 +498,13 @@ export default function TravelPage() {
                 </DialogHeader>
                 <div className="p-4 sm:p-6 space-y-4">
                     <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg">
-                        {selectedMapDestination.imageSrc ? (
+                        {selectedMapDestination.imageUri ? (
                             <Image
-                                src={selectedMapDestination.imageSrc}
+                                src={selectedMapDestination.imageUri}
                                 alt={`Image of ${selectedMapDestination.name}`}
                                 fill
                                 className="object-cover"
-                                data-ai-hint={selectedMapDestination.dataAiHint}
+                                data-ai-hint={selectedMapDestination.imageUri.startsWith('https://placehold.co') ? (selectedMapDestination.imagePrompt || selectedMapDestination.name.toLowerCase().split(" ").slice(0,2).join(" ")) : undefined}
                                 sizes="(max-width: 640px) 90vw, 500px"
                             />
                         ) : (
@@ -528,8 +516,20 @@ export default function TravelPage() {
                     <p className="text-sm text-muted-foreground leading-relaxed">
                         {selectedMapDestination.description}
                     </p>
+                    {selectedMapDestination.hotelIdea && (
+                        <div className="text-xs border-t border-border/30 pt-2 mt-2">
+                            <p className="font-medium text-card-foreground/90 flex items-center"><Building className="w-3.5 h-3.5 mr-1.5 text-primary/80"/>Hotel Idea:</p>
+                            <p className="pl-5 text-muted-foreground">{selectedMapDestination.hotelIdea.type} ({selectedMapDestination.hotelIdea.priceRange})</p>
+                        </div>
+                    )}
+                    {selectedMapDestination.flightIdea && (
+                        <div className="text-xs border-t border-border/30 pt-2 mt-2">
+                            <p className="font-medium text-card-foreground/90 flex items-center"><Route className="w-3.5 h-3.5 mr-1.5 text-primary/80"/>Flight Idea:</p>
+                            <p className="pl-5 text-muted-foreground">{selectedMapDestination.flightIdea.description} ({selectedMapDestination.flightIdea.priceRange})</p>
+                        </div>
+                    )}
                     <Button asChild size="lg" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 mt-4">
-                        <Link href={`/planner?destination=${encodeURIComponent(selectedMapDestination.name)}`}>
+                        <Link href={`/planner?destination=${encodeURIComponent(selectedMapDestination.name)}&country=${encodeURIComponent(selectedMapDestination.country)}`}>
                             <Plane className="mr-2 h-5 w-5" />
                             Plan a Trip to {selectedMapDestination.name}
                         </Link>
@@ -614,13 +614,12 @@ function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search d
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch) onSearch(term);
-    // For demo, we just log. A real app would navigate or filter.
     toast({
         title: "Search Submitted (Conceptual)",
         description: `You searched for: ${term}. This would typically trigger a search or navigation.`,
     });
   };
-  const { toast } = useToast(); // Added toast for conceptual search
+  const { toast } = useToast();
   return (
     <form onSubmit={handleSubmit} className="relative w-full">
       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />

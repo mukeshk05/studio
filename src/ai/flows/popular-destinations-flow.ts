@@ -2,8 +2,8 @@
 'use server';
 /**
  * @fileOverview An AI flow that suggests popular travel destinations,
- * potentially tailored to the user's location. Includes conceptual flight/hotel ideas
- * and AI-generated images for each destination.
+ * potentially tailored to the user's location. Includes conceptual flight/hotel ideas,
+ * AI-generated images, and approximate coordinates for each destination.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,7 +14,7 @@ import {
   type PopularDestinationsOutput,
   AiDestinationSuggestionSchema,
 } from '@/ai/types/popular-destinations-types';
-import { z } from 'zod';
+import { z } from 'genkit';
 
 // Schema for the AI's text-only output before image generation for each destination
 const AiDestinationSuggestionTextOnlySchema = AiDestinationSuggestionSchema.omit({ imageUri: true });
@@ -67,22 +67,24 @@ Suggest 3-4 globally popular or generally interesting travel destinations suitab
 Let the 'contextualNote' explain that these are generally popular suggestions.
 {{/if}}
 
-For each destination, provide:
+For each destination, you MUST provide:
 1.  'name': The common name of the destination (e.g., "Paris", "Kyoto", "Banff National Park").
 2.  'country': The country where it's located (e.g., "France", "Japan", "Canada").
 3.  'description': A captivating 2-3 sentence description highlighting its main appeal.
-4.  'hotelIdea': A conceptual hotel suggestion including:
+4.  'latitude': Approximate latitude of the destination (e.g., 48.8566 for Paris). Provide as a number.
+5.  'longitude': Approximate longitude of the destination (e.g., 2.3522 for Paris). Provide as a number.
+6.  'hotelIdea': A conceptual hotel suggestion including:
     *   'type': General type (e.g., "Charming Boutique Hotel", "Luxury Beachfront Resort", "Cozy Mountain Lodge", "Well-located Hostel").
     *   'priceRange': A typical price range per night (e.g., "$150-$300", "Under $75", "$400+").
-5.  'flightIdea': A conceptual flight suggestion including:
+7.  'flightIdea': A conceptual flight suggestion including:
     *   'description': General accessibility (e.g., "Major international airport, direct flights from North America & Europe", "Best reached by regional flight or scenic train").
     *   'priceRange': A typical roundtrip price range from major international hubs or relevant regional hubs (e.g., "$500-$900 from USA", "$100-$250 from nearby countries").
-6.  'imagePrompt': A concise text prompt (4-7 words) suitable for an image generation AI to create an iconic, high-quality, and visually appealing travel photograph of this destination (e.g., "Eiffel Tower Paris sunset", "Kyoto golden temple autumn", "Banff Moraine Lake turquoise").
+8.  'imagePrompt': A concise text prompt (4-7 words) suitable for an image generation AI to create an iconic, high-quality, and visually appealing travel photograph of this destination (e.g., "Eiffel Tower Paris sunset", "Kyoto golden temple autumn", "Banff Moraine Lake turquoise").
 
 Ensure the output strictly follows the defined JSON schema.
 Example for 'contextualNote' if location provided: "Suggestions are inspired by your current region."
 Example for 'contextualNote' if no location: "Here are some globally popular destinations to inspire you."
-Focus on variety and appeal.
+Focus on variety and appeal. Provide realistic, common latitude/longitude if known, otherwise make a plausible estimate for a major city within the destination.
 `,
 });
 
@@ -118,3 +120,4 @@ export const popularDestinationsFlow = ai.defineFlow(
 export async function getPopularDestinations(input: PopularDestinationsInput): Promise<PopularDestinationsOutput> {
   return popularDestinationsFlow(input);
 }
+
