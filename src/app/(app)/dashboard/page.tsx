@@ -27,12 +27,12 @@ import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulat
 import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder";
 import { AiCoTravelAgentPlaceholder } from "@/components/dashboard/AiCoTravelAgentPlaceholder";
 import { MoodEnergyOptimizerPlaceholder } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
-import { AiCalendarSyncPlaceholder } from "@/components/dashboard/AiCalendarSyncPlaceholder";
+import { AiCalendarSyncCard } from "@/components/dashboard/AiCalendarSyncPlaceholder"; // Updated import
 import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/HyperLocalLanguageCoachPlaceholder";
 import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTwinExplorerPlaceholder";
 import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder";
 import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
-import { PersonalizedAccessibilityScoutCard } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder"; // Updated import
+import { PersonalizedAccessibilityScoutCard } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder";
 import { LocalLegendNarratorCard } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
 import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
 import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
@@ -221,7 +221,7 @@ export default function DashboardPage() {
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.65s'}}>
-          <AiCalendarSyncPlaceholder />
+          <AiCalendarSyncCard />
         </div>
         
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.7s'}}>
