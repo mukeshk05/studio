@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -34,8 +35,8 @@ import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveC
 import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
 import { PersonalizedAccessibilityScoutPlaceholder } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder";
 import { LocalLegendNarratorPlaceholder } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
-import { PostTripSynthesizerPlaceholder } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
-import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder"; // Updated import
+import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder"; // Updated import
+import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
 import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
 
 
@@ -249,7 +250,7 @@ export default function DashboardPage() {
         </div>
         
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.0s'}}>
-          <PostTripSynthesizerPlaceholder />
+          <PostTripSynthesizerCard />
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.05s'}}>
