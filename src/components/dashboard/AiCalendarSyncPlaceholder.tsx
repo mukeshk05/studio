@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CalendarCheckIcon, CalendarDaysIcon, SparklesIcon, PlaneIcon, Loader2Icon, InfoIcon, ExternalLinkIcon } from 'lucide-react';
+import { CalendarCheck, CalendarDays, Sparkles, Plane, Loader2, Info, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image'; // Kept for consistency, though not used dynamically here
 import { Separator } from '@/components/ui/separator';
@@ -153,7 +153,7 @@ export function AiCalendarSyncCard() {
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center text-lg text-card-foreground">
-            <CalendarCheckIcon className="w-6 h-6 mr-2 text-cyan-400" />
+            <CalendarCheck className="w-6 h-6 mr-2 text-cyan-400" />
             AI Calendar SyncUp
           </CardTitle>
         </div>
@@ -180,13 +180,13 @@ export function AiCalendarSyncCard() {
             size="lg"
             className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
           >
-            {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+            {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
             {isLoading ? "AI Analyzing Schedule..." : "Find Trip Opportunities (Simulated)"}
           </Button>
 
           {isLoading && !freeSlots.length && (
             <div className="text-center py-6 text-muted-foreground">
-              <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-cyan-400" />
+              <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-cyan-400" />
               <p>Aura is checking your (simulated) availability...</p>
             </div>
           )}
@@ -199,14 +199,14 @@ export function AiCalendarSyncCard() {
             <div className="mt-6 space-y-5">
               <Separator className="my-4 bg-cyan-500/30" />
               <h3 className="text-md font-semibold text-card-foreground flex items-center">
-                 <SparklesIcon className="w-5 h-5 mr-2 text-primary" /> Aura's Proactive Trip Ideas:
+                 <Sparkles className="w-5 h-5 mr-2 text-primary" /> Aura's Proactive Trip Ideas:
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {tripSuggestions.map((suggestion) => (
                   <Card key={suggestion.id} className={cn(innerGlassEffectClasses, "overflow-hidden transform hover:scale-[1.01] transition-transform duration-200")}>
                     <CardHeader className="pb-2 pt-3">
                       <CardTitle className="text-sm font-semibold text-accent flex items-center">
-                        <PlaneIcon className="w-4 h-4 mr-2" />
+                        <Plane className="w-4 h-4 mr-2" />
                         {suggestion.suggestionTitle}
                       </CardTitle>
                       <Badge variant="outline" className="text-xs w-fit mt-1 border-cyan-500/50 text-cyan-400 bg-cyan-500/10">
@@ -225,7 +225,7 @@ export function AiCalendarSyncCard() {
                         className="w-full glass-interactive text-primary hover:bg-primary/20 hover:text-primary-foreground"
                         onClick={() => handlePlanTrip(suggestion)}
                       >
-                        <ExternalLinkIcon className="w-4 h-4 mr-2" /> Plan This Trip
+                        <ExternalLink className="w-4 h-4 mr-2" /> Plan This Trip
                       </Button>
                     </CardFooter>
                   </Card>
@@ -237,7 +237,7 @@ export function AiCalendarSyncCard() {
       </CardContent>
       <CardFooter className="pt-4">
         <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
-          <InfoIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+          <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
           This is a conceptual frontend simulation. Actual calendar integration and AI analysis would require backend services.
         </p>
       </CardFooter>

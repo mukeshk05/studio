@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HeartPulseIcon, UsersIcon, SparklesIcon, SmileIcon, MessageSquareHeartIcon } from 'lucide-react';
+import { HeartPulse, Users, Sparkles, Smile, MessageSquareHeart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -15,8 +15,8 @@ export function AffectiveComputingPlaceholder() {
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center text-lg text-card-foreground">
             <span className="relative mr-2">
-              <HeartPulseIcon className="w-6 h-6 text-rose-400" />
-              <SmileIcon className="w-3.5 h-3.5 text-rose-600 absolute -bottom-1 -right-1 opacity-90" />
+              <HeartPulse className="w-6 h-6 text-rose-400" />
+              <Smile className="w-3.5 h-3.5 text-rose-600 absolute -bottom-1 -right-1 opacity-90" />
             </span>
             Affective Group Vibe Optimizer
           </CardTitle>
@@ -43,16 +43,16 @@ export function AffectiveComputingPlaceholder() {
             This futuristic feature envisions AI analyzing anonymized, aggregated group inputs (like simple mood check-ins, or in the distant future, consensual wearable data). If it senses dipping energy, rising stress, or diverging interests, Aura AI could proactively suggest:
           </p>
           <ul className="list-none space-y-1 pl-2 text-xs text-muted-foreground">
-            <li className="flex items-start"><SparklesIcon className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0 text-rose-400" /> A universally appealing break (e.g., "Time for a scenic coffee stop?").</li>
-            <li className="flex items-start"><MessageSquareHeartIcon className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0 text-rose-400" /> A light-hearted shared activity or game suitable for the location.</li>
-            <li className="flex items-start"><UsersIcon className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0 text-rose-400" /> Optional, smaller group activities if diverse preferences emerge, then reconvening.</li>
+            <li className="flex items-start"><Sparkles className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0 text-rose-400" /> A universally appealing break (e.g., "Time for a scenic coffee stop?").</li>
+            <li className="flex items-start"><MessageSquareHeart className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0 text-rose-400" /> A light-hearted shared activity or game suitable for the location.</li>
+            <li className="flex items-start"><Users className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0 text-rose-400" /> Optional, smaller group activities if diverse preferences emerge, then reconvening.</li>
           </ul>
           <p className="mt-2">
              The goal is to foster better group dynamics and ensure everyone enjoys the journey through intelligent, empathetic, and timely suggestions tailored to the group's combined travel personas.
           </p>
           <div className="flex items-center justify-center py-2 gap-3 mt-3">
-            <UsersIcon className="w-7 h-7 text-rose-400/50 animate-pulse" />
-            <HeartPulseIcon className="w-8 h-8 text-primary/40 absolute animate-ping" style={{ animationDuration: '3.2s' }}/>
+            <Users className="w-7 h-7 text-rose-400/50 animate-pulse" />
+            <HeartPulse className="w-8 h-8 text-primary/40 absolute animate-ping" style={{ animationDuration: '3.2s' }}/>
           </div>
           <p className="text-xs text-muted-foreground text-center">
             Enhancing shared experiences by understanding and adapting to the group's collective emotional state.

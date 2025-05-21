@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
-import { LanguagesIcon, MicIcon, MessageSquareQuoteIcon, InfoIcon, LightbulbIcon, SparklesIcon } from 'lucide-react';
+import { Languages, Mic, MessageSquareQuote, Info, Lightbulb, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image'; // Keep for consistency, though not used for dynamic images here
 import { Separator } from '@/components/ui/separator';
@@ -124,7 +124,7 @@ export function HyperLocalLanguageCoachPlaceholder() {
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center text-lg text-card-foreground">
-            <LanguagesIcon className="w-6 h-6 mr-2 text-lime-400" />
+            <Languages className="w-6 h-6 mr-2 text-lime-400" />
             AI Hyper-Local Language Coach
           </CardTitle>
         </div>
@@ -166,7 +166,7 @@ export function HyperLocalLanguageCoachPlaceholder() {
           {currentExamples.length > 0 && (
             <div className={cn("mt-4 space-y-3 animate-fade-in", innerGlassEffectClasses, "p-4 rounded-lg")}>
               <h3 className="text-md font-semibold text-card-foreground flex items-center">
-                <SparklesIcon className="w-5 h-5 mr-2 text-primary" />
+                <Sparkles className="w-5 h-5 mr-2 text-primary" />
                 Examples for {selectedContext} ({selectedLanguage}):
               </h3>
               {currentExamples.map((ex, index) => (
@@ -183,25 +183,25 @@ export function HyperLocalLanguageCoachPlaceholder() {
 
           {!selectedLanguage && !selectedContext && (
             <div className="text-center py-6 text-muted-foreground">
-              <LightbulbIcon className="w-10 h-10 mx-auto mb-2 opacity-50"/>
+              <Lightbulb className="w-10 h-10 mx-auto mb-2 opacity-50"/>
               <p>Select a language and context to see simulated hyper-local phrases and insights.</p>
             </div>
           )}
            {selectedLanguage && availableContexts.length > 0 && !selectedContext && (
             <div className="text-center py-6 text-muted-foreground">
-              <LightbulbIcon className="w-10 h-10 mx-auto mb-2 opacity-50"/>
+              <Lightbulb className="w-10 h-10 mx-auto mb-2 opacity-50"/>
               <p>Now, please select a local context for {selectedLanguage}.</p>
             </div>
           )}
            {selectedLanguage && availableContexts.length === 0 && (
             <div className="text-center py-6 text-muted-foreground">
-              <InfoIcon className="w-10 h-10 mx-auto mb-2 opacity-50"/>
+              <Info className="w-10 h-10 mx-auto mb-2 opacity-50"/>
               <p>No specific local contexts defined for {selectedLanguage} in this demo yet.</p>
             </div>
           )}
            {selectedLanguage && selectedContext && currentExamples.length === 0 && (
             <div className="text-center py-6 text-muted-foreground">
-              <InfoIcon className="w-10 h-10 mx-auto mb-2 opacity-50"/>
+              <Info className="w-10 h-10 mx-auto mb-2 opacity-50"/>
               <p>No phrase examples available for "{selectedContext}" in {selectedLanguage} in this demo.</p>
             </div>
           )}
@@ -209,12 +209,10 @@ export function HyperLocalLanguageCoachPlaceholder() {
       </CardContent>
       <CardFooter className="pt-4">
         <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
-          <InfoIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+          <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
           This is a conceptual demonstration. Full AI dialect coaching and pronunciation feedback is a future vision.
         </p>
       </CardFooter>
     </Card>
   );
 }
-
-    

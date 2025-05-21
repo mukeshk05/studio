@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BrainCircuitIcon, ClockIcon, LayersIcon, MapIcon, UsersIcon, SunIcon, CurlyBracesIcon, InfoIcon, LightbulbIcon, ImageOffIcon,LoaderCircle } from 'lucide-react';
+import { BrainCircuit, Clock, Layers, MapIcon, Users, Sun, CurlyBraces, Info, Lightbulb, ImageOff, LoaderCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
@@ -97,8 +97,8 @@ export function DigitalTwinExplorerPlaceholder() {
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center text-lg text-card-foreground">
             <span className="relative mr-2">
-              <LayersIcon className="w-6 h-6 text-sky-400" />
-              <CurlyBracesIcon className="w-3.5 h-3.5 text-sky-600 absolute -bottom-1 -right-1 opacity-80" />
+              <Layers className="w-6 h-6 text-sky-400" />
+              <CurlyBraces className="w-3.5 h-3.5 text-sky-600 absolute -bottom-1 -right-1 opacity-80" />
             </span>
             Predictive 'Digital Twin' Explorer
           </CardTitle>
@@ -142,21 +142,21 @@ export function DigitalTwinExplorerPlaceholder() {
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex items-start">
-                  <UsersIcon className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-sky-400" />
+                  <Users className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-sky-400" />
                   <div>
                     <span className="font-medium text-card-foreground/90">Simulated Crowd Level: </span>
                     <span className="text-muted-foreground">{currentLandmark.simulatedData.crowdLevel}</span>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <SunIcon className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-sky-400" />
+                  <Sun className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-sky-400" />
                   <div>
                     <span className="font-medium text-card-foreground/90">Predicted Ambiance: </span>
                     <span className="text-muted-foreground">{currentLandmark.simulatedData.ambiance}</span>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <ClockIcon className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-sky-400" />
+                  <Clock className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-sky-400" />
                   <div>
                     <span className="font-medium text-card-foreground/90">Best Time to Visit (Conceptual): </span>
                     <span className="text-muted-foreground">{currentLandmark.simulatedData.bestTimeToVisit}</span>
@@ -164,7 +164,7 @@ export function DigitalTwinExplorerPlaceholder() {
                 </div>
                 {currentLandmark.simulatedData.notes && (
                   <div className="flex items-start">
-                    <LightbulbIcon className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-yellow-400" />
+                    <Lightbulb className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-yellow-400" />
                     <div>
                       <span className="font-medium text-card-foreground/90">Aura's Tip: </span>
                       <span className="text-muted-foreground">{currentLandmark.simulatedData.notes}</span>
@@ -176,7 +176,7 @@ export function DigitalTwinExplorerPlaceholder() {
           )}
            {!isLoading && !currentLandmark && selectedLandmarkKey && (
             <div className="text-center py-6 text-muted-foreground">
-                <ImageOffIcon className="w-10 h-10 mx-auto mb-2 opacity-50"/>
+                <ImageOff className="w-10 h-10 mx-auto mb-2 opacity-50"/>
                 <p>Could not load data for the selected landmark.</p>
             </div>
            )}
@@ -184,7 +184,7 @@ export function DigitalTwinExplorerPlaceholder() {
       </CardContent>
       <CardFooter className="pt-3">
         <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
-          <InfoIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+          <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
           This is a conceptual demonstration. All "Digital Twin" data is simulated for illustrative purposes.
         </p>
       </CardFooter>

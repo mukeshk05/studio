@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, InfoIcon, ExternalLinkIcon, Wand2Icon } from 'lucide-react';
+import { Loader2, Sparkles, Info, ExternalLink, Wand2 } from 'lucide-react';
 import { generateSmartBundles } from '@/ai/flows/smart-bundle-flow';
 import type { SmartBundleInput, SmartBundleOutput } from '@/ai/types/smart-bundle-types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,7 +63,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
     <Card className={cn(glassCardClasses, "w-full border-primary/20")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <Wand2Icon className="w-6 h-6 mr-2 text-primary" />
+          <Wand2 className="w-6 h-6 mr-2 text-primary" />
           Aura AI: Predictive Preference Fusion
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -97,13 +97,13 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Let Aura AI Suggest Ideas
         </Button>
 
         {isLoading && !suggestions && (
           <div className="text-center py-4 text-muted-foreground">
-            <Loader2Icon className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
             <p>Aura AI is fusing preferences and crafting ideas...</p>
           </div>
         )}
@@ -115,13 +115,13 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
               <Card key={index} className={cn(glassCardClasses, "border-accent/30 animate-fade-in-up")} style={{animationDelay: `${index * 100}ms`}}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-md text-accent flex items-center">
-                     <SparklesIcon className="w-5 h-5 mr-2"/>
+                     <Sparkles className="w-5 h-5 mr-2"/>
                     {suggestion.bundleName}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-2">
                   <p className="text-muted-foreground flex items-start">
-                    <InfoIcon className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-primary" />
+                    <Info className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-primary" />
                     <span className="font-semibold mr-1 text-card-foreground/90">Aura's Reasoning:</span> {suggestion.reasoning}
                   </p>
                   <div className={cn(glassCardClasses, "p-3 rounded-md border-border/40 bg-card/30 dark:bg-card/50")}>
@@ -138,7 +138,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
                     className="w-full text-lg py-3 glass-interactive"
                     onClick={() => onPlanTripFromBundle(suggestion.tripIdea)}
                     >
-                    <ExternalLinkIcon className="mr-2 h-4 w-4" />
+                    <ExternalLink className="mr-2 h-4 w-4" />
                     Plan this Trip
                   </Button>
                 </CardFooter>
