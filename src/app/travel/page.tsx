@@ -185,7 +185,7 @@ export default function TravelPage() {
     setIsDialogOpen(true);
     if (map && window.google && window.google.maps && dest.latitude && dest.longitude) {
       console.log(`Panning and zooming to AI destination: ${dest.name}`);
-      const targetLatLng = { lat: dest.latitude, lng: dest.longitude };
+      const targetLatLng = new window.google.maps.LatLng(dest.latitude, dest.longitude);
       
       map.panTo(targetLatLng);
       
@@ -283,7 +283,7 @@ export default function TravelPage() {
       map.fitBounds(bounds);
       console.log("Map bounds fitted to AI markers.");
       
-      const listenerId = google.maps.event.addListenerOnce(map, 'idle', () => {
+      const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
         if (map.getZoom()! > 15) { 
             map.setZoom(15);
         }
@@ -567,7 +567,13 @@ export default function TravelPage() {
                     <Button 
                         onClick={() => handleInitiatePlanningFromTravelPage(selectedMapDestination)}
                         size="lg" 
-                        className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 mt-4"
+                        className={cn(
+                            "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 mt-4",
+                            "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+                            "hover:from-accent hover:to-primary",
+                            "focus-visible:ring-4 focus-visible:ring-primary/40",
+                            "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+                        )}
                     >
                         <ExternalLink className="mr-2 h-5 w-5" />
                         Plan a Trip to {selectedMapDestination.name}
@@ -591,7 +597,7 @@ export default function TravelPage() {
 interface AiDestinationCardProps {
   destination: AiDestinationSuggestion;
   onSelect: () => void;
-  onPlanTrip: () => void; // New prop
+  onPlanTrip: () => void; 
 }
 
 function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationCardProps) {
@@ -602,7 +608,6 @@ function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationC
   return (
     <Card 
         className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col cursor-pointer")}
-        // Keep onSelect for opening dialog if that's still a separate interaction for the card itself
         onClick={onSelect} 
     >
       <div className="relative w-full aspect-[16/10]">
@@ -643,9 +648,15 @@ function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationC
       <CardFooter className="p-3 pt-2">
           <Button 
             size="sm" 
-            className="w-full glass-interactive text-primary hover:bg-primary/20 hover:text-primary-foreground" 
+            className={cn(
+                "w-full text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+                "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+                "hover:from-accent hover:to-primary",
+                "focus-visible:ring-4 focus-visible:ring-primary/40",
+                "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+            )}
             onClick={(e) => {
-                e.stopPropagation(); // Prevent card's onSelect from firing if button is clicked
+                e.stopPropagation(); 
                 onPlanTrip();
             }}
           >
@@ -687,5 +698,7 @@ function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search d
     </form>
   );
 }
+
+    
 
     
