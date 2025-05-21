@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -34,8 +33,8 @@ import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTw
 import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder";
 import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
 import { PersonalizedAccessibilityScoutPlaceholder } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder";
-import { LocalLegendNarratorPlaceholder } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
-import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder"; // Updated import
+import { LocalLegendNarratorCard } from "@/components/dashboard/LocalLegendNarratorPlaceholder"; // Updated import
+import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
 import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
 import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
 
@@ -246,7 +245,7 @@ export default function DashboardPage() {
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.95s'}}>
-          <LocalLegendNarratorPlaceholder />
+          <LocalLegendNarratorCard />
         </div>
         
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.0s'}}>
