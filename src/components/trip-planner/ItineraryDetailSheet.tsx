@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetClose,
+  SheetClose as SheetDialogClose, // Renamed to avoid conflict if AlertDialogClose is used
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
@@ -23,6 +23,7 @@ import Image from 'next/image';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogClose, // Added AlertDialogClose
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -100,7 +101,6 @@ export function ItineraryDetailSheet({
         description: "Could not fetch AR preview insights. Please try again.",
         variant: "destructive",
       });
-      // Set a default error state for arPreviewData if needed
       setArPreviewData({
         sceneDescription: "Could not load AR insights at this moment.",
         moodTags: [],
@@ -118,7 +118,7 @@ export function ItineraryDetailSheet({
       handleFetchArPreview();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isArVrDialogOpen, isOpen, itinerary.destination]); // Rerun if dialog opens or itinerary destination changes
+  }, [isArVrDialogOpen, isOpen, itinerary.destination, arPreviewData, isLoadingArPreview]); // Added dependencies
 
   const arImageHint = arPreviewData?.generatedImageUri?.startsWith('https://placehold.co') 
     ? (arPreviewData?.generatedImagePrompt || itinerary.destination) 
@@ -138,11 +138,11 @@ export function ItineraryDetailSheet({
                   Detailed plan for your trip from {itinerary.travelDates}. Estimated cost: ${itinerary.estimatedCost.toLocaleString()}.
                 </SheetDescription>
               </div>
-              <SheetClose asChild>
+              <SheetDialogClose asChild>
                 <Button variant="ghost" size="icon" className="ml-2 text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
                   <X className="h-5 w-5" />
                 </Button>
-              </SheetClose>
+              </SheetDialogClose>
             </div>
           </SheetHeader>
           <ScrollArea className="flex-grow">
@@ -207,8 +207,9 @@ export function ItineraryDetailSheet({
               </Button>
               <Button
                 onClick={() => {
-                  setArPreviewData(null); // Clear previous data for a fresh fetch
+                  setArPreviewData(null); 
                   setIsArVrDialogOpen(true);
+                  // handleFetchArPreview will be called by useEffect when isArVrDialogOpen becomes true
                 }}
                 variant="default" 
                 size="lg"
