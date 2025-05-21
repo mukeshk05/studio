@@ -33,6 +33,7 @@ export interface PriceTrackerEntry {
   itemName: string;
   targetPrice: number;
   currentPrice: number; 
+  travelDates?: string; // Added optional travelDates
   lastChecked: string; 
   createdAt?: any; 
   alertStatus?: {
@@ -69,3 +70,4 @@ export type AITripPlannerInput = AITripPlannerInputOriginal & {
   weatherContext?: string | null;
   riskContext?: string | null;
 };
+

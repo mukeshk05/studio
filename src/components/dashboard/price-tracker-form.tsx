@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trackPrice, type PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import React from "react";
-import { Loader2Icon, BellPlusIcon, PlaneIcon, HotelIcon, DollarSignIcon, TagIcon } from "lucide-react";
+import { Loader2Icon, BellPlusIcon, PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +32,7 @@ const formSchema = z.object({
   itemName: z.string().min(2, "Item name must be at least 2 characters."),
   targetPrice: z.coerce.number().positive("Target price must be a positive number."),
   currentPrice: z.coerce.number().positive("Current price must be a positive number."),
+  travelDates: z.string().optional(), // Added optional travelDates
 });
 
 export function PriceTrackerForm() {
@@ -44,6 +45,7 @@ export function PriceTrackerForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       itemName: "",
+      travelDates: "",
     },
   });
 
@@ -62,6 +64,7 @@ export function PriceTrackerForm() {
         itemName: values.itemName,
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
+        travelDates: values.travelDates || undefined, // Save if provided
       };
 
       await addTrackedItemMutation.mutateAsync(
@@ -141,6 +144,19 @@ export function PriceTrackerForm() {
                 </FormItem>
               )}
             />
+             <FormField
+              control={form.control}
+              name="travelDates"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center text-card-foreground/90"><CalendarIcon className="w-4 h-4 mr-2" />Travel Dates (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Dec 10-17, Next Summer, Mid-July" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -197,3 +213,4 @@ export function PriceTrackerForm() {
     </Card>
   );
 }
+

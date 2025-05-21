@@ -5,7 +5,7 @@ import type { PriceTrackerEntry, PriceForecast } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon, TrendingUpIcon, LineChartIcon } from "lucide-react";
+import { PlaneIcon, HotelIcon, DollarSignIcon, TagIcon, Trash2Icon, RefreshCwIcon, BellIcon, SparklesIcon, Loader2Icon, TrendingUpIcon, LineChartIcon, CalendarIcon } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
@@ -143,7 +143,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         itemType: item.itemType,
         itemName: item.itemName,
         currentPrice: item.currentPrice,
-        travelDates: item.itemName, 
+        travelDates: item.travelDates || "Not specified", // Use actual travelDates
       };
       const result = await getPriceForecast(forecastInput);
       const newForecast: PriceForecast = {
@@ -190,6 +190,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         </CardHeader>
         <CardContent className="text-sm space-y-2 flex-grow text-card-foreground/90">
           <p className="flex items-center"><TagIcon className="w-4 h-4 mr-2 text-muted-foreground" />Type: <span className="font-medium ml-1">{item.itemType}</span></p>
+          {item.travelDates && <p className="flex items-center"><CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />Dates: <span className="font-medium ml-1">{item.travelDates}</span></p>}
           <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Target: <span className="font-medium ml-1">${item.targetPrice.toLocaleString()}</span></p>
           <p className="flex items-center"><DollarSignIcon className="w-4 h-4 mr-2 text-muted-foreground" />Current: <span className="font-medium ml-1">${item.currentPrice.toLocaleString()}</span></p>
           
@@ -350,3 +351,4 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     </>
   );
 }
+
