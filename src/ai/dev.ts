@@ -23,4 +23,5 @@ import '@/ai/flows/co-travel-agent-flow.ts';
 import '@/ai/flows/ai-ar-preview-flow.ts';
 import '@/ai/flows/what-if-simulator-flow.ts';
 import '@/ai/flows/smart-map-concept-flow.ts';
-import '@/ai/flows/authenticity-verifier-flow.ts'; // Added new flow
+import '@/ai/flows/authenticity-verifier-flow.ts';
+import '@/ai/flows/serendipity-engine-flow.ts'; // Added new flow
