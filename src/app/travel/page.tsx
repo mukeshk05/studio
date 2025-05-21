@@ -52,73 +52,16 @@ const modernMapStyle = [
 ];
 
 interface CustomMarkerOverlayProps {
-  latlng: google.maps.LatLngLiteral;
-  map: google.maps.Map;
-  destination: typeof popularDestinations[0];
-  onClick: () => void;
-}
-
-class CustomMarkerOverlay extends google.maps.OverlayView {
-  private latlng: google.maps.LatLng;
-  private div: HTMLDivElement | null = null;
-  private destination: typeof popularDestinations[0];
-  private onClick: () => void;
-
-  constructor(props: CustomMarkerOverlayProps) {
-    super();
-    this.latlng = new google.maps.LatLng(props.latlng.lat, props.latlng.lng);
-    this.destination = props.destination;
-    this.onClick = props.onClick;
-    this.setMap(props.map);
+    latlng: google.maps.LatLngLiteral;
+    map: google.maps.Map;
+    destination: typeof popularDestinations[0];
+    onClick: () => void;
   }
-
-  onAdd() {
-    this.div = document.createElement('div');
-    this.div.className = 'custom-map-marker';
-    this.div.title = this.destination.name;
-    
-    const pulse = document.createElement('div');
-    pulse.className = 'custom-map-marker-pulse';
-    this.div.appendChild(pulse);
-
-    this.div.addEventListener('click', this.onClick);
-
-    const panes = this.getPanes();
-    if (panes) {
-      panes.overlayMouseTarget.appendChild(this.div);
-    }
-  }
-
-  draw() {
-    const projection = this.getProjection();
-    if (!projection || !this.div) {
-      return;
-    }
-    const point = projection.fromLatLngToDivPixel(this.latlng);
-    if (point) {
-      this.div.style.left = point.x + 'px';
-      this.div.style.top = point.y + 'px';
-    }
-  }
-
-  onRemove() {
-    if (this.div) {
-      this.div.removeEventListener('click', this.onClick);
-      this.div.parentNode?.removeChild(this.div);
-      this.div = null;
-    }
-  }
-  
-  getPosition() {
-    return this.latlng;
-  }
-}
-
 
 export default function TravelPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [markers, setMarkers] = useState<CustomMarkerOverlay[]>([]);
+  const markersRef = useRef<any[]>([]); // Use any for OverlayView if CustomMarkerOverlay not defined yet
   const mapRef = useRef<HTMLDivElement>(null);
   const [selectedDestination, setSelectedDestination] = useState<(typeof popularDestinations)[0] | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -129,7 +72,7 @@ export default function TravelPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const initGoogleMapsApi = useCallback(() => {
-    console.log("Travel Page: Google Maps API script loaded, window.google:", window.google);
+    console.log("Travel Page: Google Maps API script has loaded, window.google:", window.google);
     setIsMapsScriptLoaded(true);
   }, []);
 
@@ -150,15 +93,13 @@ export default function TravelPage() {
     const scriptId = 'google-maps-travel-page-script';
     if (document.getElementById(scriptId)) {
       console.log("Travel Page: Google Maps script tag already present.");
-      // If script is present but not loaded, initGoogleMapsApi might not have been called
-      // Or it might be loading. We rely on isMapsScriptLoaded state.
       return;
     }
     
     console.log("Travel Page: Loading Google Maps API script...");
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiTravelPage`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiTravelPage&libraries=geometry,marker`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
@@ -171,14 +112,13 @@ export default function TravelPage() {
 
     return () => {
       delete (window as any).initGoogleMapsApiTravelPage;
-      // Consider removing the script tag if component unmounts, though usually not critical
     };
   }, [apiKey, initGoogleMapsApi, isMapsScriptLoaded]);
 
 
   useEffect(() => {
-    if (isMapsScriptLoaded && mapRef.current && !map) {
-      console.log("Travel Page: Maps API script loaded, initializing map...");
+    if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing) {
+      console.log("Travel Page: Maps API script loaded, attempting to initialize map...");
       setIsMapInitializing(true);
       if (!mapRef.current) {
         console.error("Travel Page: Map container ref is not available at initialization.");
@@ -191,15 +131,17 @@ export default function TravelPage() {
           center: { lat: 20, lng: 0 },
           zoom: 2,
           styles: modernMapStyle,
+          mapTypeControl: true,
           mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-            position: google.maps.ControlPosition.TOP_RIGHT,
+            style: window.google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: window.google.maps.ControlPosition.TOP_RIGHT,
           },
           streetViewControl: false,
           fullscreenControl: true,
+          zoomControl: true,
         });
         setMap(initialMap);
-        console.log("Travel Page: Map initialized:", initialMap);
+        console.log("Travel Page: Map initialized successfully:", initialMap);
       } catch (error) {
         console.error("Travel Page: Error initializing map:", error);
         setMapsApiError("Error initializing the map.");
@@ -207,75 +149,142 @@ export default function TravelPage() {
         setIsMapInitializing(false);
       }
     }
-  }, [isMapsScriptLoaded, map, apiKey]);
+  }, [isMapsScriptLoaded, map, apiKey, isMapInitializing]);
 
 
   const handleSelectDestination = useCallback((dest: typeof popularDestinations[0]) => {
     setSelectedDestination(dest);
     setIsDialogOpen(true);
-    if (map) {
+    if (map && window.google && window.google.maps) {
       const targetLatLng = { lat: dest.lat, lng: dest.lng };
       const currentZoom = map.getZoom() || 2;
-      const targetZoom = 8; // Zoom level for viewing a city
+      const targetZoom = 8; 
 
-      // Smooth pan and zoom sequence
       if (Math.abs(currentZoom - targetZoom) > 2 || 
-          google.maps.geometry.spherical.computeDistanceBetween(map.getCenter()!, new google.maps.LatLng(targetLatLng)) > 1000000 // If very far
+          (map.getCenter() && window.google.maps.geometry && window.google.maps.geometry.spherical.computeDistanceBetween(map.getCenter()!, new window.google.maps.LatLng(targetLatLng)) > 1000000)
          ) {
-         map.setZoom(Math.min(currentZoom, 4)); // Quickly zoom out if far or zoom levels are very different
+         map.setZoom(Math.min(currentZoom, 4)); 
       }
       
       map.panTo(targetLatLng);
 
-      // Listen for idle event to ensure pan is mostly complete before zooming
-      const listener = google.maps.event.addListenerOnce(map, 'idle', () => {
+      const listener = window.google.maps.event.addListenerOnce(map, 'idle', () => {
           map.setZoom(targetZoom);
       });
-      // Fallback in case idle doesn't fire quickly (e.g., map already centered)
       setTimeout(() => {
         if (map.getZoom() !== targetZoom) {
             map.setZoom(targetZoom);
         }
-        google.maps.event.removeListener(listener);
-      }, 800); // Adjust delay as needed
+        window.google.maps.event.removeListener(listener);
+      }, 800); 
     }
   }, [map]);
 
   useEffect(() => {
-    if (map && popularDestinations.length > 0 && window.google && window.google.maps && window.google.maps.OverlayView) {
-      markers.forEach(marker => marker.setMap(null)); // Clear existing custom overlays
-      const newMarkers: CustomMarkerOverlay[] = [];
+    if (!map || !isMapsScriptLoaded || !(window.google && window.google.maps && window.google.maps.OverlayView)) {
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
+      return; 
+    }
 
-      popularDestinations.forEach(dest => {
-        const marker = new CustomMarkerOverlay({
-            latlng: { lat: dest.lat, lng: dest.lng },
-            map: map,
-            destination: dest,
-            onClick: () => handleSelectDestination(dest)
-        });
-        newMarkers.push(marker);
-      });
-      setMarkers(newMarkers);
+    // Define CustomMarkerOverlay class INSIDE this useEffect, after google.maps.OverlayView is confirmed
+    class CustomMarkerOverlay extends window.google.maps.OverlayView {
+        private latlng: google.maps.LatLng;
+        private div: HTMLDivElement | null = null;
+        private destination: typeof popularDestinations[0];
+        private onClick: () => void;
 
-      if (newMarkers.length > 0) {
-        const bounds = new window.google.maps.LatLngBounds();
-        popularDestinations.forEach(dest => {
-          bounds.extend(new window.google.maps.LatLng(dest.lat, dest.lng));
-        });
-        map.fitBounds(bounds);
-        if (newMarkers.length === 1) {
-            map.setZoom(6);
-        } else {
-             const currentZoom = map.getZoom() || 2;
-             if (currentZoom > 5) map.setZoom(Math.max(2, currentZoom -1)); 
+        constructor(props: CustomMarkerOverlayProps) {
+            super();
+            this.latlng = new window.google.maps.LatLng(props.latlng.lat, props.latlng.lng);
+            this.destination = props.destination;
+            this.onClick = props.onClick;
+            this.setMap(props.map);
         }
+
+        onAdd() {
+            this.div = document.createElement('div');
+            this.div.className = 'custom-map-marker';
+            this.div.title = this.destination.name;
+            
+            const pulse = document.createElement('div');
+            pulse.className = 'custom-map-marker-pulse';
+            this.div.appendChild(pulse);
+
+            this.div.addEventListener('click', this.onClick);
+
+            const panes = this.getPanes();
+            if (panes && panes.overlayMouseTarget) { // Check overlayMouseTarget
+                panes.overlayMouseTarget.appendChild(this.div);
+            } else {
+                console.warn("CustomMarkerOverlay: overlayMouseTarget pane is not available.");
+                // Fallback or alternative pane if needed, though overlayMouseTarget is standard
+            }
+        }
+
+        draw() {
+            const projection = this.getProjection();
+            if (!projection || !this.div) {
+            return;
+            }
+            const point = projection.fromLatLngToDivPixel(this.latlng);
+            if (point) {
+            this.div.style.left = point.x + 'px';
+            this.div.style.top = point.y + 'px';
+            }
+        }
+
+        onRemove() {
+            if (this.div) {
+            this.div.removeEventListener('click', this.onClick);
+            if (this.div.parentNode) {
+                this.div.parentNode.removeChild(this.div);
+            }
+            this.div = null;
+            }
+        }
+        
+        getPosition() {
+            return this.latlng;
+        }
+    }
+
+
+    // Clear existing custom overlays
+    markersRef.current.forEach(marker => marker.setMap(null)); 
+    const newMarkers: any[] = []; // Use any[] to store OverlayView instances
+
+    popularDestinations.forEach(dest => {
+      const marker = new CustomMarkerOverlay({ // Instantiate the locally defined class
+          latlng: { lat: dest.lat, lng: dest.lng },
+          map: map,
+          destination: dest,
+          onClick: () => handleSelectDestination(dest)
+      });
+      newMarkers.push(marker);
+    });
+    markersRef.current = newMarkers;
+
+    if (newMarkers.length > 0 && window.google && window.google.maps) {
+      const bounds = new window.google.maps.LatLngBounds();
+      popularDestinations.forEach(dest => {
+        bounds.extend(new window.google.maps.LatLng(dest.lat, dest.lng));
+      });
+      map.fitBounds(bounds);
+      if (newMarkers.length === 1) {
+          map.setZoom(6);
+      } else {
+           const currentZoom = map.getZoom() || 2;
+           if (currentZoom > 5) map.setZoom(Math.max(2, currentZoom -1)); 
       }
     }
+    
+    // Cleanup function for the useEffect
     return () => {
-        markers.forEach(marker => marker.setMap(null));
+        markersRef.current.forEach(marker => marker.setMap(null));
+        markersRef.current = [];
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, popularDestinations, handleSelectDestination]); // handleSelectDestination is stable due to useCallback
+  }, [map, isMapsScriptLoaded, popularDestinations, handleSelectDestination]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -475,3 +484,6 @@ function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search d
     </form>
   );
 }
+
+    
+    
