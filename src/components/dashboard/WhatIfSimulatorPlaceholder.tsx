@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader, SparklesIcon, GitCompareArrowsIcon, ImageOffIcon, InfoIcon, MapPinIcon, LightbulbIcon } from 'lucide-react';
-import { getWhatIfAnalysis } from "@/ai/flows/what-if-simulator-flow";
+import { getWhatIfAnalysis } from "@/ai/flows/what-if-simulator-flow.ts";
 import type { WhatIfSimulatorInput, WhatIfSimulatorOutput, DestinationAnalysis } from '@/ai/types/what-if-simulator-types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
