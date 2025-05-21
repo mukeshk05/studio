@@ -19,5 +19,7 @@ import '@/ai/flows/post-trip-synthesizer-flow.ts';
 import '@/ai/flows/local-legend-narrator-flow.ts';
 import '@/ai/flows/personalized-accessibility-scout-flow.ts';
 import '@/ai/flows/mood-energy-optimizer-flow.ts';
-import '@/ai/flows/co-travel-agent-flow.ts'; // Added new flow
-
+import '@/ai/flows/co-travel-agent-flow.ts';
+import '@/ai/flows/ai-ar-preview-flow.ts';
+import '@/ai/flows/what-if-simulator-flow.ts';
+import '@/ai/flows/smart-map-concept-flow.ts'; // Added new flow
