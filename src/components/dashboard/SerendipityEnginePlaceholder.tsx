@@ -156,7 +156,7 @@ export function SerendipityEnginePlaceholder() {
           </div>
         )}
 
-        {suggestions && !isLoading && (
+        {suggestions && suggestions.length > 0 && !isLoading && (
           <div className="mt-6 space-y-5">
             <Separator className="my-4 bg-accent/30" />
             <h3 className="text-lg font-semibold text-card-foreground flex items-center">
@@ -169,6 +169,11 @@ export function SerendipityEnginePlaceholder() {
             </div>
           </div>
         )}
+         {suggestions && suggestions.length === 0 && !isLoading && (
+          <div className="text-center py-4 text-muted-foreground">
+            <p>Aura AI couldn't find any special serendipitous moments with the current inputs. Try being more general or specific!</p>
+          </div>
+        )}
       </CardContent>
        <CardFooter className="pt-2">
          <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
@@ -179,4 +184,3 @@ export function SerendipityEnginePlaceholder() {
     </Card>
   );
 }
-
