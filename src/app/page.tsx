@@ -88,7 +88,8 @@ import {
   Volume2,
   Wand2,
   Zap,
-  ActivityIcon
+  ActivityIcon, // Keep ActivityIcon if it was specifically requested for a feature
+  Cube, // Corrected from CubeIcon
 } from 'lucide-react';
 
 
@@ -234,7 +235,7 @@ const features = [
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <Cube className="w-10 h-10 mb-4 text-accent" />, // Corrected from CubeIcon
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -269,16 +270,16 @@ const features = [
       dataAiHint: "ai storytelling travel folklore"
     },
     {
-      icon: <ActivityIcon className="w-10 h-10 mb-4 text-primary" />,
+      icon: <Zap className="w-10 h-10 mb-4 text-primary" />, // Changed from SearchHeartIcon, Zap seems more fitting
       title: "AI Unexpected Opportunity Hunter (Future Vision)",
-      description: "The AI constantly scans for last-minute, high-value, and highly personalized opportunities aligned with your \"Travel DNA\" and current itinerary context. This could be a just-released discounted ticket to a niche show matching your interests, a renowned local chef doing a one-night-only pop-up that fits your culinary profile, a sudden opening on a popular, usually booked-out small-group tour, or even an alert about a rare celestial event visible from your location. Proactive identification and alerting of fleeting, highly personalized opportunities that align with deep user preferences, beyond generic deals.",
+      description: "The AI constantly scans for last-minute, high-value, and highly personalized opportunities aligned with your \"Travel DNA\" and current itinerary context. This could be a just-released discounted ticket to a niche show matching your interests, a renowned local chef doing a one-night-only pop-up that fits your culinary profile, a sudden opening on a popular, usually booked-out small-group tour, or even an alert about a rare celestial event visible from your location. Novelty: Proactive identification and alerting of fleeting, highly personalized opportunities that align with deep user preferences, beyond generic deals.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel opportunity discovery"
     },
     {
       icon: <PiggyBank className="w-10 h-10 mb-4 text-accent" />,
       title: "Dynamic AI Travel Budget Re-balancer & Forecaster (Future Vision)",
-      description: "Users set an overall trip budget. As they make bookings or the AI suggests options, the AI tracks spending against categories in real-time. If a user overspends on a luxury hotel, the AI might proactively suggest more budget-friendly (but still persona-aligned) dining or free activities. It could also forecast if you're on track and offer re-balancing scenarios.",
+      description: "Users set an overall trip budget. As they make bookings or the AI suggests options, the AI tracks spending against categories in real-time. If a user overspends on a luxury hotel, the AI might proactively suggest more budget-friendly (but still persona-aligned) dining options for the next few days, or highlight high-quality free activities. It could also forecast if you're on track to meet your budget and offer re-balancing scenarios.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai budget travel forecast"
     },
@@ -291,7 +292,7 @@ const features = [
     },
     {
       icon: <ScanSearch className="w-10 h-10 mb-4 text-accent" />,
-      title: "AI Visual Search & Comparison (Future Vision)",
+      title: "AI Visual Search & Analysis (Future Vision)",
       description: "Upload a photo of a hotel or destination to find similar options, or compare flights/hotels side-by-side with AI-extracted feature analysis.",
       imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai visual search travel"
@@ -381,6 +382,9 @@ export default function LandingPage() {
             <div className="container mx-auto flex h-20 items-center justify-between px-4">
               <AppLogo />
               <nav className="flex items-center space-x-2 sm:space-x-4">
+                <Link href="/travel" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
+                  <Plane className="w-4 h-4" /> Travel
+                </Link>
                 <Link href="#features" className="text-sm font-medium text-slate-200 hover:text-primary transition-colors flex items-center gap-1.5">
                   <ListChecks className="w-4 h-4" /> Features
                 </Link>
@@ -682,3 +686,6 @@ export default function LandingPage() {
         </div>
   );
 }
+
+
+    
