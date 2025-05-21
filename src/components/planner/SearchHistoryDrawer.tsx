@@ -26,7 +26,6 @@ type SearchHistoryDrawerProps = {
 };
 
 const glassPaneClasses = "glass-pane"; // For sheet content
-const glassCardClasses = "glass-card"; // For list items
 
 export function SearchHistoryDrawer({
   isOpen,
@@ -77,7 +76,7 @@ export function SearchHistoryDrawer({
                   "focus-visible:ring-4 focus-visible:ring-primary/40",
                   "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
                 )}
-                variant="default" // Explicitly set to default to ensure gradient and text color apply correctly
+                variant="default"
             >
                 <PlusCircle className="w-5 h-5 mr-2" />
                 Start New Trip Plan
@@ -105,18 +104,22 @@ export function SearchHistoryDrawer({
                   key={entry.id}
                   onClick={() => handleEntryClick(entry)}
                   className={cn(
-                    "w-full text-left p-3 rounded-md transition-colors",
-                    glassCardClasses, // Apply glass card style to each item
-                    "hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/70"
+                    "w-full text-left p-3 rounded-md transition-colors", // Base structure
+                    // Styling to match "Plan New Trip" button
+                    "shadow-md shadow-primary/30",
+                    "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+                    "hover:from-accent hover:to-primary hover:shadow-lg hover:shadow-primary/40",
+                    "focus-visible:ring-4 focus-visible:ring-primary/40 outline-none",
+                    "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
                   )}
                 >
-                  <p className="font-medium text-sm text-card-foreground truncate">
+                  <p className="font-medium text-sm text-primary-foreground truncate">
                     {entry.destination}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-primary-foreground/80"> {/* Adjusted for contrast on gradient */}
                     Dates: {entry.travelDates}, Budget: ${entry.budget.toLocaleString()}
                   </p>
-                  <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  <p className="text-xs text-primary-foreground/70 mt-0.5"> {/* Adjusted for contrast on gradient */}
                     {formatDistanceToNow(new Date(entry.searchedAt?.toDate?.() || entry.searchedAt || Date.now()), { addSuffix: true })}
                   </p>
                 </button>
