@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { AITripPlannerInput as AITripPlannerInputTypeFromFlow, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import React, { useEffect } from "react";
-import { Loader2, MapPin, CalendarDays, DollarSign, Sparkles, Lightbulb, AlertTriangle, CloudSun } from "lucide-react"; // Corrected
+import { Loader2, MapPin, CalendarDays, DollarSign, Sparkles, Lightbulb, AlertTriangle, CloudSun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -132,6 +132,8 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
     form.setValue("weatherContext", weatherContext);
   };
 
+  const primaryButtonClasses = "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
+
   return (
     <div className="w-full">
         <Form {...form}>
@@ -214,7 +216,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" size="lg" disabled={form.formState.isSubmitting}>
+            <Button type="submit" className={cn(primaryButtonClasses)} size="lg" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
