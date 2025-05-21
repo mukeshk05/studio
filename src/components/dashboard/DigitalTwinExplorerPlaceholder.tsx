@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BrainCircuitIcon, ClockIcon, LayersIcon, MapIcon, UsersIcon, SunIcon, CurlyBracesIcon, InfoIcon, LightbulbIcon, ImageOffIcon } from 'lucide-react';
+import { BrainCircuitIcon, ClockIcon, LayersIcon, MapIcon, UsersIcon, SunIcon, CurlyBracesIcon, InfoIcon, LightbulbIcon, ImageOffIcon,LoaderCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
@@ -122,7 +122,7 @@ export function DigitalTwinExplorerPlaceholder() {
 
           {isLoading && (
             <div className="text-center py-8 text-muted-foreground">
-              <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-sky-400" />
+              < LoaderCircle className="w-10 h-10 animate-spin mx-auto mb-3 text-sky-400" />
               <p>Loading conceptual Digital Twin data...</p>
             </div>
           )}
