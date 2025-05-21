@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { Bookmark, CalendarDays, DollarSign, Info, Landmark, Plane, Hotel, ExternalLink, ImageOff, ListChecks, Route, Loader2, Eye, CloudSun, MessageSquareQuote, Leaf } from "lucide-react"; // Corrected
+import { Bookmark, CalendarDays, DollarSign, Info, Landmark, Plane, Hotel, ExternalLink, ImageOff, ListChecks, Route, Loader2, Eye, CloudSun, MessageSquareQuote, Leaf } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -104,6 +104,9 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
     setSelectedHotel(hotel);
     setIsHotelDetailOpen(true);
   };
+
+  const prominentButtonBaseClassesSm = "text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
+
 
   return (
     <>
@@ -230,15 +233,20 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         <Button 
           onClick={handleSaveClick} 
           disabled={isSaved || isSaving} 
-          className="w-full sm:flex-1 glass-interactive" 
-          variant={isSaved ? "secondary" : "outline"}
+          className={cn(
+            "w-full sm:flex-1",
+            isSaved ? "glass-interactive text-muted-foreground" : prominentButtonBaseClassesSm
+          )}
+          size="sm"
+          variant={isSaved ? "secondary" : "default"}
         >
           {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
           {isSaving ? "Saving..." : isSaved ? "Saved To Dashboard" : "Save Trip"}
         </Button>
         <Button 
           onClick={handleFindDeals} 
-          className="w-full sm:flex-1 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40" 
+          className={cn("w-full sm:flex-1", prominentButtonBaseClassesSm)}
+          size="sm"
           variant="default"
         >
           <ExternalLink className="mr-2 h-4 w-4" />
@@ -261,3 +269,4 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
     </>
   );
 }
+

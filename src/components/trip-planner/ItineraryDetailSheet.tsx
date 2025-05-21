@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, MapPin, Send, Bookmark, Loader2, ScanEye } from "lucide-react"; // Corrected
+import { X, MapPin, Send, Bookmark, Loader2, ScanEye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -37,8 +37,8 @@ type ItineraryDetailSheetProps = {
   onInitiateBooking: (itinerary: Itinerary) => void;
 };
 
-const glassPaneClasses = "glass-pane"; // For sheet content
-const glassCardClasses = "glass-card"; // For dialog content
+const glassPaneClasses = "glass-pane"; 
+const glassCardClasses = "glass-card"; 
 
 export function ItineraryDetailSheet({
   isOpen,
@@ -75,6 +75,8 @@ export function ItineraryDetailSheet({
   const hintWords = itinerary.destination.toLowerCase().split(/[\s,]+/);
   const aiHint = hintWords.slice(0, 2).join(" ");
   const panoramicAiHint = `panoramic view ${aiHint}`;
+
+  const prominentButtonBaseClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
   return (
     <>
@@ -138,10 +140,10 @@ export function ItineraryDetailSheet({
                 disabled={isTripSaved || isSaving}
                 size="lg"
                 className={cn(
-                  "w-full text-lg py-3",
-                  isTripSaved ? "glass-interactive" : "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 glass-interactive"
+                  "w-full",
+                  isTripSaved ? "glass-interactive text-muted-foreground" : prominentButtonBaseClasses
                 )}
-                variant={isTripSaved ? "secondary" : "outline"}
+                variant={isTripSaved ? "secondary" : "default"} // Keep default for gradient to apply, secondary for saved
               >
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
                 {isSaving ? "Saving..." : isTripSaved ? "Saved" : "Save Trip"}
@@ -149,17 +151,17 @@ export function ItineraryDetailSheet({
               <Button
                 onClick={handleBook}
                 size="lg"
-                className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
-                variant="default"
+                className={cn("w-full", prominentButtonBaseClasses)}
+                variant="default" // Ensure default variant for gradient
               >
                 <Send className="mr-2 h-4 w-4" />
                 Start Booking
               </Button>
               <Button
                 onClick={() => setIsArVrDialogOpen(true)}
-                variant="outline"
+                variant="default" // Ensure default variant for gradient
                 size="lg"
-                className="w-full text-lg py-3 glass-interactive"
+                className={cn("w-full", prominentButtonBaseClasses)}
               >
                 <ScanEye className="mr-2 h-4 w-4" />
                 AR/VR Preview
@@ -201,7 +203,7 @@ export function ItineraryDetailSheet({
                   <AlertDialogAction
                     onClick={() => setIsArVrDialogOpen(false)}
                     size="lg"
-                    className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                    className={cn(prominentButtonBaseClasses, "w-full")}
                   >Awesome!</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
@@ -209,3 +211,4 @@ export function ItineraryDetailSheet({
     </>
   );
 }
+
