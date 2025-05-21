@@ -7,30 +7,30 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetClose as SheetDialogClose, // Renamed to avoid conflict if AlertDialogClose is used
+  SheetClose as SheetDialogClose,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
-import type { AiArPreviewOutput } from "@/ai/types/ai-ar-preview-types"; // Import AI type
-import { getAiArPreview } from "@/ai/flows/ai-ar-preview-flow"; // Import AI flow
-import { useToast } from "@/hooks/use-toast"; // Import useToast
+import type { AiArPreviewOutput } from "@/ai/types/ai-ar-preview-types";
+import { getAiArPreview } from "@/ai/flows/ai-ar-preview-flow";
+import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, MapPin, Send, Bookmark, Loader2, ScanEye, ImageOff, Sparkles, Info, Tag, Clock } from "lucide-react"; // Added ImageOff, Sparkles, Info, Tag, Clock
+import { X, MapPin, Send, Bookmark, Loader2, ScanEye, ImageOff, Sparkles, Info, Tag, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import React, { useState, useEffect } from 'react'; // Added useEffect
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogClose, // Added AlertDialogClose
+  AlertDialogClose, // Ensure AlertDialogClose is imported
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge"; // Import Badge
+import { Badge } from "@/components/ui/badge";
 
 type ItineraryDetailSheetProps = {
   isOpen: boolean;
@@ -117,8 +117,8 @@ export function ItineraryDetailSheet({
     if (isOpen && isArVrDialogOpen && !arPreviewData && !isLoadingArPreview) {
       handleFetchArPreview();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isArVrDialogOpen, isOpen, itinerary.destination, arPreviewData, isLoadingArPreview]); // Added dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isArVrDialogOpen, isOpen, itinerary.destination]);
 
   const arImageHint = arPreviewData?.generatedImageUri?.startsWith('https://placehold.co') 
     ? (arPreviewData?.generatedImagePrompt || itinerary.destination) 
@@ -209,7 +209,6 @@ export function ItineraryDetailSheet({
                 onClick={() => {
                   setArPreviewData(null); 
                   setIsArVrDialogOpen(true);
-                  // handleFetchArPreview will be called by useEffect when isArVrDialogOpen becomes true
                 }}
                 variant="default" 
                 size="lg"
