@@ -13,4 +13,5 @@ import '@/ai/flows/adventure-matcher-flow.ts';
 import '@/ai/flows/price-forecast-flow.ts';
 import '@/ai/flows/group-sync-flow.ts';
 import '@/ai/flows/generate-trip-memory-flow.ts';
-import '@/ai/flows/local-insider-tips-flow.ts'; // Added new flow
+import '@/ai/flows/local-insider-tips-flow.ts'; 
+import '@/ai/flows/itinerary-assistance-flow.ts'; // Added new flow

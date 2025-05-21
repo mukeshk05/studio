@@ -5,7 +5,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2Icon, UploadCloudIcon, ImageIcon, SearchCheckIcon, AlertTriangleIcon, SparklesIcon, Trash2Icon, XIcon, CameraIcon, GitCompareArrowsIcon, ScanTextIcon, HistoryIcon, HeartIcon, InfoIcon, ZapIcon, CheckCircleIcon } from 'lucide-react';
+import { Loader2Icon, UploadCloudIcon, ImageIcon, SearchCheckIcon, AlertTriangleIcon, SparklesIcon, Trash2Icon, XIcon, CameraIcon, GitCompareArrowsIcon, ScanTextIcon, HistoryIcon, HeartIcon, InfoIcon, ZapIcon, CheckCircleIcon,ScanSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -426,7 +426,7 @@ export function VisualSearchPlaceholder() {
       <CardHeader className="pb-4">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center text-xl text-card-foreground">
-            <ScanSearchIcon className="w-6 h-6 mr-2" style={{color: COLOR_BLUE}} />
+            <ScanSearch className="w-6 h-6 mr-2" style={{color: COLOR_BLUE}} />
             AI Visual Search & Analysis
           </CardTitle>
           {/* Placeholder for History/Favorites */}

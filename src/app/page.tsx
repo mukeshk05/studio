@@ -47,7 +47,6 @@ import {
   CalendarCheck,
   Camera,
   CheckCircle,
-  Cube, 
   DollarSign,
   Eye,
   Gift,
@@ -78,7 +77,6 @@ import {
   ScanEye,
   ScanSearch,
   SearchCheck,
-  SearchHeart,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -89,7 +87,8 @@ import {
   UsersRound,
   Volume2,
   Wand2,
-  Zap
+  Zap,
+  ActivityIcon
 } from 'lucide-react';
 
 
@@ -235,7 +234,7 @@ const features = [
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <Cube className="w-10 h-10 mb-4 text-accent" />, 
+      icon: <ActivityIcon className="w-10 h-10 mb-4 text-accent" />, 
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png",
@@ -270,7 +269,7 @@ const features = [
       dataAiHint: "ai storytelling travel folklore"
     },
     {
-      icon: <SearchHeart className="w-10 h-10 mb-4 text-primary" />,
+      icon: <ActivityIcon className="w-10 h-10 mb-4 text-primary" />,
       title: "AI Unexpected Opportunity Hunter (Future Vision)",
       description: "The AI constantly scans for last-minute, high-value, and highly personalized opportunities aligned with your \"Travel DNA\" and current itinerary context. This could be a just-released discounted ticket to a niche show matching your interests, a renowned local chef doing a one-night-only pop-up that fits your culinary profile, a sudden opening on a popular, usually booked-out small-group tour, or even an alert about a rare celestial event visible from your location. Proactive identification and alerting of fleeting, highly personalized opportunities that align with deep user preferences, beyond generic deals.",
       imgSrc: "https://placehold.co/600x400.png",
