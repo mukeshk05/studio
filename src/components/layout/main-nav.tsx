@@ -4,12 +4,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboardIcon, PlaneIcon, BrainIcon } from "lucide-react"; 
+import { LayoutDashboard, Plane, Brain } from "lucide-react"; // Changed icon names
 
 const navItems = [
-  { href: "/planner", label: "Plan Trip", icon: PlaneIcon },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/quiz", label: "Adventure Quiz", icon: BrainIcon }, // New Quiz Link
+  { href: "/planner", label: "Plan Trip", icon: Plane }, // Changed from PlaneIcon
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, // Changed from LayoutDashboardIcon
+  { href: "/quiz", label: "Adventure Quiz", icon: Brain }, // Changed from BrainIcon
 ];
 
 export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
