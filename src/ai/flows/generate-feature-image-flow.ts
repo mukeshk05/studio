@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileOverview A Genkit flow to generate an image for a feature card based on a prompt.
  */
@@ -23,6 +22,7 @@ export const generateFeatureImageFlow = ai.defineFlow(
     outputSchema: FeatureImageOutputSchema,
   },
   async (input: FeatureImageInput): Promise<FeatureImageOutput> => {
+    console.log('[AI Flow - generateFeatureImageFlow] Received input:', input);
     try {
       const { media } = await ai.generate({
         model: 'googleai/gemini-2.0-flash-exp',
@@ -41,13 +41,14 @@ export const generateFeatureImageFlow = ai.defineFlow(
       });
 
       if (media?.url) {
+        console.log(`[AI Flow - generateFeatureImageFlow] Success for prompt "${input.prompt}". Image URI starts with: ${media.url.substring(0, 50)}...`);
         return { imageUri: media.url };
       } else {
-        console.warn(`Image generation for feature prompt "${input.prompt}" did not return a media URL.`);
+        console.warn(`[AI Flow - generateFeatureImageFlow] Image generation for feature prompt "${input.prompt}" did not return a media URL.`);
         return { imageUri: null };
       }
     } catch (error) {
-      console.error(`Failed to generate image for feature prompt "${input.prompt}":`, error);
+      console.error(`[AI Flow - generateFeatureImageFlow] Failed to generate image for feature prompt "${input.prompt}":`, error);
       return { imageUri: null };
     }
   }
