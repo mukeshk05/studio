@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { AppLogo } from '@/components/layout/app-logo';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from '@/lib/utils';
 import {
@@ -90,276 +91,245 @@ import {
   CurlyBraces,
   ImageOff,
 } from 'lucide-react';
-import { getAiImageForFeatureServerAction } from './actions'; // Updated import
+import { getLandingPageImagesWithFallback, type ImageRequest } from './actions';
+import { useToast } from '@/hooks/use-toast';
 
-// Client component to handle image loading for each feature
-function AiFeatureImage({ promptText, fallbackSrc, altText }: { promptText: string; fallbackSrc: string; altText: string }) {
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchImage = async () => {
-      setIsLoading(true);
-      const aiGeneratedUri = await getAiImageForFeatureServerAction(promptText);
-      if (isMounted) {
-        setImageUri(aiGeneratedUri);
-        setIsLoading(false);
-      }
-    };
-
-    fetchImage();
-    return () => {
-      isMounted = false;
-    };
-  }, [promptText]);
-
-  if (isLoading) {
-    return <Skeleton className="w-full aspect-video rounded-md" />;
-  }
-
-  const finalSrc = imageUri || fallbackSrc;
-
-  if (!finalSrc && !imageUri) { // If both AI and fallback fail
-     return (
-        <div className="w-full aspect-video rounded-md bg-muted/30 flex items-center justify-center">
-            <ImageOff className="w-10 h-10 text-muted-foreground" />
-        </div>
-    );
-  }
-  
-  return (
-    <Image
-      src={finalSrc}
-      alt={altText}
-      fill
-      className="object-cover rounded-md group-hover:scale-105 transition-transform duration-300"
-      data-ai-hint={imageUri ? undefined : promptText} // Only add data-ai-hint if it's a fallback
-      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-      onError={() => { // Fallback if even the initial source fails (e.g. broken placeholder link)
-          if (imageUri !== fallbackSrc) { // Prevent loop if AI image itself fails
-            setImageUri(fallbackSrc); // Try fallback if AI image fails
-          } else {
-            setImageUri(null); // Set to null to show ImageOff
-          }
-      }}
-    />
-  );
-}
-
-
-const heroCarouselImages = [
-    { src: "https://placehold.co/2048x2048.png", alt: "AI visualization of a travel planning app on a tablet", dataAiHint: "futuristic ai travel" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Futuristic Travel Interface Mockup", dataAiHint: "futuristic travel interface" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Digital World Map with Glowing Connections", dataAiHint: "digital world map" },
-    { src: "https://placehold.co/2048x2048.png", alt: "Conceptual Image of AI Assisting in Travel Planning", dataAiHint: "glowing data streams journey" },
-];
 
 const features = [
     {
-      icon: <Wand2 className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-ai-trip-planner",
+      icon: <Wand2 className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "AI-Powered Trip Planner",
       description: "Hyper-personalized itineraries! Define destination, dates, budget, mood, and your Travel DNA. Our AI Guardian crafts detailed plans, fusing preferences with weather, risk, and visa awareness.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "intelligent itinerary generation"
     },
     {
-      icon: <BarChart3 className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-price-suite",
+      icon: <BarChart3 className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Smart Price Suite",
       description: "Track flight/hotel prices, get AI advice on when to book, and view illustrative price forecast graphs to make informed, budget-conscious decisions.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai price analysis chart"
     },
     {
-      icon: <BrainCircuit className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-travel-dna",
+      icon: <BrainCircuit className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "Discover Your Travel DNA",
       description: "Our Adventure Quiz uncovers your unique travel persona. This 'Travel DNA' empowers Aura AI to personalize all future travel suggestions and plans for you.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel preferences quiz"
     },
     {
-      icon: <MessageSquareText className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-aura-ai-engine",
+      icon: <MessageSquareText className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Aura AI: Predictive Preference Fusion Engine",
       description: "Describe your ideal trip, or leave fields blank! Aura AI fuses your Travel DNA, search history, and queries to predict & suggest ideal trip bundles.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "conversational ai travel chat"
     },
     {
-      icon: <UsersRound className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-group-planning",
+      icon: <UsersRound className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "Effortless Group Planning & Memories",
       description: "Input companion preferences for an AI 'Group Sync Report' to harmonize the trip. Plus, get AI-generated memory snippets for your saved trips.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai group travel collaboration"
     },
     {
-      icon: <BellRing className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-proactive-alerter",
+      icon: <BellRing className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Proactive AI Alerter & Advisor",
       description: "Stay ahead! Our AI conceptually monitors for you. Imagine getting proactive alerts for significant price drops, major weather warnings for your trips, or even visa policy shifts (future vision). It can then offer timely rebooking advice or backup plan suggestions.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai proactive travel alerts"
     },
     {
-      icon: <Bot className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-journey-sentinel",
+      icon: <Bot className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "Proactive Journey Sentinel AI",
       description: "Our AI proactively considers general travel risks, reminds you about visa checks, and incorporates typical weather patterns into your trip plans for a safer journey.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "travel safety shield ai"
     },
     {
-      icon: <Leaf className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-sustainable-footprint",
+      icon: <Leaf className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Sustainable Footprint Optimizer AI",
       description: "Our AI Trip Planner conceptually includes sustainability factors, promoting awareness for eco-friendly choices and local support during your travels.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "eco friendly travel planning"
     },
      {
-      icon: <LocateFixed className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-serendipity-engine",
+      icon: <LocateFixed className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "Serendipity Engine (Future Vision)",
       description: "Imagine discovering spontaneous, hyper-local events unfolding near you in real-time, perfectly matched to your Travel DNA and current mood.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "real time local discovery ai"
     },
      {
-      icon: <ScanSearch className="w-10 h-10 mb-4 text-accent" />, 
+      id: "feature-authenticity-verifier",
+      icon: <ScanSearch className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "AI Authenticity Verifier (Future Vision)",
       description: "Conceptually, verify local crafts, food, and experiences. Upload a photo, and AI provides insights on origin, value, and authenticity markers.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai authenticity check travel"
     },
     {
-      icon: <MapPinned className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-smart-map",
+      icon: <MapPinned className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "Interactive Smart Map (Future Vision)",
       description: "Visually explore destinations with AI-curated points of interest, smart clustering, and personalized filters based on your Travel DNA.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "interactive map trip planning"
     },
     {
-      icon: <GitCompareArrows className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-what-if-simulator",
+      icon: <GitCompareArrows className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "AI 'What If' Travel Simulator (Future Vision)",
       description: "Explore alternative travel scenarios with AI. 'What if I went to Vietnam instead of Bali?' Get comparisons of cost, weather, activities, and vibe.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel scenario comparison"
     },
     {
-      icon: <Camera className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-ar-preview",
+      icon: <Camera className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "AI + AR Destination Preview (Conceptual)",
       description: "See your destination hotspots in real-time AR, with AI mood tags like 'Busy now,' 'Romantic lighting,' or 'Best photo time: 6:35 PM.'",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "augmented reality travel"
     },
     {
-      icon: <MessageCircleQuestion className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-co-travel-agent",
+      icon: <MessageCircleQuestion className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "AI Co-Travel Agent (Ask Anything!)",
       description: "Get instant answers to travel questions: customs, tipping, local laws, phrases, and more. Your AI companion provides dynamic checklists and insights.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel question answer"
     },
     {
-      icon: <SlidersHorizontal className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-mood-optimizer",
+      icon: <SlidersHorizontal className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "Mood & Energy Optimizer (Future Vision)",
       description: "Adjust your day's intensity with a slider, and Aura AI reshuffles your schedule, considering mood, energy, and even wearable data in the future.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "travel wellness planning slider"
     },
     {
-      icon: <Activity className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-dynamic-itinerary",
+      icon: <Activity className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Dynamic Itinerary Reshaper (Conceptual)",
       description: "Future-forward: Imagine your itinerary dynamically adjusting based on real-time bio-feedback from wearables, optimizing for your energy and mood.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "bio feedback travel ai"
     },
     {
-      icon: <BookHeart className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-story-weaver",
+      icon: <BookHeart className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "Generational Story Weaver AI (Evolved Diary)",
       description: "Beyond simple snippets, envision an AI that helps weave rich, multimedia travel diaries and uncovers travel narratives across generations.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel storytelling generational"
     },
     {
-      icon: <CalendarCheck className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-calendar-sync",
+      icon: <CalendarCheck className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "AI Calendar SyncUp (Future Vision)",
       description: "BudgetRoam AI syncs with your calendar, identifies free slots, and proactively suggests personalized trip ideas that fit your schedule.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai calendar travel scheduling"
     },
     {
-      icon: <Languages className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-language-coach",
+      icon: <Languages className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "AI Hyper-Local Language Coach (Future Vision)",
       description: "Go beyond basic phrases! Learn local dialects, slang, and idioms. Get real-time pronunciation feedback and cultural context to engage authentically.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai language learning app"
     },
     {
-      icon: <CurlyBraces className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-digital-twin",
+      icon: <CurlyBraces className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai digital twin city simulation"
     },
     {
-      icon: <HeartPulse className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-affective-vibe",
+      icon: <HeartPulse className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "Affective Group Vibe Optimizer (Future Vision)",
       description: "AI (with consent) subtly sensing group vibe to suggest adjustments for better cohesion & enjoyment.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai group mood travel positive"
     },
     {
-      icon: <ShieldCheck className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-ethical-auditor",
+      icon: <ShieldCheck className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "AI Ethical & Sustainable Impact Auditor (Future Vision)",
       description: "Deep ethical/sustainability audit of your itinerary, with vetted alternatives for responsible travel, considering fair wages, animal welfare, over-tourism, and community support.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ethical sustainable travel audit"
     },
     {
-      icon: <Accessibility className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-accessibility-scout",
+      icon: <Accessibility className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "AI Personalized Accessibility Scout (Future Vision)",
       description: "Detail your specific accessibility needs (step-free, quiet zones, dietary restrictions). Our AI (future vision) will deeply vet every aspect of your trip for a truly tailored and comfortable experience.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "inclusive accessible travel ai"
     },
     {
-      icon: <BookOpenText className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-legend-narrator",
+      icon: <BookOpenText className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "AI Local Legend & Folklore Narrator (Future Vision)",
       description: "Explore with an AI narrator! Get obscure local legends, folklore, and historical anecdotes tied to your precise location, bringing the intangible cultural heritage of a place to life as you experience it.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai storytelling travel folklore"
     },
     {
-      icon: <Zap className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-opportunity-hunter",
+      icon: <Zap className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "AI Unexpected Opportunity Hunter",
       description: "The AI constantly scans for last-minute, high-value, and highly personalized opportunities aligned with your \"Travel DNA\" and current itinerary context. This could be a just-released discounted ticket to a niche show matching your interests, a renowned local chef doing a one-night-only pop-up that fits your culinary profile, a sudden opening on a popular, usually booked-out small-group tour, or even an alert about a rare celestial event visible from your location. Novelty: Proactive identification and alerting of fleeting, highly personalized opportunities that align with deep user preferences, beyond generic deals.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai travel opportunity discovery"
     },
     {
-      icon: <PiggyBank className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-budget-rebalancer",
+      icon: <PiggyBank className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Dynamic AI Travel Budget Re-balancer & Forecaster",
-      description: "Users set an overall trip budget. As they make bookings or the AI suggests options, the AI tracks spending against categories in real-time. If a user overspends on a luxury hotel, the AI might proactively suggest more budget-friendly (but still persona-aligned) dining options for the next few days, or highlight high-quality free activities. It could also forecast if you're on track to meet your budget and offer re-balancing scenarios.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      description: "Users set an overall trip budget. As they make bookings or the AI suggests options, the AI tracks spending against categories in real-time. If a user overspends on a luxury hotel, the AI might proactively suggest more budget-friendly (but still persona-aligned) dining options or highlight free activities. It could also forecast if you're on track to meet your budget and offer re-balancing scenarios. Novelty: Real-time, intelligent budget tracking and dynamic re-allocation advice based on actual and planned spending, with forecasting.",
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai budget travel forecast"
     },
     {
-      icon: <ListPlus className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-itinerary-assistance",
+      icon: <ListPlus className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "AI Itinerary Planning Assistance (Future Vision)",
       description: "Once you have a core booking, AI suggests compatible activities, tours, or restaurants to build out your full, personalized itinerary.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
+      imgSrc: "https://placehold.co/600x400.png",
       dataAiHint: "ai itinerary builder planning"
     },
     {
-      icon: <ScanSearch className="w-10 h-10 mb-4 text-accent" />,
+      id: "feature-visual-search",
+      icon: <ScanSearch className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "AI Visual Search & Analysis (Future Vision)",
       description: "Upload a photo of a hotel or destination to find similar options, or compare flights/hotels side-by-side with AI-extracted feature analysis.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
-      dataAiHint: "ai visual search travel"
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "ai visual search interface travel"
     },
     {
-      icon: <Layers className="w-10 h-10 mb-4 text-primary" />,
+      id: "feature-post-trip-synthesizer",
+      icon: <Layers className="w-10 h-10 mx-auto mb-3 text-primary" />,
       title: "AI Post-Trip Synthesizer & Trajectory Mapper",
       description: "Share photos, journals, and feedback. AI analyzes this to refine your Travel DNA and uniquely maps future 'travel trajectories'—a series of evolving experiences based on your positive past travels.",
-      imgSrc: "https://placehold.co/600x400.png", // Fallback
-      dataAiHint: "ai travel trajectory"
+      imgSrc: "https://placehold.co/600x400.png",
+      dataAiHint: "travel memories future paths ai"
     }
   ];
+
 
 const whyChooseUsPoints = [
     "Hyper-Personalized with Travel DNA: Itineraries and bundles uniquely tailored to *your* style.",
@@ -392,6 +362,24 @@ function useStaggeredAnimation(count: number, delayIncrement: number, trigger: b
   return visibility;
 }
 
+interface LoadingScreenProps {
+  progress: number;
+  message: string;
+}
+
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress, message }) => {
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/90 backdrop-blur-md">
+      <div className="text-center space-y-6 p-8 rounded-xl glass-card border-primary/30">
+        <AppLogo />
+        <Progress value={progress} className="w-64 sm:w-80 mx-auto [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent" />
+        <p className="text-lg font-medium text-foreground">{message}</p>
+        <p className="text-sm text-muted-foreground">BudgetRoam AI is preparing your experience...</p>
+      </div>
+    </div>
+  );
+};
+
 
 export default function LandingPage() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -402,22 +390,139 @@ export default function LandingPage() {
   const whyChooseUsListVisible = useStaggeredAnimation(whyChooseUsPoints.length, 100, whyChooseUsSectionVisible);
   const featureCardsVisible = useStaggeredAnimation(features.length, 150, featuresSectionVisible);
   const { currentUser, logout, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
-    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
-    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("Initializing...");
 
-    return () => {
-      clearTimeout(heroTimer);
-      clearTimeout(featuresTimer);
-      clearTimeout(whyUsTimer);
-      clearTimeout(ctaTimer);
-    };
+  type ImageUriMap = Record<string, string | null | '__error__'>;
+  const [heroImageUris, setHeroImageUris] = useState<ImageUriMap>({});
+  const [featureImageUris, setFeatureImageUris] = useState<ImageUriMap>({});
+
+
+  const handleErrorState = useCallback((id: string, type: 'hero' | 'feature') => {
+    console.log(`[LandingPage] Image load error for ID: ${id}, type: ${type}`);
+    if (type === 'hero') {
+      setHeroImageUris(prev => ({ ...prev, [id]: '__error__' }));
+    } else {
+      setFeatureImageUris(prev => ({ ...prev, [id]: '__error__' }));
+    }
   }, []);
 
-      const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
+
+  useEffect(() => {
+    const fetchAllImagesAndLoadContent = async () => {
+      console.log("[LandingPage] Initializing image fetch...");
+      setIsPageLoading(true);
+      setLoadProgress(10);
+      setLoadingMessage("Warming up Aura AI...");
+
+      const allImageRequests: ImageRequest[] = [];
+
+      // Prepare hero image requests (using first 3 features for hero carousel)
+      features.slice(0, 3).forEach((feature, index) => {
+        allImageRequests.push({
+          id: `hero-${feature.id}`, // Ensure hero IDs are distinct
+          promptText: feature.dataAiHint,
+          styleHint: 'hero',
+        });
+      });
+
+      // Prepare feature card image requests
+      features.forEach((feature) => {
+        allImageRequests.push({
+          id: feature.id, // Use the feature's own ID
+          promptText: feature.dataAiHint,
+          styleHint: 'featureCard',
+        });
+      });
+      
+      console.log("[LandingPage] All Image Requests Prepared:", allImageRequests);
+
+      setLoadProgress(25);
+      setLoadingMessage("Checking visual cache...");
+
+      try {
+        setLoadProgress(50);
+        setLoadingMessage("Generating fresh visuals with AI...");
+        const fetchedUris = await getLandingPageImagesWithFallback(allImageRequests);
+        console.log("[LandingPage] Fetched URIs from server action:", fetchedUris);
+
+        setLoadProgress(85);
+        setLoadingMessage("Almost there...");
+
+        const newHeroUris: ImageUriMap = {};
+        const newFeatureUris: ImageUriMap = {};
+
+        allImageRequests.forEach(req => {
+          const uri = fetchedUris[req.id];
+          if (req.id.startsWith('hero-')) {
+            newHeroUris[req.id] = uri === undefined ? null : uri;
+          } else {
+            newFeatureUris[req.id] = uri === undefined ? null : uri;
+          }
+        });
+        
+        console.log("[LandingPage] Setting hero URIs:", newHeroUris);
+        setHeroImageUris(newHeroUris);
+        console.log("[LandingPage] Setting feature URIs:", newFeatureUris);
+        setFeatureImageUris(newFeatureUris);
+
+        setLoadProgress(100);
+        setLoadingMessage("Welcome to BudgetRoam!");
+
+        setTimeout(() => {
+          setIsPageLoading(false);
+          console.log("[LandingPage] Image loading complete.");
+          // Trigger content animations after loading is done
+          const heroTimer = setTimeout(() => setHeroVisible(true), 50);
+          const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
+          const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
+          const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
+          return () => {
+            clearTimeout(heroTimer);
+            clearTimeout(featuresTimer);
+            clearTimeout(whyUsTimer);
+            clearTimeout(ctaTimer);
+          };
+        }, 500); // Delay to show 100% progress
+
+      } catch (error) {
+        console.error("[LandingPage] Critical error fetching page images:", error);
+        setLoadingMessage("Error loading visuals. Displaying static content.");
+        toast({
+            title: "Visuals Error",
+            description: "Could not load all AI-powered visuals. Displaying default content.",
+            variant: "destructive"
+        });
+        setLoadProgress(100); // Still complete progress
+        setTimeout(() => {
+            setIsPageLoading(false); // Show page even if images fail
+            // Trigger content animations
+            const heroTimer = setTimeout(() => setHeroVisible(true), 50);
+            const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
+            const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
+            const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
+            return () => {
+                clearTimeout(heroTimer);
+                clearTimeout(featuresTimer);
+                clearTimeout(whyUsTimer);
+                clearTimeout(ctaTimer);
+            };
+        }, 500);
+      }
+    };
+
+    fetchAllImagesAndLoadContent();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to run once on mount
+
+  const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
+
+  if (isPageLoading) {
+    return <LoadingScreen progress={loadProgress} message={loadingMessage} />;
+  }
 
   return (
         <div className="flex flex-col min-h-screen text-foreground overflow-x-hidden relative">
@@ -580,25 +685,52 @@ export default function LandingPage() {
                     heroVisible ? 'opacity-100 scale-100 delay-500' : 'opacity-0 scale-90'
                   )}
                 >
-                  <Carousel
+                   <Carousel
                     opts={{ loop: true, align: "start" }}
                     className="w-full"
                   >
                     <CarouselContent>
-                      {heroCarouselImages.map((image, index) => (
-                        <CarouselItem key={index}>
-                          <div className={cn("relative w-full aspect-square")}>
-                            <Image
-                                src={image.src}
-                                alt={image.alt}
-                                fill
-                                className="object-cover rounded-lg"
-                                data-ai-hint={image.dataAiHint}
-                                priority={index === 0}
-                            />
-                          </div>
-                        </CarouselItem>
-                      ))}
+                      {features.slice(0, 3).map((feature, index) => {
+                        const heroImageId = `hero-${feature.id}`;
+                        const currentHeroImageUri = heroImageUris[heroImageId];
+                        const isLoadingImage = currentHeroImageUri === undefined; // Still loading from server
+                        const hasError = currentHeroImageUri === '__error__';
+                        const displaySrc = (currentHeroImageUri && !hasError) ? currentHeroImageUri : feature.imgSrc;
+
+                        return (
+                          <CarouselItem key={heroImageId}>
+                            <div className={cn("relative w-full aspect-square")}>
+                              {isLoadingImage ? (
+                                <Skeleton className="w-full h-full rounded-lg" />
+                              ) : (hasError && !feature.imgSrc) || (!currentHeroImageUri && !feature.imgSrc && !isLoadingImage) ? (
+                                <div className="w-full h-full rounded-lg bg-muted/30 flex items-center justify-center">
+                                  <ImageOff className="w-16 h-16 text-muted-foreground" />
+                                </div>
+                              ) : (
+                                <>
+                                  <Image
+                                    src={displaySrc}
+                                    alt={feature.title}
+                                    fill
+                                    className="object-cover rounded-lg"
+                                    priority={index < 2} // Prioritize first couple of images
+                                    onError={() => handleErrorState(heroImageId, 'hero')}
+                                    sizes="100vw" // Simplified sizes for hero
+                                  />
+                                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center">
+                                    <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white [text-shadow:_0_1px_3px_rgb(0_0_0_/_0.5)] mb-2">
+                                      {feature.title}
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-slate-200 [text-shadow:_0_1px_2px_rgb(0_0_0_/_0.5)] line-clamp-2 sm:line-clamp-3 max-w-prose">
+                                      {feature.description}
+                                    </p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </CarouselItem>
+                        );
+                      })}
                     </CarouselContent>
                     <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary" />
                     <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary" />
@@ -616,38 +748,61 @@ export default function LandingPage() {
                 <Carousel
                   opts={{
                     align: "start",
-                    loop: features.length > 2, 
+                    loop: features.length > 2,
                   }}
                   className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto"
                 >
                   <CarouselContent className="-ml-2 md:-ml-4">
-                    {features.map((feature, index) => (
-                      <CarouselItem key={index} className={cn(
-                          "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 transition-all duration-500 ease-out",
-                          featureCardsVisible[index] ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-                        )}
-                      >
-                        <div className="p-1 h-full">
-                          <Card
-                            className={cn(
-                              glassCardClasses,
-                              "hover:shadow-2xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300 flex flex-col h-full transform border-primary/20 hover:border-accent/40"
-                            )}
-                          >
-                            <CardHeader className="items-center text-center">
-                              {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, index % 2 === 0 ? 'text-primary' : 'text-accent') })}
-                              <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-grow text-center">
-                              <div className="relative aspect-video w-full rounded-md overflow-hidden mb-4 border border-border/30 group">
-                                 <AiFeatureImage promptText={feature.dataAiHint} fallbackSrc={feature.imgSrc} altText={feature.title} />
-                              </div>
-                              <p className="text-sm text-muted-foreground">{feature.description}</p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </CarouselItem>
-                    ))}
+                    {features.map((feature, index) => {
+                      const featureImageId = feature.id;
+                      const currentFeatureImageUri = featureImageUris[featureImageId];
+                      const isLoadingImage = currentFeatureImageUri === undefined;
+                      const hasError = currentFeatureImageUri === '__error__';
+                      const displaySrc = (currentFeatureImageUri && !hasError) ? currentFeatureImageUri : feature.imgSrc;
+
+                      return (
+                        <CarouselItem key={feature.id} className={cn(
+                            "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 transition-all duration-500 ease-out",
+                            featureCardsVisible[index] ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                          )}
+                        >
+                          <div className="p-1 h-full">
+                            <Card
+                              className={cn(
+                                glassCardClasses,
+                                "hover:shadow-2xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300 flex flex-col h-full transform border-primary/20 hover:border-accent/40"
+                              )}
+                            >
+                              <CardHeader className="items-center text-center pt-6 px-6 pb-4">
+                                {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, "mx-auto mb-3", index % 2 === 0 ? 'text-primary' : 'text-accent') })}
+                                <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
+                              </CardHeader>
+                              <CardContent className="flex-grow px-6 pb-6 text-left">
+                                <div className="relative aspect-video w-full rounded-md overflow-hidden mb-4 border border-border/30 group">
+                                  {isLoadingImage ? (
+                                    <Skeleton className="w-full h-full rounded-md" />
+                                  ) : (hasError && !feature.imgSrc) || (!currentFeatureImageUri && !feature.imgSrc && !isLoadingImage) ? (
+                                    <div className="w-full h-full rounded-md bg-muted/30 flex items-center justify-center">
+                                      <ImageOff className="w-10 h-10 text-muted-foreground" />
+                                    </div>
+                                  ) : (
+                                    <Image
+                                      src={displaySrc}
+                                      alt={feature.title}
+                                      fill
+                                      className="object-cover rounded-md group-hover:scale-105 transition-transform duration-300"
+                                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                      onError={() => handleErrorState(featureImageId, 'feature')}
+                                    />
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">{feature.description}</p>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </CarouselItem>
+                      );
+                    })}
                   </CarouselContent>
                   <CarouselPrevious className="ml-8 sm:ml-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-accent" />
                   <CarouselNext className="mr-8 sm:mr-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-accent" />
@@ -735,3 +890,4 @@ export default function LandingPage() {
         </div>
   );
 }
+
