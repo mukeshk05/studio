@@ -17,18 +17,26 @@ import {
 import { z } from 'genkit';
 
 // Schema for the AI's text-only output before image generation for each destination
-const AiDestinationSuggestionTextOnlySchema = AiDestinationSuggestionSchema.omit({ imageUri: true });
+const AiDestinationSuggestionTextOnlySchema = AiDestinationSuggestionSchema.omit({ imageUri: true, latitude: true, longitude: true }).extend({
+  latitudeString: z.string().optional().describe("Approximate latitude as a string to ensure LLM provides it."),
+  longitudeString: z.string().optional().describe("Approximate longitude as a string."),
+});
+
 
 const generateDestinationImage = async (promptText: string | undefined, fallbackDataAiHint: string): Promise<string> => {
-  if (!promptText) return `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackDataAiHint.substring(0,20))}`;
-  let imageUri = `https://placehold.co/600x400.png`;
+  if (!promptText) {
+    console.warn(`[AI Flow - generateDestinationImage] No prompt text provided for ${fallbackDataAiHint}, using placeholder.`);
+    return `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackDataAiHint.substring(0,20))}`;
+  }
+  let imageUri = `https://placehold.co/600x400.png`; // Default placeholder
   try {
+    console.log(`[AI Flow - generateDestinationImage] Attempting to generate image for prompt: "${promptText}" for destination: ${fallbackDataAiHint}`);
     const { media } = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-exp',
+      model: 'googleai/gemini-2.0-flash-exp', // Ensure this model is available and configured for image generation
       prompt: `Generate an iconic, vibrant, and high-quality travel photograph representing: ${promptText}. Aspect ratio 16:9. Focus on its most recognizable visual elements or overall atmosphere.`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
-        safetySettings: [
+        safetySettings: [ // Moderate safety settings
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -41,12 +49,13 @@ const generateDestinationImage = async (promptText: string | undefined, fallback
 
     if (media?.url) {
       imageUri = media.url;
+      console.log(`[AI Flow - generateDestinationImage] Successfully generated image for: ${fallbackDataAiHint}. URI starts with: ${imageUri.substring(0,50)}...`);
     } else {
-      console.warn(`Destination image generation for prompt "${promptText}" did not return a media URL. Using placeholder.`);
+      console.warn(`[AI Flow - generateDestinationImage] Image generation for prompt "${promptText}" for ${fallbackDataAiHint} did NOT return a media URL. Using placeholder.`);
       imageUri = `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackDataAiHint.substring(0,20))}`;
     }
-  } catch (imageError) {
-    console.error(`Failed to generate destination image for prompt "${promptText}":`, imageError);
+  } catch (imageError: any) {
+    console.error(`[AI Flow - generateDestinationImage] FAILED to generate image for prompt "${promptText}" for ${fallbackDataAiHint}:`, imageError.message || imageError);
     imageUri = `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackDataAiHint.substring(0,20))}`;
   }
   return imageUri;
@@ -71,8 +80,8 @@ For each destination, you MUST provide:
 1.  'name': The common name of the destination (e.g., "Paris", "Kyoto", "Banff National Park").
 2.  'country': The country where it's located (e.g., "France", "Japan", "Canada").
 3.  'description': A captivating 2-3 sentence description highlighting its main appeal.
-4.  'latitude': Approximate latitude of the destination (e.g., 48.8566 for Paris). Provide as a number.
-5.  'longitude': Approximate longitude of the destination (e.g., 2.3522 for Paris). Provide as a number.
+4.  'latitudeString': Approximate latitude of the destination as a STRING (e.g., "48.8566" for Paris).
+5.  'longitudeString': Approximate longitude of the destination as a STRING (e.g., "2.3522" for Paris).
 6.  'hotelIdea': A conceptual hotel suggestion including:
     *   'type': General type (e.g., "Charming Boutique Hotel", "Luxury Beachfront Resort", "Cozy Mountain Lodge", "Well-located Hostel").
     *   'priceRange': A typical price range per night (e.g., "$150-$300", "Under $75", "$400+").
@@ -95,24 +104,46 @@ export const popularDestinationsFlow = ai.defineFlow(
     outputSchema: PopularDestinationsOutputSchema,
   },
   async (input: PopularDestinationsInput): Promise<PopularDestinationsOutput> => {
+    console.log('[AI Flow - popularDestinationsFlow] Received input:', input);
     const { output: textOutput } = await popularDestinationsTextPrompt(input);
 
     if (!textOutput || !textOutput.destinations || textOutput.destinations.length === 0) {
-      console.warn("Popular Destinations AI (text part) did not return valid suggestions. Returning empty array.");
+      console.warn("[AI Flow - popularDestinationsFlow] Text prompt did not return valid destination suggestions.");
       return { destinations: [], contextualNote: "Could not fetch destination ideas at this moment. Please try again later." };
     }
+    console.log('[AI Flow - popularDestinationsFlow] Text-only destinations received from LLM:', textOutput.destinations.length);
 
     const destinationsWithImages = await Promise.all(
-      textOutput.destinations.map(async (dest) => {
-        const fallbackHint = `${dest.name.substring(0,10)} ${dest.country.substring(0,5)}`;
-        const imageUri = await generateDestinationImage(dest.imagePrompt, fallbackHint);
-        return { ...dest, imageUri };
+      textOutput.destinations.map(async (destText) => {
+        const fallbackHint = `${destText.name.substring(0,10)} ${destText.country.substring(0,5)}`;
+        const imageUri = await generateDestinationImage(destText.imagePrompt, fallbackHint);
+        
+        let latitude: number | undefined = undefined;
+        let longitude: number | undefined = undefined;
+        if (destText.latitudeString) {
+            const latNum = parseFloat(destText.latitudeString);
+            if (!isNaN(latNum)) latitude = latNum;
+            else console.warn(`[AI Flow - popularDestinationsFlow] Could not parse latitudeString "${destText.latitudeString}" for ${destText.name}`);
+        }
+        if (destText.longitudeString) {
+            const lonNum = parseFloat(destText.longitudeString);
+            if (!isNaN(lonNum)) longitude = lonNum;
+            else console.warn(`[AI Flow - popularDestinationsFlow] Could not parse longitudeString "${destText.longitudeString}" for ${destText.name}`);
+        }
+
+        return { 
+            ...destText, 
+            imageUri,
+            latitude,
+            longitude,
+         };
       })
     );
-
+    
+    console.log(`[AI Flow - popularDestinationsFlow] Processed ${destinationsWithImages.length} destinations with images (or fallbacks).`);
     return {
       destinations: destinationsWithImages,
-      contextualNote: textOutput.contextualNote || "Here are some travel ideas to inspire you!"
+      contextualNote: textOutput.contextualNote || (input.userLatitude ? "AI-powered suggestions based on your area." : "General popular destination ideas.")
     };
   }
 );
@@ -120,4 +151,3 @@ export const popularDestinationsFlow = ai.defineFlow(
 export async function getPopularDestinations(input: PopularDestinationsInput): Promise<PopularDestinationsOutput> {
   return popularDestinationsFlow(input);
 }
-

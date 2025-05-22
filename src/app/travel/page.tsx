@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { Search, Plane, Hotel, Compass, Briefcase, Camera, MapPin as MapPinIconLucide, ImageOff, Loader2, AlertTriangle, Sparkles, Building, Route, Info, LocateFixed, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { X } from "lucide-react";
-import { getPopularDestinations } from '@/app/actions';
+import { getPopularDestinations } from '@/app/actions'; // Updated to use server action
 import type { PopularDestinationsOutput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { useToast } from '@/hooks/use-toast';
@@ -33,24 +33,24 @@ const exploreCategories = [
 ];
 
 const modernMapStyle = [
-  { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "hsl(var(--primary))" }, { lightness: -20 }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
-  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
-  { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
+    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+    { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "hsl(var(--primary))" }, { lightness: -20 }] },
+    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+    { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+    { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+    { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
 ];
 
 interface UserLocation {
@@ -202,13 +202,14 @@ export default function TravelPage() {
         console.log(`[TravelPage] Map idle after pan, setting zoom to 12 for ${dest.name}`);
         map.setZoom(12);
       });
+      // Fallback timeout for zoom if idle event doesn't fire as expected (e.g., map already at target)
       setTimeout(() => { 
-        if (map && map.getZoom() !== 12 ) { 
+        if (map && map.getZoom() !== 12 ) { // Check if zoom hasn't already been set by idle
             map.setZoom(12); 
             console.log(`[TravelPage] Fallback zoom set to 12 for ${dest.name}`);
         }
-        if (listener) window.google.maps.event.removeListener(listener); 
-      }, 800); 
+        if (listener) window.google.maps.event.removeListener(listener); // Clean up listener
+      }, 800); // Adjust timeout as needed
     } else if (map) {
       console.warn(`[TravelPage] No valid coordinates for ${dest.name} (Lat: ${dest.latitude}, Lng: ${dest.longitude}), cannot pan map.`);
     } else {
@@ -223,12 +224,13 @@ export default function TravelPage() {
       return;
     }
 
+    // Define CustomMarkerOverlay class inside useEffect to ensure google.maps is loaded
     class CustomMarkerOverlay extends window.google.maps.OverlayView {
         private latlng: google.maps.LatLng;
         private div: HTMLDivElement | null = null;
         private destinationData: AiDestinationSuggestion;
         private clickHandler: () => void;
-        private mapInstanceRef: google.maps.Map;
+        private mapInstanceRef: google.maps.Map; // Keep a ref to the map instance
 
         constructor(props: {
             latlng: google.maps.LatLngLiteral;
@@ -240,29 +242,34 @@ export default function TravelPage() {
             this.latlng = new window.google.maps.LatLng(props.latlng.lat, props.latlng.lng);
             this.destinationData = props.destination;
             this.clickHandler = props.onClick;
-            this.mapInstanceRef = props.map;
+            this.mapInstanceRef = props.map; // Store map instance
             this.setMap(props.map);
         }
 
         onAdd() {
             this.div = document.createElement('div');
-            this.div.className = 'custom-map-marker';
-            this.div.title = this.destinationData.name;
+            this.div.className = 'custom-map-marker'; // Ensure this CSS class is defined in globals.css
+            this.div.title = this.destinationData.name; // Tooltip
+            
             const pulse = document.createElement('div');
-            pulse.className = 'custom-map-marker-pulse';
+            pulse.className = 'custom-map-marker-pulse'; // Ensure this CSS class is defined
             this.div.appendChild(pulse);
+
             this.div.addEventListener('click', this.clickHandler);
+
             const panes = this.getPanes();
             if (panes && panes.overlayMouseTarget) {
                 panes.overlayMouseTarget.appendChild(this.div);
             } else {
-              console.warn("[TravelPage] CustomMarkerOverlay: overlayMouseTarget pane not available during onAdd.");
-              this.mapInstanceRef.getDiv().appendChild(this.div); // Fallback
+              console.warn("[TravelPage] CustomMarkerOverlay: overlayMouseTarget pane not available during onAdd. Appending to map div as fallback.");
+              // Fallback: append to the map's main div if panes aren't ready (less ideal but might work)
+              this.mapInstanceRef.getDiv().appendChild(this.div);
             }
         }
         draw() {
             const projection = this.getProjection();
             if (!projection || !this.div) return;
+
             const point = projection.fromLatLngToDivPixel(this.latlng);
             if (point) {
                 this.div.style.left = point.x + 'px';
@@ -276,51 +283,60 @@ export default function TravelPage() {
                 this.div = null;
             }
         }
+        // Helper to get position for bounds fitting
         getPosition() { return this.latlng; }
     }
 
     console.log("[TravelPage] Updating map markers based on AI destinations:", aiDestinations.map(d => ({name: d.name, lat: d.latitude, lng: d.longitude})));
+    // Clear previous markers
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
     
-    const newMarkers: any[] = [];
+    const newMarkers: any[] = []; // Using any for OverlayView instances
     const validAiDestinations = aiDestinations.filter(dest => dest.latitude != null && dest.longitude != null);
 
     validAiDestinations.forEach(dest => {
-      const marker = new CustomMarkerOverlay({
-          latlng: { lat: dest.latitude!, lng: dest.longitude! },
-          map: map,
-          destination: dest,
-          onClick: () => handleSelectDestination(dest)
-      });
-      newMarkers.push(marker);
+      // Ensure latitude and longitude are numbers before creating LatLng
+      if (typeof dest.latitude === 'number' && typeof dest.longitude === 'number') {
+        const marker = new CustomMarkerOverlay({
+            latlng: { lat: dest.latitude, lng: dest.longitude },
+            map: map,
+            destination: dest,
+            onClick: () => handleSelectDestination(dest)
+        });
+        newMarkers.push(marker);
+      } else {
+        console.warn(`[TravelPage] Invalid coordinates for marker: ${dest.name}`, dest.latitude, dest.longitude);
+      }
     });
     markersRef.current = newMarkers;
     console.log(`[TravelPage] ${newMarkers.length} custom AI markers created.`);
 
+    // Fit map to new markers if any are present
     if (newMarkers.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
-      validAiDestinations.forEach(dest => {
-          if (dest.latitude != null && dest.longitude != null) {
-            bounds.extend(new window.google.maps.LatLng(dest.latitude, dest.longitude));
-          }
+      newMarkers.forEach(marker => {
+        if (marker.getPosition) { // Check if getPosition exists (it should for our custom overlay)
+            bounds.extend(marker.getPosition());
+        }
       });
-      if (!bounds.isEmpty()) {
+      if (!bounds.isEmpty()) { // Only fit if bounds are not empty
           map.fitBounds(bounds);
           console.log("[TravelPage] Map bounds fitted to AI markers.");
           
+          // Adjust zoom after fitting bounds if it's too close or too far
           const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
-            if (map.getZoom()! > 15) { 
+            if (map.getZoom()! > 15) { // Don't zoom in too much
                 map.setZoom(15);
                 console.log("[TravelPage] Adjusted map zoom to 15 (was >15).");
             }
-            if (newMarkers.length === 1 && map.getZoom()! < 10 ) {
+            if (newMarkers.length === 1 && map.getZoom()! < 10 ) { // If single marker, zoom in a bit more
                  map.setZoom(10);
                  console.log("[TravelPage] Single AI marker, adjusted zoom to 10 (was <10).");
             }
           });
-      } else if (newMarkers.length > 0) { // Only AI destinations, but no valid coords
-          console.warn("[TravelPage] AI destinations present but bounds are empty. Could not fit map.");
+      } else if (newMarkers.length > 0) { // Some markers were created but bounds might be empty if all coords are identical or invalid
+          console.warn("[TravelPage] AI markers created but bounds are empty. Could not fit map.");
       }
     } else if (newMarkers.length === 0 && aiDestinations.length > 0) {
         console.warn("[TravelPage] AI destinations present but no valid coordinates for markers. Map not adjusted.");
@@ -337,7 +353,7 @@ export default function TravelPage() {
     setIsFetchingAiDestinations(true);
     setAiDestinationsError(null);
     setAiContextualNote(null);
-    setAiDestinations([]); 
+    setAiDestinations([]); // Clear previous AI destinations
 
     const fetchDestinationsWithLocation = async (lat?: number, lon?: number) => {
       try {
@@ -346,6 +362,7 @@ export default function TravelPage() {
         console.log("[TravelPage] AI Destinations Raw Result from Server:", result.destinations.map(d => ({name: d.name, imageUriProvided: !!d.imageUri, coords: {lat:d.latitude, lng:d.longitude}})));
 
         if (result && result.destinations) {
+            // Process destinations to ensure imageUri has a fallback
             const processedDestinations = result.destinations.map(d => ({
                 ...d,
                 imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0,10))}`
@@ -353,7 +370,7 @@ export default function TravelPage() {
             setAiDestinations(processedDestinations);
             console.log(`[TravelPage] Setting AI Destinations State with ${processedDestinations.length} items.`);
         } else {
-            setAiDestinations([]);
+            setAiDestinations([]); // Ensure it's an empty array if AI returns nothing
             console.warn("[TravelPage] AI did not return a valid destinations array.");
         }
         setAiContextualNote(result?.contextualNote || (lat != null && lon != null ? "AI-powered suggestions based on your area." : "General popular destination ideas."));
@@ -370,6 +387,7 @@ export default function TravelPage() {
       }
     };
 
+    // Logic to get current location or use fallback
     setIsFetchingLocation(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -384,31 +402,34 @@ export default function TravelPage() {
         (error) => {
           console.warn(`[TravelPage] Geolocation error for AI suggestions: ${error.message}`);
           setGeolocationError(`Could not get your location for personalized suggestions: ${error.message}. Showing general ideas.`);
-          setUserLocation(null);
+          setUserLocation(null); // Clear any stale location
           setIsFetchingLocation(false);
-          fetchDestinationsWithLocation(); 
+          fetchDestinationsWithLocation(); // Fetch general suggestions
         },
-        { timeout: 10000 }
+        { timeout: 10000 } // 10 second timeout for geolocation
       );
     } else {
       console.warn("[TravelPage] Geolocation is not supported for AI suggestions.");
       setGeolocationError("Geolocation not supported. Showing general suggestions.");
       setIsFetchingLocation(false);
-      fetchDestinationsWithLocation();
+      fetchDestinationsWithLocation(); // Fetch general suggestions
     }
   };
 
+  // Helper to parse budget from priceRange strings
   const parseBudget = (priceRange?: string): number => {
-    if (!priceRange) return 2000; 
-    const match = priceRange.match(/\$(\d+)/);
-    return match ? parseInt(match[1], 10) * 7 : 2000;
+    if (!priceRange) return 2000; // Default budget
+    const match = priceRange.match(/\$(\d+)/); // Extracts the first number after a $
+    return match ? parseInt(match[1], 10) * 7 : 2000; // Multiply by 7 for a week-long trip concept
   };
 
   const handleInitiatePlanningFromTravelPage = (destinationSuggestion: AiDestinationSuggestion) => {
+    // Construct input for the AI Trip Planner
     const plannerInputData: AITripPlannerInput = {
         destination: destinationSuggestion.name + (destinationSuggestion.country ? `, ${destinationSuggestion.country}` : ''),
-        travelDates: "Next month for 7 days", 
+        travelDates: "Next month for 7 days", // Default travel dates
         budget: parseBudget(destinationSuggestion.hotelIdea?.priceRange || destinationSuggestion.flightIdea?.priceRange),
+        // userPersona, desiredMood, etc., could be added here if available
     };
 
     console.log("[TravelPage] Initiating planning with data:", plannerInputData);
@@ -508,7 +529,7 @@ export default function TravelPage() {
               {(isFetchingAiDestinations || isFetchingLocation) ? "Discovering..." : userLocation ? "Nearby Places with AI" : "AI Suggestions"}
             </Button>
           </div>
-          {geolocationError && !isFetchingLocation && (
+          {geolocationError && !isFetchingLocation && ( // Show error if location fetch failed and not currently fetching
             <Alert variant="default" className={cn("mb-4 bg-yellow-500/10 border-yellow-500/30 text-yellow-300")}>
               <Info className="h-4 w-4 !text-yellow-400" />
               <ShadcnAlertTitle className="text-yellow-200">Location Notice</ShadcnAlertTitle>
@@ -517,13 +538,13 @@ export default function TravelPage() {
               </ShadcnAlertDescription>
             </Alert>
           )}
-           {aiContextualNote && !isFetchingAiDestinations && (
+           {aiContextualNote && !isFetchingAiDestinations && ( // Show contextual note once AI destinations are fetched
             <p className="text-sm text-muted-foreground italic mb-4 text-center sm:text-left">{aiContextualNote}</p>
           )}
 
           {isFetchingAiDestinations && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, index) => (
+              {[...Array(3)].map((_, index) => ( // Show 3 skeletons while loading
                 <Card key={index} className={cn(glassCardClasses, "overflow-hidden animate-pulse")}>
                   <div className="relative w-full aspect-[16/10] bg-muted/40"></div>
                   <CardHeader className="p-4"><div className="h-5 w-3/4 bg-muted/40 rounded"></div><div className="h-3 w-1/2 bg-muted/40 rounded mt-1"></div></CardHeader>
@@ -547,7 +568,7 @@ export default function TravelPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {aiDestinations.map((dest, index) => (
                 <AiDestinationCard 
-                    key={dest.name + (dest.latitude || index) + (dest.longitude || index) } // More unique key
+                    key={dest.name + (dest.latitude || index) + (dest.longitude || index) } 
                     destination={dest} 
                     onSelect={() => handleSelectDestination(dest)}
                     onPlanTrip={() => handleInitiatePlanningFromTravelPage(dest)}
@@ -555,7 +576,7 @@ export default function TravelPage() {
               ))}
             </div>
           )}
-           {!isFetchingAiDestinations && !aiDestinationsError && aiDestinations.length === 0 && (
+           {!isFetchingAiDestinations && !aiDestinationsError && aiDestinations.length === 0 && ( // No AI suggestions fetched yet
              <Card className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
                  Click the button above to let Aura AI suggest some destinations for you!
              </Card>
@@ -642,8 +663,9 @@ function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationC
     setImageLoadError(true);
   }, [destination.name, destination.imageUri]);
 
-  // Determine the hint only if it's a placeholder image
-  const imageHint = destination.imageUri?.startsWith('https://placehold.co') 
+  // Determine the hint only if it's a placeholder image or if the AI-provided URI is a placeholder
+  const imageIsPlaceholder = !destination.imageUri || destination.imageUri.startsWith('https://placehold.co');
+  const imageHint = imageIsPlaceholder 
     ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" ")) 
     : undefined;
 
@@ -653,7 +675,11 @@ function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationC
         onClick={onSelect} 
     >
       <div className="relative w-full aspect-[16/10] bg-muted/30 group">
-        {!imageLoadError && destination.imageUri ? (
+        {imageLoadError || !destination.imageUri ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageOff className="w-10 h-10 text-muted-foreground" />
+          </div>
+        ) : (
           <Image
             src={destination.imageUri}
             alt={destination.name}
@@ -664,10 +690,6 @@ function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationC
             onError={handleImageError}
             priority={false} 
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ImageOff className="w-10 h-10 text-muted-foreground" />
-          </div>
         )}
       </div>
       <CardHeader className="p-3 pb-2">
@@ -719,12 +741,13 @@ function DialogImageDisplay({ destination }: DialogImageDisplayProps) {
   const [imageLoadError, setImageLoadError] = useState(false);
 
   useEffect(() => {
-    setImageLoadError(false); 
+    setImageLoadError(false); // Reset error state when destination changes
   }, [destination?.imageUri]);
 
   if (!destination) return null;
 
-  const imageHint = destination.imageUri?.startsWith('https://placehold.co') 
+  const imageIsPlaceholder = !destination.imageUri || destination.imageUri.startsWith('https://placehold.co');
+  const imageHint = imageIsPlaceholder 
     ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" ")) 
     : undefined;
 
@@ -735,7 +758,11 @@ function DialogImageDisplay({ destination }: DialogImageDisplayProps) {
 
   return (
     <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
-      {!imageLoadError && destination.imageUri ? (
+      {imageLoadError || !destination.imageUri ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <ImageOff className="w-16 h-16 text-muted-foreground" />
+        </div>
+      ) : (
         <Image
           src={destination.imageUri}
           alt={`Image of ${destination.name}`}
@@ -745,10 +772,6 @@ function DialogImageDisplay({ destination }: DialogImageDisplayProps) {
           sizes="(max-width: 640px) 90vw, 500px"
           onError={handleImageError}
         />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <ImageOff className="w-16 h-16 text-muted-foreground" />
-        </div>
       )}
     </div>
   );
@@ -770,7 +793,7 @@ function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search d
         description: `You searched for: ${term}. This would typically trigger a search or navigation to a results page.`,
     });
   };
-  const { toast } = useToast();
+  const { toast } = useToast(); // Ensure useToast is called within the component
   return (
     <form onSubmit={handleSubmit} className="relative w-full">
       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
@@ -781,7 +804,7 @@ function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search d
         placeholder={placeholder}
         className="w-full pl-11 pr-4 py-2.5 h-12 text-base bg-input/70 border-border/50 focus:bg-input/90 dark:bg-input/50 rounded-full shadow-inner focus:ring-2 focus:ring-primary/50"
       />
-      <button type="submit" className="hidden">Search</button>
+      <button type="submit" className="hidden">Search</button> {/* Hidden submit button for form submission on enter */}
     </form>
   );
 }
