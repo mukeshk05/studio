@@ -4,14 +4,13 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AppLogo } from '@/components/layout/app-logo';
 import { cn } from '@/lib/utils';
-import { Search, Plane, Hotel, Compass, Briefcase, MapPin, ImageOff, Loader2, AlertTriangle, Sparkles, Building, Route, Info, LocateFixed, ExternalLink } from 'lucide-react';
+import { Search, Plane, Hotel, Compass, Briefcase, MapPin, ImageOff, Loader2, AlertTriangle, Sparkles, Building, Route, Info, LocateFixed, ExternalLink, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
-import { X } from "lucide-react";
 import { getPopularDestinations } from '@/app/actions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
@@ -21,17 +20,14 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription} from '@/components/ui/alert';
 import { useRouter } from 'next/navigation';
 
-
-
-
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-xl";
 
 const exploreCategories = [
   { name: "Flights", icon: <Plane className="w-5 h-5" />, href: "/flights" },
-  { name: "Hotels", icon: <Hotel className="w-5 h-5" />, href: "/hotels" }, 
-  { name: "Things to do", icon: <Compass className="w-5 h-5" />, href: "/travel#" },
-  { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/travel#" },
+  { name: "Hotels", icon: <Hotel className="w-5 h-5" />, href: "/hotels" },
+  { name: "Things to do", icon: <Compass className="w-5 h-5" />, href: "/explore" },
+  { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/explore" },
 ];
 
 const modernMapStyle: google.maps.MapTypeStyle[] = [
@@ -65,9 +61,10 @@ interface SearchInputProps {
   onSearch?: (term: string) => void;
   placeholder?: string;
 }
+
 function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search destinations, hotels, flights..."}: SearchInputProps) {
    const [term, setTerm] = useState(initialSearchTerm);
-   const { toast: shadcnToast } = useToast(); 
+   const { toast: shadcnToast } = useToast();
    const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch) onSearch(term);
@@ -94,38 +91,38 @@ function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search d
 interface AiDestinationCardProps {
   destination: AiDestinationSuggestion;
   onSelect: () => void;
-  onPlanTrip: () => void; 
+  onPlanTrip: (data: AiDestinationSuggestion) => void;
 }
 
 function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationCardProps) {
   const [imageLoadError, setImageLoadError] = useState(false);
-  
+
   const handleImageError = useCallback(() => {
     console.warn(`[AiDestinationCard - TravelPage] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
     setImageLoadError(true);
   }, [destination.name, destination.imageUri]);
 
   const currentImageSrc = (!imageLoadError && destination.imageUri) ? destination.imageUri : null;
-  const imageHint = destination.imageUri?.startsWith('https://placehold.co') 
-    ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" ")) 
+  const imageHint = destination.imageUri?.startsWith('https://placehold.co')
+    ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" "))
     : undefined;
 
   return (
-    <Card 
+    <Card
         className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col cursor-pointer")}
-        onClick={onSelect} 
+        onClick={onSelect}
     >
       <div className="relative w-full aspect-[16/10] bg-muted/30 group">
         {currentImageSrc ? (
           <Image
-            src={currentImageSrc} 
+            src={currentImageSrc}
             alt={destination.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             data-ai-hint={imageHint}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             onError={handleImageError}
-            priority={false} 
+            priority={false}
           />
         ) : (
             <div className="w-full h-full bg-muted/30 flex items-center justify-center">
@@ -153,8 +150,8 @@ function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationC
         )}
       </CardContent>
       <CardFooter className="p-3 pt-2">
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             className={cn(
                 "w-full text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
                 "bg-gradient-to-r from-primary to-accent text-primary-foreground",
@@ -163,8 +160,8 @@ function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationC
                 "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
             )}
             onClick={(e) => {
-                e.stopPropagation(); 
-                onPlanTrip();
+                e.stopPropagation();
+                onPlanTrip(destination);
             }}
           >
              <ExternalLink className="mr-2 h-4 w-4" /> Plan Trip
@@ -179,24 +176,23 @@ interface DialogImageDisplayProps {
 }
 
 function DialogImageDisplay({ destination }: DialogImageDisplayProps) {
-  const [imageLoadError, setImageLoadError] = useState(false);
+  const [imageLoadError, setDialogImageLoadError] = useState(false);
 
   useEffect(() => {
-    setImageLoadError(false); 
+    setDialogImageLoadError(false); // Reset error state when destination changes
   }, [destination?.imageUri]);
 
   if (!destination) return null;
 
   const currentImageSrc = (!imageLoadError && destination.imageUri) ? destination.imageUri : null;
-  const imageHint = destination.imageUri?.startsWith('https://placehold.co') 
-    ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" ")) 
+  const imageHint = destination.imageUri?.startsWith('https://placehold.co')
+    ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" "))
     : undefined;
 
   const handleImageError = useCallback(() => {
     console.warn(`[DialogImageDisplay - TravelPage] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
-    setImageLoadError(true);
+    setDialogImageLoadError(true);
   },[destination.name, destination.imageUri]);
-
 
   return (
     <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
@@ -219,7 +215,6 @@ function DialogImageDisplay({ destination }: DialogImageDisplayProps) {
   );
 }
 
-
 export default function TravelPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -229,7 +224,7 @@ export default function TravelPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
-  const [isMapInitializing, setIsMapInitializing] = useState(true); // Start true
+  const [isMapInitializing, setIsMapInitializing] = useState(true);
 
   const [aiDestinations, setAiDestinations] = useState<AiDestinationSuggestion[]>([]);
   const [isFetchingAiDestinations, setIsFetchingAiDestinations] = useState(false);
@@ -237,20 +232,18 @@ export default function TravelPage() {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
-  const [aiContextualNote, setAiContextualNote] = useState<string | null>(null);
-  
+  const [aiContextualNote, setAiContextualNote] = useState<string | null>("Explore top destinations or discover places based on your location!");
+
   const { toast } = useToast();
   const router = useRouter();
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  // Callback for Google Maps API script load
   const initGoogleMapsApiTravelPage = useCallback(() => {
     console.log("[TravelPage] Google Maps API script loaded callback executed.");
     setIsMapsScriptLoaded(true);
   }, []);
 
-  // Effect to load Google Maps script
   useEffect(() => {
     if (!apiKey) {
       console.error("[TravelPage] Google Maps API key is missing.");
@@ -259,15 +252,17 @@ export default function TravelPage() {
       return;
     }
     if (typeof window !== 'undefined' && window.google && window.google.maps) {
-      if (!isMapsScriptLoaded) setIsMapsScriptLoaded(true);
+      if (!isMapsScriptLoaded) setIsMapsScriptLoaded(true); // Already loaded
       return;
     }
     const scriptId = 'google-maps-travel-page-script';
-    if (document.getElementById(scriptId)) {
-      if (typeof window !== 'undefined' && window.google && window.google.maps && !isMapsScriptLoaded) setIsMapsScriptLoaded(true);
+    if (document.getElementById(scriptId)) { // Script tag already exists
+      if (typeof window !== 'undefined' && window.google && window.google.maps && !isMapsScriptLoaded) {
+          setIsMapsScriptLoaded(true); // Mark as loaded if google object is available
+      }
       return;
     }
-    
+
     console.log("[TravelPage] Attempting to load Google Maps API script...");
     const script = document.createElement('script');
     script.id = scriptId;
@@ -283,7 +278,7 @@ export default function TravelPage() {
     (window as any).initGoogleMapsApiTravelPage = initGoogleMapsApiTravelPage;
     document.head.appendChild(script);
 
-    return () => { 
+    return () => { // Cleanup function
       if ((window as any).initGoogleMapsApiTravelPage) {
         delete (window as any).initGoogleMapsApiTravelPage;
       }
@@ -293,15 +288,20 @@ export default function TravelPage() {
   const initializeMap = useCallback((center: google.maps.LatLngLiteral, zoom: number) => {
     if (!mapRef.current || !window.google || !window.google.maps) {
       console.warn("[TravelPage] Map ref not ready or Google Maps not loaded for initializeMap.");
-      setIsMapInitializing(false);
+      setIsMapInitializing(false); // Ensure this is set
       return;
     }
     try {
       console.log(`[TravelPage] Initializing map at center: ${JSON.stringify(center)} with zoom ${zoom}`);
       const initialMap = new window.google.maps.Map(mapRef.current!, {
-        center, zoom, styles: modernMapStyle,
-        mapTypeControl: true, mapTypeControlOptions: { style: window.google.maps.MapTypeControlStyle.HORIZONTAL_BAR, position: window.google.maps.ControlPosition.TOP_RIGHT },
-        streetViewControl: false, fullscreenControl: true, zoomControl: true,
+        center,
+        zoom,
+        styles: modernMapStyle,
+        mapTypeControl: true,
+        mapTypeControlOptions: { style: window.google.maps.MapTypeControlStyle.HORIZONTAL_BAR, position: window.google.maps.ControlPosition.TOP_RIGHT },
+        streetViewControl: false,
+        fullscreenControl: true,
+        zoomControl: true,
       });
       setMap(initialMap);
       console.log("[TravelPage] Map initialized successfully.");
@@ -312,12 +312,11 @@ export default function TravelPage() {
       setIsMapInitializing(false);
     }
   }, []);
-  
-  // Effect to fetch user location for initial map center
+
   const useEffectForMapAndInitialLocation = useCallback(() => {
     console.log(`[TravelPage] Map/Location Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, mapRef.current=${!!mapRef.current}, !map=${!map}`);
-    if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing) { // ensure map not already init
-        setIsMapInitializing(true); // Set before async call
+    if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing) { // Check !isMapInitializing to prevent re-runs if already init
+        setIsMapInitializing(true); // Set to true before starting process
         setIsFetchingLocation(true);
         console.log("[TravelPage] Maps script loaded, attempting to fetch user location for initial map center.");
         if (navigator.geolocation) {
@@ -328,27 +327,33 @@ export default function TravelPage() {
                     console.log("[TravelPage] User location fetched for map:", userCoords);
                     setUserLocation({ latitude: userCoords.lat, longitude: userCoords.lng });
                     setGeolocationError(null);
-                    initializeMap(userCoords, 10); 
+                    initializeMap(userCoords, 10);
+                    setIsFetchingLocation(false);
                 },
                 (error) => {
                     console.warn("[TravelPage] Geolocation error for map:", error);
                     setGeolocationError(`Could not get your location: ${error.message}. Map centered globally.`);
                     setUserLocation(null);
-                    initializeMap({ lat: 20, lng: 0 }, 2);
+                    initializeMap({ lat: 20, lng: 0 }, 2); // Default center on error
+                    setIsFetchingLocation(false);
                 },
-                { timeout: 8000, enableHighAccuracy: true, maximumAge: 0 }
+                { timeout: 8000, enableHighAccuracy: true, maximumAge: 0 } // Options for better accuracy
             );
         } else {
             console.warn("[TravelPage] Geolocation not supported by this browser for map.");
             setGeolocationError("Geolocation not supported. Map centered globally.");
             setUserLocation(null);
-            initializeMap({ lat: 20, lng: 0 }, 2);
+            initializeMap({ lat: 20, lng: 0 }, 2); // Default center
+            setIsFetchingLocation(false);
         }
-        setIsFetchingLocation(false); // Should be inside callbacks or a finally
+    } else if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing && !isFetchingLocation) {
+        // Fallback if geolocation was already attempted and failed, but map still not init
+        console.log("[TravelPage] Map script loaded, geo attempt finished, map still not init. Defaulting map.");
+        initializeMap({ lat: 20, lng: 0 }, 2);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMapsScriptLoaded, map, initializeMap]); // isMapInitializing removed to allow re-trigger if map becomes null
-  
+  }, [isMapsScriptLoaded, map, initializeMap, isMapInitializing]); // Removed isFetchingLocation from deps as it can cause loop
+
   useEffect(useEffectForMapAndInitialLocation, [useEffectForMapAndInitialLocation]);
 
 
@@ -358,25 +363,35 @@ export default function TravelPage() {
     if (map && window.google && window.google.maps && dest.latitude != null && dest.longitude != null) {
       console.log(`[TravelPage] Panning and zooming to AI destination: ${dest.name} at ${dest.latitude}, ${dest.longitude}`);
       const targetLatLng = new window.google.maps.LatLng(dest.latitude, dest.longitude);
-      
+
       map.panTo(targetLatLng);
+      // Smooth zoom after pan
       const listener = window.google.maps.event.addListenerOnce(map, 'idle', () => {
         const currentZoom = map.getZoom() || 0;
         let targetZoom = 12; // Default zoom for a single selected destination
-        if(markersRef.current.length > 1) { // If multiple markers are shown (e.g. after AI suggestions)
-            targetZoom = Math.max(currentZoom, 5); // Don't zoom in too much if multiple markers
+        
+        // If there are multiple markers, fitBounds would have set a broader zoom.
+        // This ensures if we click a single item from a list, we zoom into it.
+        // If only one marker was on the map and we clicked it, ensure it's not TOO zoomed in.
+        if(markersRef.current.length > 1 && currentZoom < targetZoom) {
+            map.setZoom(targetZoom);
+        } else if (markersRef.current.length === 1 && currentZoom > 15) { // Avoid over-zooming if it was already zoomed
+            map.setZoom(15);
+        } else if (markersRef.current.length === 1 && currentZoom < 10) {
+            map.setZoom(10);
+        } else if (currentZoom < targetZoom) {
+             map.setZoom(targetZoom);
         }
-        if (currentZoom < targetZoom) map.setZoom(targetZoom);
-        else if (currentZoom > targetZoom + 3 && markersRef.current.length === 1) map.setZoom(targetZoom); // Zoom out if too close for single
-        console.log(`[TravelPage] Map idle after pan, zoom is ${map.getZoom()} for ${dest.name}.`);
+        
+        console.log(`[TravelPage] Map idle after pan to ${dest.name}. Current zoom: ${map.getZoom()}. Target idea: ${targetZoom}`);
       });
-      setTimeout(() => { 
+      // Failsafe to remove listener
+      setTimeout(() => {
         if (listener) window.google.maps.event.removeListener(listener);
-      }, 1200); 
+      }, 1200); // Slightly longer to ensure idle can fire
     }
   }, [map]);
 
-  // Effect for managing map markers based on aiDestinations
   useEffect(() => {
     if (!map || !isMapsScriptLoaded || !(window.google && window.google.maps && window.google.maps.OverlayView)) {
       markersRef.current.forEach(marker => marker.setMap(null));
@@ -384,12 +399,13 @@ export default function TravelPage() {
       return;
     }
 
+    // Define CustomMarkerOverlay class within the scope where google.maps.OverlayView is known
     class CustomMarkerOverlay extends window.google.maps.OverlayView {
         private latlng: google.maps.LatLng;
         private div: HTMLDivElement | null = null;
         private destinationData: AiDestinationSuggestion;
         private clickHandler: () => void;
-        private mapInstanceRef: google.maps.Map;
+        private mapInstanceRef: google.maps.Map; // Store map instance
 
         constructor(props: {
             latlng: google.maps.LatLngLiteral;
@@ -401,21 +417,26 @@ export default function TravelPage() {
             this.latlng = new window.google.maps.LatLng(props.latlng.lat, props.latlng.lng);
             this.destinationData = props.destination;
             this.clickHandler = props.onClick;
-            this.mapInstanceRef = props.map; 
+            this.mapInstanceRef = props.map; // Store map instance
             this.setMap(props.map);
         }
         onAdd() {
             this.div = document.createElement('div');
-            this.div.className = 'custom-map-marker'; 
-            this.div.title = this.destinationData.name; 
+            this.div.className = 'custom-map-marker'; // Use CSS for styling
+            this.div.title = this.destinationData.name; // Tooltip for marker
+            
+            // Create a pulse element for animation
             const pulse = document.createElement('div');
-            pulse.className = 'custom-map-marker-pulse'; 
+            pulse.className = 'custom-map-marker-pulse';
             this.div.appendChild(pulse);
+
             this.div.addEventListener('click', this.clickHandler);
             const panes = this.getPanes();
+            // Add to overlayMouseTarget for click events
             if (panes && panes.overlayMouseTarget) {
                 panes.overlayMouseTarget.appendChild(this.div);
             } else {
+              // Fallback if overlayMouseTarget is not available (should be rare)
               this.mapInstanceRef.getDiv().appendChild(this.div);
             }
         }
@@ -431,73 +452,80 @@ export default function TravelPage() {
         onRemove() {
             if (this.div) {
                 this.div.removeEventListener('click', this.clickHandler);
-                this.div.parentNode?.removeChild(this.div);
+                if (this.div.parentNode) {
+                  this.div.parentNode.removeChild(this.div);
+                }
                 this.div = null;
             }
         }
+        // Helper to get position if needed by other logic
         getPosition() { return this.latlng; }
     }
 
+    // Clear previous markers
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
-    
-    const newMarkers: (google.maps.OverlayView | google.maps.Marker)[] = []; 
-    const validAiDestinations = aiDestinations.filter(dest => dest.latitude != null && dest.longitude != null);
 
+    const newMarkers: (google.maps.OverlayView | google.maps.Marker)[] = []; // Type can be either
+    const validAiDestinations = aiDestinations.filter(dest => typeof dest.latitude === 'number' && typeof dest.longitude === 'number');
+    
     console.log(`[TravelPage] Updating markers for ${validAiDestinations.length} AI destinations.`);
 
     validAiDestinations.forEach(dest => {
-      if (typeof dest.latitude === 'number' && typeof dest.longitude === 'number') {
-        const marker = new CustomMarkerOverlay({
-            latlng: { lat: dest.latitude, lng: dest.longitude },
-            map: map,
-            destination: dest,
-            onClick: () => handleSelectDestination(dest)
-        });
-        newMarkers.push(marker);
-      }
+      // Use CustomMarkerOverlay for AI destinations
+      const marker = new CustomMarkerOverlay({
+          latlng: { lat: dest.latitude!, lng: dest.longitude! },
+          map: map,
+          destination: dest,
+          onClick: () => handleSelectDestination(dest)
+      });
+      newMarkers.push(marker);
     });
     markersRef.current = newMarkers;
 
     if (newMarkers.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
       newMarkers.forEach(marker => {
-        if (marker.getPosition) bounds.extend(marker.getPosition());
+        // CustomOverlayView has getPosition(), google.maps.Marker also has getPosition()
+        if (marker.getPosition) bounds.extend(marker.getPosition()!);
       });
       if (!bounds.isEmpty()) {
-          map.fitBounds(bounds, 100); // 100px padding
+          map.fitBounds(bounds, 100); // Add padding
           console.log("[TravelPage] Map bounds fitted to AI markers.");
+          // Adjust zoom after fitBounds to prevent over-zooming on single markers
           const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
             let currentZoom = map.getZoom() || 0;
-            if (newMarkers.length === 1 && currentZoom > 12) map.setZoom(12); // Zoom out a bit for single marker if too close
-            else if (currentZoom > 15) map.setZoom(15); // Max zoom for multiple markers
+            if (newMarkers.length === 1 && currentZoom > 12) map.setZoom(12);
+            else if (currentZoom > 15) map.setZoom(15); // General cap on zoom after fitBounds
           });
       }
     }
-  }, [map, isMapsScriptLoaded, aiDestinations, handleSelectDestination]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, isMapsScriptLoaded, aiDestinations, handleSelectDestination]); // `popularDestinations` removed as it's static
 
   const fetchAiDestinations = useCallback(async (params: PopularDestinationsInput = {}) => {
     setIsFetchingAiDestinations(true);
     setAiDestinationsError(null);
-    setAiContextualNote(null);
-    setAiDestinations([]); 
+    setAiContextualNote(null); // Clear previous note
+    setAiDestinations([]); // Clear previous suggestions
 
     let effectiveLat = params.userLatitude;
     let effectiveLng = params.userLongitude;
 
+    // Use component's userLocation state if available and not overridden by params
     if (params.userLatitude === undefined && params.userLongitude === undefined && userLocation) {
         effectiveLat = userLocation.latitude;
         effectiveLng = userLocation.longitude;
     }
-    
-    const inputParams: PopularDestinationsInput = { 
-        ...params, 
-        userLatitude: effectiveLat, 
-        userLongitude: effectiveLng 
+
+    const inputParams: PopularDestinationsInput = {
+        ...params,
+        userLatitude: effectiveLat,
+        userLongitude: effectiveLng
     };
 
     console.log(`[TravelPage] Fetching AI destinations for ${params.interest ? `interest: ${params.interest}` : 'general'} with location:`, inputParams.userLatitude, inputParams.userLongitude);
-    
+
     try {
         const result: PopularDestinationsOutput = await getPopularDestinations(inputParams);
         console.log("[TravelPage] AI Destinations Raw Result from Server:", result.destinations.map(d => ({name: d.name, imageUriProvided: !!d.imageUri, coords: {lat:d.latitude, lng:d.longitude}})));
@@ -505,62 +533,79 @@ export default function TravelPage() {
         if (result && result.destinations) {
             const processedDestinations = result.destinations.map(d => ({
                 ...d,
+                // Ensure imageUri has a fallback if null/undefined from AI before this point
                 imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0,10))}`
             }));
             setAiDestinations(processedDestinations);
         } else {
-            setAiDestinations([]);
+            setAiDestinations([]); // Ensure it's an empty array
         }
         setAiContextualNote(result?.contextualNote || (inputParams.userLatitude != null ? "AI-powered suggestions based on your area." : "General popular destination ideas."));
-        
+
         if (!result?.destinations || result.destinations.length === 0){
+           // The contextualNote from AI should cover this, but as a fallback:
            setAiDestinationsError(result?.contextualNote || "AI couldn't find specific suggestions. Try a broader search or general suggestions.");
         }
       } catch (error: any) {
         console.error("[TravelPage] Error fetching AI destinations:", error);
         setAiDestinationsError(`Could not fetch destination suggestions: ${error.message || 'Unknown error'}.`);
-        setAiDestinations([]);
+        setAiContextualNote(`Error fetching suggestions: ${error.message || 'Unknown error'}.`); // Set note on error too
+        toast({
+            title: "Error Fetching Destinations",
+            description: `AI suggestions could not be loaded: ${error.message || 'Unknown error'}. Please try again.`,
+            variant: "destructive",
+        });
+        setAiDestinations([]); // Ensure empty on error
       } finally {
         setIsFetchingAiDestinations(false);
       }
-  }, [userLocation]);
+  }, [userLocation, toast]); // Added toast
 
-  useEffect(() => { // Initial fetch for general suggestions after location is potentially set
-    if (map && !isFetchingAiDestinations && aiDestinations.length === 0 && !aiContextualNote && !aiDestinationsError) {
-        console.log("[TravelPage] Initial fetch for general destinations.");
+  // Fetch initial AI destinations once map is ready and location (if any) is attempted
+  useEffect(() => {
+    // Fetch only if map is initialized, not currently fetching, and no destinations loaded yet
+    if (map && !isMapInitializing && !isFetchingAiDestinations && aiDestinations.length === 0 && !aiDestinationsError) {
+        console.log("[TravelPage] Map ready, fetching initial general AI destinations using location:", userLocation);
         fetchAiDestinations({ userLatitude: userLocation?.latitude, userLongitude: userLocation?.longitude });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, userLocation]); // Fetch when map is ready or userLocation changes
+  }, [map, isMapInitializing, userLocation]); // fetchAiDestinations removed, aiDestinations.length, aiDestinationsError also removed to allow re-fetch if needed
 
 
   const parseBudget = (priceRange?: string): number => {
-    if (!priceRange) return 2000; 
-    const match = priceRange.match(/\$(\d+)/); 
-    return match ? parseInt(match[1], 10) * 7 : 2000; 
+    if (!priceRange) return 2000; // Default budget if no price range
+    // Attempt to extract the first number from strings like "$150-$250" or "Under $100" or "$400+"
+    const match = priceRange.match(/\$(\d+)/);
+    return match ? parseInt(match[1], 10) * 7 : 2000; // Multiply by 7 for a week's budget if it's per night
   };
 
   const handleInitiatePlanningFromTravelPage = (destinationSuggestion: AiDestinationSuggestion) => {
+    // Ensure we have a valid destination name
+    const destinationName = destinationSuggestion.name || "Selected Destination";
+    const destinationCountry = destinationSuggestion.country ? `, ${destinationSuggestion.country}` : '';
+
     const plannerInputData: AITripPlannerInput = {
-        destination: destinationSuggestion.name + (destinationSuggestion.country ? `, ${destinationSuggestion.country}` : ''),
-        travelDates: "Next month for 7 days", 
-        budget: parseBudget(destinationSuggestion.hotelIdea?.priceRange || destinationSuggestion.flightIdea?.priceRange), 
+        destination: `${destinationName}${destinationCountry}`,
+        travelDates: "Next month for 7 days", // Default sensible travel dates
+        budget: parseBudget(destinationSuggestion.hotelIdea?.priceRange || destinationSuggestion.flightIdea?.priceRange),
+        // We can pass the user's travel persona if available
+        // userPersona: userPersonaData, // Assuming userPersonaData is fetched and available
     };
     console.log("[TravelPage] Initiating planning with data:", plannerInputData);
     localStorage.setItem('tripBundleToPlan', JSON.stringify(plannerInputData));
-    window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan')); 
-    router.push('/planner');
+    window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan')); // For potential listeners
+    router.push('/planner'); // Navigate to planner page
     toast({
-        title: `Planning Trip to ${destinationSuggestion.name}`,
+        title: `Planning Trip to ${destinationName}`,
         description: "Planner opened with destination details. Adjust dates and budget as needed.",
     });
   };
 
   const prominentButtonClasses = "text-lg py-3 group transform transition-all duration-300 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40";
 
-
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
+      {/* Header */}
       <header className={cn("sticky top-0 z-40 w-full border-b border-border/30", glassPaneClasses)}>
          <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <AppLogo />
@@ -579,6 +624,7 @@ export default function TravelPage() {
       </header>
 
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
         <section className="mb-12 text-center animate-fade-in-up">
            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4">
             Where to next, Explorer?
@@ -591,6 +637,7 @@ export default function TravelPage() {
           </div>
         </section>
 
+        {/* Explore Categories */}
         <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
            <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-3 rounded-xl", glassCardClasses, "border-primary/10")}>
             {exploreCategories.map((category) => (
@@ -608,7 +655,8 @@ export default function TravelPage() {
             ))}
           </div>
         </section>
-        
+
+        {/* Map Section */}
         <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.3s'}}>
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
             <LocateFixed className="w-7 h-7 mr-2 text-primary"/> Explore on the Map
@@ -629,29 +677,36 @@ export default function TravelPage() {
            {geolocationError && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>{geolocationError}</p>}
         </section>
 
+        {/* AI-Powered Destination Ideas Section */}
         <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground flex items-center">
               <Sparkles className="w-7 h-7 mr-2 text-accent"/> AI-Powered Destination Ideas
             </h2>
-            <Button 
-              onClick={() => fetchAiDestinations({ userLatitude: userLocation?.latitude, userLongitude: userLocation?.longitude })} 
-              disabled={isFetchingAiDestinations || isFetchingLocation} 
+            <Button
+              onClick={() => fetchAiDestinations({ userLatitude: userLocation?.latitude, userLongitude: userLocation?.longitude })}
+              disabled={isFetchingAiDestinations || isFetchingLocation} // Disable if already fetching location for map
               size="lg"
               className={cn(prominentButtonClasses, "py-2.5 text-base")}
             >
-              {(isFetchingAiDestinations || isFetchingLocation) ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 group-hover:animate-pulse" />}
-              {(isFetchingAiDestinations || isFetchingLocation) ? "Discovering..." : userLocation ? "Ideas Near Me" : "General Ideas"}
+              {(isFetchingAiDestinations || (isFetchingLocation && !userLocation) ) ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 group-hover:animate-pulse" />}
+              {(isFetchingAiDestinations || (isFetchingLocation && !userLocation) ) ? "Discovering..." : userLocation ? "Ideas Near Me" : "General Ideas"}
             </Button>
           </div>
-          
-           {aiContextualNote && !isFetchingAiDestinations && ( 
-            <p className="text-sm text-muted-foreground italic mb-4 text-center sm:text-left">{aiContextualNote}</p>
+
+           {aiContextualNote && !isFetchingAiDestinations && (
+            <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary text-sm")}>
+                <Info className="h-4 w-4 !text-primary" />
+                <ShadcnAlertTitle className="font-semibold">Aura's Note</ShadcnAlertTitle>
+                <ShadcnAlertDescription className="text-primary/80">
+                {aiContextualNote}
+                </ShadcnAlertDescription>
+            </Alert>
           )}
 
           {isFetchingAiDestinations && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, index) => ( 
+              {[...Array(3)].map((_, index) => ( // Show 3 skeletons
                 <Card key={index} className={cn(glassCardClasses, "overflow-hidden animate-pulse")}>
                   <div className="relative w-full aspect-[16/10] bg-muted/40"></div>
                   <CardHeader className="p-4"><div className="h-5 w-3/4 bg-muted/40 rounded"></div><div className="h-3 w-1/2 bg-muted/40 rounded mt-1"></div></CardHeader>
@@ -674,9 +729,9 @@ export default function TravelPage() {
           {!isFetchingAiDestinations && aiDestinations.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {aiDestinations.map((dest, index) => (
-                <AiDestinationCard 
-                    key={dest.name + (dest.latitude || index) + (dest.longitude || index) } 
-                    destination={dest} 
+                <AiDestinationCard
+                    key={dest.name + (dest.latitude || index) + (dest.longitude || index) } // More unique key
+                    destination={dest}
                     onSelect={() => handleSelectDestination(dest)}
                     onPlanTrip={() => handleInitiatePlanningFromTravelPage(dest)}
                 />
@@ -689,9 +744,10 @@ export default function TravelPage() {
              </Card>
            )}
         </section>
-        
+
       </main>
 
+      {/* Destination Detail Dialog */}
       {selectedMapDestination && (
          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent className={cn("sm:max-w-lg md:max-w-xl p-0", glassCardClasses, "border-primary/30")}>
@@ -726,9 +782,9 @@ export default function TravelPage() {
                             <p className="pl-5 text-muted-foreground">{selectedMapDestination.flightIdea.description} ({selectedMapDestination.flightIdea.priceRange})</p>
                         </div>
                     )}
-                    <Button 
+                    <Button
                         onClick={() => handleInitiatePlanningFromTravelPage(selectedMapDestination)}
-                        size="lg" 
+                        size="lg"
                         className={cn(prominentButtonClasses, "w-full mt-4", "text-base py-2.5")}
                     >
                         <ExternalLink className="mr-2 h-5 w-5" />
@@ -739,6 +795,7 @@ export default function TravelPage() {
         </Dialog>
       )}
 
+      {/* Footer */}
       <footer className={cn("py-6 border-t border-border/30 mt-auto", glassPaneClasses)}>
          <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
