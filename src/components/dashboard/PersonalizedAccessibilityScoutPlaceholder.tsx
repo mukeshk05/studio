@@ -7,15 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Loader2, Sparkles, Accessibility, Info, AlertTriangle, SearchCheck, ImageOff, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Sparkles, Accessibility, Info, AlertTriangle, SearchCheck, ImageOff, CheckCircle, XCircle } from 'lucide-react';
 import { getPersonalizedAccessibilityScout } from '@/ai/flows/personalized-accessibility-scout-flow';
 import type { PersonalizedAccessibilityScoutInput, PersonalizedAccessibilityScoutOutput } from '@/ai/types/personalized-accessibility-scout-types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";

@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Sparkles, BookOpenText, MapPin, Landmark, ImageOff, Info } from 'lucide-react';
 import { narrateLocalLegend } from '@/ai/flows/local-legend-narrator-flow';
 import type { LocalLegendNarratorInput, LocalLegendNarratorOutput } from '@/ai/types/local-legend-narrator-types';
@@ -104,7 +103,17 @@ export function LocalLegendNarratorCard() {
           </div>
         </div>
 
-        {isLoading && (
+        <Button
+          onClick={handleFetchLegend}
+          disabled={isLoading || !destination.trim()}
+          size="lg"
+          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+        >
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
+          Uncover Local Legends
+        </Button>
+
+        {isLoading && !legendData && (
           <div className="text-center py-6 text-muted-foreground">
             <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-yellow-400" />
             <p>Aura is consulting the ancient spirits and local chronicles...</p>
@@ -160,17 +169,12 @@ export function LocalLegendNarratorCard() {
           </Card>
         )}
       </CardContent>
-      <CardFooter>
-        <Button
-          onClick={handleFetchLegend}
-          disabled={isLoading || !destination.trim()}
-          size="lg"
-          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
-        >
-          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
-          Uncover Local Legends
-        </Button>
-      </CardFooter>
+      <CardFooter className="pt-2">
+        <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
+          <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+          This feature uses live AI calls to generate stories and images.
+        </p>
+       </CardFooter>
     </Card>
   );
 }

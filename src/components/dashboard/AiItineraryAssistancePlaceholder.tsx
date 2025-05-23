@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, ListPlus, Info, ExternalLink, ImageOff } from 'lucide-react';
@@ -13,7 +13,6 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGetUserTravelPersona } from '@/lib/firestoreHooks';
-import { Separator } from '../ui/separator';
 
 function SuggestedAdditionCard({ suggestion }: { suggestion: SuggestedAddition }) {
   const hintWords = suggestion.name.toLowerCase().split(/[\s,]+/).slice(0, 2).join(" ");
@@ -85,7 +84,6 @@ export function AiItineraryAssistanceCard() {
     budget: 2000,
     existingActivities: "Eiffel Tower, Louvre Museum. Interested in romantic dinners and local culture.",
     hotelStyle: "boutique",
-    // userPersona will be added from hook below if available
   };
 
   const handleFetchAssistance = async () => {

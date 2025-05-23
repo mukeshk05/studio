@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2, Sparkles, MessageCircleQuestion, Lightbulb, Send, Info } from 'lucide-react';
-import { getCoTravelAgentResponse } from '@/ai/flows/co-travel-agent-flow'; // Updated import path
+import { getCoTravelAgentResponse } from '@/ai/flows/co-travel-agent-flow'; 
 import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -19,7 +19,7 @@ const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
 
 export function AiCoTravelAgentCard() {
-  const [destination, setDestination] = useState('Paris, France'); // Default or pre-fill
+  const [destination, setDestination] = useState('Paris, France'); 
   const [question, setQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<CoTravelAgentOutput | null>(null);
@@ -42,7 +42,7 @@ export function AiCoTravelAgentCard() {
         destination,
         question,
       };
-      const result = await getCoTravelAgentResponse(input); // Use the correct function name
+      const result = await getCoTravelAgentResponse(input); 
       setAiResponse(result);
       if (!result || !result.answer) {
          toast({

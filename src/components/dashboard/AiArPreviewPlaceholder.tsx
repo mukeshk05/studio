@@ -18,7 +18,7 @@ import { Separator } from '@/components/ui/separator';
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
 
-export function AiArPreviewPlaceholder() { // Keeping the filename as placeholder, but it's functional
+export function AiArPreviewPlaceholder() { 
   const [landmarkName, setLandmarkName] = useState('');
   const [uploadedPhoto, setUploadedPhoto] = useState<File | null>(null);
   const [uploadedPhotoPreview, setUploadedPhotoPreview] = useState<string | null>(null);
