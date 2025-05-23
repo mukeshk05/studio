@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, 'use useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,9 +35,10 @@ import {
   Info,
   ExternalLink,
   X,
-  ImageIcon,
+  ImageIcon as ImageLucide, // Keeping alias if used elsewhere specifically
   MapPin,
   CheckSquare,
+  Eye // Added Eye icon
 } from 'lucide-react';
 import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
@@ -158,13 +159,20 @@ interface HotelDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
   hotel: AiHotelSuggestion | null;
-  searchDestination: string; // Original destination searched by the user
+  searchDestination: string; 
 }
 
 function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelDetailDialogProps) {
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+        setImageLoadError(false); // Reset error when dialog opens
+    }
+  }, [isOpen]);
+
   if (!hotel) return null;
 
-  const [imageLoadError, setImageLoadError] = useState(false);
   const imageHint = hotel.imageUri?.startsWith('https://placehold.co')
     ? (hotel.imagePrompt || hotel.name.toLowerCase().split(" ").slice(0, 2).join(" "))
     : undefined;
@@ -196,7 +204,7 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
                 {hotel.name}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
-                Conceptual details for your stay in {searchDestination}.
+                in {searchDestination}
               </DialogDescription>
             </div>
             <DialogClose asChild>
@@ -229,10 +237,14 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
 
         <div className="flex-grow overflow-y-auto p-4 sm:p-6">
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className={cn("grid w-full grid-cols-3 mb-4 glass-pane p-1", "border border-border/50")}>
+            <TabsList className={cn("grid w-full grid-cols-2 sm:grid-cols-4 mb-4 glass-pane p-1", "border border-border/50")}>
               <TabsTrigger value="details" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
                 <Info className="w-4 h-4" /> Details
               </TabsTrigger>
+              {/* Room tab can be added later if AI provides room details
+              <TabsTrigger value="rooms" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.rooms || hotel.rooms.length === 0}>
+                <BedDouble className="w-4 h-4" /> Rooms
+              </TabsTrigger> */}
               <TabsTrigger value="amenities" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.amenities || hotel.amenities.length === 0}>
                 <CheckSquare className="w-4 h-4" /> Amenities
               </TabsTrigger>
@@ -249,7 +261,7 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
                 Price: {hotel.conceptualPriceRange}
               </div>
                {hotel.rating !== undefined && hotel.rating !== null && (
-                 <div className="flex items-center text-md font-medium text-amber-400">
+                 <div className="mt-3 flex items-center text-md font-medium text-amber-400">
                     {[...Array(5)].map((_, i) => (
                         <Star key={i} className={cn("w-4 h-4", i < Math.round(hotel.rating!) ? "fill-amber-400 text-amber-400" : "fill-muted-foreground/40 text-muted-foreground/40")} />
                     ))}
@@ -257,6 +269,20 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
                  </div>
                 )}
             </TabsContent>
+
+            {/* Room content tab can be added later
+            <TabsContent value="rooms" className={cn(glassCardClasses, "p-4 rounded-md")}>
+              <h3 className="text-lg font-semibold text-card-foreground mb-3">Available Rooms</h3>
+              {hotel.rooms && hotel.rooms.length > 0 ? (
+                <ScrollArea className="max-h-96 pr-3">
+                  {hotel.rooms.map((room, idx) => (
+                    <RoomCard key={idx} room={room} />
+                  ))}
+                </ScrollArea>
+              ) : (
+                <p className="text-sm text-muted-foreground">Room information not available for this conceptual hotel.</p>
+              )}
+            </TabsContent> */}
 
             <TabsContent value="amenities" className={cn(glassCardClasses, "p-4 rounded-md")}>
                 <h3 className="text-lg font-semibold text-card-foreground mb-3">Key Amenities</h3>
@@ -317,7 +343,7 @@ export default function HotelsPage() {
     resolver: zodResolver(hotelSearchFormSchema),
     defaultValues: {
       destination: '',
-      dates: { from: undefined, to: undefined }, // Initialize as undefined
+      dates: { from: undefined, to: undefined }, 
       guests: '2 adults',
     },
   });
@@ -555,4 +581,3 @@ export default function HotelsPage() {
     </>
   );
 }
-
