@@ -5,7 +5,7 @@ import { firestore } from '@/lib/firebase';
 import { generateMultipleImagesFlow, type ImagePromptItem, type ImageResultItem } from '@/ai/flows/generate-multiple-images-flow';
 import { collection, doc, getDocs, query, where, writeBatch, documentId, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { PopularDestinationsOutput, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
-
+import { popularDestinationsFlow } from '@/ai/flows/popular-destinations-flow'; // Ensure this is the correct named export
 
 export interface ImageRequest {
   id: string;
@@ -29,7 +29,7 @@ async function saveImageUriToDbInternal({
     console.log(`[DB Save Internal] Attempting to save image to Firestore for ID: ${id}. URI starts with: ${imageUri ? imageUri.substring(0, 50) + '...' : 'null'}`);
     const imageDocRef = doc(firestore, 'landingPageImages', id);
     await setDoc(imageDocRef, {
-      imageUri: imageUri, // This could be a data URI or a placeholder URL
+      imageUri: imageUri,
       promptUsed: promptText,
       styleHint: styleHint,
       lastUpdated: serverTimestamp(),
@@ -37,6 +37,7 @@ async function saveImageUriToDbInternal({
     console.log(`[DB Save Internal] Image for ID ${id} SAVED/UPDATED successfully in Firestore.`);
   } catch (error) {
     console.error(`[DB Save Internal Error] Failed to save image for ID ${id} to Firestore:`, error);
+    // Optionally re-throw or handle more gracefully depending on requirements
   }
 }
 
@@ -46,11 +47,11 @@ export async function getLandingPageImagesWithFallback(
 ): Promise<Record<string, string | null>> {
   console.log(`[Server Action - getLandingPageImagesWithFallback] Started. Requests received: ${requests.length}`);
   const imageUris: Record<string, string | null> = {};
-  requests.forEach(req => imageUris[req.id] = null); // Initialize all with null for consistent return structure
+  requests.forEach(req => imageUris[req.id] = null); // Initialize all with null
 
-  const aiGenerationQueue: ImagePromptItem[] = [];
   const requestIds = requests.map(req => req.id);
-  const MAX_FIRESTORE_IN_QUERY = 30; // Firestore 'in' query limit
+  const aiGenerationQueue: ImagePromptItem[] = [];
+  const MAX_FIRESTORE_IN_QUERY = 30;
 
   try {
     // 1. Fetch existing images from Firestore in chunks
@@ -70,7 +71,7 @@ export async function getLandingPageImagesWithFallback(
             const data = docSnap.data();
             if (data.imageUri) {
               imageUris[docSnap.id] = data.imageUri;
-              console.log(`[DB Check] Found existing image in Firestore for ID ${docSnap.id}.`);
+              console.log(`[DB Check] Found existing image in Firestore for ID ${docSnap.id}. URI starts with: ${data.imageUri.substring(0,30)}...`);
             } else {
               console.log(`[DB Check] Document for ID ${docSnap.id} found but no imageUri field.`);
             }
@@ -81,7 +82,7 @@ export async function getLandingPageImagesWithFallback(
 
     // 2. Identify images that need AI generation
     requests.forEach(req => {
-      if (imageUris[req.id] === null) { // Check if it's still null (not found in DB)
+      if (imageUris[req.id] === null) {
         console.log(`[Server Action] Image for ID ${req.id} (Prompt: "${req.promptText}") not in DB, adding to AI queue.`);
         aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint });
       }
@@ -99,63 +100,41 @@ export async function getLandingPageImagesWithFallback(
         aiResults.results.forEach(aiResult => {
           const originalRequest = requests.find(r => r.id === aiResult.id);
           if (aiResult.imageUri) {
-            imageUris[aiResult.id] = aiResult.imageUri; // Update the main response object
+            imageUris[aiResult.id] = aiResult.imageUri;
             console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}. URI starts with: ${aiResult.imageUri.substring(0, 50)}...`);
             
-            // Asynchronously save to DB - do not await this
             if (originalRequest) {
+              // Asynchronously save to DB - do not await this
               saveImageUriToDbInternal({
                 id: aiResult.id,
                 imageUri: aiResult.imageUri,
                 promptText: originalRequest.promptText,
                 styleHint: originalRequest.styleHint,
-              }).catch(saveError => { // Catch errors from the async save, but don't let them block
+              }).catch(saveError => {
                 console.error(`[Server Action - Background DB Save Error] Failed to save image for ID ${aiResult.id} to DB:`, saveError);
               });
             }
           } else {
-            // If AI generation specifically failed for this item, ensure it remains null
-            // imageUris[aiResult.id] is already null by initialization
             console.warn(`[Server Action] AI generation failed or returned null URI for ID ${aiResult.id}. Error: ${aiResult.error || 'Unknown AI error'}`);
+            // imageUris[aiResult.id] remains null as initialized
           }
         });
       } catch (flowError) {
         console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow:', flowError);
-        // In case the flow itself errors, ensure all items queued for AI remain null
         aiGenerationQueue.forEach(req => {
             if (imageUris[req.id] === undefined) imageUris[req.id] = null; // Should already be null
         });
       }
     }
     
-    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris:`, imageUris);
+    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris:`, Object.fromEntries(Object.entries(imageUris).map(([k,v]) => [k, v ? v.substring(0,50) + "..." : null])));
     return imageUris;
 
   } catch (error: any) {
     console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', error.message, error.stack);
-    // Ensure a valid object structure is returned even in case of a top-level error
     const fallbackUris: Record<string, string | null> = {};
-    requests.forEach(req => fallbackUris[req.id] = null); // Initialize all to null
-    console.log(`[Server Action - getLandingPageImagesWithFallback] Returning fallbackUris due to critical error:`, fallbackUris);
+    requests.forEach(req => fallbackUris[req.id] = null);
     return fallbackUris;
-  }
-}
-
-
-// Original Server Action for a single feature image (can be deprecated or kept for other uses)
-// 'use server'; // This was moved to the top of the file
-export async function getAiImageForFeatureServerAction(promptText: string): Promise<string | null> {
-  console.log(`[Server Action - getAiImageForFeature] Received prompt: "${promptText}"`);
-  try {
-    // Assuming generateMultipleImagesFlow can handle a single item array for consistency,
-    // or you can call a specific single image generation flow if you create one.
-    const results = await generateMultipleImagesFlow({ prompts: [{ id: 'single-feature', prompt: promptText, styleHint: 'featureCard' }] });
-    const imageUri = results.results[0]?.imageUri || null;
-    console.log(`[Server Action - getAiImageForFeature] Resulting URI for "${promptText}": ${imageUri ? imageUri.substring(0,50)+'...' : 'null'}`);
-    return imageUri;
-  } catch (error) {
-    console.error(`[Server Action - getAiImageForFeature] Error generating image for prompt "${promptText}":`, error);
-    return null;
   }
 }
 
@@ -165,9 +144,7 @@ export async function getPopularDestinations(
 ): Promise<PopularDestinationsOutput> {
   console.log(`[Server Action - getPopularDestinations] Input:`, input);
   try {
-    // Ensure the flow is imported correctly if it's not already at the top
-    const { popularDestinationsFlow } = await import('@/ai/flows/popular-destinations-flow');
-    const result = await popularDestinationsFlow(input);
+    const result = await popularDestinationsFlow(input); // Directly call the imported flow
     console.log(`[Server Action - getPopularDestinations] AI Flow Result (destinations count):`, result.destinations.length);
     result.destinations.forEach(d => {
       console.log(`[Server Action - getPopularDestinations] Dest: ${d.name}, ImageURI provided: ${!!d.imageUri}, Coords: Lat ${d.latitude}, Lng ${d.longitude}`);
@@ -175,9 +152,13 @@ export async function getPopularDestinations(
     return result;
   } catch (error: any) {
     console.error('[Server Action - getPopularDestinations] ERROR fetching popular destinations:', error.message, error.stack);
-    // Return a structured error response or a default valid output
-    return { destinations: [], contextualNote: "Sorry, we encountered an error while fetching destination ideas. Please try again later." };
+    let note = "Sorry, we encountered an error while fetching destination ideas. Please try again later.";
+    if (input.interest) {
+        note = `Sorry, we encountered an error fetching ideas for '${input.interest}'. Please try again later.`;
+    } else if (input.userLatitude) {
+        note = "Sorry, we encountered an error fetching ideas near your location. Please try again later.";
+    }
+    return { destinations: [], contextualNote: note };
   }
 }
 
-    

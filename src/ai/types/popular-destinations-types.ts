@@ -7,7 +7,7 @@ import { z } from 'genkit';
 export const PopularDestinationsInputSchema = z.object({
   userLatitude: z.number().optional().describe("User's current latitude for location-aware suggestions."),
   userLongitude: z.number().optional().describe("User's current longitude for location-aware suggestions."),
-  // count: z.number().optional().default(4).describe("Number of destinations to suggest."), // Future: allow count customization
+  interest: z.string().optional().describe("A specific travel interest category, e.g., 'Beaches', 'Adventure', 'Cultural Sites'."),
 });
 export type PopularDestinationsInput = z.infer<typeof PopularDestinationsInputSchema>;
 

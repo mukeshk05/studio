@@ -89,9 +89,9 @@ import {
   Volume2,
   Wand2,
   Zap,
-  Cube,
   ImageOff,
-  Loader2, // Added Loader2 for loading states if needed elsewhere
+  Loader2,
+  ActivityIcon, // Added Loader2 for loading states if needed elsewhere
 } from 'lucide-react';
 import { getLandingPageImagesWithFallback, type ImageRequest } from './actions';
 import { useToast } from '@/hooks/use-toast';
@@ -251,7 +251,7 @@ const features = [
     },
     {
       id: "feature-digital-twin",
-      icon: <Cube className="w-10 h-10 mx-auto mb-3 text-accent" />,
+      icon: <ActivityIcon className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png?text=Digital+Twin",
