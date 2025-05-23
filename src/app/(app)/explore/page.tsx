@@ -1,21 +1,27 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+// Link component is not used directly for navigation in the buttons, router.push is used.
+// If Link is needed elsewhere, it can be re-added. For now, removing to avoid unused import.
+// import Link from 'next/link'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Search, Plane, Hotel, Compass, Briefcase, MapPin as MapPinIconLucide, ImageOff, Loader2, Sparkles, Building, Route, Info, ExternalLink, Mountain, FerrisWheel, Palette, Utensils } from 'lucide-react';
-import { getPopularDestinations } from '@/app/actions'; // Reusing the existing server action
-import type { PopularDestinationsOutput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
+import { Search, Plane, Hotel, Compass, Briefcase, MapPin, ImageOff, Loader2, Sparkles, Building, Route, Info, ExternalLink, Mountain, FerrisWheel, Palette, Utensils, AlertTriangle } from 'lucide-react';
+import { getPopularDestinations } from '@/app/actions';
+import type { PopularDestinationsOutput, AiDestinationSuggestion, HotelIdea, FlightIdea } from '@/ai/types/popular-destinations-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
-import { useToast } from '@/hooks/use-toast';
+import { useToast as useShadcnToast } from '@/hooks/use-toast'; // Renamed to avoid conflict if useToast is defined locally
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { X } from "lucide-react";
+import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert';
+
 
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 
@@ -28,9 +34,16 @@ const interestCategories = [
   { name: "Food", icon: <Utensils className="w-6 h-6" />, hint: "delicious food local cuisine", bgColor: "bg-yellow-500/10", borderColor: "border-yellow-500/30", textColor: "text-yellow-300" },
 ];
 
-function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search destinations, hotels, or activities..." }: { initialSearchTerm?: string; onSearch?: (term: string) => void; placeholder?: string; }) {
+// Helper Components defined at top-level
+interface SearchInputPropsExplore {
+  initialSearchTerm?: string;
+  onSearch?: (term: string) => void;
+  placeholder?: string;
+}
+
+function SearchInputExplore({ initialSearchTerm = '', onSearch, placeholder = "Search destinations, hotels, or activities..." }: SearchInputPropsExplore) {
   const [term, setTerm] = useState(initialSearchTerm);
-  const { toast } = useToast();
+  const { toast } = useShadcnToast();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch) onSearch(term);
@@ -54,33 +67,42 @@ function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search d
   );
 }
 
-interface AiDestinationCardProps {
+interface AiDestinationCardPropsExplore {
   destination: AiDestinationSuggestion;
   onPlanTrip: (tripIdea: AITripPlannerInput) => void;
 }
 
-function AiDestinationCardExplore({ destination, onPlanTrip }: AiDestinationCardProps) {
-  const [imageLoadError, setImageLoadError] = useState(false);
-  const imageHint = destination.imageUri?.startsWith('https://placehold.co')
-    ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0, 2).join(" "))
-    : undefined;
+function AiDestinationCardExplore({ destination, onPlanTrip }: AiDestinationCardPropsExplore): JSX.Element {
+  const [imageLoadError, setImageLoadError] = useState<boolean>(false);
+
+  const derivedImageHint: string | undefined = useMemo(() => {
+    if (destination.imageUri && destination.imageUri.startsWith('https://placehold.co')) {
+      if (destination.imagePrompt) {
+        return destination.imagePrompt;
+      } else if (destination.name) {
+        return destination.name.toLowerCase().split(" ").slice(0, 2).join(" ");
+      }
+    }
+    return undefined;
+  }, [destination.imageUri, destination.imagePrompt, destination.name]);
 
   const handleImageError = useCallback(() => {
+    console.warn(`[AiDestinationCardExplore] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
     setImageLoadError(true);
-  }, []);
+  }, [destination.name, destination.imageUri]);
   
-  const canDisplayImage = !imageLoadError && destination.imageUri;
+  const canDisplayImage: boolean = !imageLoadError && !!destination.imageUri;
 
   return (
     <Card className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col")}>
       <div className="relative w-full aspect-[16/10] bg-muted/30 group">
-        {canDisplayImage ? (
+        {canDisplayImage && destination.imageUri ? (
           <Image
-            src={destination.imageUri!}
+            src={destination.imageUri}
             alt={destination.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
-            data-ai-hint={imageHint}
+            data-ai-hint={derivedImageHint}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             onError={handleImageError}
             priority={false}
@@ -122,9 +144,9 @@ function AiDestinationCardExplore({ destination, onPlanTrip }: AiDestinationCard
           )}
           onClick={() => {
             const plannerInput: AITripPlannerInput = {
-              destination: destination.name + (destination.country ? \`, \${destination.country}\` : ''),
-              travelDates: "Next month for 7 days", // Default
-              budget: parseInt(destination.hotelIdea?.priceRange?.match(/\\$(\\d+)/)?.[1] || destination.flightIdea?.priceRange?.match(/\\$(\\d+)/)?.[1] || '2000', 10) * (destination.hotelIdea?.priceRange ? 7 : 1),
+              destination: destination.name + (destination.country ? `, ${destination.country}` : ''),
+              travelDates: "Next month for 7 days", 
+              budget: parseInt(destination.hotelIdea?.priceRange?.match(/\$(\d+)/)?.[1] || destination.flightIdea?.priceRange?.match(/\$(\d+)/)?.[1] || '2000', 10) * (destination.hotelIdea?.priceRange ? 7 : 1),
             };
             onPlanTrip(plannerInput);
           }}
@@ -136,14 +158,69 @@ function AiDestinationCardExplore({ destination, onPlanTrip }: AiDestinationCard
   );
 }
 
+interface DialogImageDisplayPropsExplorePage { 
+  destination: AiDestinationSuggestion | null;
+}
+
+function DialogImageDisplayExplorePage({ destination }: DialogImageDisplayPropsExplorePage) {
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  useEffect(() => {
+    setImageLoadError(false); 
+  }, [destination?.imageUri]);
+
+  if (!destination) return null;
+
+  const derivedImageHint: string | undefined = useMemo(() => {
+    if (destination.imageUri && destination.imageUri.startsWith('https://placehold.co')) {
+      if (destination.imagePrompt) {
+        return destination.imagePrompt;
+      } else if (destination.name) {
+        return destination.name.toLowerCase().split(" ").slice(0,2).join(" ");
+      }
+    }
+    return undefined;
+  }, [destination.imageUri, destination.imagePrompt, destination.name]);
+
+  const handleImageError = useCallback(() => {
+    console.warn(`[DialogImageDisplayExplorePage] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
+    setImageLoadError(true);
+  }, [destination.name, destination.imageUri]);
+
+  const canDisplayImage: boolean = !imageLoadError && !!destination.imageUri;
+
+  return (
+    <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
+      {canDisplayImage && destination.imageUri ? (
+        <Image
+          src={destination.imageUri}
+          alt={`Image of ${destination.name}`}
+          fill
+          className="object-cover"
+          data-ai-hint={derivedImageHint}
+          sizes="(max-width: 640px) 90vw, 500px"
+          onError={handleImageError}
+        />
+      ) : (
+        <div className="w-full h-full bg-muted/30 flex items-center justify-center">
+          <ImageOff className="w-10 h-10 text-muted-foreground" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function ExplorePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [aiDestinations, setAiDestinations] = useState<AiDestinationSuggestion[]>([]);
   const [isFetchingAiDestinations, setIsFetchingAiDestinations] = useState(false);
   const [aiDestinationsError, setAiDestinationsError] = useState<string | null>(null);
   const [aiContextualNote, setAiContextualNote] = useState<string | null>(null);
+  const [selectedDestinationDialog, setSelectedDestinationDialog] = useState<AiDestinationSuggestion | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { toast } = useToast();
+  const { toast } = useShadcnToast();
   const router = useRouter();
 
   const fetchGlobalPopularDestinations = useCallback(async () => {
@@ -153,11 +230,11 @@ export default function ExplorePage() {
     setAiDestinations([]);
 
     try {
-      const result: PopularDestinationsOutput = await getPopularDestinations({}); // No location passed for global suggestions
+      const result: PopularDestinationsOutput = await getPopularDestinations({}); 
       if (result && result.destinations) {
         const processedDestinations = result.destinations.map(d => ({
           ...d,
-          imageUri: d.imageUri || \`https://placehold.co/600x400.png?text=\${encodeURIComponent(d.name.substring(0, 10))}\`
+          imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}`
         }));
         setAiDestinations(processedDestinations);
       } else {
@@ -185,26 +262,27 @@ export default function ExplorePage() {
     window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
     router.push('/planner');
     toast({
-      title: \`Planning Trip to \${tripIdea.destination}\`,
+      title: `Planning Trip to ${tripIdea.destination}`,
       description: "Planner opened with destination details. Adjust dates and budget as needed.",
     });
   };
   
   const handleInterestClick = (interestName: string, hint: string) => {
      toast({
-      title: \`Exploring: \${interestName}\`,
-      description: \`AI would now conceptually search for destinations related to '\${hint}'. (Full functionality pending backend integration)\`,
+      title: `Exploring: ${interestName}`,
+      description: `AI would now conceptually search for destinations related to '${hint}'. (Full functionality pending backend integration)`,
     });
-    // In a full app, this might trigger a new AI call with the interest hint
-    // For now, we can just log or perhaps filter existing AI destinations if they had tags
+  };
+  
+  const handleOpenDialog = (destination: AiDestinationSuggestion) => {
+    setSelectedDestinationDialog(destination);
+    setIsDialogOpen(true);
   };
 
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
-      {/* Main Content Area */}
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
         <section className="mb-12 text-center animate-fade-in-up">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-4">
             Explore Your Next Adventure
@@ -213,11 +291,10 @@ export default function ExplorePage() {
             Discover amazing destinations, get travel inspiration, and let Aura AI guide your journey.
           </p>
           <div className={cn("max-w-2xl mx-auto p-3 rounded-xl shadow-xl", glassCardClasses, "border-primary/20")}>
-            <SearchInput placeholder="Where do you want to go?" />
+            <SearchInputExplore placeholder="Where do you want to go?" />
           </div>
         </section>
 
-        {/* Travel by Interest Section */}
         <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
             <Compass className="w-7 h-7 mr-3 text-primary" /> Travel by Interest
@@ -249,7 +326,6 @@ export default function ExplorePage() {
         
         <Separator className="my-10 border-border/30" />
 
-        {/* Top Destinations Section (AI Powered) */}
         <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground flex items-center">
@@ -290,7 +366,7 @@ export default function ExplorePage() {
           {!isFetchingAiDestinations && aiDestinationsError && (
             <Card className={cn(glassCardClasses, "border-destructive/30")}>
               <CardContent className="p-6 text-center text-destructive">
-                <Info className="w-10 h-10 mx-auto mb-2" />
+                <AlertTriangle className="w-10 h-10 mx-auto mb-2" />
                 <p className="font-semibold">{aiDestinationsError}</p>
               </CardContent>
             </Card>
@@ -299,11 +375,12 @@ export default function ExplorePage() {
           {!isFetchingAiDestinations && aiDestinations.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {aiDestinations.map((dest, index) => (
-                <AiDestinationCardExplore
-                  key={dest.name + (dest.latitude || index) + (dest.longitude || index)}
-                  destination={dest}
-                  onPlanTrip={handlePlanTrip}
-                />
+                <div key={dest.name + (dest.latitude || index) + (dest.longitude || index)} onClick={() => handleOpenDialog(dest)} className="cursor-pointer">
+                  <AiDestinationCardExplore
+                    destination={dest}
+                    onPlanTrip={handlePlanTrip}
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -314,18 +391,75 @@ export default function ExplorePage() {
           )}
         </section>
 
-        {/* Placeholder for Ideas for you */}
-         <Separator className="my-10 border-border/30" />
+        <Separator className="my-10 border-border/30" />
         <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6">Ideas for you (Coming Soon)</h2>
             <Card className={cn(glassCardClasses, "p-6 text-center")}>
                 <p className="text-muted-foreground">Personalized trip ideas based on your Travel DNA and past journeys will appear here!</p>
             </Card>
         </section>
-
       </main>
 
-      {/* Footer can be part of (app) layout */}
+      {selectedDestinationDialog && (
+         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className={cn("sm:max-w-lg md:max-w-xl p-0", glassCardClasses, "border-primary/30")}>
+                <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
+                    <div className="flex justify-between items-center">
+                         <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
+                            <MapPin className="w-5 h-5 mr-2 text-primary" />
+                            {selectedDestinationDialog.name}
+                         </DialogTitle>
+                        <DialogClose asChild>
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </DialogClose>
+                    </div>
+                     <DialogDescription className="text-sm text-muted-foreground">{selectedDestinationDialog.country}</DialogDescription>
+                </DialogHeader>
+                <div className="p-4 sm:p-6 space-y-4">
+                    <DialogImageDisplayExplorePage destination={selectedDestinationDialog} />
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                        {selectedDestinationDialog.description}
+                    </p>
+                    {selectedDestinationDialog.hotelIdea && (
+                        <div className="text-xs border-t border-border/30 pt-2 mt-2">
+                            <p className="font-medium text-card-foreground/90 flex items-center"><Building className="w-3.5 h-3.5 mr-1.5 text-primary/80"/>Hotel Idea:</p>
+                            <p className="pl-5 text-muted-foreground">{selectedDestinationDialog.hotelIdea.type} ({selectedDestinationDialog.hotelIdea.priceRange})</p>
+                        </div>
+                    )}
+                    {selectedDestinationDialog.flightIdea && (
+                        <div className="text-xs border-t border-border/30 pt-2 mt-2">
+                            <p className="font-medium text-card-foreground/90 flex items-center"><Route className="w-3.5 h-3.5 mr-1.5 text-primary/80"/>Flight Idea:</p>
+                            <p className="pl-5 text-muted-foreground">{selectedDestinationDialog.flightIdea.description} ({selectedDestinationDialog.flightIdea.priceRange})</p>
+                        </div>
+                    )}
+                    <Button 
+                        onClick={() => {
+                            const plannerInput: AITripPlannerInput = {
+                                destination: selectedDestinationDialog.name + (selectedDestinationDialog.country ? `, ${selectedDestinationDialog.country}` : ''),
+                                travelDates: "Next month for 7 days",
+                                budget: parseInt(selectedDestinationDialog.hotelIdea?.priceRange?.match(/\$(\d+)/)?.[1] || selectedDestinationDialog.flightIdea?.priceRange?.match(/\$(\d+)/)?.[1] || '2000', 10) * (selectedDestinationDialog.hotelIdea?.priceRange ? 7 : 1),
+                            };
+                            handlePlanTrip(plannerInput);
+                            setIsDialogOpen(false);
+                        }}
+                        size="lg" 
+                        className={cn(
+                            "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 mt-4",
+                            "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+                            "hover:from-accent hover:to-primary",
+                            "focus-visible:ring-4 focus-visible:ring-primary/40",
+                            "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+                        )}
+                    >
+                        <ExternalLink className="mr-2 h-5 w-5" />
+                        Plan a Trip to {selectedDestinationDialog.name}
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
