@@ -9,7 +9,7 @@ import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
-import { History, Send } from "lucide-react"; 
+import { History, Send, Loader2 } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
@@ -123,15 +123,42 @@ export default function TripPlannerPage() {
 
     try {
       const result: AITripPlannerOutput = await aiTripPlanner(plannerInput);
-      const itinerariesFromAI: Omit<Itinerary, 'id'>[] = (result.itineraries || []).map((it) => ({
-        ...it,
-        destinationImageUri: it.destinationImageUri || `https://placehold.co/600x400.png`,
-        hotelOptions: (it.hotelOptions || []).map(hotel => ({
-          ...hotel,
-          hotelImageUri: hotel.hotelImageUri || `https://placehold.co/300x200.png?text=${encodeURIComponent(hotel.name.substring(0,10))}`
+       const itinerariesFromAI: Omit<Itinerary, 'id' | 'aiGeneratedMemory'>[] = (result.itineraries || []).map(it => ({
+        destination: it.destination,
+        travelDates: it.travelDates,
+        estimatedCost: it.estimatedCost,
+        tripSummary: it.tripSummary === undefined ? null : it.tripSummary,
+        dailyPlan: (it.dailyPlan || []).map(dp => ({
+          day: dp.day,
+          activities: dp.activities,
         })),
-        dailyPlan: it.dailyPlan || [],
+        flightOptions: (it.flightOptions || []).map(fo => ({
+          name: fo.name,
+          description: fo.description,
+          price: fo.price,
+        })),
+        hotelOptions: (it.hotelOptions || []).map(hotel => ({
+          name: hotel.name,
+          description: hotel.description, 
+          price: hotel.price,
+          hotelImageUri: hotel.hotelImageUri, 
+          rating: hotel.rating === undefined ? null : hotel.rating,
+          amenities: hotel.amenities || [], 
+          rooms: (hotel.rooms || []).map(room => ({
+            name: room.name,
+            description: room.description === undefined ? null : room.description,
+            features: room.features || [], 
+            pricePerNight: room.pricePerNight === undefined ? null : room.pricePerNight,
+            roomImagePrompt: room.roomImagePrompt === undefined ? null : room.roomImagePrompt,
+            roomImageUri: room.roomImageUri === undefined ? null : room.roomImageUri,
+          })),
+        })),
+        destinationImageUri: it.destinationImageUri, 
+        culturalTip: it.culturalTip === undefined ? null : it.culturalTip,
+        weatherContext: it.weatherContext === undefined ? null : it.weatherContext,
+        riskContext: it.riskContext === undefined ? null : it.riskContext,
       }));
+
 
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -180,16 +207,19 @@ export default function TripPlannerPage() {
           trip.estimatedCost === itineraryToSave.estimatedCost
       );
 
-      if (alreadyExists && itineraryToSave.id && !itineraryToSave.id.startsWith('temp-')) {
-         toast({ title: "Already Saved", description: "This trip variation seems to be already in your dashboard." });
-         return;
-      }
+      // If it's a new temporary ID or it doesn't exist in savedTrips by content
+      if (!('id' in itineraryToSave) || (itineraryToSave.id && itineraryToSave.id.startsWith('temp-')) || !alreadyExists) {
+         // Strip temporary ID if present before saving
+        const { id, ...dataToSaveReal } = itineraryToSave as Itinerary; 
 
-      await addSavedTripMutation.mutateAsync(itineraryToSave);
-      toast({
-        title: "Trip Saved!",
-        description: `${itineraryToSave.destination} has been added to your dashboard.`,
-      });
+        await addSavedTripMutation.mutateAsync(dataToSaveReal as Omit<Itinerary, 'id' | 'aiGeneratedMemory'>);
+        toast({
+          title: "Trip Saved!",
+          description: `${itineraryToSave.destination} has been added to your dashboard.`,
+        });
+      } else if (alreadyExists) {
+         toast({ title: "Already Saved", description: "This trip variation seems to be already in your dashboard." });
+      }
       setIsDetailSheetOpen(false);
     } catch (error) {
       console.error("Error saving trip:", error);
@@ -199,9 +229,16 @@ export default function TripPlannerPage() {
 
   const isTripSaved = (itinerary: Itinerary | Omit<Itinerary, 'id'>): boolean => {
     if (isLoadingSavedTrips || !savedTrips) return false;
-    if ('id' in itinerary && itinerary.id && !itinerary.id.startsWith('temp-')) {
-      return savedTrips.some(trip => trip.id === itinerary.id);
+    
+    // If it's a temporary ID, it's definitely not saved yet by its final ID
+    if ('id' in itinerary && itinerary.id && itinerary.id.startsWith('temp-')) return false;
+
+    // Check if a trip with the same final ID exists (if it's already been saved once)
+    if ('id' in itinerary && itinerary.id && savedTrips.some(trip => trip.id === itinerary.id)) {
+      return true;
     }
+    
+    // Fallback content check for items that might not have a persistent ID yet or if ID comparison fails
     return savedTrips.some(
       (trip) =>
         trip.destination === itinerary.destination &&
@@ -277,6 +314,8 @@ Remember to compare prices and check cancellation policies before booking. Happy
     };
   }, []);
 
+  const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
       <div className={cn("p-3 border-b border-border/30 flex justify-between items-center", "glass-pane")}>
@@ -289,7 +328,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
             "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
             "bg-gradient-to-r from-primary to-accent text-primary-foreground",
             "hover:from-accent hover:to-primary",
-            "focus-visible:ring-2 focus-visible:ring-primary/40", // Adjusted ring for sm size
+            "focus-visible:ring-2 focus-visible:ring-primary/40", 
             "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
           )}
         >
@@ -310,17 +349,11 @@ Remember to compare prices and check cancellation policies before booking. Happy
         <div className="max-w-3xl mx-auto">
             <Button
               onClick={handleOpenInputSheetForNewPlan}
-              className={cn(
-                "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
-                "bg-gradient-to-r from-primary to-accent text-primary-foreground",
-                "hover:from-accent hover:to-primary",
-                "focus-visible:ring-4 focus-visible:ring-primary/40",
-                "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
-              )}
+              className={cn(prominentButtonClasses, "w-full")}
               size="lg"
               disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing || addSearchHistoryMutation.isPending}
             >
-              {isAiProcessing ? <Send className="w-6 h-6 mr-2 animate-pulse" /> : <Send className="w-6 h-6 mr-2" />} 
+              {isAiProcessing ? <Loader2 className="w-6 h-6 mr-2 animate-spin" /> : <Send className="w-6 h-6 mr-2" />} 
               {isAiProcessing ? "AI is responding..." : "Compose Trip Request"}
             </Button>
         </div>

@@ -6,7 +6,7 @@ import { TripInputForm } from "@/components/trip-planner/trip-input-form";
 import { ItineraryList } from "@/components/trip-planner/itinerary-list";
 import type { AITripPlannerOutput } from "@/ai/flows/ai-trip-planner";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles } from "lucide-react"; // Corrected
+import { Sparkles } from "lucide-react";
 
 export default function TripPlannerPage() {
   const [itineraries, setItineraries] = useState<AITripPlannerOutput["itineraries"] | null>(null);
@@ -41,4 +41,3 @@ export default function TripPlannerPage() {
     </div>
   );
 }
-

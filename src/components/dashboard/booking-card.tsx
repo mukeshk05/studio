@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDaysIcon, DollarSignIcon, InfoIcon, LandmarkIcon, Trash2Icon, PlaneIcon, HotelIcon, ImageOffIcon, ListChecksIcon, RouteIcon, Loader2Icon, BriefcaseIcon, LightbulbIcon, ScanEyeIcon, CloudSunIcon, UsersIcon, BookOpenTextIcon, RefreshCwIcon, MessageSquareQuoteIcon, LeafIcon } from "lucide-react";
+import { CalendarDays, DollarSign, Info, Landmark, Trash2, Plane, Hotel, ImageOff, ListChecks, Route, Loader2, Eye, CloudSun, MessageSquareQuote, Leaf, Briefcase, Lightbulb, ScanEye, Users, BookOpenText, RefreshCw } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -23,6 +23,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogClose,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
@@ -60,7 +61,7 @@ function SavedHotelOptionDisplay({ hotel }: { hotel: HotelOption }) {
             />
         ) : (
           <div className="w-full h-full bg-muted/50 flex items-center justify-center">
-            <ImageOffIcon className="w-6 h-6 text-muted-foreground" />
+            <ImageOff className="w-6 h-6 text-muted-foreground" />
           </div>
         )}
       </div>
@@ -76,7 +77,7 @@ function SavedDailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
   return (
     <div className="p-2 rounded-md border border-border/50 bg-card/50 mb-1.5">
       <h5 className="font-semibold text-xs text-card-foreground mb-0.5 flex items-center">
-        <RouteIcon className="w-3 h-3 mr-1.5 shrink-0 text-primary" />
+        <Route className="w-3 h-3 mr-1.5 shrink-0 text-primary" />
         {planItem.day}
       </h5>
       <p className="text-xs text-muted-foreground whitespace-pre-line pl-5">{planItem.activities}</p>
@@ -157,7 +158,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
       const input: GenerateTripMemoryInput = {
         destination: booking.destination,
         travelDates: booking.travelDates,
-        tripSummary: booking.tripSummary,
+        tripSummary: booking.tripSummary || undefined,
         dailyPlanActivities: formatDailyPlanForAI(booking.dailyPlan),
       };
       const result: GenerateTripMemoryOutput = await generateTripMemory(input);
@@ -203,7 +204,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
           />
            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
             <Badge variant="secondary" className="text-md py-1 px-2 text-white bg-black/60 border-black/30 backdrop-blur-sm">
-                <DollarSignIcon className="w-3 h-3 mr-1" />
+                <DollarSign className="w-3 h-3 mr-1" />
                 {booking.estimatedCost.toLocaleString()}
             </Badge>
           </div>
@@ -213,28 +214,28 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
          <div className="flex justify-between items-start">
           <div>
             <CardTitle className="flex items-center text-lg text-card-foreground">
-              <LandmarkIcon className="w-5 h-5 mr-2 text-primary" />
+              <Landmark className="w-5 h-5 mr-2 text-primary" />
               {booking.destination}
             </CardTitle>
             <CardDescription className="flex items-center mt-1 text-xs text-muted-foreground">
-              <CalendarDaysIcon className="w-3 h-3 mr-1" />
+              <CalendarDays className="w-3 h-3 mr-1" />
               {booking.travelDates}
             </CardDescription>
           </div>
           {!booking.destinationImageUri && (
              <Badge variant="secondary" className="text-md py-1 px-2 bg-background/70 text-foreground border-border/50">
-                <DollarSignIcon className="w-3 h-3 mr-1" />
+                <DollarSign className="w-3 h-3 mr-1" />
                 {booking.estimatedCost.toLocaleString()}
              </Badge>
           )}
         </div>
          <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
              <span className="flex items-center opacity-70">
-                <CloudSunIcon className="w-3.5 h-3.5 mr-1.5 text-sky-400" />
+                <CloudSun className="w-3.5 h-3.5 mr-1.5 text-sky-400" />
                 Weather, risks & visa reminders considered.
              </span>
              <span className="flex items-center opacity-70">
-                <LeafIcon className="w-3.5 h-3.5 mr-1.5 text-green-400" />
+                <Leaf className="w-3.5 h-3.5 mr-1.5 text-green-400" />
                 Sustainability aspects conceptually included.
              </span>
         </div>
@@ -242,14 +243,14 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
       <CardContent className="flex-grow pt-2 pb-3 text-card-foreground">
          {booking.tripSummary && (
            <div className="text-xs text-muted-foreground mb-3">
-              <h4 className="text-xs font-semibold text-card-foreground mb-0.5 flex items-center"><InfoIcon className="w-3 h-3 mr-1.5 shrink-0 text-primary" /> Trip Summary</h4>
+              <h4 className="text-xs font-semibold text-card-foreground mb-0.5 flex items-center"><Info className="w-3 h-3 mr-1.5 shrink-0 text-primary" /> Trip Summary</h4>
               <p className="pl-5 text-xs border-l border-border/50 ml-0.5 py-0.5">{booking.tripSummary}</p>
            </div>
          )}
         
         {booking.culturalTip && (
           <div className="text-xs text-muted-foreground mb-3">
-            <h4 className="text-xs font-semibold text-card-foreground mb-0.5 flex items-center"><MessageSquareQuoteIcon className="w-3 h-3 mr-1.5 shrink-0 text-accent" /> Cultural Tip</h4>
+            <h4 className="text-xs font-semibold text-card-foreground mb-0.5 flex items-center"><MessageSquareQuote className="w-3 h-3 mr-1.5 shrink-0 text-accent" /> Cultural Tip</h4>
             <p className="pl-5 text-xs border-l border-accent/50 ml-0.5 py-0.5">{booking.culturalTip}</p>
           </div>
         )}
@@ -259,7 +260,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             <AccordionItem value="daily-plan" className="border-border/30">
               <AccordionTrigger className="text-xs font-medium hover:no-underline py-2 text-card-foreground/90 [&[data-state=open]>svg]:text-primary">
                 <div className="flex items-center">
-                  <ListChecksIcon className="w-3 h-3 mr-2 text-primary" /> Daily Itinerary ({booking.dailyPlan.length} days)
+                  <ListChecks className="w-3 h-3 mr-2 text-primary" /> Daily Itinerary ({booking.dailyPlan.length} days)
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-0 space-y-1 max-h-40 overflow-y-auto">
@@ -274,7 +275,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             <AccordionItem value="flights" className="border-border/30">
               <AccordionTrigger className="text-xs font-medium hover:no-underline py-2 text-card-foreground/90 [&[data-state=open]>svg]:text-primary">
                 <div className="flex items-center">
-                  <PlaneIcon className="w-3 h-3 mr-2 text-primary" /> Flight Options ({booking.flightOptions.length})
+                  <Plane className="w-3 h-3 mr-2 text-primary" /> Flight Options ({booking.flightOptions.length})
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-2 space-y-1">
@@ -292,7 +293,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             <AccordionItem value="hotels" className="border-border/30">
               <AccordionTrigger className="text-xs font-medium hover:no-underline py-2 text-card-foreground/90 [&[data-state=open]>svg]:text-primary">
                  <div className="flex items-center">
-                    <HotelIcon className="w-3 h-3 mr-2 text-primary" /> Hotel Options ({booking.hotelOptions.length})
+                    <Hotel className="w-3 h-3 mr-2 text-primary" /> Hotel Options ({booking.hotelOptions.length})
                   </div>
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-2 space-y-1.5">
@@ -306,22 +307,22 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
       </CardContent>
       <CardFooter className="pt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full glass-interactive">
-          <BriefcaseIcon className="mr-2 h-4 w-4" />List
+          <Briefcase className="mr-2 h-4 w-4" />List
         </Button>
         <Button onClick={() => { setIsFactDialogOpen(true); handleFetchFunFact(); }} variant="outline" size="sm" className="w-full glass-interactive">
-          <LightbulbIcon className="mr-2 h-4 w-4" />Fact
+          <Lightbulb className="mr-2 h-4 w-4" />Fact
         </Button>
         <Button onClick={() => setIsArVrDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive">
-          <ScanEyeIcon className="mr-2 h-4 w-4" />Preview
+          <ScanEye className="mr-2 h-4 w-4" />Preview
         </Button>
         <Button onClick={() => setIsGroupSyncDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive">
-          <UsersIcon className="mr-2 h-4 w-4" />Sync
+          <Users className="mr-2 h-4 w-4" />Sync
         </Button>
         <Button onClick={handleOpenMemoryDialog} variant="outline" size="sm" className="w-full glass-interactive">
-          <BookOpenTextIcon className="mr-2 h-4 w-4" />Memory
+          <BookOpenText className="mr-2 h-4 w-4" />Memory
         </Button>
         <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
-          {isRemoving ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <Trash2Icon className="h-4 w-4" />}
+          {isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           <span className="hidden md:inline">{isRemoving ? '' : 'Remove'}</span>
         </Button>
       </CardFooter>
@@ -331,7 +332,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     <AlertDialog open={isPackingListDialogOpen} onOpenChange={setIsPackingListDialogOpen}>
         <AlertDialogContent className={cn(glassEffectClasses)}>
             <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center text-card-foreground"><BriefcaseIcon className="w-5 h-5 mr-2 text-primary"/>AI Packing List for {booking.destination}</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center text-card-foreground"><Briefcase className="w-5 h-5 mr-2 text-primary"/>AI Packing List for {booking.destination}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
                 Here's a suggested packing list. Remember to adjust based on your specific needs and check a detailed forecast!
             </AlertDialogDescription>
@@ -339,7 +340,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             <ScrollArea className="max-h-60 my-4">
                 {isLoadingAI && !packingList ? (
                     <div className="flex items-center justify-center p-4 text-muted-foreground">
-                        <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Generating list...
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating list...
                     </div>
                 ) : packingList && packingList.length > 0 ? (
                     <ul className="list-disc pl-5 space-y-1 text-sm text-card-foreground/90">
@@ -359,7 +360,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     <AlertDialog open={isFactDialogOpen} onOpenChange={setIsFactDialogOpen}>
         <AlertDialogContent className={cn(glassEffectClasses)}>
             <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center text-card-foreground"><LightbulbIcon className="w-5 h-5 mr-2 text-accent"/>Fun Fact about {booking.destination}</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center text-card-foreground"><Lightbulb className="w-5 h-5 mr-2 text-accent"/>Fun Fact about {booking.destination}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
                 A little something interesting about your destination!
             </AlertDialogDescription>
@@ -367,7 +368,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             <div className="my-4 min-h-[50px]">
             {isLoadingAI && !destinationFact ? (
                 <div className="flex items-center justify-center p-4 text-muted-foreground">
-                <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Discovering fact...
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Discovering fact...
                 </div>
             ) : destinationFact ? (
                 <p className="text-sm text-card-foreground/90">{destinationFact}</p>
@@ -386,7 +387,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         <AlertDialogContent className={cn(glassEffectClasses, "sm:max-w-lg")}>
             <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center text-card-foreground">
-                    <ScanEyeIcon className="w-5 h-5 mr-2 text-purple-400"/>Immersive AR/VR Preview
+                    <ScanEye className="w-5 h-5 mr-2 text-purple-400"/>Immersive AR/VR Preview
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-muted-foreground">
                     Get a glimpse of {booking.destination}!
@@ -411,7 +412,9 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
                 </p>
             </div>
             <AlertDialogFooter>
-                <AlertDialogAction onClick={() => setIsArVrDialogOpen(false)} className="bg-primary hover:bg-primary/90">Awesome!</AlertDialogAction>
+              <AlertDialogClose asChild>
+                <Button onClick={() => setIsArVrDialogOpen(false)} className="bg-primary hover:bg-primary/90">Awesome!</Button>
+              </AlertDialogClose>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
@@ -421,7 +424,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         <AlertDialogContent className={cn(glassEffectClasses)}>
             <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center text-card-foreground">
-                    <BookOpenTextIcon className="w-5 h-5 mr-2 text-orange-400"/>AI Trip Memory
+                    <BookOpenText className="w-5 h-5 mr-2 text-orange-400"/>AI Trip Memory
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-muted-foreground">
                     A nostalgic snippet of your trip to {booking.destination}.
@@ -430,7 +433,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             <div className="my-4 min-h-[60px]">
                 {isLoadingAI && !currentTripMemory?.text ? (
                     <div className="flex items-center justify-center p-4 text-muted-foreground">
-                        <Loader2Icon className="mr-2 h-5 w-5 animate-spin" /> Generating memory...
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating memory...
                     </div>
                 ) : currentTripMemory?.text ? (
                     <div>
@@ -447,7 +450,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             </div>
             <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                  <Button variant="outline" onClick={triggerMemoryGeneration} disabled={isLoadingAI || updateSavedTripMemoryMutation.isPending} className="w-full sm:w-auto glass-interactive">
-                    {isLoadingAI || updateSavedTripMemoryMutation.isPending ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
+                    {isLoadingAI || updateSavedTripMemoryMutation.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                     Refresh Memory
                 </Button>
                 <AlertDialogAction onClick={() => setIsMemoryDialogOpen(false)} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">Close</AlertDialogAction>
@@ -455,7 +458,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         </AlertDialogContent>
     </AlertDialog>
 
-    {booking && ( // Ensure 'booking' is used instead of 'trip' for the prop
+    {booking && ( 
       <GroupSyncDialog
         isOpen={isGroupSyncDialogOpen}
         onClose={() => setIsGroupSyncDialogOpen(false)}
@@ -465,4 +468,3 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
     </>
   );
 }
-

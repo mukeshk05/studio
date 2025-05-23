@@ -26,8 +26,8 @@ type ItineraryCardProps = {
 };
 
 function HotelOptionDisplay({ hotel, onClick }: { hotel: HotelOption; onClick: () => void; }) {
-  const hintWords = hotel.name.toLowerCase().split(/[\s,]+/).slice(0, 2).join(" ");
-  const aiHint = hintWords.length > 0 ? hintWords : "hotel building";
+  const hintWords = hotel.name.toLowerCase().split(/[\s,]+/);
+  const aiHint = hintWords.slice(0, 2).join(" ");
 
   return (
     <button
@@ -269,4 +269,3 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
     </>
   );
 }
-

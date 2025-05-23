@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { AdventureQuizForm } from "@/components/quiz/AdventureQuizForm";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Loader2, Sparkles, ExternalLink, Info } from "lucide-react"; // Corrected
+import { Brain, Loader2, Sparkles, ExternalLink, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { matchAdventure } from "@/ai/flows/adventure-matcher-flow";
 import type { AdventureQuizInput, AdventureMatcherOutput, AdventureSuggestion } from "@/ai/types/adventure-matcher-types";

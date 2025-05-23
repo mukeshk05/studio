@@ -108,13 +108,13 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
         travelDates = "10 days";
         budget = 3000;
         desiredMood = "adventure, wildlife, nature sounds";
-        riskContext = "prefer eco-lodges"; // Example for risk context
+        riskContext = "prefer eco-lodges"; 
     } else if (promptText.toLowerCase().includes("us national parks in california")) {
         destination = "California National Parks (e.g., Yosemite, Joshua Tree)";
         travelDates = "a week";
         budget = 1800;
         desiredMood = "family vacation";
-        riskContext = "step-free trails for a stroller"; // Example for risk/accessibility
+        riskContext = "step-free trails for a stroller"; 
         weatherContext = "sunny weather preferred";
     } else if (promptText.toLowerCase().includes("kyoto, japan")) {
         destination = "Kyoto, Japan";
