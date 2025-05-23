@@ -3,9 +3,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
-// Link component is not used directly for navigation in the buttons, router.push is used.
-// If Link is needed elsewhere, it can be re-added. For now, removing to avoid unused import.
-// import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,11 +12,10 @@ import { Search, Plane, Hotel, Compass, Briefcase, MapPin, ImageOff, Loader2, Sp
 import { getPopularDestinations } from '@/app/actions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, HotelIdea, FlightIdea } from '@/ai/types/popular-destinations-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
-import { useToast as useShadcnToast } from '@/hooks/use-toast'; // Renamed to avoid conflict if useToast is defined locally
+import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
-// import { X } from "lucide-react"; // Already imported
 import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert';
 
 
@@ -34,7 +30,6 @@ const interestCategories = [
   { name: "Food", icon: <Utensils className="w-6 h-6" />, hint: "delicious food local cuisine", bgColor: "bg-yellow-500/10", borderColor: "border-yellow-500/30", textColor: "text-yellow-300" },
 ];
 
-// Helper Components defined at top-level
 interface SearchInputPropsExplore {
   initialSearchTerm?: string;
   onSearch?: (term: string) => void;
@@ -463,3 +458,5 @@ export default function ExplorePage() {
     </div>
   );
 }
+
+    
