@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -35,10 +35,10 @@ import {
   Info,
   ExternalLink,
   X,
-  ImageIcon as ImageLucide, // Keeping alias if used elsewhere specifically
+  ImageIcon as ImageLucide,
   MapPin,
   CheckSquare,
-  Eye // Added Eye icon
+  Eye
 } from 'lucide-react';
 import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
@@ -78,6 +78,7 @@ interface AiHotelCardProps {
 
 function AiHotelCard({ hotel, onClick }: AiHotelCardProps) {
   const [imageLoadError, setImageLoadError] = useState(false);
+  
   const imageHint = hotel.imageUri?.startsWith('https://placehold.co')
     ? (hotel.imagePrompt || hotel.name.toLowerCase().split(" ").slice(0, 2).join(" "))
     : undefined;
@@ -167,20 +168,26 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
 
   useEffect(() => {
     if (isOpen) {
-        setImageLoadError(false); // Reset error when dialog opens
+        setImageLoadError(false); 
     }
   }, [isOpen]);
 
-  if (!hotel) return null;
+  const handleImageError = useCallback(() => {
+    if (hotel) { // Check if hotel is defined before accessing its properties
+      console.warn(`[HotelDetailDialog] Image load ERROR for: ${hotel.name}, src: ${hotel.imageUri}`);
+      setImageLoadError(true);
+    }
+  }, [hotel]); 
 
+  // All hooks must be called before any conditional return
+  if (!hotel) {
+    return null; 
+  }
+
+  // Calculations that depend on 'hotel' being defined are now after the null check
   const imageHint = hotel.imageUri?.startsWith('https://placehold.co')
     ? (hotel.imagePrompt || hotel.name.toLowerCase().split(" ").slice(0, 2).join(" "))
     : undefined;
-
-  const handleImageError = useCallback(() => {
-    console.warn(`[HotelDetailDialog] Image load ERROR for: ${hotel.name}, src: ${hotel.imageUri}`);
-    setImageLoadError(true);
-  }, [hotel.name, hotel.imageUri]);
 
   const canDisplayImage = !imageLoadError && hotel.imageUri;
 
@@ -215,7 +222,7 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
           </div>
         </DialogHeader>
 
-        {canDisplayImage && (
+        {canDisplayImage ? (
           <div className="relative aspect-[16/7] w-full max-h-60 sm:max-h-72 border-b border-border/30">
             <Image
               src={hotel.imageUri!}
@@ -228,8 +235,7 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
               onError={handleImageError}
             />
           </div>
-        )}
-        {!canDisplayImage && (
+        ) : (
             <div className={cn("h-40 bg-muted/30 flex items-center justify-center text-muted-foreground border-b border-border/30", innerGlassEffectClasses, "rounded-none")}>
                 <ImageOff className="w-12 h-12"/>
             </div>
@@ -241,10 +247,6 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
               <TabsTrigger value="details" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
                 <Info className="w-4 h-4" /> Details
               </TabsTrigger>
-              {/* Room tab can be added later if AI provides room details
-              <TabsTrigger value="rooms" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.rooms || hotel.rooms.length === 0}>
-                <BedDouble className="w-4 h-4" /> Rooms
-              </TabsTrigger> */}
               <TabsTrigger value="amenities" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.amenities || hotel.amenities.length === 0}>
                 <CheckSquare className="w-4 h-4" /> Amenities
               </TabsTrigger>
@@ -269,20 +271,6 @@ function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelD
                  </div>
                 )}
             </TabsContent>
-
-            {/* Room content tab can be added later
-            <TabsContent value="rooms" className={cn(glassCardClasses, "p-4 rounded-md")}>
-              <h3 className="text-lg font-semibold text-card-foreground mb-3">Available Rooms</h3>
-              {hotel.rooms && hotel.rooms.length > 0 ? (
-                <ScrollArea className="max-h-96 pr-3">
-                  {hotel.rooms.map((room, idx) => (
-                    <RoomCard key={idx} room={room} />
-                  ))}
-                </ScrollArea>
-              ) : (
-                <p className="text-sm text-muted-foreground">Room information not available for this conceptual hotel.</p>
-              )}
-            </TabsContent> */}
 
             <TabsContent value="amenities" className={cn(glassCardClasses, "p-4 rounded-md")}>
                 <h3 className="text-lg font-semibold text-card-foreground mb-3">Key Amenities</h3>
@@ -343,7 +331,6 @@ export default function HotelsPage() {
     resolver: zodResolver(hotelSearchFormSchema),
     defaultValues: {
       destination: '',
-      dates: { from: undefined, to: undefined }, 
       guests: '2 adults',
     },
   });
@@ -362,7 +349,7 @@ export default function HotelsPage() {
   };
 
   const handleHotelSearch = async (values: HotelSearchFormValues) => {
-    if (!values.dates.from || !values.dates.to) {
+    if (!values.dates?.from || !values.dates?.to) { // Optional chaining for dates
         toast({ title: "Dates Required", description: "Please select check-in and check-out dates.", variant: "destructive"});
         return;
     }
