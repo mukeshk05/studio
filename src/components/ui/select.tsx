@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -23,6 +24,7 @@ const SelectTrigger = React.forwardRef<
       className
     )}
     {...props}
+    suppressHydrationWarning={true} // Add this line
   >
     {children}
     <SelectPrimitive.Icon asChild>
