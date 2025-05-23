@@ -21,6 +21,8 @@ import type {
 } from '@/ai/types/ai-flight-map-deals-types';
 import { conceptualFlightSearchFlow } from '@/ai/flows/conceptual-flight-search-flow';
 import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput } from '@/ai/types/conceptual-flight-search-types';
+import { aiHotelSearchFlow } from '@/ai/flows/ai-hotel-search-flow';
+import type { AiHotelSearchInput, AiHotelSearchOutput } from '@/ai/types/ai-hotel-search-types';
 
 
 export interface ImageRequest {
@@ -56,7 +58,8 @@ async function saveImageUriToDbInternal({
     }, { merge: true });
     console.log(`[DB Save Internal] Image for ID ${id} SAVED/UPDATED successfully in Firestore.`);
   } catch (error: any) {
-    console.error(`[DB Save Internal Error] Failed to save image for ID ${id} to Firestore:`, error.message, error.stack, error);
+    console.error(`[DB Save Internal Error] Failed to save image for ID ${id} to Firestore:`, error.message);
+    console.error(error); // Log the full error object
   }
 }
 
@@ -73,6 +76,7 @@ export async function getLandingPageImagesWithFallback(
 
   try {
     if (requestIds.length > 0 && firestore) {
+      console.log(`[DB Check] Total IDs to check in Firestore: ${requestIds.length}`);
       for (let i = 0; i < requestIds.length; i += MAX_FIRESTORE_IN_QUERY) {
         const chunkOfIds = requestIds.slice(i, i + MAX_FIRESTORE_IN_QUERY);
         if (chunkOfIds.length === 0) {
@@ -88,7 +92,7 @@ export async function getLandingPageImagesWithFallback(
             const data = docSnap.data();
             if (data.imageUri) {
               imageUris[docSnap.id] = data.imageUri;
-              console.log(`[DB Check] Found existing image in Firestore for ID ${docSnap.id}.`);
+              console.log(`[DB Check] Found existing image in Firestore for ID ${docSnap.id}. URI starts: ${data.imageUri.substring(0,50)}...`);
             } else {
               console.log(`[DB Check] Document for ID ${docSnap.id} found but no imageUri. Will attempt AI gen.`);
             }
@@ -117,20 +121,21 @@ export async function getLandingPageImagesWithFallback(
         console.log('[Server Action] Calling generateMultipleImagesFlow for prompts:', aiGenerationQueue.map(p=>({id: p.id, prompt: p.prompt.substring(0,30)+'...'})));
         const aiResultsOutput = await generateMultipleImagesFlow({ prompts: aiGenerationQueue });
         const aiResults = aiResultsOutput.results;
-        console.log(`[Server Action] AI Results received. Count: ${aiResults.length}.`);
+        console.log(`[Server Action] AI Results received. Count: ${aiResults.length}. Results:`, aiResults.map(r => ({id: r.id, hasUri: !!r.imageUri, error: r.error})));
         
         aiResults.forEach(aiResult => {
           const originalRequest = requests.find(r => r.id === aiResult.id);
           if (aiResult.imageUri) {
             imageUris[aiResult.id] = aiResult.imageUri;
-            console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}.`);
+            console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}. URI starts with: ${aiResult.imageUri.substring(0,50)}...`);
             if (originalRequest) {
-              saveImageUriToDbInternal({ // Fire and forget
+              // Asynchronous save - fire and forget
+              saveImageUriToDbInternal({ 
                 id: aiResult.id,
                 imageUri: aiResult.imageUri,
                 promptText: originalRequest.promptText,
                 styleHint: originalRequest.styleHint,
-              });
+              }).catch(dbError => console.error(`[Server Action - Background Save Error] Firestore save failed for ${aiResult.id}:`, dbError));
             }
           } else {
             console.warn(`[Server Action] AI generation failed or returned null URI for ID ${aiResult.id}. Error: ${aiResult.error || 'Unknown AI error'}`);
@@ -138,21 +143,24 @@ export async function getLandingPageImagesWithFallback(
           }
         });
       } catch (flowError: any) {
-        console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow:', flowError.message, flowError.stack, flowError);
+        console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow:', flowError.message);
+        console.error(flowError);
+        // Ensure all items in this AI batch are marked as null if the whole flow fails
         aiGenerationQueue.forEach(req => {
             imageUris[req.id] = null;
         });
       }
     }
     
-    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris object with keys: ${Object.keys(imageUris).length}`);
+    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris:`, Object.fromEntries(Object.entries(imageUris).map(([k, v]) => [k, v ? v.substring(0, 50) + '...' : null])));
     return imageUris;
 
   } catch (error: any) {
-    console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', error.message, error.stack, error);
+    console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', error.message);
+    console.error(error);
     const fallbackUris: Record<string, string | null> = {};
     requests.forEach(req => fallbackUris[req.id] = null);
-    console.error('[Server Action - getLandingPageImagesWithFallback] Returning fallbackUris due to error:', fallbackUris);
+    console.error('[Server Action - getLandingPageImagesWithFallback] Returning fallbackUris due to top-level error:', fallbackUris);
     return fallbackUris;
   }
 }
@@ -172,7 +180,8 @@ export async function getPopularDestinations(
     }
     return result;
   } catch (error: any) {
-    console.error('[Server Action - getPopularDestinations] ERROR fetching popular destinations:', error.message, error.stack);
+    console.error('[Server Action - getPopularDestinations] ERROR fetching popular destinations:', error.message);
+    console.error(error);
     let note = "Sorry, we encountered an error while fetching destination ideas. Please try again later.";
     if (input.interest) {
         note = `Sorry, we encountered an error fetching ideas for '${input.interest}'. Please try again later.`;
@@ -187,10 +196,11 @@ export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput)
   console.log(`[Server Action - getExploreIdeasAction] Input userId: ${input.userId}`);
   try {
     const result = await getExploreIdeasFromHistory(input);
-    console.log(`[Server Action - getExploreIdeasAction] AI Flow Result (suggestions count): ${result.suggestions?.length || 0}`);
+    console.log(`[Server Action - getExploreIdeasAction] AI Flow Result (suggestions count): ${result.suggestions?.length || 0}. ContextualNote: ${result.contextualNote}`);
     return result;
   } catch (error: any) {
-    console.error('[Server Action - getExploreIdeasAction] ERROR fetching explore ideas:', error.message, error.stack, error);
+    console.error('[Server Action - getExploreIdeasAction] ERROR fetching explore ideas:', error.message);
+    console.error(error);
     return { 
       suggestions: [], 
       contextualNote: "Error GEIA1: The server action encountered an issue generating explore ideas. Please try again later." 
@@ -207,7 +217,8 @@ export async function getAiFlightMapDealsAction(
     console.log(`[Server Action - getAiFlightMapDealsAction] AI Flow Result (suggestions count): ${result.suggestions.length}`);
     return result;
   } catch (error: any) {
-    console.error('[Server Action - getAiFlightMapDealsAction] ERROR fetching flight map deals:', error.message, error.stack);
+    console.error('[Server Action - getAiFlightMapDealsAction] ERROR fetching flight map deals:', error.message);
+     console.error(error);
     return { 
         suggestions: [], 
         contextualNote: `Sorry, we encountered a server error while fetching flight deal ideas for ${input.targetDestinationCity} from ${input.originDescription}. Please try again.` 
@@ -222,7 +233,8 @@ export async function getConceptualFlightsAction(input: ConceptualFlightSearchIn
     console.log(`[Server Action - getConceptualFlightsAction] AI Flow Result (flights count): ${result.flights?.length || 0}`);
     return result;
   } catch (error: any) {
-    console.error('[Server Action - getConceptualFlightsAction] ERROR fetching conceptual flights:', error.message, error.stack);
+    console.error('[Server Action - getConceptualFlightsAction] ERROR fetching conceptual flights:', error.message);
+    console.error(error);
     return {
       flights: [{
           airlineName: "Error",
@@ -235,7 +247,20 @@ export async function getConceptualFlightsAction(input: ConceptualFlightSearchIn
           conceptualPrice: "N/A",
           bookingHint: "Server error fetching conceptual flights.",
       }],
-      summaryMessage: "A server error occurred while trying to generate flight ideas. Please try again later."
+      summaryMessage: "A server error occurred while Aura AI was searching for conceptual flight options."
     };
   }
 }
+
+export async function getAiHotelSuggestionsAction(input: AiHotelSearchInput): Promise<AiHotelSearchOutput> {
+  console.log('[Server Action - getAiHotelSuggestionsAction] Input:', input);
+  try {
+    const result = await aiHotelSearchFlow(input);
+    console.log(`[Server Action - getAiHotelSuggestionsAction] AI Flow Result (hotels count): ${result.hotels?.length || 0}`);
+    return result;
+  } catch (error: any) {
+    console.error('[Server Action - getAiHotelSuggestionsAction] ERROR fetching hotel suggestions:', error.message);
+    console.error(error);
+    return {
+      hotels: [],
+      searchSummary: `Sorry, we encountered a server error while searching
