@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FormItem } from "@/components/ui/form"; // Added based on a previous error, might be needed if form structure is complex
+import { FormItem } from "@/components/ui/form";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-  DialogFooter, // Added DialogFooter import
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,7 +67,6 @@ import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput, Concept
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGetUserTravelPersona } from '@/lib/firestoreHooks';
 
 const glassCardClasses = "glass-card bg-card/80 dark:bg-card/50 backdrop-blur-lg border-border/20";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -152,7 +151,7 @@ function FlightDestinationSuggestionCard({ destination, onPlanTrip }: FlightDest
     const plannerInput: AITripPlannerInput = {
       destination: destination.name + (destination.country ? `, ${destination.country}` : ''),
       travelDates: "Flexible dates",
-      budget: parseInt(destination.flightIdea?.priceRange?.match(/\$(\d+)/)?.[1] || '1000', 10),
+      budget: parseInt(destination.flightIdea?.priceRange?.match(/\$(\d+)/)?.[0].replace('$','') || '1000', 10),
     };
     onPlanTrip(plannerInput);
   };
@@ -292,7 +291,6 @@ function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: 
     let url = `https://www.google.com/travel/flights`;
     const params = new URLSearchParams();
     
-    // Try to get airport codes if available, otherwise use city names
     const originAirportCode = flight.departureAirport?.match(/\b[A-Z]{3}\b/)?.[0] || formValues.origin;
     const destinationAirportCode = flight.arrivalAirport?.match(/\b[A-Z]{3}\b/)?.[0] || formValues.destination;
 
@@ -301,27 +299,15 @@ function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: 
     } else if (formValues.origin && formValues.destination) {
       params.append('q', `flights from ${formValues.origin} to ${formValues.destination}`);
     }
-
-    // Basic date formatting; assumes formValues.departureDate is 'YYYY-MM-DD'
-    // In a real app, parse and reformat robustly
+    
     if (formValues.departureDate) {
        try {
-        const depDate = new Date(formValues.departureDate + "T00:00:00"); // Ensure it's parsed as local
+        const depDate = new Date(formValues.departureDate + "T00:00:00"); 
         if (!isNaN(depDate.getTime())) {
           params.append('dt', format(depDate, 'yyyy-MM-dd'));
         }
       } catch (e) { console.error("Error formatting departure date for Google Flights:", e);}
     }
-    // Add return date if available for round trips (conceptual)
-    // if (formValues.returnDate) {
-    //    try {
-    //     const retDate = new Date(formValues.returnDate + "T00:00:00");
-    //     if (!isNaN(retDate.getTime())) {
-    //       // Google Flights uses a complex format for round trips in single 'dt'
-    //       // For simplicity, we'll link to a one-way search for now.
-    //     }
-    //   } catch (e) { console.error("Error formatting return date for Google Flights:", e);}
-    // }
     return `${url}?${params.toString()}`;
   };
 
@@ -401,9 +387,8 @@ export default function FlightsPage() {
   const [dates, setDates] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
-    // Initialize dates on the client side to avoid hydration mismatch
     setDates({ from: new Date(), to: addDays(new Date(), 7) });
-  }, []); // Empty dependency array means this runs once on mount (client-side)
+  }, []);
 
 
   const [passengers, setPassengers] = useState("1 adult");
@@ -418,7 +403,6 @@ export default function FlightsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { currentUser } = useAuth();
-  // const { data: userPersona } = useGetUserTravelPersona(); // Not directly used in this simplified search
 
   const [generalAiDestinations, setGeneralAiDestinations] = useState<AiDestinationSuggestion[]>([]);
   const [isFetchingGeneralDests, setIsFetchingGeneralDests] = useState(false);
@@ -447,8 +431,8 @@ export default function FlightsPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
-  const [isMapInitializing, setIsMapInitializing] = useState(true); // Start as true
-  const [isFetchingUserLocationForMap, setIsFetchingUserLocationForMap] = useState(true); // Start as true
+  const [isMapInitializing, setIsMapInitializing] = useState(true); 
+  const [isFetchingUserLocationForMap, setIsFetchingUserLocationForMap] = useState(true); 
   const [geolocationMapError, setGeolocationMapError] = useState<string | null>(null);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -539,7 +523,7 @@ export default function FlightsPage() {
         setUserLocation(null);
         initializeMap({ lat: 20, lng: 0 }, 2);
       }
-      setIsFetchingUserLocationForMap(false); // Moved here to ensure it's set after attempt
+      setIsFetchingUserLocationForMap(false); 
     } else if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing && !isFetchingUserLocationForMap) {
         console.log("[FlightsPage] Maps script loaded, geo attempt already finished/skipped, map not init. Initializing with default.");
         setIsMapInitializing(true);
@@ -618,11 +602,11 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setGeneralAiDestinations(processed);
-        setGeneralContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find general flight destinations at this moment." : "Explore these popular spots for flights!"));
       } else {
         setGeneralAiDestinations([]);
-        setGeneralContextualNote("AI couldn't retrieve general flight destinations. Please try again.");
       }
+      setGeneralContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find general flight destinations. Try again later!" : "Explore these popular spots for flights!"));
+
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching general AI destinations:", error);
         setGeneralDestsError(`Could not fetch general suggestions: ${error.message}`);
@@ -648,7 +632,7 @@ export default function FlightsPage() {
       } catch (err: any) {
         console.warn("[FlightsPage] On-demand geolocation error for AI suggestions:", err.message);
         setGeolocationSuggestionsError(`Location error: ${err.message}. Cannot fetch location-based ideas. Ensure location services are enabled and try refreshing.`);
-        setLocationContextualNote(`Could not get your location to find nearby flight ideas. ${err.message}`);
+        setLocationContextualNote(`Could not get your location to find nearby flight ideas: ${err.message}. Ensure permissions are granted.`);
         setIsFetchingLocationDests(false); setIsFetchingUserLocationForSuggestions(false); return;
       }
       finally { setIsFetchingUserLocationForSuggestions(false); }
@@ -661,11 +645,10 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setLocationAiDestinations(processed);
-        setLocationContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : "Popular flight spots near your location."));
       } else {
         setLocationAiDestinations([]);
-         setLocationContextualNote("AI couldn't retrieve flight destinations near you. Please try again.");
       }
+      setLocationContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : "Popular flight spots near your location."));
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching location-based AI destinations:", error);
         setLocationDestsError(`Could not fetch location-based suggestions: ${error.message}`);
@@ -687,7 +670,7 @@ export default function FlightsPage() {
   }, [userLocation, isFetchingUserLocationForMap, geolocationMapError]);
 
 
-  const handleFetchMapDeals = async () => {
+ const handleFetchMapDeals = async () => {
     if (!userLocation || typeof userLocation.latitude !== 'number' || typeof userLocation.longitude !== 'number') {
       toast({
         title: "Location Needed",
@@ -806,7 +789,7 @@ export default function FlightsPage() {
               geodesic: true,
               strokeColor: 'hsl(var(--accent))', 
               strokeOpacity: 0.9,
-              strokeWeight: 5, // Increased for better visibility
+              strokeWeight: 5, 
               icons: [{ 
                 icon: {
                   path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
@@ -830,7 +813,7 @@ export default function FlightsPage() {
         map.fitBounds(bounds, {top: 50, bottom: 50, left: 50, right: 50}); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
           let currentZoom = map.getZoom() || 0;
-          if (currentZoom > 10) { // Avoid over-zooming on short routes
+          if (currentZoom > 10) { 
             map.setZoom(10); 
           }
         });
@@ -892,9 +875,9 @@ export default function FlightsPage() {
             </Alert>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {conceptualFlightData.flights.map((flightOpt, index) => (
+            {conceptualFlightData.flights.map((flightOpt, itineraryIndex) => ( // Renamed index to itineraryIndex for clarity
               <ConceptualFlightResultCard 
-                key={`${flightOpt.airlineName}-${flightOpt.departureAirport}-${flightOpt.departureTime}-${index}`} 
+                key={`conceptual-flight-${itineraryIndex}-${flightOpt.airlineName}-${flightOpt.departureTime}`} 
                 flight={flightOpt}
                 onViewDetails={() => { setSelectedFlightForDetails(flightOpt); setIsFlightDetailsDialogOpen(true); }}
               />
@@ -987,7 +970,7 @@ export default function FlightsPage() {
         )}
         {!isFetchingGeneralDests && generalAiDestinations.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {generalAiDestinations.map(dest => (<FlightDestinationSuggestionCard key={dest.name+dest.country+"gen"} destination={dest} onPlanTrip={handlePlanTripFromSuggestion} />))}
+            {generalAiDestinations.map((dest, index) => (<FlightDestinationSuggestionCard key={`gen-dest-${index}-${dest.name}`} destination={dest} onPlanTrip={handlePlanTripFromSuggestion} />))}
           </div>
         )}
       </section>
@@ -1054,7 +1037,7 @@ export default function FlightsPage() {
 
         {!isFetchingLocationDests && locationAiDestinations.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {locationAiDestinations.map(dest => (<FlightDestinationSuggestionCard key={dest.name+dest.country+"loc"} destination={dest} onPlanTrip={handlePlanTripFromSuggestion} />))}
+            {locationAiDestinations.map((dest, index) => (<FlightDestinationSuggestionCard key={`loc-dest-${index}-${dest.name}`} destination={dest} onPlanTrip={handlePlanTripFromSuggestion} />))}
           </div>
         )}
       </section>
@@ -1079,5 +1062,3 @@ export default function FlightsPage() {
     </div>
   );
 }
-
-    
