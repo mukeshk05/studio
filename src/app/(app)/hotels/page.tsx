@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, 'use useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"; // Added Form components
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -31,7 +33,11 @@ import {
   ImageOff,
   AlertTriangle,
   Info,
-  ExternalLink
+  ExternalLink,
+  X,
+  ImageIcon,
+  MapPin,
+  CheckSquare,
 } from 'lucide-react';
 import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
@@ -40,6 +46,8 @@ import { getAiHotelSuggestionsAction } from '@/app/actions';
 import type { AiHotelSearchInput, AiHotelSearchOutput, AiHotelSuggestion } from '@/ai/types/ai-hotel-search-types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 
 const glassCardClasses = "glass-card bg-card/80 dark:bg-card/50 backdrop-blur-lg border-border/20";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -52,10 +60,10 @@ const hotelSearchFormSchema = z.object({
     to: z.date().optional(),
   }).refine(data => data.from && data.to && data.to >= data.from, {
     message: "End date must be after start date.",
-    path: ["to"], 
+    path: ["to"],
   }).refine(data => data.from && data.to, {
     message: "Both check-in and check-out dates are required.",
-    path: ["from"], // Apply to the whole date object or first field
+    path: ["from"],
   }),
   guests: z.string().min(1, "Please specify number of guests."),
 });
@@ -64,9 +72,10 @@ type HotelSearchFormValues = z.infer<typeof hotelSearchFormSchema>;
 
 interface AiHotelCardProps {
   hotel: AiHotelSuggestion;
+  onClick: () => void;
 }
 
-function AiHotelCard({ hotel }: AiHotelCardProps) {
+function AiHotelCard({ hotel, onClick }: AiHotelCardProps) {
   const [imageLoadError, setImageLoadError] = useState(false);
   const imageHint = hotel.imageUri?.startsWith('https://placehold.co')
     ? (hotel.imagePrompt || hotel.name.toLowerCase().split(" ").slice(0, 2).join(" "))
@@ -80,7 +89,13 @@ function AiHotelCard({ hotel }: AiHotelCardProps) {
   const canDisplayImage = !imageLoadError && hotel.imageUri;
 
   return (
-    <Card className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.02] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col")}>
+    <Card 
+        className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.02] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col cursor-pointer")}
+        onClick={onClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+    >
       <div className="relative w-full aspect-video bg-muted/30 group">
         {canDisplayImage ? (
           <Image
@@ -116,11 +131,12 @@ function AiHotelCard({ hotel }: AiHotelCardProps) {
           <div className="pt-1">
             <h4 className="text-xs font-semibold text-card-foreground mb-0.5">Key Amenities:</h4>
             <div className="flex flex-wrap gap-1">
-              {hotel.amenities.slice(0, 4).map(amenity => ( // Show max 4 amenities
+              {hotel.amenities.slice(0, 3).map(amenity => ( 
                 <Badge key={amenity} variant="secondary" className="text-[0.65rem] px-1.5 py-0.5 bg-primary/10 text-primary border-primary/20">
                   {amenity}
                 </Badge>
               ))}
+              {hotel.amenities.length > 3 && <Badge variant="secondary" className="text-[0.65rem] px-1.5 py-0.5 bg-primary/10 text-primary border-primary/20">+{hotel.amenities.length - 3} more</Badge>}
             </div>
           </div>
         )}
@@ -130,12 +146,167 @@ function AiHotelCard({ hotel }: AiHotelCardProps) {
           size="sm"
           variant="outline"
           className={cn("w-full text-sm py-2 glass-interactive text-primary hover:bg-primary/10")}
-          onClick={() => window.open(`https://www.google.com/search?q=hotel+${encodeURIComponent(hotel.name)}+in+${encodeURIComponent(hotel.description.split(' in ')[1]?.split('.')[0] || '')}`, '_blank')}
         >
-          <ExternalLink className="mr-2 h-4 w-4" /> View Hotel (Conceptual)
+          <Eye className="mr-2 h-4 w-4" /> View Details
         </Button>
       </CardFooter>
     </Card>
+  );
+}
+
+interface HotelDetailDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  hotel: AiHotelSuggestion | null;
+  searchDestination: string; // Original destination searched by the user
+}
+
+function HotelDetailDialog({ isOpen, onClose, hotel, searchDestination }: HotelDetailDialogProps) {
+  if (!hotel) return null;
+
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const imageHint = hotel.imageUri?.startsWith('https://placehold.co')
+    ? (hotel.imagePrompt || hotel.name.toLowerCase().split(" ").slice(0, 2).join(" "))
+    : undefined;
+
+  const handleImageError = useCallback(() => {
+    console.warn(`[HotelDetailDialog] Image load ERROR for: ${hotel.name}, src: ${hotel.imageUri}`);
+    setImageLoadError(true);
+  }, [hotel.name, hotel.imageUri]);
+
+  const canDisplayImage = !imageLoadError && hotel.imageUri;
+
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const mapQuery = encodeURIComponent(`${hotel.name}, ${searchDestination}`);
+  const mapEmbedUrl = mapsApiKey
+    ? `https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${mapQuery}`
+    : "";
+  
+  const googleSearchUrl = `https://www.google.com/search?q=hotel+${encodeURIComponent(hotel.name)}+in+${encodeURIComponent(searchDestination)}`;
+
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className={cn(glassCardClasses, "sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[90vh] flex flex-col p-0 border-primary/30")}>
+        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
+          <div className="flex justify-between items-start">
+            <div className="flex-grow min-w-0">
+              <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center" title={hotel.name}>
+                <Hotel className="w-6 h-6 mr-2 inline-block text-primary" />
+                {hotel.name}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Conceptual details for your stay in {searchDestination}.
+              </DialogDescription>
+            </div>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground shrink-0">
+                <X className="h-5 w-5" />
+              </Button>
+            </DialogClose>
+          </div>
+        </DialogHeader>
+
+        {canDisplayImage && (
+          <div className="relative aspect-[16/7] w-full max-h-60 sm:max-h-72 border-b border-border/30">
+            <Image
+              src={hotel.imageUri!}
+              alt={`Image of ${hotel.name}`}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 1000px"
+              priority
+              data-ai-hint={imageHint}
+              onError={handleImageError}
+            />
+          </div>
+        )}
+        {!canDisplayImage && (
+            <div className={cn("h-40 bg-muted/30 flex items-center justify-center text-muted-foreground border-b border-border/30", innerGlassEffectClasses, "rounded-none")}>
+                <ImageOff className="w-12 h-12"/>
+            </div>
+        )}
+
+        <div className="flex-grow overflow-y-auto p-4 sm:p-6">
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className={cn("grid w-full grid-cols-3 mb-4 glass-pane p-1", "border border-border/50")}>
+              <TabsTrigger value="details" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+                <Info className="w-4 h-4" /> Details
+              </TabsTrigger>
+              <TabsTrigger value="amenities" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.amenities || hotel.amenities.length === 0}>
+                <CheckSquare className="w-4 h-4" /> Amenities
+              </TabsTrigger>
+              <TabsTrigger value="map" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+                <MapPin className="w-4 h-4" /> Map
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details" className={cn(glassCardClasses, "p-4 rounded-md")}>
+              <h3 className="text-lg font-semibold text-card-foreground mb-2">About {hotel.name}</h3>
+              <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{hotel.description}</p>
+              <div className="flex items-center text-lg font-semibold text-primary mb-2">
+                <DollarSign className="w-5 h-5 mr-1.5" />
+                Price: {hotel.conceptualPriceRange}
+              </div>
+               {hotel.rating !== undefined && hotel.rating !== null && (
+                 <div className="flex items-center text-md font-medium text-amber-400">
+                    {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={cn("w-4 h-4", i < Math.round(hotel.rating!) ? "fill-amber-400 text-amber-400" : "fill-muted-foreground/40 text-muted-foreground/40")} />
+                    ))}
+                    <span className="ml-2 text-sm text-muted-foreground">({hotel.rating.toFixed(1)} / 5.0)</span>
+                 </div>
+                )}
+            </TabsContent>
+
+            <TabsContent value="amenities" className={cn(glassCardClasses, "p-4 rounded-md")}>
+                <h3 className="text-lg font-semibold text-card-foreground mb-3">Key Amenities</h3>
+                {hotel.amenities && hotel.amenities.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {hotel.amenities.map((amenity, idx) => (
+                        <Badge key={idx} variant="outline" className="text-sm py-1 px-2 border-primary/40 text-primary/90 bg-primary/5 flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3 text-accent" />
+                            {amenity}
+                        </Badge>
+                    ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">Amenity information not available.</p>
+                )}
+            </TabsContent>
+
+            <TabsContent value="map" className={cn(glassCardClasses, "p-4 rounded-md")}>
+              <h3 className="text-lg font-semibold text-card-foreground mb-3">Location of {hotel.name}</h3>
+              {mapsApiKey ? (
+                <div className="aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={mapEmbedUrl}
+                    title={`Map of ${hotel.name} in ${searchDestination}`}
+                  ></iframe>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground bg-muted/30 dark:bg-muted/10 p-4 rounded-md">
+                  <p>Google Maps API Key is missing.</p>
+                  <p className="text-xs">Please configure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable map features.</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30", "glass-pane")}>
+            <Button asChild size="lg" className={cn(prominentButtonClasses, "w-full")}>
+                <a href={googleSearchUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2"/> Search Hotel on Google
+                </a>
+            </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -146,7 +317,7 @@ export default function HotelsPage() {
     resolver: zodResolver(hotelSearchFormSchema),
     defaultValues: {
       destination: '',
-      dates: { from: new Date(), to: addDays(new Date(), 3) },
+      dates: { from: undefined, to: undefined }, // Initialize as undefined
       guests: '2 adults',
     },
   });
@@ -155,6 +326,14 @@ export default function HotelsPage() {
   const [aiHotelSuggestions, setAiHotelSuggestions] = useState<AiHotelSuggestion[]>([]);
   const [aiHotelSearchError, setAiHotelSearchError] = useState<string | null>(null);
   const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
+
+  const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<AiHotelSuggestion | null>(null);
+  const [isHotelDetailDialogOpen, setIsHotelDetailDialogOpen] = useState(false);
+
+  const handleOpenHotelDetails = (hotel: AiHotelSuggestion) => {
+    setSelectedHotelForDetails(hotel);
+    setIsHotelDetailDialogOpen(true);
+  };
 
   const handleHotelSearch = async (values: HotelSearchFormValues) => {
     if (!values.dates.from || !values.dates.to) {
@@ -208,14 +387,14 @@ export default function HotelsPage() {
   const dates = form.watch("dates");
 
   useEffect(() => {
-    // Initialize dates on the client side to avoid hydration mismatch for the form
-    if (!form.getValues("dates.from")) { // Check if already set, e.g., by initialValues
+    if (!form.getValues("dates.from")) {
         form.setValue("dates", { from: new Date(), to: addDays(new Date(), 3) });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Runs once on mount
+  }, []); 
 
   return (
+    <>
     <div className="container mx-auto py-8 px-4 animate-fade-in-up space-y-10">
       <Card className={cn(glassCardClasses, "border-primary/30")}>
         <CardHeader>
@@ -283,7 +462,7 @@ export default function HotelsPage() {
                             selected={field.value}
                             onSelect={field.onChange}
                             numberOfMonths={2}
-                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))} // Disable past dates
+                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))} 
                           />
                         </PopoverContent>
                       </Popover>
@@ -354,7 +533,7 @@ export default function HotelsPage() {
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {aiHotelSuggestions.map((hotel, index) => (
-              <AiHotelCard key={`${hotel.name}-${index}`} hotel={hotel} />
+              <AiHotelCard key={`${hotel.name}-${index}`} hotel={hotel} onClick={() => handleOpenHotelDetails(hotel)} />
             ))}
           </div>
         </div>
@@ -365,7 +544,15 @@ export default function HotelsPage() {
             {aiSearchSummary || `Aura AI couldn't find conceptual hotel suggestions for "${form.getValues("destination")}" with the current criteria. Try adjusting your search.`}
           </div>
       )}
-
     </div>
+    
+    <HotelDetailDialog 
+        isOpen={isHotelDetailDialogOpen}
+        onClose={() => setIsHotelDetailDialogOpen(false)}
+        hotel={selectedHotelForDetails}
+        searchDestination={form.getValues("destination")}
+    />
+    </>
   );
 }
+
