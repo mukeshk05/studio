@@ -128,4 +128,7 @@ export const aiHotelSearchFlow = ai.defineFlow(
     console.log(`[AI Flow - aiHotelSearchFlow] Processed ${hotelsWithImages.length} hotel suggestions with images.`);
     return {
       hotels: hotelsWithImages,
-      searchSummary: textOutput.searchSummary || `Here are some conceptual hotel ideas for ${input.destination}.
+      searchSummary: textOutput.searchSummary || `Here are some conceptual hotel ideas for ${input.destination}.`
+    };
+  }
+);

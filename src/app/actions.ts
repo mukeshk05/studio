@@ -68,7 +68,8 @@ export async function getLandingPageImagesWithFallback(
 ): Promise<Record<string, string | null>> {
   console.log(`[Server Action - getLandingPageImagesWithFallback] Started. Total requests: ${requests.length}`);
   const imageUris: Record<string, string | null> = {};
-  requests.forEach(req => imageUris[req.id] = null); // Initialize all with null
+  // Initialize all requested IDs with null
+  requests.forEach(req => imageUris[req.id] = null);
 
   const requestIds = requests.map(req => req.id);
   const aiGenerationQueue: Array<{ id: string; prompt: string; styleHint: 'hero' | 'featureCard' }> = [];
@@ -84,22 +85,27 @@ export async function getLandingPageImagesWithFallback(
           continue;
         }
         console.log(`[DB Check] Querying Firestore for IDs: ${chunkOfIds.join(', ')} (Chunk ${Math.floor(i / MAX_FIRESTORE_IN_QUERY) + 1})`);
-        const imageDocsQuery = query(collection(firestore, 'landingPageImages'), where(documentId(), 'in', chunkOfIds));
-        const imageDocsSnap = await getDocs(imageDocsQuery);
+        try {
+          const imageDocsQuery = query(collection(firestore, 'landingPageImages'), where(documentId(), 'in', chunkOfIds));
+          const imageDocsSnap = await getDocs(imageDocsQuery);
 
-        imageDocsSnap.forEach(docSnap => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.imageUri) {
-              imageUris[docSnap.id] = data.imageUri;
-              console.log(`[DB Check] Found existing image in Firestore for ID ${docSnap.id}. URI starts: ${data.imageUri.substring(0,50)}...`);
+          imageDocsSnap.forEach(docSnap => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              if (data.imageUri) {
+                imageUris[docSnap.id] = data.imageUri;
+                console.log(`[DB Check] Found existing image in Firestore for ID ${docSnap.id}. URI starts: ${data.imageUri.substring(0,50)}...`);
+              } else {
+                console.log(`[DB Check] Document for ID ${docSnap.id} found but no imageUri. Will attempt AI gen.`);
+              }
             } else {
-              console.log(`[DB Check] Document for ID ${docSnap.id} found but no imageUri. Will attempt AI gen.`);
+               console.log(`[DB Check] No document found in Firestore for ID ${docSnap.id}. Will attempt AI gen.`);
             }
-          } else {
-             console.log(`[DB Check] No document found in Firestore for ID ${docSnap.id}. Will attempt AI gen.`);
-          }
-        });
+          });
+        } catch (dbError) {
+          console.error(`[DB Check Error] Firestore query failed for chunk starting with ${chunkOfIds[0]}:`, dbError);
+          // Continue to AI generation for this chunk's items
+        }
       }
     } else if (!firestore) {
         console.warn("[DB Check] Firestore instance is undefined. Skipping DB check for all images.");
@@ -118,15 +124,17 @@ export async function getLandingPageImagesWithFallback(
 
     if (aiGenerationQueue.length > 0) {
       try {
-        console.log('[Server Action] Calling generateMultipleImagesFlow for prompts:', aiGenerationQueue.map(p=>({id: p.id, prompt: p.prompt.substring(0,30)+'...'})));
-        const aiResultsOutput = await generateMultipleImagesFlow({ prompts: aiGenerationQueue });
+        const promptsForAi = aiGenerationQueue.map(item => ({ id: item.id, prompt: item.prompt, styleHint: item.styleHint }));
+        console.log('[Server Action] Calling generateMultipleImagesFlow for prompts:', promptsForAi.map(p=>({id: p.id, prompt: p.prompt.substring(0,30)+'...'})));
+        
+        const aiResultsOutput = await generateMultipleImagesFlow({ prompts: promptsForAi });
         const aiResults = aiResultsOutput.results;
         console.log(`[Server Action] AI Results received. Count: ${aiResults.length}. Results:`, aiResults.map(r => ({id: r.id, hasUri: !!r.imageUri, error: r.error})));
         
         aiResults.forEach(aiResult => {
           const originalRequest = requests.find(r => r.id === aiResult.id);
           if (aiResult.imageUri) {
-            imageUris[aiResult.id] = aiResult.imageUri;
+            imageUris[aiResult.id] = aiResult.imageUri; // Ensure this is updated for client response
             console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}. URI starts with: ${aiResult.imageUri.substring(0,50)}...`);
             if (originalRequest) {
               // Asynchronous save - fire and forget
@@ -135,16 +143,16 @@ export async function getLandingPageImagesWithFallback(
                 imageUri: aiResult.imageUri,
                 promptText: originalRequest.promptText,
                 styleHint: originalRequest.styleHint,
-              }).catch(dbError => console.error(`[Server Action - Background Save Error] Firestore save failed for ${aiResult.id}:`, dbError));
+              }).catch(dbSaveError => console.error(`[Server Action - Background Save Error] Firestore save failed for ${aiResult.id}:`, dbSaveError));
             }
           } else {
             console.warn(`[Server Action] AI generation failed or returned null URI for ID ${aiResult.id}. Error: ${aiResult.error || 'Unknown AI error'}`);
-            imageUris[aiResult.id] = null; 
+            // imageUris[aiResult.id] will remain null as initialized
           }
         });
       } catch (flowError: any) {
-        console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow:', flowError.message);
-        console.error(flowError);
+        console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow:', flowError.message, flowError.stack);
+        console.error(flowError); // Log the full error object
         // Ensure all items in this AI batch are marked as null if the whole flow fails
         aiGenerationQueue.forEach(req => {
             imageUris[req.id] = null;
@@ -156,10 +164,10 @@ export async function getLandingPageImagesWithFallback(
     return imageUris;
 
   } catch (error: any) {
-    console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', error.message);
-    console.error(error);
+    console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', error.message, error.stack);
+    console.error(error); // Log the full error object
     const fallbackUris: Record<string, string | null> = {};
-    requests.forEach(req => fallbackUris[req.id] = null);
+    requests.forEach(req => fallbackUris[req.id] = null); // Ensure all requested IDs get a null entry
     console.error('[Server Action - getLandingPageImagesWithFallback] Returning fallbackUris due to top-level error:', fallbackUris);
     return fallbackUris;
   }
@@ -172,7 +180,7 @@ export async function getPopularDestinations(
   console.log(`[Server Action - getPopularDestinations] Input:`, input);
   try {
     const result = await popularDestinationsFlow(input);
-    console.log(`[Server Action - getPopularDestinations] AI Flow Result (destinations count): ${result.destinations?.length || 0}`);
+    console.log(`[Server Action - getPopularDestinations] AI Flow Result (destinations count): ${result.destinations?.length || 0}. Contextual Note: ${result.contextualNote}`);
     if (result.destinations) {
       result.destinations.forEach(d => {
         console.log(`[Server Action - getPopularDestinations] Dest: ${d.name}, ImageURI provided: ${!!d.imageUri}, Coords: Lat ${d.latitudeString || d.latitude}, Lng ${d.longitudeString || d.longitude}`);
@@ -209,7 +217,7 @@ export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput)
 }
 
 export async function getAiFlightMapDealsAction(
-  input: AiFlightMapDealInput
+  input: AiFlightMapDealInput // Corrected type
 ): Promise<AiFlightMapDealOutput> {
   console.log(`[Server Action - getAiFlightMapDealsAction] Input:`, input);
   try {
@@ -236,18 +244,8 @@ export async function getConceptualFlightsAction(input: ConceptualFlightSearchIn
     console.error('[Server Action - getConceptualFlightsAction] ERROR fetching conceptual flights:', error.message);
     console.error(error);
     return {
-      flights: [{
-          airlineName: "Error",
-          departureAirport: input.origin,
-          arrivalAirport: input.destination,
-          departureTime: "N/A",
-          arrivalTime: "N/A",
-          duration: "N/A",
-          stops: "N/A",
-          conceptualPrice: "N/A",
-          bookingHint: "Server error fetching conceptual flights.",
-      }],
-      summaryMessage: "A server error occurred while Aura AI was searching for conceptual flight options."
+      flights: [], // Return empty array for flights on error
+      summaryMessage: "A server error occurred while Aura AI was searching for conceptual flight options. Please try again."
     };
   }
 }
@@ -263,4 +261,7 @@ export async function getAiHotelSuggestionsAction(input: AiHotelSearchInput): Pr
     console.error(error);
     return {
       hotels: [],
-      searchSummary: `Sorry, we encountered a server error while searching
+      searchSummary: `Sorry, we encountered a server error while searching for hotels in ${input.destination}. Please try again.`
+    };
+  }
+}
