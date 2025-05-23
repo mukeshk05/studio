@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,7 +100,7 @@ function AiHotelCard({ hotel }: AiHotelCardProps) {
       </div>
       <CardHeader className="p-3 pb-1">
         <CardTitle className="text-md font-semibold text-card-foreground line-clamp-2">{hotel.name}</CardTitle>
-        {hotel.rating !== undefined && (
+        {hotel.rating !== undefined && hotel.rating !== null && (
           <div className="flex items-center text-xs text-amber-400 mt-0.5">
             {[...Array(5)].map((_, i) => (
               <Star key={i} className={cn("w-3 h-3", i < Math.round(hotel.rating!) ? "fill-amber-400" : "fill-muted-foreground/50")} />
@@ -205,6 +206,14 @@ export default function HotelsPage() {
   };
   
   const dates = form.watch("dates");
+
+  useEffect(() => {
+    // Initialize dates on the client side to avoid hydration mismatch for the form
+    if (!form.getValues("dates.from")) { // Check if already set, e.g., by initialValues
+        form.setValue("dates", { from: new Date(), to: addDays(new Date(), 3) });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Runs once on mount
 
   return (
     <div className="container mx-auto py-8 px-4 animate-fade-in-up space-y-10">
