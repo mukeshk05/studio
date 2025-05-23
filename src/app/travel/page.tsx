@@ -1,6 +1,5 @@
-// This file is intentionally kept minimal to resolve a Next.js routing conflict.
-// The actual page for the /travel route is located at /src/app/(app)/travel/page.tsx.
-// Ideally, this file (/src/app/travel/page.tsx) should be deleted from your project
-// if src/app/(app)/travel/page.tsx is the intended page component.
-
-export {}; // Ensures this is a module but exports no default component.
+// This file is intentionally kept minimal (or should be deleted)
+// to resolve a routing conflict with /src/app/(app)/travel/page.tsx.
+// The actual page for the /travel route is located in the (app) group.
+// export default null; // Or ensure no default export that's a React component.
+// Forcing it to be just a comment to be absolutely sure.
