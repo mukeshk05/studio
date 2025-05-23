@@ -2,7 +2,7 @@
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firestore } from './firebase'; // Ensure firestore is correctly initialized and exported
-import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId, Timestamp } from 'firebase/firestore';
 import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -214,7 +214,24 @@ export function useSearchHistory(count: number = 20) {
       const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
       const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, searchedAt: doc.data().searchedAt?.toDate?.() || new Date() } as SearchHistoryEntry));
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        // Ensure searchedAt is converted to Date; default to now if missing/invalid for robustness
+        let searchedAtDate = new Date(); 
+        if (data.searchedAt instanceof Timestamp) {
+          searchedAtDate = data.searchedAt.toDate();
+        } else if (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number') {
+          const parsedDate = new Date(data.searchedAt);
+          if (!isNaN(parsedDate.getTime())) {
+            searchedAtDate = parsedDate;
+          }
+        }
+        return { 
+          ...data, 
+          id: doc.id, 
+          searchedAt: searchedAtDate 
+        } as SearchHistoryEntry;
+      });
     },
     enabled: !!currentUser,
     staleTime: 1000 * 60 * 15,
@@ -223,34 +240,57 @@ export function useSearchHistory(count: number = 20) {
 
 // Function to be called by Genkit tool to fetch user search history
 export async function getRecentUserSearchHistory(userId: string, count: number = 5): Promise<SearchHistoryEntry[]> {
-  console.log(`[FirestoreHooks] getRecentUserSearchHistory called for userId: ${userId}, count: ${count}`);
+  console.log(`[FirestoreHooks] getRecentUserSearchHistory: Called for userId: ${userId}, count: ${count}`);
   if (!userId) {
     console.error("[FirestoreHooks] getRecentUserSearchHistory: userId is required. Returning empty array.");
     return [];
   }
   if (!firestore) {
-    console.error("[FirestoreHooks] Firestore instance is undefined in getRecentUserSearchHistory. Returning empty array.");
+    console.error("[FirestoreHooks] Firestore instance is undefined in getRecentUserSearchHistory. Cannot fetch history. Returning empty array.");
     return [];
   }
   try {
+    console.log(`[FirestoreHooks] getRecentUserSearchHistory: Attempting query for user ${userId}.`);
     const historyCollectionRef = collection(firestore, 'users', userId, 'searchHistory');
     const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
     const querySnapshot = await getDocs(q);
     const history = querySnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
+        // Robust timestamp conversion
+        let searchedAtDate = new Date(); // Default to now if problematic
+        if (data.searchedAt instanceof Timestamp) {
+          searchedAtDate = data.searchedAt.toDate();
+        } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
+          const tsSeconds = data.searchedAt.seconds || (typeof data.searchedAt === 'number' ? data.searchedAt / 1000 : undefined);
+          const tsNanos = data.searchedAt.nanoseconds || 0;
+          if (tsSeconds !== undefined) {
+            searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
+          } else {
+            const parsed = new Date(data.searchedAt); // Try parsing directly if it's a string like ISO date
+            if (!isNaN(parsed.getTime())) {
+              searchedAtDate = parsed;
+            } else {
+              console.warn(`[FirestoreHooks] Could not parse searchedAt for doc ${docSnapshot.id}:`, data.searchedAt);
+            }
+          }
+        } else if (data.searchedAt) {
+            console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${docSnapshot.id}:`, data.searchedAt);
+        }
+        
         return {
             id: docSnapshot.id,
-            destination: data.destination,
-            travelDates: data.travelDates,
-            budget: data.budget,
-            // Handle Firestore Timestamp conversion carefully
-            searchedAt: data.searchedAt?.toDate ? data.searchedAt.toDate() : (data.searchedAt ? new Date(data.searchedAt) : new Date()),
+            destination: data.destination || "Unknown Destination",
+            travelDates: data.travelDates || "Unknown Dates",
+            budget: typeof data.budget === 'number' ? data.budget : 0,
+            searchedAt: searchedAtDate,
         } as SearchHistoryEntry;
     });
-    console.log(`[FirestoreHooks] Fetched ${history.length} search history entries for userId ${userId}.`);
+    console.log(`[FirestoreHooks] getRecentUserSearchHistory: Fetched ${history.length} entries for userId ${userId}.`);
     return history;
   } catch (error: any) {
-    console.error(`[FirestoreHooks] Error fetching search history for user ${userId}:`, error.message, error.stack);
+    console.error(`[FirestoreHooks] CRITICAL ERROR in getRecentUserSearchHistory for user ${userId}:`, error.message);
+    console.error(`[FirestoreHooks] Full error object:`, error);
+    if(error.stack) console.error(`[FirestoreHooks] Error stack:`, error.stack);
     return []; // Return empty array on error to prevent flow from breaking
   }
 }
@@ -290,10 +330,18 @@ export function useGetUserTravelPersona() {
       const docSnap = await getDoc(personaDocRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
+        // Robust timestamp conversion
+        let lastUpdatedDate = new Date();
+        if (data.lastUpdated instanceof Timestamp) {
+          lastUpdatedDate = data.lastUpdated.toDate();
+        } else if (data.lastUpdated && (typeof data.lastUpdated === 'string' || typeof data.lastUpdated === 'number')) {
+           const parsed = new Date(data.lastUpdated);
+           if (!isNaN(parsed.getTime())) lastUpdatedDate = parsed;
+        }
         return {
-            name: data.name,
-            description: data.description,
-            lastUpdated: data.lastUpdated?.toDate() || new Date(),
+            name: data.name || "Traveler",
+            description: data.description || "Enjoys exploring new places.",
+            lastUpdated: lastUpdatedDate,
         } as UserTravelPersona;
       }
       return null;
@@ -305,6 +353,7 @@ export function useGetUserTravelPersona() {
 
 // Function to be called by Genkit tool to fetch user travel persona
 export async function getUserTravelPersona(userId: string): Promise<UserTravelPersona | null> {
+  console.log(`[FirestoreHooks] getUserTravelPersona called for userId: ${userId}`);
   if (!userId) {
     console.error("[FirestoreHooks] getUserTravelPersona: userId is required.");
     return null;
@@ -318,15 +367,25 @@ export async function getUserTravelPersona(userId: string): Promise<UserTravelPe
     const docSnap = await getDoc(personaDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
+      // Robust timestamp conversion
+      let lastUpdatedDate = new Date();
+        if (data.lastUpdated instanceof Timestamp) {
+          lastUpdatedDate = data.lastUpdated.toDate();
+        } else if (data.lastUpdated && (typeof data.lastUpdated === 'string' || typeof data.lastUpdated === 'number')) {
+           const parsed = new Date(data.lastUpdated);
+           if (!isNaN(parsed.getTime())) lastUpdatedDate = parsed;
+        }
+      console.log(`[FirestoreHooks] Found travel persona for userId ${userId}:`, data.name);
       return {
-          name: data.name,
-          description: data.description,
-          lastUpdated: data.lastUpdated?.toDate() || new Date(),
+          name: data.name || "Traveler",
+          description: data.description || "Enjoys exploring new places.",
+          lastUpdated: lastUpdatedDate,
       } as UserTravelPersona;
     }
+    console.log(`[FirestoreHooks] No travel persona found for userId ${userId}.`);
     return null;
   } catch (error: any) {
-    console.error(`[FirestoreHooks] Error fetching travel persona for user ${userId}:`, error.message, error.stack);
+    console.error(`[FirestoreHooks] CRITICAL ERROR fetching travel persona for user ${userId}:`, error.message, error.stack, error);
     return null;
   }
 }
@@ -345,14 +404,16 @@ export async function getAllUserSavedTrips(userId: string): Promise<Itinerary[]>
   try {
     const tripsCollectionRef = collection(firestore, 'users', userId, 'savedTrips');
     const querySnapshot = await getDocs(tripsCollectionRef);
-    const trips = querySnapshot.docs.map(docSnapshot => ({
-      ...docSnapshot.data() as Omit<Itinerary, 'id'>,
-      id: docSnapshot.id,
-      // Ensure nested objects and arrays are handled, especially if they have Timestamps
-      // For example, if dailyPlan or hotelOptions could have Timestamps, they'd need conversion
-    }));
+    const trips = querySnapshot.docs.map(docSnapshot => {
+      const data = docSnapshot.data();
+      // Add robust timestamp handling for nested properties if any exist
+      return {
+        ...data,
+        id: docSnapshot.id,
+      } as Itinerary; 
+    });
     console.log(`[FirestoreHooks] Fetched ${trips.length} saved trips for userId ${userId}.`);
-    return trips as Itinerary[];
+    return trips;
   } catch (error: any) {
     console.error(`[FirestoreHooks] Error fetching all saved trips for user ${userId}:`, error.message, error.stack);
     return [];
@@ -382,7 +443,8 @@ export async function getSingleUserSavedTrip(userId: string, tripId: string): Pr
       return null;
     }
   } catch (error: any) {
-    console.error(`[FirestoreHooks] Error fetching single saved trip for user ${userId}, tripId: ${tripId}:`, error.message, error.stack);
+    console.error(`[FirestoreHooks] Error fetching single saved trip for user ${userId}, tripId: ${tripId}:`, error.message, error.stack, error);
     return null;
   }
 }
+    

@@ -14,7 +14,7 @@ import {
   type ExploreIdeasOutput,
   ExploreIdeaSuggestionSchema,
 } from '@/ai/types/explore-ideas-types';
-import { getRecentUserSearchHistory } from '@/lib/firestoreHooks'; // Assuming this is correctly exported and usable server-side
+import { getRecentUserSearchHistory } from '@/lib/firestoreHooks'; 
 
 // Helper to generate an image for a single suggestion
 async function generateSuggestionImage(promptText: string | undefined, fallbackHint: string): Promise<string | null> {
@@ -23,6 +23,7 @@ async function generateSuggestionImage(promptText: string | undefined, fallbackH
     return `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackHint.substring(0,20))}`;
   }
   try {
+    console.log(`[ExploreIdeasFlow] Generating image for prompt: "${promptText}" (fallback: ${fallbackHint})`);
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.0-flash-exp',
       prompt: `Generate an inspiring travel image representing: ${promptText}. Style: vibrant, appealing, wanderlust. Aspect ratio 16:9.`,
@@ -39,12 +40,13 @@ async function generateSuggestionImage(promptText: string | undefined, fallbackH
       experimentalDoNotSelectOutputTool: true,
     });
     if (media?.url) {
+      console.log(`[ExploreIdeasFlow] Image generated successfully for prompt "${promptText}". URI starts: ${media.url.substring(0,50)}...`);
       return media.url;
     }
-    console.warn(`[ExploreIdeasFlow] Image generation for prompt "${promptText}" did not return a media URL.`);
+    console.warn(`[ExploreIdeasFlow] Image generation for prompt "${promptText}" did NOT return a media URL. Using placeholder.`);
     return `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackHint.substring(0,20))}`;
-  } catch (error) {
-    console.error(`[ExploreIdeasFlow] Failed to generate image for prompt "${promptText}":`, error);
+  } catch (error: any) {
+    console.error(`[ExploreIdeasFlow] FAILED to generate image for prompt "${promptText}":`, error.message, error.stack);
     return `https://placehold.co/600x400.png?text=${encodeURIComponent(fallbackHint.substring(0,20))}`;
   }
 }
@@ -94,61 +96,96 @@ export const exploreIdeasFromHistoryFlow = ai.defineFlow(
     outputSchema: ExploreIdeasOutputSchema,
   },
   async ({ userId }): Promise<ExploreIdeasOutput> => {
-    console.log(`[ExploreIdeasFlow] Starting for userId: ${userId}`);
-    let searchHistoryEntries;
+    console.log(`[ExploreIdeasFlow] Starting flow for userId: ${userId}`);
+    let searchHistoryEntries: any[] = []; // Initialize as empty array
     try {
-      // Call the potentially updated getRecentUserSearchHistory
+      console.log(`[ExploreIdeasFlow] Attempting to call getRecentUserSearchHistory for userId: ${userId}`);
       searchHistoryEntries = await getRecentUserSearchHistory(userId, 3); 
-      console.log(`[ExploreIdeasFlow] Fetched ${searchHistoryEntries.length} search history entries.`);
-      if (searchHistoryEntries.length === 0) {
-        console.log(`[ExploreIdeasFlow] No search history found for user ${userId}, or an error occurred during fetch.`);
+      console.log(`[ExploreIdeasFlow] getRecentUserSearchHistory returned:`, searchHistoryEntries);
+      
+      if (!Array.isArray(searchHistoryEntries)) { 
+          console.warn(`[ExploreIdeasFlow] getRecentUserSearchHistory did not return an array for user ${userId}. Received:`, searchHistoryEntries, `Treating as empty.`);
+          searchHistoryEntries = [];
       }
+      console.log(`[ExploreIdeasFlow] Successfully processed search history. Count: ${searchHistoryEntries.length}.`);
+
     } catch (error: any) {
-      console.error(`[ExploreIdeasFlow] CRITICAL ERROR calling getRecentUserSearchHistory for userId ${userId}:`, error.message, error.stack);
-      // Even if getRecentUserSearchHistory is designed to return [], an unexpected error in awaiting it could land here.
-      return { suggestions: [], contextualNote: "Could not retrieve your search history due to an unexpected issue." };
+      console.error(`[ExploreIdeasFlow] CRITICAL ERROR during/after getRecentUserSearchHistory for userId ${userId}.`);
+      console.error(`[ExploreIdeasFlow] Error message: ${error.message}`);
+      if (error.stack) console.error(`[ExploreIdeasFlow] Error stack: ${error.stack}`);
+      console.error(`[ExploreIdeasFlow] Full error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error))); // Log full error
+      return { 
+        suggestions: [], 
+        contextualNote: "Error EIFH1: Could not process search history within the AI flow. Check server logs for details." 
+      };
     }
 
-    let searchHistoryText = "User has no recent search history or it's too vague.";
+    let searchHistoryText = "User has no recent search history or it could not be reliably processed.";
     if (searchHistoryEntries.length > 0) {
       searchHistoryText = "User's recent searches include: " +
         searchHistoryEntries.map(entry =>
-          `${entry.destination} (around ${entry.travelDates}, budget ~$${entry.budget})`
+          `${entry.destination || 'N/A Dest.'} (around ${entry.travelDates || 'N/A Dates'}, budget ~$${entry.budget || 'N/A'})`
         ).join('; ') + ".";
     }
-    console.log(`[ExploreIdeasFlow] Search history text for AI: ${searchHistoryText}`);
+    console.log(`[ExploreIdeasFlow] Search history text for AI prompt: ${searchHistoryText}`);
 
-    const { output: textOutput } = await exploreIdeasPrompt({ searchHistoryText });
-
+    let textOutput;
+    try {
+      console.log(`[ExploreIdeasFlow] Calling exploreIdeasPrompt...`);
+      const { output } = await exploreIdeasPrompt({ searchHistoryText });
+      textOutput = output;
+      console.log(`[ExploreIdeasFlow] exploreIdeasPrompt output received:`, textOutput);
+    } catch (promptError: any) {
+      console.error(`[ExploreIdeasFlow] Error calling exploreIdeasPrompt:`, promptError.message, promptError.stack);
+      return {
+        suggestions: [],
+        contextualNote: "Error EIFH2: AI failed to generate initial ideas. Please try again later.",
+      };
+    }
+    
     if (!textOutput || !textOutput.suggestions || textOutput.suggestions.length === 0) {
-      console.warn("[ExploreIdeasFlow] AI did not return valid text suggestions.");
-      // Provide a more specific note if history was empty vs. AI simply couldn't generate ideas from it.
-      const note = searchHistoryEntries.length === 0 
-        ? textOutput?.contextualNote || "No personalized ideas could be generated as your search history is empty. Explore some trips first!"
-        : textOutput?.contextualNote || "Couldn't come up with personalized ideas right now. How about exploring top destinations?";
+      console.warn("[ExploreIdeasFlow] AI did not return valid text suggestions from exploreIdeasPrompt.");
+      const note = textOutput?.contextualNote || (searchHistoryEntries.length === 0 
+        ? "No personalized ideas found based on your history yet. Explore some trips first!"
+        : "Couldn't come up with personalized ideas right now. How about exploring top destinations?");
       return { suggestions: [], contextualNote: note };
     }
+    console.log(`[ExploreIdeasFlow] AI Prompt returned ${textOutput.suggestions.length} text suggestions.`);
 
-    const suggestionsWithImages = await Promise.all(
-      textOutput.suggestions.map(async (suggestionTextPart) => {
-        const imageUri = await generateSuggestionImage(suggestionTextPart.imagePrompt, suggestionTextPart.destination);
-        return {
-          ...suggestionTextPart,
-          id: crypto.randomUUID(),
-          imageUri,
-        };
-      })
-    );
-    
-    console.log(`[ExploreIdeasFlow] Generated ${suggestionsWithImages.length} suggestions with images.`);
-    return {
-      suggestions: suggestionsWithImages,
-      contextualNote: textOutput.contextualNote || "Here are some ideas you might like!",
-    };
+    try {
+      console.log(`[ExploreIdeasFlow] Starting batch image generation for ${textOutput.suggestions.length} suggestions.`);
+      const suggestionsWithImages = await Promise.all(
+        textOutput.suggestions.map(async (suggestionTextPart) => {
+          const imageUri = await generateSuggestionImage(suggestionTextPart.imagePrompt, suggestionTextPart.destination);
+          return {
+            ...suggestionTextPart,
+            id: crypto.randomUUID(),
+            imageUri,
+          };
+        })
+      );
+      
+      console.log(`[ExploreIdeasFlow] Generated ${suggestionsWithImages.length} suggestions with images.`);
+      return {
+        suggestions: suggestionsWithImages,
+        contextualNote: textOutput.contextualNote || "Here are some ideas you might like!",
+      };
+    } catch (imageGenError: any) {
+       console.error(`[ExploreIdeasFlow] Error during batch image generation:`, imageGenError.message, imageGenError.stack);
+       const suggestionsWithoutImages = textOutput.suggestions.map(sugg => ({
+           ...sugg,
+           id: crypto.randomUUID(),
+           imageUri: `https://placehold.co/600x400.png?text=${encodeURIComponent(sugg.destination.substring(0,20))}` 
+       }));
+       return {
+         suggestions: suggestionsWithoutImages,
+         contextualNote: textOutput.contextualNote ? `${textOutput.contextualNote} (Error EIFH3: Visuals currently unavailable)` : "Here are some ideas! (Error EIFH3: Visuals currently unavailable)",
+       };
+    }
   }
 );
 
 export async function getExploreIdeasFromHistory(input: ExploreIdeasFromHistoryInput): Promise<ExploreIdeasOutput> {
   return exploreIdeasFromHistoryFlow(input);
 }
-
+    
