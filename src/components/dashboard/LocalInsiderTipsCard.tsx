@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, MapPinIcon, SearchIcon, LightbulbIcon, TrendingUpIcon, ClockIcon, InfoIcon } from 'lucide-react';
+import { Loader2, Sparkles, MapPin, Search, Lightbulb, TrendingUp, Clock, Info } from 'lucide-react';
 import { getLocalInsiderTips, LocalInsiderTipsInput, LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -18,11 +18,10 @@ const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md bor
 export function LocalInsiderTipsCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [tipsData, setTipsData] = useState<LocalInsiderTipsOutput | null>(null);
-  const [destination, setDestination] = useState(''); // User input for destination
+  const [destination, setDestination] = useState(''); 
   const [lastFetchedDestination, setLastFetchedDestination] = useState('');
   const { toast } = useToast();
 
-  // Predefined mood and weather for this demo
   const demoMood = "curious and adventurous";
   const demoWeather = "a pleasant sunny afternoon";
 
@@ -37,7 +36,7 @@ export function LocalInsiderTipsCard() {
     }
     setIsLoading(true);
     setTipsData(null);
-    setLastFetchedDestination(destination); // Store the destination for which tips are being fetched
+    setLastFetchedDestination(destination); 
     try {
       const input: LocalInsiderTipsInput = {
         destination: destination,
@@ -62,7 +61,7 @@ export function LocalInsiderTipsCard() {
     <Card className={cn(glassCardClasses, "w-full border-accent/30", "animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <MapPinIcon className="w-6 h-6 mr-2 text-accent" />
+          <MapPin className="w-6 h-6 mr-2 text-accent" />
           Aura Local Lens: Insider Tips
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -95,7 +94,7 @@ export function LocalInsiderTipsCard() {
 
         {isLoading && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-accent" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-accent" />
             <p>Aura is tuning into local vibes for {lastFetchedDestination}...</p>
           </div>
         )}
@@ -104,7 +103,7 @@ export function LocalInsiderTipsCard() {
           <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
             <CardHeader className="p-0 pb-3">
                 <CardTitle className="text-lg text-accent flex items-center">
-                    <SparklesIcon className="w-5 h-5 mr-2" />
+                    <Sparkles className="w-5 h-5 mr-2" />
                     Insider Scoop for {lastFetchedDestination}
                 </CardTitle>
                  <CardDescription className="text-xs text-muted-foreground">
@@ -114,7 +113,7 @@ export function LocalInsiderTipsCard() {
             <CardContent className="p-0 space-y-3 text-sm">
               <div>
                 <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                  <TrendingUpIcon className="w-4 h-4 mr-2 text-primary" />
+                  <TrendingUp className="w-4 h-4 mr-2 text-primary" />
                   Trending Spots Summary:
                 </h4>
                 <p className="text-muted-foreground pl-6 text-xs italic">{tipsData.trendingSpotsSummary}</p>
@@ -122,7 +121,7 @@ export function LocalInsiderTipsCard() {
               <Separator className="bg-border/40"/>
               <div>
                 <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                  <SearchIcon className="w-4 h-4 mr-2 text-primary" />
+                  <Search className="w-4 h-4 mr-2 text-primary" />
                   Hidden Gem Pick: {tipsData.hiddenGemPick.name}
                 </h4>
                 <p className="text-muted-foreground pl-6 text-xs">{tipsData.hiddenGemPick.description}</p>
@@ -131,7 +130,7 @@ export function LocalInsiderTipsCard() {
               <Separator className="bg-border/40"/>
               <div>
                 <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                  <LightbulbIcon className="w-4 h-4 mr-2 text-primary" />
+                  <Lightbulb className="w-4 h-4 mr-2 text-primary" />
                   Daily Activity Pick: {tipsData.dailyActivityPick.name}
                 </h4>
                 <p className="text-muted-foreground pl-6 text-xs">{tipsData.dailyActivityPick.description}</p>
@@ -140,7 +139,7 @@ export function LocalInsiderTipsCard() {
               <Separator className="bg-border/40"/>
               <div>
                 <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                  <ClockIcon className="w-4 h-4 mr-2 text-primary" />
+                  <Clock className="w-4 h-4 mr-2 text-primary" />
                   Availability Notes:
                 </h4>
                 <p className="text-muted-foreground pl-6 text-xs italic">{tipsData.availabilityNotes}</p>
@@ -156,15 +155,14 @@ export function LocalInsiderTipsCard() {
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Get Insider Tips!
         </Button>
         <p className="text-xs text-muted-foreground text-center w-full flex items-center justify-center">
-          <InfoIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+          <Info className="w-3.5 h-3.5 mr-1.5 shrink-0" />
           AI simulates real-time local data. Actual availability may vary.
         </p>
       </CardFooter>
     </Card>
   );
 }
-

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2Icon, SparklesIcon, SearchCheckIcon, CameraIcon, StampIcon, ImageOffIcon, InfoIcon, UploadCloudIcon, Trash2Icon } from 'lucide-react';
+import { Loader2, Sparkles, SearchCheck, Camera, Stamp, ImageOff, Info, UploadCloud, Trash2 } from 'lucide-react';
 import { getAuthenticityVerification } from '@/ai/flows/authenticity-verifier-flow';
 import type { AuthenticityVerifierInput, AuthenticityVerifierOutput } from '@/ai/types/authenticity-verifier-types';
 import { useToast } from '@/hooks/use-toast';
@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
 
-export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name for consistency with user requests
+export function AuthenticityVerifierPlaceholder() { 
   const [itemNameOrDescription, setItemNameOrDescription] = useState('');
   const [uploadedPhoto, setUploadedPhoto] = useState<File | null>(null);
   const [uploadedPhotoPreview, setUploadedPhotoPreview] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) { 
         toast({ title: "Image too large", description: "Please upload an image under 5MB.", variant: "destructive" });
         return;
       }
@@ -95,7 +95,7 @@ export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name 
     <Card className={cn(glassCardClasses, "w-full border-orange-500/30 animate-fade-in-up")}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <SearchCheckIcon className="w-6 h-6 mr-2 text-orange-400" />
+          <SearchCheck className="w-6 h-6 mr-2 text-orange-400" />
           AI Authenticity Verifier
         </CardTitle>
         <CardDescription className="text-muted-foreground">
@@ -127,7 +127,7 @@ export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name 
             />
             {uploadedPhotoPreview && (
               <Button variant="ghost" size="icon" onClick={removeUploadedPhoto} className="text-destructive hover:bg-destructive/10 h-9 w-9">
-                <Trash2Icon className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" />
               </Button>
             )}
           </div>
@@ -144,13 +144,13 @@ export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name 
           size="lg"
           className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
         >
-          {isLoading ? <Loader2Icon className="animate-spin" /> : <SparklesIcon />}
+          {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Get AI Authenticity Insights (Conceptual)
         </Button>
 
         {isLoading && !verificationResult && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2Icon className="w-10 h-10 animate-spin mx-auto mb-3 text-orange-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-orange-400" />
             <p>Aura Verify is consulting its knowledge base...</p>
           </div>
         )}
@@ -159,7 +159,7 @@ export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name 
           <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
             <CardHeader className="p-0 pb-3">
               <CardTitle className="text-lg text-accent flex items-center">
-                <SparklesIcon className="w-5 h-5 mr-2" />
+                <Sparkles className="w-5 h-5 mr-2" />
                 Conceptual Authenticity Insights
               </CardTitle>
             </CardHeader>
@@ -178,12 +178,12 @@ export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name 
               )}
               {!verificationResult.generatedImageUri && (
                  <div className="aspect-video w-full bg-muted/50 flex items-center justify-center rounded-md mb-3 border border-border/30">
-                    <ImageOffIcon className="w-12 h-12 text-muted-foreground" />
+                    <ImageOff className="w-12 h-12 text-muted-foreground" />
                  </div>
               )}
 
               <div>
-                <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><StampIcon className="w-4 h-4 mr-1.5 text-primary" />AI Verification Summary:</h4>
+                <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><Stamp className="w-4 h-4 mr-1.5 text-primary" />AI Verification Summary:</h4>
                 <p className="text-muted-foreground pl-6">{verificationResult.verificationSummary}</p>
               </div>
               
@@ -191,7 +191,7 @@ export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name 
 
               {verificationResult.authenticityFactors && verificationResult.authenticityFactors.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><SearchCheckIcon className="w-4 h-4 mr-1.5 text-primary" />Key Factors to Consider:</h4>
+                  <h4 className="font-semibold text-card-foreground mb-1.5 flex items-center"><SearchCheck className="w-4 h-4 mr-1.5 text-primary" />Key Factors to Consider:</h4>
                   <ul className="list-disc space-y-1 pl-10 text-muted-foreground">
                     {verificationResult.authenticityFactors.map((factor, idx) => <li key={`factor-${idx}`} className="text-xs">{factor}</li>)}
                   </ul>
@@ -201,7 +201,7 @@ export function AuthenticityVerifierPlaceholder() { // Keeping placeholder name 
               <Separator className="bg-border/40" />
 
               <div>
-                 <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><InfoIcon className="w-4 h-4 mr-1.5 text-primary" />AI Confidence Note:</h4>
+                 <h4 className="font-semibold text-card-foreground mb-1 flex items-center"><Info className="w-4 h-4 mr-1.5 text-primary" />AI Confidence Note:</h4>
                 <p className="text-muted-foreground pl-6 italic text-xs">{verificationResult.confidenceNote}</p>
               </div>
             </CardContent>
