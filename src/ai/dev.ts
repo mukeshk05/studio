@@ -27,4 +27,6 @@ import '@/ai/flows/authenticity-verifier-flow.ts';
 import '@/ai/flows/serendipity-engine-flow.ts';
 import '@/ai/flows/popular-destinations-flow.ts';
 import '@/ai/flows/generate-multiple-images-flow.ts';
-import '@/ai/flows/explore-ideas-from-history-flow.ts'; // Added new flow
+import '@/ai/flows/explore-ideas-from-history-flow.ts'; 
+import '@/ai/flows/ai-flight-map-deals-flow.ts';
+import '@/ai/flows/conceptual-flight-search-flow.ts'; // Added new flow

@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FormItem } from "@/components/ui/form"; // Keep this import
+import { FormItem } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,15 +24,15 @@ import {
   Sparkles, Star, Clock, Loader2, Map as LucideMap, Compass, DollarSign, Hotel, TrendingUp,
   CalendarSearch, BarChartHorizontalBig, LocateFixed, ImageOff, Info, ExternalLink, AlertTriangle, X, MessageSquareQuote, MapPin, ListFilter, Route
 } from 'lucide-react';
-import { format, addDays, parse, isValid, differenceInDays } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { getPopularDestinations, getAiFlightMapDealsAction } from '@/app/actions';
-import type { PopularDestinationsInput, AiDestinationSuggestion, HotelIdea, FlightIdea } from '@/ai/types/popular-destinations-types';
-import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput, DealVariation } from '@/ai/types/ai-flight-map-deals-types';
-import type { AITripPlannerInput, AITripPlannerOutput } from '@/ai/types/trip-planner-types';
-import { ItineraryItemSchema as AITripItinerary, FlightOptionSchema as AIFlightOption } from '@/ai/types/trip-planner-types'; // Use directly if types align
-import { aiTripPlanner } from '@/ai/flows/ai-trip-planner';
+import { getPopularDestinations, getAiFlightMapDealsAction, getConceptualFlightsAction } from '@/app/actions';
+import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
+import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
+import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput, ConceptualFlightOption } from '@/ai/types/conceptual-flight-search-types';
+
+import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGetUserTravelPersona } from '@/lib/firestoreHooks';
@@ -43,39 +43,56 @@ const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:s
 const prominentButtonClassesSm = "text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
 
-interface AiFlightOptionCardProps {
-  flightOption: z.infer<typeof AIFlightOption>; // Use Zod inferred type
-  itineraryDestination: string;
+interface ConceptualFlightResultCardProps {
+  flight: ConceptualFlightOption;
+  onViewDetails: () => void;
 }
 
-function AiFlightOptionCard({ flightOption, itineraryDestination }: AiFlightOptionCardProps) {
-  const airlineName = flightOption.name.split(" ")[0] || "Airline";
-  const logoHint = `logo ${airlineName.toLowerCase()}`;
-
+function ConceptualFlightResultCard({ flight, onViewDetails }: ConceptualFlightResultCardProps) {
+  const airlinePlaceholderText = flight.airlineName ? flight.airlineName.split(' ')[0] : "Airline";
   return (
     <Card className={cn(glassCardClasses, "mb-4 transform hover:scale-[1.01] transition-transform duration-200 ease-out")}>
       <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-4">
-          <Image
-            src={`https://placehold.co/100x40.png?text=${encodeURIComponent(airlineName)}`}
-            alt={`${flightOption.name} logo`}
-            data-ai-hint={logoHint}
-            width={80}
-            height={32}
-            className="h-8 w-auto object-contain rounded"
-          />
-          <span className="text-sm font-medium text-card-foreground">{flightOption.name}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image
+              src={`https://placehold.co/80x30.png?text=${encodeURIComponent(airlinePlaceholderText)}`}
+              alt={`${flight.airlineName} logo placeholder`}
+              data-ai-hint={`logo ${airlinePlaceholderText.toLowerCase()}`}
+              width={80}
+              height={30}
+              className="h-auto object-contain rounded-sm bg-muted/20 p-0.5"
+            />
+            <div>
+              <p className="text-sm font-semibold text-card-foreground">{flight.airlineName}</p>
+              {flight.flightNumber && <p className="text-xs text-muted-foreground">{flight.flightNumber}</p>}
+            </div>
+          </div>
+          <Badge variant="outline" className="text-xs border-accent/50 text-accent bg-accent/10">{flight.stops}</Badge>
         </div>
-        <p className="text-xs text-muted-foreground italic">{flightOption.description}</p>
-        <p className="text-sm text-card-foreground/80">Conceptual AI-suggested flight option for your trip to <span className="font-semibold text-primary">{itineraryDestination}</span>.</p>
+
+        <div className="flex items-center justify-between text-xs text-card-foreground/90">
+          <div className="text-center">
+            <p className="font-medium">{flight.departureTime}</p>
+            <p className="text-muted-foreground">{flight.departureAirport}</p>
+          </div>
+          <div className="flex flex-col items-center text-muted-foreground">
+            <Route className="w-4 h-4 mb-0.5" />
+            <span className="text-[0.65rem] leading-tight">{flight.duration}</span>
+          </div>
+          <div className="text-center">
+            <p className="font-medium">{flight.arrivalTime}</p>
+            <p className="text-muted-foreground">{flight.arrivalAirport}</p>
+          </div>
+        </div>
+        
+        {flight.extraDetails && <p className="text-xs text-muted-foreground italic border-t border-border/20 pt-2 mt-2">{flight.extraDetails}</p>}
+
       </CardContent>
       <CardFooter className="p-3 bg-muted/20 dark:bg-muted/10 flex justify-between items-center border-t border-border/30">
-        <div>
-          <p className="text-xl font-bold text-primary">${flightOption.price.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">Conceptual AI-suggested price</p>
-        </div>
-        <Button size="lg" className={cn(prominentButtonClasses, "py-2.5 px-6 text-base")} onClick={() => alert(`Conceptual: View deal for ${flightOption.name}. Actual booking would be via external site.`)}>
-          View Deal (Conceptual)
+        <p className="text-lg font-bold text-primary">{flight.conceptualPrice}</p>
+        <Button size="sm" onClick={onViewDetails} className={cn(prominentButtonClassesSm, "py-1.5 px-4 text-sm")}>
+          View Details & AI Insights
         </Button>
       </CardFooter>
     </Card>
@@ -107,12 +124,14 @@ function FlightDestinationSuggestionCard({ destination, onPlanTrip }: FlightDest
     };
     onPlanTrip(plannerInput);
   };
+  
+  const canDisplayImage = !imageLoadError && destination.imageUri;
 
   return (
     <Card className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.02] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col")}>
       <div className="relative w-full aspect-[16/10] bg-muted/30 group">
-        { !imageLoadError && destination.imageUri ? (
-          <Image src={destination.imageUri} alt={destination.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" data-ai-hint={imageHint} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" onError={handleImageError} />
+        { canDisplayImage ? (
+          <Image src={destination.imageUri!} alt={destination.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" data-ai-hint={imageHint} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" onError={handleImageError} />
         ) : (
           <div className="w-full h-full bg-muted/30 flex items-center justify-center"><ImageOff className="w-10 h-10 text-muted-foreground" /></div>
         )}
@@ -168,6 +187,8 @@ function MapDealDetailsDialog({ isOpen, onClose, deal, onPlanTrip }: MapDealDeta
     onPlanTrip(plannerInput);
     onClose();
   };
+  
+  const canDisplayImage = !imageLoadError && deal.imageUri;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -188,8 +209,8 @@ function MapDealDetailsDialog({ isOpen, onClose, deal, onPlanTrip }: MapDealDeta
         <ScrollArea className="max-h-[calc(90vh-150px)]">
           <div className="p-4 sm:p-6 space-y-4">
             <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
-              {!imageLoadError && deal.imageUri ? (
-                <Image src={deal.imageUri} alt={`Image of ${deal.destinationCity}`} fill className="object-cover" data-ai-hint={imageHint} sizes="(max-width: 640px) 90vw, 500px" onError={() => setImageLoadError(true)} />
+              {canDisplayImage ? (
+                <Image src={deal.imageUri!} alt={`Image of ${deal.destinationCity}`} fill className="object-cover" data-ai-hint={imageHint} sizes="(max-width: 640px) 90vw, 500px" onError={() => setImageLoadError(true)} />
               ) : (
                 <div className="w-full h-full bg-muted/30 flex items-center justify-center"><ImageOff className="w-10 h-10 text-muted-foreground" /></div>
               )}
@@ -225,6 +246,78 @@ function MapDealDetailsDialog({ isOpen, onClose, deal, onPlanTrip }: MapDealDeta
   );
 }
 
+interface ConceptualFlightDetailsDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  flight: ConceptualFlightOption | null;
+  formValues: { origin: string; destination: string; departureDate: string; returnDate?: string; };
+}
+
+function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: ConceptualFlightDetailsDialogProps) {
+  if (!flight) return null;
+
+  const googleFlightsUrl = () => {
+    const params = new URLSearchParams();
+    params.append('origin', formValues.origin); // Assuming flight.departureAirport might be too generic sometimes
+    params.append('destination', formValues.destination); // Assuming flight.arrivalAirport might be too generic
+    // Add date formatting if needed, for simplicity keeping it rough
+    // const depDate = parse(formValues.departureDate, "MMM dd, yyyy", new Date());
+    // if (isValid(depDate)) params.append('departure_date', format(depDate, 'YYYY-MM-DD'));
+    // if (formValues.returnDate) {
+    //   const retDate = parse(formValues.returnDate, "MMM dd, yyyy", new Date());
+    //   if (isValid(retDate)) params.append('return_date', format(retDate, 'YYYY-MM-DD'));
+    // }
+    return `https://www.google.com/travel/flights?${params.toString()}`;
+  };
+
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if(!open) onClose(); }}>
+      <DialogContent className={cn(glassCardClasses, "sm:max-w-lg p-0 border-primary/30")}>
+        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
+           <div className="flex justify-between items-center">
+            <DialogTitle className="text-lg font-semibold text-foreground flex items-center">
+              <Plane className="w-5 h-5 mr-2 text-primary" />
+              {flight.airlineName} {flight.flightNumber || ''}
+            </DialogTitle>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
+                <X className="h-5 w-5" />
+              </Button>
+            </DialogClose>
+          </div>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Conceptual details for {flight.departureAirport} to {flight.arrivalAirport}
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="max-h-[calc(80vh-120px)]">
+          <div className="p-4 sm:p-6 space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <p className="font-medium text-card-foreground">Price (Conceptual):</p>
+              <p className="text-lg font-bold text-primary">{flight.conceptualPrice}</p>
+            </div>
+            <Separator/>
+            <p><strong className="text-card-foreground/90">Route:</strong> {flight.departureAirport} → {flight.arrivalAirport}</p>
+            <p><strong className="text-card-foreground/90">Time:</strong> {flight.departureTime} – {flight.arrivalTime}</p>
+            <p><strong className="text-card-foreground/90">Duration:</strong> {flight.duration}</p>
+            <p><strong className="text-card-foreground/90">Stops:</strong> {flight.stops}</p>
+            {flight.bookingHint && <p className="italic text-xs text-muted-foreground border-l-2 border-accent pl-2 py-1 my-1"><strong className="text-accent">AI Booking Hint:</strong> {flight.bookingHint}</p>}
+            {flight.extraDetails && <p className="italic text-xs text-muted-foreground border-l-2 border-primary pl-2 py-1 my-1"><strong className="text-primary">AI Extra Details:</strong> {flight.extraDetails}</p>}
+          </div>
+        </ScrollArea>
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30", "glass-pane")}>
+          <Button asChild size="lg" className={cn(prominentButtonClasses, "w-full")}>
+            <a href={googleFlightsUrl()} target="_blank" rel="noopener noreferrer">
+              <Search className="mr-2" /> Search Live Flights on Google
+            </a>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 interface UserLocation { latitude: number; longitude: number; }
 const modernMapStyle: google.maps.MapTypeStyle[] = [
   { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
@@ -254,15 +347,17 @@ export default function FlightsPage() {
   const [dates, setDates] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
-    // Initialize dates on the client side to avoid hydration mismatch
     setDates({ from: new Date(), to: addDays(new Date(), 7) });
   }, []);
 
   const [passengers, setPassengers] = useState("1 adult");
   const [cabinClass, setCabinClass] = useState("economy");
 
-  const [isLoading, setIsLoading] = useState(false); // For main flight search AI call
-  const [aiTripPlanResults, setAiTripPlanResults] = useState<AITripPlannerOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [conceptualFlightData, setConceptualFlightData] = useState<ConceptualFlightSearchOutput | null>(null);
+  const [selectedFlightForDetails, setSelectedFlightForDetails] = useState<ConceptualFlightOption | null>(null);
+  const [isFlightDetailsDialogOpen, setIsFlightDetailsDialogOpen] = useState(false);
+
 
   const { toast } = useToast();
   const router = useRouter();
@@ -360,10 +455,11 @@ export default function FlightsPage() {
     finally { setIsMapInitializing(false); }
   }, []);
 
-  useEffect(() => {
+  const useEffectForMapAndInitialLocation = useEffect(() => {
     console.log(`[FlightsPage] Map/Location Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, mapRef.current=${!!mapRef.current}, !map=${!map}, isFetchingUserLocationForMap=${isFetchingUserLocationForMap}`);
     if (isMapsScriptLoaded && mapRef.current && !map && isFetchingUserLocationForMap) {
       console.log("[FlightsPage] Maps script loaded, attempting to fetch user location for initial map center.");
+       setIsMapInitializing(true); // Indicate map init attempt
       if (navigator.geolocation) {
         console.log("[FlightsPage] Geolocation API available. Requesting current position...");
         navigator.geolocation.getCurrentPosition(
@@ -376,7 +472,7 @@ export default function FlightsPage() {
             setIsFetchingUserLocationForMap(false);
           },
           (error) => {
-            console.warn("[FlightsPage] Geolocation error for map:", error.message);
+            console.warn("[FlightsPage] Geolocation error for map:", error);
             setGeolocationMapError(`Map geo error: ${error.message}. Centering globally.`);
             setUserLocation(null);
             initializeMap({ lat: 20, lng: 0 }, 2);
@@ -392,6 +488,7 @@ export default function FlightsPage() {
       }
     } else if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing && !isFetchingUserLocationForMap) {
         console.log("[FlightsPage] Maps script loaded, geo attempt already finished/skipped, map not init. Initializing with default.");
+        setIsMapInitializing(true);
         initializeMap({ lat: 20, lng: 0 }, 2);
     }
   }, [isMapsScriptLoaded, map, isMapInitializing, initializeMap, isFetchingUserLocationForMap]);
@@ -409,49 +506,43 @@ export default function FlightsPage() {
     }
 
     setIsLoading(true);
-    setAiTripPlanResults(null);
+    setConceptualFlightData(null);
 
     let travelDatesString = format(dates.from, "MM/dd/yyyy");
     if (dates.to && tripType === 'round-trip') {
       travelDatesString += ` - ${format(dates.to, "MM/dd/yyyy")}`;
     }
-
-    let budgetForAI = 2000;
-    const passengerCountMatch = passengers.match(/^(\d+)/);
-    if (passengerCountMatch) {
-      const numPassengers = parseInt(passengerCountMatch[1], 10);
-      budgetForAI = numPassengers * 1000;
-    }
-
-
-    const input: AITripPlannerInput = {
-      destination: `${destination} (from ${origin})`,
-      travelDates: travelDatesString,
-      budget: budgetForAI,
-      userPersona: userPersona ? { name: userPersona.name, description: userPersona.description } : undefined,
-      desiredMood: `finding best flight options for ${cabinClass} travel`,
+    
+    const input: ConceptualFlightSearchInput = {
+      origin,
+      destination,
+      departureDate: format(dates.from, "yyyy-MM-dd"),
+      returnDate: dates.to && tripType === 'round-trip' ? format(dates.to, "yyyy-MM-dd") : undefined,
+      passengers,
+      cabinClass,
+      tripType,
     };
 
-    console.log("[FlightsPage] Calling AI Trip Planner with input:", input);
+    console.log("[FlightsPage] Calling AI Conceptual Flight Search with input:", input);
 
     try {
-      const result: AITripPlannerOutput = await aiTripPlanner(input);
-      console.log("[FlightsPage] AI Trip Planner result:", result);
-      setAiTripPlanResults(result);
-      if (!result.itineraries || result.itineraries.length === 0 || result.itineraries.every(it => !it.flightOptions || it.flightOptions.length === 0) ) {
+      const result: ConceptualFlightSearchOutput = await getConceptualFlightsAction(input);
+      console.log("[FlightsPage] AI Conceptual Flight Search result:", result);
+      setConceptualFlightData(result);
+      if (!result.flights || result.flights.length === 0) {
         toast({
           title: "No Conceptual Flights Found",
-          description: "Aura AI couldn't generate conceptual flight options for this search. Try different parameters.",
+          description: result.summaryMessage || "Aura AI couldn't generate conceptual flight options for this search. Try different parameters.",
           variant: "default"
         });
       } else {
          toast({
           title: "AI Conceptual Flights Generated!",
-          description: "Scroll down to see Aura AI's suggestions for your flight search.",
+          description: result.summaryMessage || "Scroll down to see Aura AI's conceptual suggestions.",
         });
       }
     } catch (error: any) {
-      console.error("[FlightsPage] Error calling AI Trip Planner:", error);
+      console.error("[FlightsPage] Error calling AI Conceptual Flight Search:", error);
       toast({
         title: "AI Search Error",
         description: `Failed to get conceptual flight ideas: ${error.message || 'Unknown error'}. Please try again.`,
@@ -478,11 +569,11 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setGeneralAiDestinations(processed);
-        setGeneralContextualNote(result.contextualNote || (processed.length === 0 ? "AI couldn't find general flight destinations at this moment." : "Explore these popular spots for flights!"));
       } else {
         setGeneralAiDestinations([]);
-        setGeneralContextualNote("AI couldn't find general flight destinations at this moment.");
       }
+      setGeneralContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find general flight destinations at this moment." : "Explore these popular spots for flights!"));
+
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching general AI destinations:", error);
         setGeneralDestsError(`Could not fetch general suggestions: ${error.message}`);
@@ -502,8 +593,9 @@ export default function FlightsPage() {
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 7000, enableHighAccuracy: true, maximumAge: 0 }));
         currentLoc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-        setUserLocation(currentLoc);
+        setUserLocation(currentLoc); // Update main userLocation state
         console.log("[FlightsPage] User location fetched on demand for AI suggestions:", currentLoc);
+         setGeolocationSuggestionsError(null);
       } catch (err: any) {
         console.warn("[FlightsPage] On-demand geolocation error for AI suggestions:", err.message);
         setGeolocationSuggestionsError(`Location error: ${err.message}. Cannot fetch location-based ideas. Ensure location services are enabled and try refreshing.`);
@@ -520,11 +612,10 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setLocationAiDestinations(processed);
-        setLocationContextualNote(result.contextualNote || (processed.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : "Popular flight spots near your location."));
       } else {
         setLocationAiDestinations([]);
-        setLocationContextualNote("AI couldn't find flight destinations near you. Try exploring general ideas!");
       }
+      setLocationContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : "Popular flight spots near your location."));
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching location-based AI destinations:", error);
         setLocationDestsError(`Could not fetch location-based suggestions: ${error.message}`);
@@ -538,8 +629,8 @@ export default function FlightsPage() {
     if (userLocation && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) {
         console.log("[FlightsPage] User location available, attempting to fetch location-based suggestions for list.");
         handleFetchLocationAndDests();
-    } else if (!userLocation && !isFetchingUserLocationForMap && !geolocationMapError) {
-        console.log("[FlightsPage] User location not available and map geo attempt finished (or failed), not fetching location-based suggestions automatically for list.");
+    } else if (!userLocation && !isFetchingUserLocationForMap && !geolocationMapError && !isFetchingLocationDests && !locationDestsError) {
+        console.log("[FlightsPage] User location not available, map geo attempt finished (or skipped/failed), not fetching location-based suggestions automatically for list.");
         if (!locationContextualNote) setLocationContextualNote("Enable location or click refresh to find flights from your area.");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -603,7 +694,6 @@ export default function FlightsPage() {
     if(userLocationMarkerRef.current) userLocationMarkerRef.current.setMap(null); userLocationMarkerRef.current = null;
     if(routePolylineRef.current) routePolylineRef.current.setMap(null); routePolylineRef.current = null;
 
-    // Define CustomMapDealMarker class inside useEffect or ensure it's available in scope
     class CustomMapDealMarker extends window.google.maps.OverlayView {
         private latlng: google.maps.LatLng; private div: HTMLDivElement | null = null; private dealData: AiFlightMapDealSuggestion;
         private clickHandler: () => void; private mapInstanceRef: google.maps.Map;
@@ -664,36 +754,35 @@ export default function FlightsPage() {
             const polyline = new window.google.maps.Polyline({
               path: routePath,
               geodesic: true,
-              strokeColor: 'hsl(var(--accent))', // Use accent color for the route
+              strokeColor: 'hsl(var(--accent))', 
               strokeOpacity: 0.9,
-              strokeWeight: 5, // Increased stroke weight for better visibility
-              icons: [{ // Adding an arrowhead to indicate direction
+              strokeWeight: 5,
+              icons: [{ 
                 icon: {
                   path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-                  scale: 4, // Size of the arrow
-                  strokeColor: 'hsl(var(--accent-foreground))', // Color of the arrow's outline
-                  fillColor: 'hsl(var(--accent))', // Fill color of the arrow
+                  scale: 4, 
+                  strokeColor: 'hsl(var(--accent-foreground))', 
+                  fillColor: 'hsl(var(--accent))', 
                   fillOpacity: 1,
                 },
-                offset: '100%', // Place arrow at the end of the line
-                repeat: '80px' // Repeat arrow along the line (optional)
+                offset: '100%', 
+                repeat: '80px' 
               }]
             });
             polyline.setMap(map);
-            routePolylineRef.current = polyline; // Store reference for cleanup
+            routePolylineRef.current = polyline; 
           }
         }
       });
       mapDealMarkersRef.current = newMarkers;
 
       if (!bounds.isEmpty()) {
-        map.fitBounds(bounds, 100); // Add padding to fitBounds
+        map.fitBounds(bounds, 100); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
           let currentZoom = map.getZoom() || 0;
-          // If only user location and one destination, zoom might be too close.
-          if (newMarkers.length <=2 && currentZoom > 7) { // For 1 user marker + 1 dest marker
-            map.setZoom(Math.min(currentZoom, 7)); // Don't zoom in too much on simple routes
-          } else if (currentZoom > 12) { // General cap to prevent over-zooming
+          if (newMarkers.length <=2 && currentZoom > 7) { 
+            map.setZoom(Math.min(currentZoom, 7)); 
+          } else if (currentZoom > 12) { 
              map.setZoom(12);
           }
         });
@@ -739,34 +828,36 @@ export default function FlightsPage() {
 
       {isLoading && (<div className="text-center py-10 text-muted-foreground"><Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" /><p className="text-lg">Aura AI is searching for conceptual flight options...</p></div>)}
 
-      {!isLoading && aiTripPlanResults && aiTripPlanResults.itineraries && aiTripPlanResults.itineraries.length > 0 && (
+      {conceptualFlightData?.flights && conceptualFlightData.flights.length > 0 && !isLoading && (
         <div className="mt-8 animate-fade-in-up">
           <Separator className="my-6" />
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-6">
-            AI Conceptual Flight Options for {aiTripPlanResults.itineraries[0].destination.split('(')[0].trim()}
+           <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-2">
+            AI-Generated Conceptual Flight Information
           </h2>
-          {aiTripPlanResults.personalizationNote && (
-            <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary text-sm")}>
+          {conceptualFlightData.summaryMessage && (
+             <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary text-sm")}>
                 <Info className="h-4 w-4 !text-primary" />
-                <ShadcnAlertTitle className="font-semibold">AI Note</ShadcnAlertTitle>
+                <ShadcnAlertTitle className="font-semibold">Aura's Note</ShadcnAlertTitle>
                 <ShadcnAlertDescription className="text-primary/80">
-                {aiTripPlanResults.personalizationNote}
+                {conceptualFlightData.summaryMessage}
                 </ShadcnAlertDescription>
             </Alert>
-           )}
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {aiTripPlanResults.itineraries.flatMap((itinerary, itineraryIndex) =>
-              itinerary.flightOptions.length > 0
-                ? itinerary.flightOptions.map((flightOpt, flightOptionIndex) => (
-                    <AiFlightOptionCard key={`itinerary-${itineraryIndex}-flight-${flightOptionIndex}`} flightOption={flightOpt} itineraryDestination={itinerary.destination.split('(')[0].trim()} />
-                  ))
-                : <p key={`no-flights-${itineraryIndex}`} className="text-sm text-muted-foreground lg:col-span-2 text-center">No specific flight options found by AI within this itinerary suggestion.</p>
-            )}
+            {conceptualFlightData.flights.map((flightOpt, index) => (
+              <ConceptualFlightResultCard 
+                key={`${flightOpt.airlineName}-${flightOpt.departureAirport}-${index}`} 
+                flight={flightOpt}
+                onViewDetails={() => { setSelectedFlightForDetails(flightOpt); setIsFlightDetailsDialogOpen(true); }}
+              />
+            ))}
           </div>
         </div>
       )}
-      {!isLoading && aiTripPlanResults && (!aiTripPlanResults.itineraries || aiTripPlanResults.itineraries.length === 0 || aiTripPlanResults.itineraries.every(it => !it.flightOptions || it.flightOptions.length === 0)) && (
-         <div className="mt-8 text-center text-muted-foreground">No conceptual flight options found by AI for this query. Try adjusting your search.</div>
+      {!isLoading && conceptualFlightData && (!conceptualFlightData.flights || conceptualFlightData.flights.length === 0) && (
+         <div className="mt-8 text-center text-muted-foreground">
+          {conceptualFlightData.summaryMessage || "No conceptual flight options found by AI for this query. Try adjusting your search."}
+          </div>
       )}
 
       <Separator className="my-12 border-border/40" />
@@ -899,7 +990,7 @@ export default function FlightsPage() {
             </Alert>
         )}
 
-        {!isFetchingLocationDests && !locationDestsError && locationAiDestinations.length === 0 && locationContextualNote && (
+        {!isFetchingLocationDests && locationAiDestinations.length === 0 && locationContextualNote && (
           <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary text-sm")}>
             <Info className="h-4 w-4 !text-primary" />
             <ShadcnAlertTitle className="font-semibold">AI Note</ShadcnAlertTitle>
@@ -908,7 +999,7 @@ export default function FlightsPage() {
             </ShadcnAlertDescription>
           </Alert>
         )}
-         {!isFetchingLocationDests && !locationDestsError && locationAiDestinations.length === 0 && !locationContextualNote && (
+         {!isFetchingLocationDests && locationAiDestinations.length === 0 && !locationContextualNote && !locationDestsError && (
             <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
                {userLocation ? "Click 'Refresh Nearby Ideas' to find flight ideas from your area!" : "Enable location permissions and click the button to fetch ideas, or refresh the page."}
             </div>
@@ -929,9 +1020,15 @@ export default function FlightsPage() {
           onPlanTrip={handlePlanTripFromSuggestion}
         />
       )}
+
+      {selectedFlightForDetails && (
+        <ConceptualFlightDetailsDialog
+          isOpen={isFlightDetailsDialogOpen}
+          onClose={() => { setIsFlightDetailsDialogOpen(false); setSelectedFlightForDetails(null);}}
+          flight={selectedFlightForDetails}
+          formValues={{ origin, destination, departureDate: dates?.from ? format(dates.from, "MMM dd, yyyy") : "", returnDate: dates?.to ? format(dates.to, "MMM dd, yyyy") : undefined }}
+        />
+      )}
     </div>
   );
 }
-
-
-    
