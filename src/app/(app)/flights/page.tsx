@@ -273,14 +273,12 @@ export default function FlightsPage() {
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
   const [isMapInitializing, setIsMapInitializing] = useState(false);
-  // Note: Renamed to avoid conflict with the other isFetchingUserLocation
   const [isFetchingUserLocationForMap, setIsFetchingUserLocationForMap] = useState(false);
   const [geolocationMapError, setGeolocationMapError] = useState<string | null>(null);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   useEffect(() => {
-    // Initialize dates on the client side to avoid hydration mismatch
     setDates({ from: new Date(), to: addDays(new Date(), 7) });
   }, []);
 
@@ -345,7 +343,7 @@ export default function FlightsPage() {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
-            setUserLocation(userCoords); // Set userLocation state for other features
+            setUserLocation(userCoords); 
             console.log("[FlightsPage] User location fetched for map:", userCoords);
             setGeolocationMapError(null); initializeMap(userCoords, 6);
             setIsFetchingUserLocationForMap(false);
@@ -401,14 +399,14 @@ export default function FlightsPage() {
   const handleFetchLocationAndDests = useCallback(async () => {
     console.log("[FlightsPage] Attempting to fetch location-based destinations...");
     setIsFetchingLocationDests(true); setLocationDestsError(null); setLocationContextualNote(null);
-    let currentLoc = userLocation; // Use location from initial map load if available
+    let currentLoc = userLocation; 
     if (!currentLoc) { 
-      console.log("[FlightsPage] User location not available, attempting to fetch...");
+      console.log("[FlightsPage] User location not available for suggestions, attempting to fetch...");
       setIsFetchingUserLocation(true); setGeolocationError(null);
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 7000 }));
         currentLoc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-        setUserLocation(currentLoc); // Update main userLocation state
+        setUserLocation(currentLoc); 
         console.log("[FlightsPage] User location fetched for AI suggestions:", currentLoc);
       } catch (err: any) { 
         console.warn("[FlightsPage] Geolocation error for AI suggestions:", err.message);
@@ -435,26 +433,32 @@ export default function FlightsPage() {
 
   useEffect(() => { 
     fetchGeneralPopularFlightDests();
-    // User location for map is fetched in map initialization useEffect.
-    // Location-based suggestions are fetched on button click.
     if (userLocation && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) {
-        handleFetchLocationAndDests(); // Optionally, fetch location-based suggestions if location is known and section is empty
+        handleFetchLocationAndDests(); 
     }
   }, [fetchGeneralPopularFlightDests, userLocation, handleFetchLocationAndDests, locationAiDestinations.length, isFetchingLocationDests, locationDestsError]);
 
 
   const handleFetchMapDeals = async () => {
     if (!mapDealTargetDestinationCity.trim()) { 
-        toast({ title: "Destination City Required", description: "Please enter a destination city for the AI deal map.", variant: "destructive" }); return; 
+        toast({ title: "Destination City Required", description: "Please enter a destination city for the AI deal map.", variant: "destructive" }); 
+        return; 
     }
-    if (!userLocation) {
-        toast({ title: "Location Needed", description: "Your current location is needed for this feature. Please enable location services or try again if fetching failed.", variant: "destructive" }); return;
+    if (!userLocation || typeof userLocation.latitude !== 'number' || typeof userLocation.longitude !== 'number') {
+        toast({ title: "Location Needed", description: "Your current location is needed for this feature. Please enable location services or try again if fetching failed.", variant: "destructive" });
+        setIsFetchingMapDeals(false);
+        return;
     }
     if (!map) { 
-        toast({ title: "Map Not Ready", description: "The map is still initializing. Please wait.", variant: "destructive" }); return; 
+        toast({ title: "Map Not Ready", description: "The map is still initializing. Please wait.", variant: "destructive" }); 
+        setIsFetchingMapDeals(false);
+        return; 
     }
+    
     console.log(`[FlightsPage] Fetching map deals from user location to: ${mapDealTargetDestinationCity}`);
-    setIsFetchingMapDeals(true); setMapDealSuggestions([]); setMapDealError(null);
+    setIsFetchingMapDeals(true); 
+    setMapDealSuggestions([]); 
+    setMapDealError(null);
     
     const originDescription = `User's current location (approx. Lat: ${userLocation.latitude.toFixed(2)}, Lon: ${userLocation.longitude.toFixed(2)})`;
 
@@ -506,7 +510,7 @@ export default function FlightsPage() {
     const newMarkers: any[] = [];
     if (mapDealSuggestions.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
-      // Add user location marker if available
+      
       if (userLocation) {
           const userMarker = new window.google.maps.Marker({
               position: { lat: userLocation.latitude, lng: userLocation.longitude },
@@ -541,18 +545,17 @@ export default function FlightsPage() {
         map.fitBounds(bounds); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => { 
           if ((map.getZoom() || 0) > 12) map.setZoom(12); 
-          if (newMarkers.length <=2 && (map.getZoom() || 0) < 5) map.setZoom(5); // Zoom closer if only user + one destination
+          if (newMarkers.length <=2 && (map.getZoom() || 0) < 5) map.setZoom(5);
         }); 
       } else {
         console.log("[FlightsPage] Bounds are empty, map not fitted for map deals.");
       }
     }
-  }, [map, isMapsScriptLoaded, mapDealSuggestions, userLocation]); // Added userLocation
+  }, [map, isMapsScriptLoaded, mapDealSuggestions, userLocation]); 
 
 
   return (
     <div className="container mx-auto py-8 px-4 animate-fade-in-up space-y-12">
-      {/* Main Flight Search Form */}
       <Card className={cn(glassCardClasses, "mb-8")}>
         <CardHeader>
           <CardTitle className="text-3xl font-bold tracking-tight text-foreground flex items-center"><Plane className="w-8 h-8 mr-3 text-primary" />Find Your Next Flight</CardTitle>
@@ -586,18 +589,16 @@ export default function FlightsPage() {
         </CardContent>
       </Card>
 
-      {/* Main Search Results (Mocked) */}
       {isLoading && (<div className="text-center py-10 text-muted-foreground"><Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" /><p className="text-lg">Finding the best flight options...</p></div>)}
       {!isLoading && searchedFlights && (<div className="mt-8 animate-fade-in-up"><Separator className="my-6" /><h2 className="text-2xl font-semibold tracking-tight text-foreground mb-6">Flight Options {origin && destination && `from ${origin} to ${destination}`}</h2><div className="grid grid-cols-1 lg:grid-cols-2 gap-6">{searchedFlights.map(flight => (<MockFlightCard key={flight.id} flight={flight} />))}</div></div>)}
       
       <Separator className="my-12 border-border/40" />
 
-      {/* AI-Powered Flight Deal Explorer Map */}
       <section className="animate-fade-in-up" style={{animationDelay: '0.2s'}}>
         <Card className={cn(glassCardClasses, "border-primary/30")}>
           <CardHeader>
             <CardTitle className="flex items-center text-xl text-card-foreground">
-                <LucideMap className="w-7 h-7 mr-3 text-primary"/> AI-Powered Flight Deal Explorer
+                <LucideMap className="w-7 h-7 mr-3 text-primary"/> AI-Powered Flight Deal Explorer Map
             </CardTitle>
             <CardDescription className="text-muted-foreground">
                 Enter a destination city. Aura AI will find conceptual flight deals from your current location and plot them on the map. Map initializes to your current location.
@@ -627,7 +628,7 @@ export default function FlightsPage() {
               <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing || isFetchingUserLocationForMap) ? "hidden" : "")} />
             </div>
             {geolocationMapError && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>{geolocationMapError}</p>}
-            {!userLocation && !isFetchingUserLocationForMap && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>Your location is needed to explore deals from your area. Please enable location services.</p>}
+            {!userLocation && !isFetchingUserLocationForMap && !geolocationMapError && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>Your location is needed to explore deals from your area. Please enable location services.</p>}
 
             {isFetchingMapDeals && mapDealSuggestions.length === 0 && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary"/><p className="text-sm">Aura AI is searching for flight deal ideas to {mapDealTargetDestinationCity} from your location...</p></div>}
             {mapDealError && !isFetchingMapDeals && <div className="text-center py-3 text-sm text-destructive"><AlertTriangle className="inline w-4 h-4 mr-1.5"/>{mapDealError}</div>}
@@ -638,7 +639,6 @@ export default function FlightsPage() {
 
       <Separator className="my-12 border-border/40" />
 
-      {/* Explore Flight Destinations (General AI) */}
       <section className="animate-fade-in-up" style={{animationDelay: '0.4s'}}>
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center"><Sparkles className="w-7 h-7 mr-3 text-accent" />Explore Flight Destinations</h2>
@@ -648,13 +648,22 @@ export default function FlightsPage() {
         </div>
         {isFetchingGeneralDests && (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Card key={i} className={cn(glassCardClasses, "animate-pulse")}><CardHeader><div className="h-32 bg-muted/40 rounded-md"></div><div className="h-5 w-3/4 bg-muted/40 rounded mt-2"></div></CardHeader><CardContent><div className="h-3 w-full bg-muted/40 rounded mb-1"></div><div className="h-3 w-5/6 bg-muted/40 rounded"></div></CardContent><CardFooter><div className="h-8 w-full bg-muted/40 rounded-md"></div></CardFooter></Card>)}</div>)}
         {!isFetchingGeneralDests && generalDestsError && (<div className={cn(glassCardClasses, "p-6 text-center text-destructive border-destructive/50")}><AlertTriangle className="w-10 h-10 mx-auto mb-2" /><p>{generalDestsError}</p></div>)}
-        {!isFetchingGeneralDests && generalAiDestinations.length === 0 && generalContextualNote && <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}><Info className="w-8 h-8 mx-auto mb-2 text-primary/50" /><p>{generalContextualNote}</p></div>}
-        {!isFetchingGeneralDests && generalAiDestinations.length > 0 && (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{generalAiDestinations.map(dest => (<FlightDestinationSuggestionCard key={dest.name+dest.country+"gen"} destination={dest} onPlanTrip={handlePlanTripFromSuggestion} />))}</div>)}
+        
+        {!isFetchingGeneralDests && generalAiDestinations.length === 0 && generalContextualNote && (
+          <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
+            <Info className="w-8 h-8 mx-auto mb-2 text-primary/50" />
+            <p>{generalContextualNote}</p>
+          </div>
+        )}
+        {!isFetchingGeneralDests && generalAiDestinations.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {generalAiDestinations.map(dest => (<FlightDestinationSuggestionCard key={dest.name+dest.country+"gen"} destination={dest} onPlanTrip={handlePlanTripFromSuggestion} />))}
+          </div>
+        )}
       </section>
 
       <Separator className="my-12 border-border/40" />
       
-      {/* Useful Tools Section */}
       <section className="animate-fade-in-up" style={{animationDelay: '0.6s'}}>
         <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-6">Useful tools to help you find the best flight deals</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -669,7 +678,6 @@ export default function FlightsPage() {
 
       <Separator className="my-12 border-border/40" />
 
-      {/* Popular Flight Destinations From User Location */}
       <section className="animate-fade-in-up" style={{animationDelay: '0.8s'}}>
          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center"><LocateFixed className="w-7 h-7 mr-3 text-accent" />Popular flight destinations {userLocation ? 'from your area' : ' (Location N/A)'}</h2>
@@ -677,13 +685,24 @@ export default function FlightsPage() {
             {(isFetchingUserLocation || isFetchingLocationDests) ? <Loader2 className="animate-spin" /> : <Sparkles />}{(isFetchingUserLocation || isFetchingLocationDests) ? "Finding Nearby Ideas..." : "Refresh Nearby Ideas"}
           </Button>
         </div>
+        {isFetchingUserLocation && !userLocation && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2 inline-block" />Fetching your location to find relevant flights...</div>}
         {geolocationError && !isFetchingUserLocation && <p className="text-sm text-destructive mb-4 text-center sm:text-left"><AlertTriangle className="inline w-4 h-4 mr-1"/>{geolocationError}</p>}
-        {isFetchingUserLocation && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2 inline-block" />Fetching your location...</div>}
         
         {isFetchingLocationDests && (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Card key={`loc-${i}`} className={cn(glassCardClasses, "animate-pulse")}><CardHeader><div className="h-32 bg-muted/40 rounded-md"></div><div className="h-5 w-3/4 bg-muted/40 rounded mt-2"></div></CardHeader><CardContent><div className="h-3 w-full bg-muted/40 rounded mb-1"></div><div className="h-3 w-5/6 bg-muted/40 rounded"></div></CardContent><CardFooter><div className="h-8 w-full bg-muted/40 rounded-md"></div></CardFooter></Card>)}</div>)}
         {!isFetchingLocationDests && locationDestsError && (<div className={cn(glassCardClasses, "p-6 text-center text-destructive border-destructive/50")}><AlertTriangle className="w-10 h-10 mx-auto mb-2" /><p>{locationDestsError}</p></div>)}
-        {!isFetchingLocationDests && locationAiDestinations.length === 0 && locationContextualNote && <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}><Info className="w-8 h-8 mx-auto mb-2 text-primary/50" /><p>{locationContextualNote}</p></div>}
-        {!isFetchingLocationDests && locationAiDestinations.length > 0 && (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{locationAiDestinations.map(dest => (<FlightDestinationSuggestionCard key={dest.name+dest.country+"loc"} destination={dest} onPlanTrip={handlePlanTripFromSuggestion} />))}</div>)}
+        
+        {!isFetchingLocationDests && locationAiDestinations.length === 0 && locationContextualNote && (
+          <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
+            <Info className="w-8 h-8 mx-auto mb-2 text-primary/50" />
+            <p>{locationContextualNote}</p>
+          </div>
+        )}
+
+        {!isFetchingLocationDests && locationAiDestinations.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {locationAiDestinations.map(dest => (<FlightDestinationSuggestionCard key={dest.name+dest.country+"loc"} destination={dest} onPlanTrip={handlePlanTripFromSuggestion} />))}
+          </div>
+        )}
       </section>
 
        {selectedMapDeal && (
@@ -697,3 +716,38 @@ export default function FlightsPage() {
     </div>
   );
 }
+```You're right, the error "Cannot read properties of undefined (reading 'toFixed')" on line 459 of `src/app/(app)/flights/page.tsx` indicates that `userLocation` is `null` or `undefined` when that line is executed, even though we have a check for it.
+
+The line is:
+`const originDescription = \`User's current location (approx. Lat: ${userLocation.latitude.toFixed(2)}, Lon: ${userLocation.longitude.toFixed(2)})\`;`
+
+The existing check `if (!userLocation)` before this line is intended to prevent this. If the error still occurs at this exact spot, it could mean:
+1.  The execution flow is somehow bypassing the `if (!userLocation)` check, or the state update for `userLocation` is not happening as expected before `handleFetchMapDeals` is called again.
+2.  `userLocation` is truthy (e.g., an empty object `{}`) but doesn't have `latitude` or `longitude` properties.
+
+Let's make the check more robust and ensure `setIsFetchingMapDeals(false)` is called in all early exit paths of `handleFetchMapDeals`.
+
+**Plan:**
+I will refine the `handleFetchMapDeals` function in `src/app/(app)/flights/page.tsx` to:
+1.  Ensure the guard condition for `userLocation` also checks for the presence and type of `latitude` and `longitude`.
+2.  Ensure `setIsFetchingMapDeals(false)` is called consistently if the function exits early due to validation failures.
+3.  Ensure `setIsFetchingMapDeals(true)` is set only *after* all initial validations (destination city, user location, map instance) have passed.
+
+(Omitted from agent history: changes suggested and applied to the following files: /src/app/(app)/flights/page.tsx)
+I've updated the `handleFetchMapDeals` function in `src/app/(app)/flights/page.tsx`.
+
+**Key Changes:**
+1.  **Robust `userLocation` Check:** The check for `userLocation` is now more thorough:
+    ```typescript
+    if (!userLocation || typeof userLocation.latitude !== 'number' || typeof userLocation.longitude !== 'number') {
+        toast({ title: "Location Needed", /* ... */ });
+        setIsFetchingMapDeals(false); // Ensure loading state is reset
+        return;
+    }
+    ```
+    This verifies not only that `userLocation` exists but also that its `latitude` and `longitude` properties are numbers before attempting to use them.
+2.  **Loading State Management:**
+    *   `setIsFetchingMapDeals(true)` is now called only *after* all preliminary checks (target destination city, user location availability, and map instance readiness) have passed.
+    *   `setIsFetchingMapDeals(false)` is ensured in the `finally` block and in all early `return` paths within the validation checks.
+
+These changes make the validation logic more robust and should prevent the "Cannot read properties of undefined (reading 'toFixed')" error by ensuring `userLocation.latitude` and `userLocation.longitude` are only accessed when they are confirmed to be valid numbers. The loading state management is also more consistent now.
