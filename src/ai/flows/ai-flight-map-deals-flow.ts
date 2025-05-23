@@ -52,38 +52,46 @@ async function generateDealImage(promptText: string | undefined, fallbackHint: s
   return imageUri;
 }
 
-const AiFlightMapDealsTextOutputSchema = z.object({
-  suggestions: z.array(AiFlightMapDealSuggestionSchema.omit({ imageUri: true })),
-  contextualNote: z.string().optional(),
+// Schema for the text-only output from the LLM, expecting a single suggestion
+const AiFlightMapDealTextSuggestionSchema = AiFlightMapDealSuggestionSchema.omit({ imageUri: true });
+const AiFlightMapDealTextOutputSchema = z.object({
+  suggestion: AiFlightMapDealTextSuggestionSchema.optional().describe("The AI's conceptual deal suggestion for the target destination."),
+  contextualNote: z.string().optional().describe("A note about the suggestion or if no specific deal could be conceptualized."),
 });
+
 
 const flightMapDealsTextPrompt = ai.definePrompt({
   name: 'flightMapDealsTextPrompt',
   input: { schema: AiFlightMapDealInputSchema },
-  output: { schema: AiFlightMapDealsTextOutputSchema },
+  output: { schema: AiFlightMapDealTextOutputSchema },
   prompt: `You are an AI flight deal scout.
-From the origin city '{{{originCity}}}', suggest 3-5 diverse and interesting flight destinations that might offer good value for money for a leisure trip (e.g., a week-long vacation).
-For each destination, you MUST provide:
-1.  'destinationCity': The common name of the destination city.
-2.  'country': The country where the destination city is located.
-3.  'latitude': Approximate latitude of the destination city as a NUMBER (e.g., 48.8566 for Paris). THIS IS CRITICAL for map plotting.
-4.  'longitude': Approximate longitude of the destination city as a NUMBER (e.g., 2.3522 for Paris). THIS IS CRITICAL for map plotting.
-5.  'conceptualPriceRange': A plausible, conceptual roundtrip price range for a good flight deal from {{{originCity}}} (e.g., "$200 - $350", "Around $400", "Under $300").
-6.  'dealReason': A brief, plausible reason why this might be a good deal or an interesting option from {{{originCity}}} (e.g., "Known budget airline hub", "Often has shoulder season deals", "Direct route with competitive pricing", "Unique cultural experience").
-7.  'imagePrompt': A concise text prompt (4-7 words) suitable for an image generation AI to create an iconic, high-quality, and visually appealing travel photograph of this destination.
+The user's origin is described as: '{{{originDescription}}}'.
+The user is specifically interested in conceptual flight deal insights for a trip to the destination: '{{{targetDestinationCity}}}'.
 
-Example for one suggestion (ensure 'suggestions' is an array):
+For the '{{{targetDestinationCity}}}', you MUST provide:
+1.  'destinationCity': The common name of the {{{targetDestinationCity}}}.
+2.  'country': The country where {{{targetDestinationCity}}} is located.
+3.  'latitude': Approximate latitude of {{{targetDestinationCity}}} as a NUMBER (e.g., 48.8566 for Paris). THIS IS CRITICAL for map plotting.
+4.  'longitude': Approximate longitude of {{{targetDestinationCity}}} as a NUMBER (e.g., 2.3522 for Paris). THIS IS CRITICAL for map plotting.
+5.  'conceptualPriceRange': A plausible, conceptual roundtrip price range for a good flight deal from '{{{originDescription}}}' to '{{{targetDestinationCity}}}' (e.g., "$200 - $350", "Around $400", "Under $300").
+6.  'dealReason': A brief, plausible reason why this might be a good deal or an interesting option for this route (e.g., "Known budget airline hub", "Often has shoulder season deals", "Direct route with competitive pricing", "Unique cultural experience").
+7.  'imagePrompt': A concise text prompt (4-7 words) suitable for an image generation AI to create an iconic, high-quality, and visually appealing travel photograph of {{{targetDestinationCity}}}.
+
+Example for targetDestinationCity "Lisbon, Portugal" and originDescription "User's current location (approx. Lat 40.7, Lon -74.0)":
 {
-  "destinationCity": "Lisbon",
-  "country": "Portugal",
-  "latitude": 38.7223,
-  "longitude": -9.1393,
-  "conceptualPriceRange": "$450 - $600 from NYC",
-  "dealReason": "Great value for a European capital, especially during spring/fall.",
-  "imagePrompt": "Lisbon colorful tram Alfama district"
+  "suggestion": {
+    "destinationCity": "Lisbon",
+    "country": "Portugal",
+    "latitude": 38.7223,
+    "longitude": -9.1393,
+    "conceptualPriceRange": "$450 - $600 from NYC area",
+    "dealReason": "Great value for a European capital, especially during spring/fall from the East Coast.",
+    "imagePrompt": "Lisbon colorful tram Alfama district"
+  },
+  "contextualNote": "Here's a conceptual deal idea for your trip to Lisbon from your current area."
 }
 
-If you cannot find specific plausible deals or interesting varied destinations from {{{originCity}}}, provide a 'contextualNote' explaining this (e.g., "It's challenging to find diverse flight deal concepts from {{{originCity}}} without more specific user preferences or dates. Consider checking major hubs.").
+If you cannot find specific plausible deal information for '{{{targetDestinationCity}}}' from '{{{originDescription}}}', provide a 'contextualNote' explaining this and do not include the 'suggestion' field.
 Ensure your output strictly follows the defined JSON schema.
 `,
 });
@@ -98,29 +106,27 @@ export const aiFlightMapDealsFlow = ai.defineFlow(
     console.log('[AI Flow - aiFlightMapDealsFlow] Received input:', input);
     const { output: textOutput } = await flightMapDealsTextPrompt(input);
 
-    if (!textOutput || !textOutput.suggestions || textOutput.suggestions.length === 0) {
-      console.warn("[AI Flow - aiFlightMapDealsFlow] Text prompt did not return valid destination suggestions.");
+    if (!textOutput || !textOutput.suggestion) {
+      console.warn("[AI Flow - aiFlightMapDealsFlow] Text prompt did not return a valid destination suggestion.");
       return {
         suggestions: [],
-        contextualNote: textOutput?.contextualNote || `AI couldn't conceptualize specific flight deal ideas from ${input.originCity} at this moment. Try a different origin or check general exploration tools.`,
+        contextualNote: textOutput?.contextualNote || `AI couldn't conceptualize specific flight deal ideas for ${input.targetDestinationCity} from ${input.originDescription} at this moment.`,
       };
     }
-    console.log('[AI Flow - aiFlightMapDealsFlow] Text-only deal suggestions received:', textOutput.suggestions.length);
+    console.log('[AI Flow - aiFlightMapDealsFlow] Text-only deal suggestion received:', textOutput.suggestion);
 
-    const suggestionsWithImages = await Promise.all(
-      textOutput.suggestions.map(async (dealText) => {
-        const fallbackHint = `${dealText.destinationCity.substring(0, 10)} ${dealText.country.substring(0, 5)}`;
-        const imageUri = await generateDealImage(dealText.imagePrompt, fallbackHint);
-        return {
-          ...dealText,
-          imageUri,
-        };
-      })
-    );
+    const dealText = textOutput.suggestion;
+    const fallbackHint = `${dealText.destinationCity.substring(0, 10)} ${dealText.country.substring(0, 5)}`;
+    const imageUri = await generateDealImage(dealText.imagePrompt, fallbackHint);
+    
+    const suggestionWithImage = {
+      ...dealText,
+      imageUri,
+    };
 
-    console.log(`[AI Flow - aiFlightMapDealsFlow] Processed ${suggestionsWithImages.length} deal suggestions with images.`);
+    console.log(`[AI Flow - aiFlightMapDealsFlow] Processed 1 deal suggestion with image.`);
     return {
-      suggestions: suggestionsWithImages,
+      suggestions: [suggestionWithImage],
       contextualNote: textOutput.contextualNote,
     };
   }

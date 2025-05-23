@@ -5,7 +5,7 @@ import { firestore } from '@/lib/firebase';
 import {
   generateMultipleImagesFlow,
   type ImagePromptItem, // Ensure this is exported from the flow file
-  type MultipleImagesInput, // Ensure this is exported
+  // type MultipleImagesInput, // No longer directly used by client
   type ImageResultItem, // Ensure this is exported
 } from '@/ai/flows/generate-multiple-images-flow';
 import { collection, doc, getDocs, query, where, writeBatch, documentId, setDoc, serverTimestamp, getDoc, Timestamp } from 'firebase/firestore';
@@ -64,7 +64,7 @@ export async function getLandingPageImagesWithFallback(
 
   const requestIds = requests.map(req => req.id);
   const aiGenerationQueue: ImagePromptItem[] = [];
-  const MAX_FIRESTORE_IN_QUERY = 30;
+  const MAX_FIRESTORE_IN_QUERY = 30; // Firestore 'in' query limit
 
   try {
     if (requestIds.length > 0) {
@@ -97,8 +97,8 @@ export async function getLandingPageImagesWithFallback(
     }
 
     requests.forEach(req => {
-      if (imageUris[req.id] === null) {
-        console.log(`[Server Action] Image for ID ${req.id} (Prompt: "${req.promptText}") not in DB, adding to AI queue.`);
+      if (imageUris[req.id] === null) { // If not found in DB or if DB entry had no URI
+        console.log(`[Server Action] Image for ID ${req.id} (Prompt: "${req.promptText}") not in DB or missing URI, adding to AI queue.`);
         aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint });
       }
     });
@@ -107,16 +107,17 @@ export async function getLandingPageImagesWithFallback(
 
     if (aiGenerationQueue.length > 0) {
       try {
+        console.log('[Server Action] Calling generateMultipleImagesFlow for prompts:', aiGenerationQueue.map(p=>p.prompt));
         const aiResults = await generateMultipleImagesFlow({ prompts: aiGenerationQueue });
-        console.log(`[Server Action] AI Results received: ${aiResults.results.length} items.`);
-
+        console.log(`[Server Action] AI Results received. Count: ${aiResults.results.length}.`);
         aiResults.results.forEach(aiResult => {
           const originalRequest = requests.find(r => r.id === aiResult.id);
           if (aiResult.imageUri) {
             imageUris[aiResult.id] = aiResult.imageUri;
-            console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}.`);
+            console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}. URI starts with: ${aiResult.imageUri.substring(0, 50)}...`);
             if (originalRequest) {
-              saveImageUriToDbInternal({ // Called without await for background saving
+              // Fire and forget DB save
+              saveImageUriToDbInternal({
                 id: aiResult.id,
                 imageUri: aiResult.imageUri,
                 promptText: originalRequest.promptText,
@@ -127,26 +128,28 @@ export async function getLandingPageImagesWithFallback(
             }
           } else {
             console.warn(`[Server Action] AI generation failed or returned null URI for ID ${aiResult.id}. Error: ${aiResult.error || 'Unknown AI error'}`);
-             imageUris[aiResult.id] = null; // Ensure it's explicitly null
+            imageUris[aiResult.id] = null; // Explicitly ensure it's null
           }
         });
       } catch (flowError: any) {
         console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow:', flowError.message, flowError.stack);
+        // Ensure all items queued for AI are marked as null if the flow itself fails
         aiGenerationQueue.forEach(req => {
-            if (imageUris[req.id] === undefined) imageUris[req.id] = null;
+            imageUris[req.id] = null;
         });
       }
     }
     
-    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris (keys: ${Object.keys(imageUris).length})`);
+    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris:`, imageUris);
     return imageUris;
 
   } catch (error: any) {
     console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', error.message, error.stack);
-    requests.forEach(req => {
-        if (imageUris[req.id] === undefined) imageUris[req.id] = null;
-    });
-    return imageUris; // Return at least initialized URIs (all null if error was early)
+    // Initialize all with null in case of catastrophic failure before imageUris is populated
+    const fallbackUris: Record<string, string | null> = {};
+    requests.forEach(req => fallbackUris[req.id] = null);
+    console.error('[Server Action - getLandingPageImagesWithFallback] Returning fallbackUris due to error:', fallbackUris);
+    return fallbackUris;
   }
 }
 
@@ -183,6 +186,7 @@ export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput)
     return result;
   } catch (error: any) {
     console.error('[Server Action - getExploreIdeasAction] ERROR fetching explore ideas:', error.message, error.stack);
+    // Ensure a specific error code/message that the client can check for more precise UI feedback
     return { 
       suggestions: [], 
       contextualNote: "Error GEIA1: The server action encountered an issue generating explore ideas. Please try again later." 
@@ -203,24 +207,22 @@ export async function getAiFlightMapDealsAction(
     console.error('[Server Action - getAiFlightMapDealsAction] ERROR fetching flight map deals:', error.message, error.stack);
     return { 
         suggestions: [], 
-        contextualNote: `Sorry, we encountered an server error while fetching flight deal ideas from ${input.originCity}. Please try again.` 
+        contextualNote: `Sorry, we encountered a server error while fetching flight deal ideas for ${input.targetDestinationCity} from ${input.originDescription}. Please try again.` 
     };
   }
 }
 
-// Commenting out the old single feature image action as it's replaced by getLandingPageImagesWithFallback
+// Commented out as it's replaced by getLandingPageImagesWithFallback and generateMultipleImagesFlow
 /*
 export async function getAiImageForFeatureServerAction(promptText: string): Promise<string | null> {
-  // 'use server'; // This should be at the top of the file if this were the only action.
   console.log(`[Server Action - getAiImageForFeature] Received prompt: "${promptText}"`);
+  'use server'; // This was misplaced; should be at top of file if this was the ONLY action.
   try {
-    // Assuming generateMultipleImagesFlow can handle a single item array for consistency,
-    // or you can call a specific single image generation flow if you create one.
-    const results = await generateMultipleImagesFlow({
-      prompts: [{ id: 'singleFeature', prompt: promptText, styleHint: 'featureCard' }]
+    const result = await generateMultipleImagesFlow({ 
+        prompts: [{ id: 'singleFeature', prompt: promptText, styleHint: 'featureCard' }]
     });
-    if (results.results.length > 0 && results.results[0].imageUri) {
-      return results.results[0].imageUri;
+    if (result.results.length > 0 && result.results[0].imageUri) {
+      return result.results[0].imageUri;
     }
     return null;
   } catch (error) {

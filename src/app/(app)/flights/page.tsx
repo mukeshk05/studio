@@ -29,7 +29,7 @@ import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
 import { getPopularDestinations, getAiFlightMapDealsAction } from '@/app/actions';
 import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
-import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput } from '@/ai/types/ai-flight-map-deals-types';
+import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { useRouter } from 'next/navigation';
 
@@ -100,7 +100,10 @@ function FlightDestinationSuggestionCard({ destination, onPlanTrip }: FlightDest
     ? (destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0, 2).join(" "))
     : undefined;
 
-  const handleImageError = useCallback(() => setImageLoadError(true), []);
+  const handleImageError = useCallback(() => {
+    console.warn(`[FlightDestinationSuggestionCard] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
+    setImageLoadError(true);
+  }, [destination.name, destination.imageUri]);
 
   const handlePlan = () => {
     const plannerInput: AITripPlannerInput = {
@@ -244,13 +247,11 @@ export default function FlightsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // States for General AI Destination Suggestions
   const [generalAiDestinations, setGeneralAiDestinations] = useState<AiDestinationSuggestion[]>([]);
   const [isFetchingGeneralDests, setIsFetchingGeneralDests] = useState(false);
   const [generalDestsError, setGeneralDestsError] = useState<string | null>(null);
   const [generalContextualNote, setGeneralContextualNote] = useState<string | null>(null);
 
-  // States for Location-based AI Destination Suggestions
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [isFetchingUserLocation, setIsFetchingUserLocation] = useState(false);
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
@@ -259,8 +260,7 @@ export default function FlightsPage() {
   const [locationDestsError, setLocationDestsError] = useState<string | null>(null);
   const [locationContextualNote, setLocationContextualNote] = useState<string | null>(null);
   
-  // States for AI Flight Deal Explorer Map
-  const [mapDealOriginCity, setMapDealOriginCity] = useState('');
+  const [mapDealTargetDestinationCity, setMapDealTargetDestinationCity] = useState('');
   const [isFetchingMapDeals, setIsFetchingMapDeals] = useState(false);
   const [mapDealSuggestions, setMapDealSuggestions] = useState<AiFlightMapDealSuggestion[]>([]);
   const [mapDealError, setMapDealError] = useState<string | null>(null);
@@ -268,18 +268,19 @@ export default function FlightsPage() {
   const [isMapDealDialogOpen, setIsMapDealDialogOpen] = useState(false);
   const mapDealMarkersRef = useRef<any[]>([]);
   
-  // Google Maps states
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
   const [isMapInitializing, setIsMapInitializing] = useState(false);
+  // Note: Renamed to avoid conflict with the other isFetchingUserLocation
   const [isFetchingUserLocationForMap, setIsFetchingUserLocationForMap] = useState(false);
   const [geolocationMapError, setGeolocationMapError] = useState<string | null>(null);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
+  
   useEffect(() => {
+    // Initialize dates on the client side to avoid hydration mismatch
     setDates({ from: new Date(), to: addDays(new Date(), 7) });
   }, []);
 
@@ -344,6 +345,7 @@ export default function FlightsPage() {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setUserLocation(userCoords); // Set userLocation state for other features
             console.log("[FlightsPage] User location fetched for map:", userCoords);
             setGeolocationMapError(null); initializeMap(userCoords, 6);
             setIsFetchingUserLocationForMap(false);
@@ -392,21 +394,21 @@ export default function FlightsPage() {
             setGeneralContextualNote(result.contextualNote || "AI couldn't find general flight destinations. Try again later!");
         }
       } else { setGeneralAiDestinations([]); setGeneralContextualNote("No general suggestions available from AI right now."); }
-    } catch (error) { console.error("[FlightsPage] Error fetching general AI destinations:", error); setGeneralDestsError("Could not fetch general suggestions."); }
+    } catch (error: any) { console.error("[FlightsPage] Error fetching general AI destinations:", error); setGeneralDestsError(`Could not fetch general suggestions: ${error.message}`); }
     finally { setIsFetchingGeneralDests(false); }
   }, []);
 
   const handleFetchLocationAndDests = useCallback(async () => {
     console.log("[FlightsPage] Attempting to fetch location-based destinations...");
     setIsFetchingLocationDests(true); setLocationDestsError(null); setLocationContextualNote(null);
-    let currentLoc = userLocation;
+    let currentLoc = userLocation; // Use location from initial map load if available
     if (!currentLoc) { 
       console.log("[FlightsPage] User location not available, attempting to fetch...");
       setIsFetchingUserLocation(true); setGeolocationError(null);
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 7000 }));
         currentLoc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-        setUserLocation(currentLoc);
+        setUserLocation(currentLoc); // Update main userLocation state
         console.log("[FlightsPage] User location fetched for AI suggestions:", currentLoc);
       } catch (err: any) { 
         console.warn("[FlightsPage] Geolocation error for AI suggestions:", err.message);
@@ -427,34 +429,50 @@ export default function FlightsPage() {
             setLocationContextualNote(result.contextualNote || "AI couldn't find flight destinations near you. Try exploring general ideas!");
         }
       } else { setLocationAiDestinations([]); setLocationContextualNote("No location-based suggestions available from AI."); }
-    } catch (error) { console.error("[FlightsPage] Error fetching location-based AI destinations:", error); setLocationDestsError("Could not fetch location-based suggestions."); }
+    } catch (error: any) { console.error("[FlightsPage] Error fetching location-based AI destinations:", error); setLocationDestsError(`Could not fetch location-based suggestions: ${error.message}`); }
     finally { setIsFetchingLocationDests(false); }
   }, [userLocation]);
 
   useEffect(() => { 
     fetchGeneralPopularFlightDests();
-    if ('geolocation' in navigator) {
-      handleFetchLocationAndDests(); // Attempt to fetch location-based suggestions on initial load too
-    } else {
-      setGeolocationError("Geolocation is not supported by your browser.");
+    // User location for map is fetched in map initialization useEffect.
+    // Location-based suggestions are fetched on button click.
+    if (userLocation && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) {
+        handleFetchLocationAndDests(); // Optionally, fetch location-based suggestions if location is known and section is empty
     }
-  }, [fetchGeneralPopularFlightDests, handleFetchLocationAndDests]);
+  }, [fetchGeneralPopularFlightDests, userLocation, handleFetchLocationAndDests, locationAiDestinations.length, isFetchingLocationDests, locationDestsError]);
 
 
-  // Flight Deal Explorer Map Logic
   const handleFetchMapDeals = async () => {
-    if (!mapDealOriginCity.trim()) { toast({ title: "Origin City Required", description: "Please enter an origin city for the deal map.", variant: "destructive" }); return; }
-    if (!map) { toast({ title: "Map Not Ready", description: "The map is still initializing. Please wait.", variant: "destructive" }); return; }
-    console.log(`[FlightsPage] Fetching map deals for origin: ${mapDealOriginCity}`);
+    if (!mapDealTargetDestinationCity.trim()) { 
+        toast({ title: "Destination City Required", description: "Please enter a destination city for the AI deal map.", variant: "destructive" }); return; 
+    }
+    if (!userLocation) {
+        toast({ title: "Location Needed", description: "Your current location is needed for this feature. Please enable location services or try again if fetching failed.", variant: "destructive" }); return;
+    }
+    if (!map) { 
+        toast({ title: "Map Not Ready", description: "The map is still initializing. Please wait.", variant: "destructive" }); return; 
+    }
+    console.log(`[FlightsPage] Fetching map deals from user location to: ${mapDealTargetDestinationCity}`);
     setIsFetchingMapDeals(true); setMapDealSuggestions([]); setMapDealError(null);
+    
+    const originDescription = `User's current location (approx. Lat: ${userLocation.latitude.toFixed(2)}, Lon: ${userLocation.longitude.toFixed(2)})`;
+
     try {
-      const result: AiFlightMapDealOutput = await getAiFlightMapDealsAction({ originCity: mapDealOriginCity });
+      const input: AiFlightMapDealInput = {
+        originDescription: originDescription,
+        targetDestinationCity: mapDealTargetDestinationCity
+      };
+      const result: AiFlightMapDealOutput = await getAiFlightMapDealsAction(input);
       console.log("[FlightsPage] Map deals result:", result);
       setMapDealSuggestions(result.suggestions || []);
       if (!result.suggestions || result.suggestions.length === 0) {
-        setMapDealError(`AI couldn't find flight deal ideas from ${mapDealOriginCity}. Try another origin.`);
+        setMapDealError(result.contextualNote || `AI couldn't find flight deal ideas to ${mapDealTargetDestinationCity} from your location.`);
       }
-    } catch (error) { console.error("[FlightsPage] Error fetching AI flight map deals:", error); setMapDealError("Failed to fetch flight deal ideas."); }
+    } catch (error: any) { 
+      console.error("[FlightsPage] Error fetching AI flight map deals:", error); 
+      setMapDealError(`Failed to fetch flight deal ideas: ${error.message}`); 
+    }
     finally { setIsFetchingMapDeals(false); }
   };
 
@@ -463,6 +481,7 @@ export default function FlightsPage() {
       mapDealMarkersRef.current.forEach(marker => marker.setMap(null)); mapDealMarkersRef.current = []; return;
     }
     console.log("[FlightsPage] Updating map deal markers. Suggestions count:", mapDealSuggestions.length);
+    
     class CustomMapDealMarker extends window.google.maps.OverlayView { 
         private latlng: google.maps.LatLng; private div: HTMLDivElement | null = null; private dealData: AiFlightMapDealSuggestion;
         private clickHandler: () => void; private mapInstanceRef: google.maps.Map;
@@ -487,27 +506,48 @@ export default function FlightsPage() {
     const newMarkers: any[] = [];
     if (mapDealSuggestions.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
+      // Add user location marker if available
+      if (userLocation) {
+          const userMarker = new window.google.maps.Marker({
+              position: { lat: userLocation.latitude, lng: userLocation.longitude },
+              map: map,
+              title: "Your Location",
+              icon: {
+                  path: window.google.maps.SymbolPath.CIRCLE,
+                  scale: 8,
+                  fillColor: "hsl(var(--primary))",
+                  fillOpacity: 1,
+                  strokeColor: "hsl(var(--background))",
+                  strokeWeight: 2,
+              }
+          });
+          newMarkers.push(userMarker);
+          bounds.extend(userMarker.getPosition()!);
+      }
+
       mapDealSuggestions.forEach(deal => {
         if (deal.latitude != null && deal.longitude != null) {
-          newMarkers.push(new CustomMapDealMarker({
+          const dealMarker = new CustomMapDealMarker({
             latlng: { lat: deal.latitude, lng: deal.longitude }, map: map, deal: deal,
             onClick: () => { setSelectedMapDeal(deal); setIsMapDealDialogOpen(true); }
-          }));
+          });
+          newMarkers.push(dealMarker);
           bounds.extend({ lat: deal.latitude, lng: deal.longitude });
         }
       });
       mapDealMarkersRef.current = newMarkers;
+      
       if (!bounds.isEmpty()) { 
         map.fitBounds(bounds); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => { 
           if ((map.getZoom() || 0) > 12) map.setZoom(12); 
-          if(newMarkers.length === 1 && (map.getZoom() || 0) < 6) map.setZoom(6); 
+          if (newMarkers.length <=2 && (map.getZoom() || 0) < 5) map.setZoom(5); // Zoom closer if only user + one destination
         }); 
       } else {
         console.log("[FlightsPage] Bounds are empty, map not fitted for map deals.");
       }
     }
-  }, [map, isMapsScriptLoaded, mapDealSuggestions]);
+  }, [map, isMapsScriptLoaded, mapDealSuggestions, userLocation]); // Added userLocation
 
 
   return (
@@ -557,27 +597,27 @@ export default function FlightsPage() {
         <Card className={cn(glassCardClasses, "border-primary/30")}>
           <CardHeader>
             <CardTitle className="flex items-center text-xl text-card-foreground">
-                <LucideMap className="w-7 h-7 mr-3 text-primary"/> AI-Powered Flight Deal Explorer Map
+                <LucideMap className="w-7 h-7 mr-3 text-primary"/> AI-Powered Flight Deal Explorer
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-                Enter an origin city and let Aura AI find conceptual flight deals and plot them on the map for you! Map initializes based on your current location.
+                Enter a destination city. Aura AI will find conceptual flight deals from your current location and plot them on the map. Map initializes to your current location.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 items-end">
                 <div className="flex-grow">
-                    <Label htmlFor="map-deal-origin" className="text-sm font-medium text-card-foreground/90">Origin City for Map Deals</Label>
+                    <Label htmlFor="map-deal-target-destination" className="text-sm font-medium text-card-foreground/90">Enter Destination City for AI Deals</Label>
                     <Input 
-                        id="map-deal-origin" 
-                        value={mapDealOriginCity} 
-                        onChange={(e) => setMapDealOriginCity(e.target.value)} 
-                        placeholder="e.g., New York City"
+                        id="map-deal-target-destination" 
+                        value={mapDealTargetDestinationCity} 
+                        onChange={(e) => setMapDealTargetDestinationCity(e.target.value)} 
+                        placeholder="e.g., London, UK"
                         className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-11 text-base"
                     />
                 </div>
-                <Button onClick={handleFetchMapDeals} disabled={isFetchingMapDeals || !mapDealOriginCity.trim()} className={cn(prominentButtonClassesSm, "w-full sm:w-auto h-11")}>
+                <Button onClick={handleFetchMapDeals} disabled={isFetchingMapDeals || !mapDealTargetDestinationCity.trim() || isFetchingUserLocationForMap} className={cn(prominentButtonClassesSm, "w-full sm:w-auto h-11")}>
                     {isFetchingMapDeals ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                    {isFetchingMapDeals ? "Scouting Deals..." : "Explore Deals on Map (AI)"}
+                    {isFetchingMapDeals ? "Scouting Deals..." : "Explore Deals on Map"}
                 </Button>
             </div>
 
@@ -587,10 +627,11 @@ export default function FlightsPage() {
               <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing || isFetchingUserLocationForMap) ? "hidden" : "")} />
             </div>
             {geolocationMapError && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>{geolocationMapError}</p>}
+            {!userLocation && !isFetchingUserLocationForMap && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>Your location is needed to explore deals from your area. Please enable location services.</p>}
 
-            {isFetchingMapDeals && mapDealSuggestions.length === 0 && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary"/><p className="text-sm">Aura AI is searching for flight deal ideas from {mapDealOriginCity}...</p></div>}
+            {isFetchingMapDeals && mapDealSuggestions.length === 0 && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary"/><p className="text-sm">Aura AI is searching for flight deal ideas to {mapDealTargetDestinationCity} from your location...</p></div>}
             {mapDealError && !isFetchingMapDeals && <div className="text-center py-3 text-sm text-destructive"><AlertTriangle className="inline w-4 h-4 mr-1.5"/>{mapDealError}</div>}
-            {!isFetchingMapDeals && mapDealSuggestions.length === 0 && mapDealOriginCity && !mapDealError && <div className="text-center py-3 text-sm text-muted-foreground">No specific AI deal suggestions found from {mapDealOriginCity}. Try another origin.</div>}
+            {!isFetchingMapDeals && mapDealSuggestions.length === 0 && mapDealTargetDestinationCity && !mapDealError && <div className="text-center py-3 text-sm text-muted-foreground">No specific AI deal suggestions found for {mapDealTargetDestinationCity} from your location. Try another destination.</div>}
           </CardContent>
         </Card>
       </section>

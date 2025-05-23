@@ -5,8 +5,10 @@
 import { z } from 'genkit';
 
 export const AiFlightMapDealInputSchema = z.object({
-  originCity: z.string().min(3, { message: "Origin city must be at least 3 characters." })
-    .describe("The city from which the user wants to see conceptual flight deals."),
+  originDescription: z.string()
+    .describe("A description of the origin, e.g., 'User's current location (approx. Lat X, Lon Y)' or a specific city name if location isn't available/used."),
+  targetDestinationCity: z.string().min(3, { message: "Target destination city must be at least 3 characters." })
+    .describe("The specific destination city the user wants to explore deals for."),
 });
 export type AiFlightMapDealInput = z.infer<typeof AiFlightMapDealInputSchema>;
 
@@ -24,8 +26,7 @@ export type AiFlightMapDealSuggestion = z.infer<typeof AiFlightMapDealSuggestion
 
 export const AiFlightMapDealOutputSchema = z.object({
   suggestions: z.array(AiFlightMapDealSuggestionSchema)
-    .describe("An array of 3-5 AI-suggested flight deal destinations from the origin city."),
+    .describe("An array of AI-suggested flight deal destinations. Typically one when a specific target destination is provided."),
   contextualNote: z.string().optional().describe("A note about how the suggestions were derived or if no specific deals could be conceptualized."),
 });
 export type AiFlightMapDealOutput = z.infer<typeof AiFlightMapDealOutputSchema>;
-
