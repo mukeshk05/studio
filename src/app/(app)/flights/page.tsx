@@ -22,14 +22,14 @@ import { cn } from '@/lib/utils';
 import { 
   Plane, CalendarDays as CalendarLucideIcon, Users, Briefcase, ArrowRightLeft, Search, 
   Sparkles, Star, Clock, Loader2, Map as LucideMap, Compass, DollarSign, Hotel, TrendingUp, 
-  CalendarSearch, BarChartHorizontalBig, LocateFixed, ImageOff, Info, ExternalLink, AlertTriangle, X, MessageSquareQuote, MapPin
+  CalendarSearch, BarChartHorizontalBig, LocateFixed, ImageOff, Info, ExternalLink, AlertTriangle, X, MessageSquareQuote, MapPin, ListFilter
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
 import { getPopularDestinations, getAiFlightMapDealsAction } from '@/app/actions';
 import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
-import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
+import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput, DealVariation } from '@/ai/types/ai-flight-map-deals-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { useRouter } from 'next/navigation';
 
@@ -168,8 +168,8 @@ function MapDealDetailsDialog({ isOpen, onClose, deal, onPlanTrip }: MapDealDeta
   const handlePlan = () => {
     const plannerInput: AITripPlannerInput = {
       destination: `${deal.destinationCity}, ${deal.country}`,
-      travelDates: "Flexible (check specific dates)",
-      budget: parseInt(deal.conceptualPriceRange.match(/\$(\d+)/)?.[1] || '1000', 10),
+      travelDates: deal.dealVariations?.[0]?.travelDatesHint || "Flexible (check specific dates)",
+      budget: parseInt(deal.conceptualPriceRange.match(/\$(\d+)/)?.[0].replace('$','') || '1000', 10),
     };
     onPlanTrip(plannerInput);
     onClose();
@@ -191,22 +191,41 @@ function MapDealDetailsDialog({ isOpen, onClose, deal, onPlanTrip }: MapDealDeta
           </div>
           <DialogDescription className="text-sm text-muted-foreground">AI Simulated Flight Deal</DialogDescription>
         </DialogHeader>
-        <div className="p-4 sm:p-6 space-y-4">
-          <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
-            {!imageLoadError && deal.imageUri ? (
-              <Image src={deal.imageUri} alt={`Image of ${deal.destinationCity}`} fill className="object-cover" data-ai-hint={imageHint} sizes="(max-width: 640px) 90vw, 500px" onError={() => setImageLoadError(true)} />
-            ) : (
-              <div className="w-full h-full bg-muted/30 flex items-center justify-center"><ImageOff className="w-10 h-10 text-muted-foreground" /></div>
+        <ScrollArea className="max-h-[calc(90vh-150px)]">
+          <div className="p-4 sm:p-6 space-y-4">
+            <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
+              {!imageLoadError && deal.imageUri ? (
+                <Image src={deal.imageUri} alt={`Image of ${deal.destinationCity}`} fill className="object-cover" data-ai-hint={imageHint} sizes="(max-width: 640px) 90vw, 500px" onError={() => setImageLoadError(true)} />
+              ) : (
+                <div className="w-full h-full bg-muted/30 flex items-center justify-center"><ImageOff className="w-10 h-10 text-muted-foreground" /></div>
+              )}
+            </div>
+            <p className="text-sm text-card-foreground/90 flex items-center"><DollarSign className="w-4 h-4 mr-1.5 text-green-400" />Conceptual Price: <span className="font-semibold ml-1">{deal.conceptualPriceRange}</span></p>
+            <p className="text-xs text-muted-foreground italic flex items-start"><MessageSquareQuote className="w-3.5 h-3.5 mr-1.5 mt-0.5 shrink-0 text-primary/70" />Reason for Deal (AI Concept): {deal.dealReason}</p>
+            
+            {deal.dealVariations && deal.dealVariations.length > 0 && (
+              <div className={cn(innerGlassEffectClasses, "p-3 rounded-md mt-3")}>
+                <h4 className="text-sm font-semibold text-card-foreground mb-2 flex items-center">
+                  <ListFilter className="w-4 h-4 mr-2 text-accent"/> Alternative Ideas for this Route:
+                </h4>
+                <div className="space-y-2">
+                  {deal.dealVariations.map((variation, index) => (
+                    <div key={index} className="text-xs p-2 rounded-md border border-border/30 bg-background/30">
+                      <p><strong className="text-primary/90">Travel:</strong> {variation.travelDatesHint}</p>
+                      <p><strong className="text-primary/90">Est. Price:</strong> {variation.conceptualPriceVariation}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
+
+            <Separator className="my-3" />
+            <p className="text-xs text-muted-foreground text-center"><Info className="inline w-3 h-3 mr-1" />Prices and deals are AI-generated concepts for exploration, not live offers.</p>
+            <Button onClick={handlePlan} size="lg" className={cn(prominentButtonClasses, "w-full mt-3")}>
+              <ExternalLink className="mr-2 h-5 w-5" /> Plan Trip to {deal.destinationCity}
+            </Button>
           </div>
-          <p className="text-sm text-card-foreground/90 flex items-center"><DollarSign className="w-4 h-4 mr-1.5 text-green-400" />Conceptual Price: <span className="font-semibold ml-1">{deal.conceptualPriceRange}</span></p>
-          <p className="text-xs text-muted-foreground italic flex items-start"><MessageSquareQuote className="w-3.5 h-3.5 mr-1.5 mt-0.5 shrink-0 text-primary/70" />Reason for Deal (AI Concept): {deal.dealReason}</p>
-          <Separator className="my-3" />
-          <p className="text-xs text-muted-foreground text-center"><Info className="inline w-3 h-3 mr-1" />Prices and deals are AI-generated concepts for exploration, not live offers.</p>
-          <Button onClick={handlePlan} size="lg" className={cn(prominentButtonClasses, "w-full mt-3")}>
-            <ExternalLink className="mr-2 h-5 w-5" /> Plan Trip to {deal.destinationCity}
-          </Button>
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
@@ -266,13 +285,15 @@ export default function FlightsPage() {
   const [mapDealError, setMapDealError] = useState<string | null>(null);
   const [selectedMapDeal, setSelectedMapDeal] = useState<AiFlightMapDealSuggestion | null>(null);
   const [isMapDealDialogOpen, setIsMapDealDialogOpen] = useState(false);
-  const mapDealMarkersRef = useRef<any[]>([]);
+  const mapDealMarkersRef = useRef<(google.maps.OverlayView | google.maps.Marker)[]>([]);
+  const routePolylineRef = useRef<google.maps.Polyline | null>(null);
+  const userLocationMarkerRef = useRef<google.maps.Marker | null>(null);
   
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
-  const [isMapInitializing, setIsMapInitializing] = useState(false);
+  const [isMapInitializing, setIsMapInitializing] = useState(true); 
   const [isFetchingUserLocationForMap, setIsFetchingUserLocationForMap] = useState(true); 
   const [geolocationMapError, setGeolocationMapError] = useState<string | null>(null);
 
@@ -343,7 +364,7 @@ export default function FlightsPage() {
   useEffectForMapAndInitialLocation(() => { 
     console.log(`[FlightsPage] Map/Location Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, mapRef.current=${!!mapRef.current}, !map=${!map}, isFetchingUserLocationForMap=${isFetchingUserLocationForMap}`);
     if (isMapsScriptLoaded && mapRef.current && !map && isFetchingUserLocationForMap) { 
-      setIsMapInitializing(true); // Indicate map initialization is starting or depends on geo
+      setIsMapInitializing(true); 
       console.log("[FlightsPage] Maps script loaded, attempting to fetch user location for initial map center.");
       if (navigator.geolocation) {
         console.log("[FlightsPage] Geolocation API available. Requesting current position...");
@@ -354,14 +375,14 @@ export default function FlightsPage() {
             setUserLocation({latitude: userCoords.lat, longitude: userCoords.lng}); 
             setGeolocationMapError(null); 
             initializeMap(userCoords, 6);
-            setIsFetchingUserLocationForMap(false); // Geolocation attempt finished
+            setIsFetchingUserLocationForMap(false); 
           },
           (error) => {
             console.warn("[FlightsPage] Geolocation error for map:", error.message, "Error object:", error);
             setGeolocationMapError(`Map geo error: ${error.message}. Centering globally.`);
             setUserLocation(null);
             initializeMap({ lat: 20, lng: 0 }, 2); 
-            setIsFetchingUserLocationForMap(false); // Geolocation attempt finished
+            setIsFetchingUserLocationForMap(false); 
           }, { timeout: 8000, enableHighAccuracy: true, maximumAge: 0 } 
         );
       } else {
@@ -369,7 +390,7 @@ export default function FlightsPage() {
         setGeolocationMapError("Geolocation not supported. Centering map globally.");
         setUserLocation(null);
         initializeMap({ lat: 20, lng: 0 }, 2); 
-        setIsFetchingUserLocationForMap(false); // Geolocation attempt finished
+        setIsFetchingUserLocationForMap(false); 
       }
     } else if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing && !isFetchingUserLocationForMap) {
         console.log("[FlightsPage] Maps script loaded, geo attempt already finished, map not init. Initializing with default.");
@@ -402,10 +423,7 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setGeneralAiDestinations(processed);
-        if (result.contextualNote) setGeneralContextualNote(result.contextualNote);
-         else if (result.destinations.length === 0) {
-            setGeneralContextualNote("AI couldn't find general flight destinations at this moment.");
-        }
+        setGeneralContextualNote(result.contextualNote || (result.destinations.length === 0 ? "AI couldn't find general flight destinations at this moment." : null));
       } else { setGeneralAiDestinations([]); setGeneralContextualNote("No general suggestions available from AI right now."); }
     } catch (error: any) { console.error("[FlightsPage] Error fetching general AI destinations:", error); setGeneralDestsError(`Could not fetch general suggestions: ${error.message}`); }
     finally { setIsFetchingGeneralDests(false); }
@@ -439,10 +457,7 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setLocationAiDestinations(processed);
-        if (result.contextualNote) setLocationContextualNote(result.contextualNote);
-        else if (result.destinations.length === 0) {
-            setLocationContextualNote("AI couldn't find flight destinations near you. Try exploring general ideas!");
-        }
+        setLocationContextualNote(result.contextualNote || (result.destinations.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : null));
       } else { setLocationAiDestinations([]); setLocationContextualNote("No location-based suggestions available from AI."); }
     } catch (error: any) { console.error("[FlightsPage] Error fetching location-based AI destinations:", error); setLocationDestsError(`Could not fetch location-based suggestions: ${error.message}`); }
     finally { setIsFetchingLocationDests(false); }
@@ -460,24 +475,22 @@ export default function FlightsPage() {
 
 
   const handleFetchMapDeals = async () => {
-    console.log("[FlightsPage] handleFetchMapDeals called. Current userLocation:", userLocation);
-    if (!mapDealTargetDestinationCity.trim()) { 
-        toast({ title: "Destination City Required", description: "Please enter a destination city for the AI deal map.", variant: "destructive" }); 
-        return; 
-    }
     if (!userLocation || typeof userLocation.latitude !== 'number' || typeof userLocation.longitude !== 'number') {
-        console.warn("[FlightsPage] User location not available for map deals. UserLocation state:", userLocation);
-        toast({ 
-            title: "Location Needed", 
-            description: "Your current location is required for the AI Deal Explorer. Please ensure location services are enabled and permissions were granted when the page loaded. You might need to refresh the page after enabling them.", 
-            variant: "destructive",
-            duration: 8000,
-        });
-        return;
+      toast({
+        title: "Location Needed",
+        description: "Your current location is required for the AI Deal Explorer. Please ensure location services are enabled and permissions were granted when the page loaded, then try again.",
+        variant: "destructive",
+        duration: 8000,
+      });
+      return;
     }
-    if (!map) { 
-        toast({ title: "Map Not Ready", description: "The map is still initializing. Please wait.", variant: "destructive" }); 
-        return; 
+    if (!mapDealTargetDestinationCity.trim()) {
+      toast({ title: "Destination City Required", description: "Please enter a destination city for the AI deal map.", variant: "destructive" });
+      return;
+    }
+    if (!map) {
+      toast({ title: "Map Not Ready", description: "The map is still initializing. Please wait.", variant: "destructive" });
+      return;
     }
     
     setIsFetchingMapDeals(true); 
@@ -507,10 +520,18 @@ export default function FlightsPage() {
 
   useEffect(() => { 
     if (!map || !isMapsScriptLoaded || !(window.google && window.google.maps && window.google.maps.OverlayView)) {
-      mapDealMarkersRef.current.forEach(marker => marker.setMap(null)); mapDealMarkersRef.current = []; return;
+      mapDealMarkersRef.current.forEach(marker => marker.setMap(null)); mapDealMarkersRef.current = []; 
+      if(userLocationMarkerRef.current) userLocationMarkerRef.current.setMap(null);
+      if(routePolylineRef.current) routePolylineRef.current.setMap(null);
+      return;
     }
     console.log("[FlightsPage] Updating map deal markers. Suggestions count:", mapDealSuggestions.length);
     
+    // Clear previous markers and route
+    mapDealMarkersRef.current.forEach(marker => marker.setMap(null)); mapDealMarkersRef.current = [];
+    if(userLocationMarkerRef.current) userLocationMarkerRef.current.setMap(null); userLocationMarkerRef.current = null;
+    if(routePolylineRef.current) routePolylineRef.current.setMap(null); routePolylineRef.current = null;
+
     class CustomMapDealMarker extends window.google.maps.OverlayView { 
         private latlng: google.maps.LatLng; private div: HTMLDivElement | null = null; private dealData: AiFlightMapDealSuggestion;
         private clickHandler: () => void; private mapInstanceRef: google.maps.Map;
@@ -531,14 +552,15 @@ export default function FlightsPage() {
         getPosition() { return this.latlng; }
     }
 
-    mapDealMarkersRef.current.forEach(marker => marker.setMap(null)); mapDealMarkersRef.current = [];
-    const newMarkers: any[] = [];
+    const newMarkers: (google.maps.OverlayView | google.maps.Marker)[] = [];
     if (mapDealSuggestions.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
       
+      let originLatLng: google.maps.LatLng | null = null;
       if (userLocation) { 
+          originLatLng = new window.google.maps.LatLng(userLocation.latitude, userLocation.longitude);
           const userMarker = new window.google.maps.Marker({
-              position: { lat: userLocation.latitude, lng: userLocation.longitude },
+              position: originLatLng,
               map: map,
               title: "Your Location (Origin)",
               icon: {
@@ -551,33 +573,55 @@ export default function FlightsPage() {
               }
           });
           newMarkers.push(userMarker);
-          if(userMarker.getPosition()) bounds.extend(userMarker.getPosition()!);
+          userLocationMarkerRef.current = userMarker;
+          bounds.extend(originLatLng);
       }
 
       mapDealSuggestions.forEach(deal => {
         if (deal.latitude != null && deal.longitude != null) {
+          const destinationLatLng = new window.google.maps.LatLng(deal.latitude, deal.longitude);
           const dealMarker = new CustomMapDealMarker({
             latlng: { lat: deal.latitude, lng: deal.longitude }, map: map, deal: deal,
             onClick: () => { setSelectedMapDeal(deal); setIsMapDealDialogOpen(true); }
           });
           newMarkers.push(dealMarker);
-          bounds.extend({ lat: deal.latitude, lng: deal.longitude });
+          bounds.extend(destinationLatLng);
+
+          if (originLatLng) {
+            const routePath = [originLatLng, destinationLatLng];
+            const polyline = new window.google.maps.Polyline({
+              path: routePath,
+              geodesic: true,
+              strokeColor: 'hsl(var(--accent))',
+              strokeOpacity: 0.8,
+              strokeWeight: 4,
+              icons: [{
+                icon: {
+                  path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                  scale: 3,
+                  strokeColor: 'hsl(var(--accent-foreground))',
+                },
+                offset: '100%',
+                repeat: '70px'
+              }]
+            });
+            polyline.setMap(map);
+            routePolylineRef.current = polyline;
+          }
         }
       });
       mapDealMarkersRef.current = newMarkers;
       
       if (!bounds.isEmpty()) { 
-        map.fitBounds(bounds); 
+        map.fitBounds(bounds, 100); // Add padding
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => { 
           let currentZoom = map.getZoom() || 0;
-          if (newMarkers.length <=2 && currentZoom > 5) { 
-            map.setZoom(Math.min(currentZoom, 5)); 
+          if (newMarkers.length <=2 && currentZoom > 7) { 
+            map.setZoom(Math.min(currentZoom, 7)); 
           } else if (currentZoom > 12) {
              map.setZoom(12); 
           }
         }); 
-      } else {
-        console.log("[FlightsPage] Bounds are empty, map not fitted for map deals.");
       }
     }
   }, [map, isMapsScriptLoaded, mapDealSuggestions, userLocation, setSelectedMapDeal, setIsMapDealDialogOpen]); 
@@ -630,7 +674,7 @@ export default function FlightsPage() {
                 <LucideMap className="w-7 h-7 mr-3 text-primary"/> AI-Powered Flight Deal Explorer Map
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-                Enter a destination city. Aura AI will find conceptual flight deals from your current location (if available) and plot them on the map.
+                Enter a destination city. Aura AI will find conceptual flight deals from your current location and plot the route.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -657,7 +701,7 @@ export default function FlightsPage() {
               <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing || isFetchingUserLocationForMap) ? "hidden" : "")} />
             </div>
             {geolocationMapError && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>{geolocationMapError}</p>}
-            {!userLocation && !isFetchingUserLocationForMap && !geolocationMapError && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>Your location is needed to explore deals from your area. Please enable location services and refresh if necessary.</p>}
+            
 
             {isFetchingMapDeals && mapDealSuggestions.length === 0 && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary"/><p className="text-sm">Aura AI is searching for flight deal ideas to {mapDealTargetDestinationCity} from your location...</p></div>}
             {mapDealError && !isFetchingMapDeals && <div className="text-center py-3 text-sm text-destructive"><AlertTriangle className="inline w-4 h-4 mr-1.5"/>{mapDealError}</div>}
@@ -676,13 +720,23 @@ export default function FlightsPage() {
           </Button>
         </div>
          {isFetchingGeneralDests && (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Card key={i} className={cn(glassCardClasses, "animate-pulse")}><CardHeader><div className="h-32 bg-muted/40 rounded-md"></div><div className="h-5 w-3/4 bg-muted/40 rounded mt-2"></div></CardHeader><CardContent><div className="h-3 w-full bg-muted/40 rounded mb-1"></div><div className="h-3 w-5/6 bg-muted/40 rounded"></div></CardContent><CardFooter><div className="h-8 w-full bg-muted/40 rounded-md"></div></CardFooter></Card>)}</div>)}
-        {!isFetchingGeneralDests && generalDestsError && (<div className={cn(glassCardClasses, "p-6 text-center text-destructive border-destructive/50")}><AlertTriangle className="w-10 h-10 mx-auto mb-2" /><p>{generalDestsError}</p></div>)}
+        
+        {!isFetchingGeneralDests && generalDestsError && (
+            <Alert variant="destructive" className={cn(glassCardClasses, "p-6 text-center border-destructive/50")}>
+                <AlertTriangle className="w-10 h-10 mx-auto mb-2" />
+                <ShadcnAlertTitle>Error Fetching General Ideas</ShadcnAlertTitle>
+                <ShadcnAlertDescription>{generalDestsError}</ShadcnAlertDescription>
+            </Alert>
+        )}
         
         {!isFetchingGeneralDests && generalAiDestinations.length === 0 && generalContextualNote && (
-          <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
-            <Info className="w-8 h-8 mx-auto mb-2 text-primary/50" />
-            <p>{generalContextualNote}</p>
-          </div>
+          <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary")}>
+            <Info className="h-4 w-4 !text-primary" />
+            <ShadcnAlertTitle>AI Note</ShadcnAlertTitle>
+            <ShadcnAlertDescription className="text-primary/80">
+              {generalContextualNote}
+            </ShadcnAlertDescription>
+          </Alert>
         )}
          {!isFetchingGeneralDests && generalAiDestinations.length === 0 && !generalContextualNote && !generalDestsError && (
           <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
@@ -742,10 +796,13 @@ export default function FlightsPage() {
         )}
         
         {!isFetchingLocationDests && !locationDestsError && locationAiDestinations.length === 0 && locationContextualNote && (
-          <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
-            <Info className="w-8 h-8 mx-auto mb-2 text-primary/50" />
-            <p>{locationContextualNote}</p>
-          </div>
+          <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary")}>
+            <Info className="h-4 w-4 !text-primary" />
+            <ShadcnAlertTitle>AI Note</ShadcnAlertTitle>
+            <ShadcnAlertDescription className="text-primary/80">
+              {locationContextualNote}
+            </ShadcnAlertDescription>
+          </Alert>
         )}
          {!isFetchingLocationDests && !locationDestsError && locationAiDestinations.length === 0 && !locationContextualNote && (
             <div className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>

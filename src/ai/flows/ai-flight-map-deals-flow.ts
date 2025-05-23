@@ -12,6 +12,7 @@ import {
   AiFlightMapDealOutputSchema,
   type AiFlightMapDealOutput,
   AiFlightMapDealSuggestionSchema,
+  DealVariationSchema, // Import DealVariationSchema
 } from '@/ai/types/ai-flight-map-deals-types';
 
 // Helper to generate an image for a single suggestion
@@ -53,7 +54,9 @@ async function generateDealImage(promptText: string | undefined, fallbackHint: s
 }
 
 // Schema for the text-only output from the LLM, expecting a single suggestion
-const AiFlightMapDealTextSuggestionSchema = AiFlightMapDealSuggestionSchema.omit({ imageUri: true });
+const AiFlightMapDealTextSuggestionSchema = AiFlightMapDealSuggestionSchema.omit({ imageUri: true }).extend({
+  dealVariations: z.array(DealVariationSchema).optional(), // Add dealVariations here too
+});
 const AiFlightMapDealTextOutputSchema = z.object({
   suggestion: AiFlightMapDealTextSuggestionSchema.optional().describe("The AI's conceptual deal suggestion for the target destination."),
   contextualNote: z.string().optional().describe("A note about the suggestion or if no specific deal could be conceptualized."),
@@ -76,6 +79,9 @@ For the '{{{targetDestinationCity}}}', you MUST provide:
 5.  'conceptualPriceRange': A plausible, conceptual roundtrip price range for a good flight deal from '{{{originDescription}}}' to '{{{targetDestinationCity}}}' (e.g., "$200 - $350", "Around $400", "Under $300").
 6.  'dealReason': A brief, plausible reason why this might be a good deal or an interesting option for this route (e.g., "Known budget airline hub", "Often has shoulder season deals", "Direct route with competitive pricing", "Unique cultural experience").
 7.  'imagePrompt': A concise text prompt (4-7 words) suitable for an image generation AI to create an iconic, high-quality, and visually appealing travel photograph of {{{targetDestinationCity}}}.
+8.  'dealVariations' (Array of 1-2 objects, optional): If plausible, suggest 1-2 alternative conceptual date hints and corresponding price variations. Each object must have:
+    *   'travelDatesHint': A string like "Mid-next month, 7 days", "A weekend in 3 weeks".
+    *   'conceptualPriceVariation': A string like "Around $320", "Slightly higher due to event".
 
 Example for targetDestinationCity "Lisbon, Portugal" and originDescription "User's current location (approx. Lat 40.7, Lon -74.0)":
 {
@@ -86,7 +92,11 @@ Example for targetDestinationCity "Lisbon, Portugal" and originDescription "User
     "longitude": -9.1393,
     "conceptualPriceRange": "$450 - $600 from NYC area",
     "dealReason": "Great value for a European capital, especially during spring/fall from the East Coast.",
-    "imagePrompt": "Lisbon colorful tram Alfama district"
+    "imagePrompt": "Lisbon colorful tram Alfama district",
+    "dealVariations": [
+      { "travelDatesHint": "Early October, 10 days", "conceptualPriceVariation": "$420 - $550" },
+      { "travelDatesHint": "Next March for a week", "conceptualPriceVariation": "$480 - $620 (spring blooms)" }
+    ]
   },
   "contextualNote": "Here's a conceptual deal idea for your trip to Lisbon from your current area."
 }
@@ -122,12 +132,14 @@ export const aiFlightMapDealsFlow = ai.defineFlow(
     const suggestionWithImage = {
       ...dealText,
       imageUri,
+      dealVariations: dealText.dealVariations || [], // Ensure it's an array
     };
 
-    console.log(`[AI Flow - aiFlightMapDealsFlow] Processed 1 deal suggestion with image.`);
+    console.log(`[AI Flow - aiFlightMapDealsFlow] Processed 1 deal suggestion with image and ${suggestionWithImage.dealVariations.length} variations.`);
     return {
       suggestions: [suggestionWithImage],
       contextualNote: textOutput.contextualNote,
     };
   }
 );
+
