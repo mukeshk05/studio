@@ -3,4 +3,4 @@
 // Ideally, this file (/src/app/travel/page.tsx) should be deleted from your project
 // if src/app/(app)/travel/page.tsx is the intended page component.
 
-export {}; // This ensures the file is treated as a module but exports nothing that defines a page.
+export const placeholder = null; // Exporting a non-component value
