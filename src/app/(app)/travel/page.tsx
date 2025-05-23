@@ -22,6 +22,8 @@ import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertD
 import { useRouter } from 'next/navigation';
 
 
+
+
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-xl";
 
@@ -800,5 +802,3 @@ export default function TravelPage() {
     </div>
   );
 }
-
-```

@@ -11,8 +11,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { FormItem } from "@/components/ui/form"; // Added FormItem import
 import { cn } from '@/lib/utils';
-import { Plane, CalendarIcon as CalendarLucideIcon, Users, Briefcase, ArrowRightLeft, Search, Sparkles, Star, Clock } from 'lucide-react'; // Using CalendarIcon as CalendarLucideIcon to avoid conflict with Calendar component
+import { Plane, CalendarIcon as CalendarLucideIcon, Users, Briefcase, ArrowRightLeft, Search, Sparkles, Star, Clock, Loader2 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 
@@ -25,6 +26,7 @@ interface MockFlight {
   id: string;
   airline: string;
   airlineLogoUrl: string;
+  dataAiHint?: string; // Added optional dataAiHint
   origin: { code: string; time: string; airport: string };
   destination: { code: string; time: string; airport: string };
   duration: string;
@@ -357,4 +359,3 @@ export default function FlightsPage() {
     </div>
   );
 }
-
