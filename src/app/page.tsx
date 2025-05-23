@@ -48,7 +48,7 @@ import {
   CalendarCheck,
   Camera,
   CheckCircle,
-  Compass, // Ensured Compass is imported
+  Compass,
   DollarSign,
   Eye,
   Gift,
@@ -89,14 +89,11 @@ import {
   Volume2,
   Wand2,
   Zap,
-  CurlyBraces,
-  ImageOff,
   Cube,
+  ImageOff,
 } from 'lucide-react';
-// Server actions are now in a separate file
-// import { getLandingPageImagesWithFallback, type ImageRequest } from './actions'; // This will be removed if we stop AI calls
+import { getLandingPageImagesWithFallback, type ImageRequest } from './actions';
 import { useToast } from '@/hooks/use-toast';
-
 
 const features = [
     {
@@ -253,7 +250,7 @@ const features = [
     },
     {
       id: "feature-digital-twin",
-      icon: <CurlyBraces className="w-10 h-10 mx-auto mb-3 text-accent" />,
+      icon: <Cube className="w-10 h-10 mx-auto mb-3 text-accent" />,
       title: "Predictive 'Digital Twin' Explorer (Future Vision)",
       description: "Explore AI-generated 'digital twins' of cities or attractions. Simulate crowds, queues, and ambiance based on historical data, events, and weather forecasts.",
       imgSrc: "https://placehold.co/600x400.png?text=Digital+Twin",
@@ -333,22 +330,23 @@ const features = [
     }
   ];
 
-// Static images for Hero Carousel - these are used directly
-const heroCarouselImages = [
-  { src: "https://placehold.co/1200x800.png?text=Hero+Travel+1", alt: "Inspiring travel destination 1", dataAiHint: "tropical beach sunset" },
-  { src: "https://placehold.co/1200x800.png?text=Hero+Travel+2", alt: "Inspiring travel destination 2", dataAiHint: "mountain landscape adventure" },
-  { src: "https://placehold.co/1200x800.png?text=Hero+Travel+3", alt: "Inspiring travel destination 3", dataAiHint: "city skyline night" },
-];
+interface LoadingScreenProps {
+  progress: number;
+  message: string;
+}
 
-
-const whyChooseUsPoints = [
-    "Hyper-Personalized with Travel DNA: Itineraries and bundles uniquely tailored to *your* style.",
-    "Predictive Preference Fusion: Aura AI intelligently fuses your history, persona, and queries.",
-    "Comprehensive AI Guardian: Considers risks, visa needs, and weather for smoother trips.",
-    "Budget-Conscious & Smart Tools: Maximize experiences with price tracking, forecasts, and AI advice.",
-    "Modern & Intuitive: A seamless, ChatGPT-like planning experience with a stunning glassy UI.",
-    "All-in-One Dashboard: Your trips, alerts, Aura AI, and memory archive in one place."
-  ];
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress, message }) => {
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 backdrop-blur-lg">
+      <div className="text-center space-y-6 p-8 rounded-xl glass-card border-primary/30 shadow-2xl">
+        <AppLogo />
+        <Progress value={progress} className="w-64 sm:w-80 mx-auto [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent" />
+        <p className="text-lg font-medium text-foreground">{message}</p>
+        <p className="text-sm text-muted-foreground">BudgetRoam AI is preparing your enhanced experience...</p>
+      </div>
+    </div>
+  );
+};
 
 function useStaggeredAnimation(count: number, delayIncrement: number, trigger: boolean) {
   const [visibility, setVisibility] = useState(Array(count).fill(false));
@@ -372,24 +370,6 @@ function useStaggeredAnimation(count: number, delayIncrement: number, trigger: b
   return visibility;
 }
 
-interface LoadingScreenProps {
-  progress: number;
-  message: string;
-}
-
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress, message }) => {
-  return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/90 backdrop-blur-md">
-      <div className="text-center space-y-6 p-8 rounded-xl glass-card border-primary/30">
-        <AppLogo />
-        <Progress value={progress} className="w-64 sm:w-80 mx-auto [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent" />
-        <p className="text-lg font-medium text-foreground">{message}</p>
-        <p className="text-sm text-muted-foreground">BudgetRoam AI is preparing your experience...</p>
-      </div>
-    </div>
-  );
-};
-
 
 export default function LandingPage() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -397,32 +377,134 @@ export default function LandingPage() {
   const [whyChooseUsSectionVisible, setWhyChooseUsSectionVisible] = useState(false);
   const [finalCtaVisible, setFinalCtaVisible] = useState(false);
 
-  const whyChooseUsListVisible = useStaggeredAnimation(whyChooseUsPoints.length, 100, whyChooseUsSectionVisible);
   const { currentUser, logout, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const [isPageLoading, setIsPageLoading] = useState(false); // Set to false as we are not loading AI images on this page
-  const [loadProgress, setLoadProgress] = useState(100); // Default to 100
-  const [loadingMessage, setLoadingMessage] = useState("Welcome to BudgetRoam!"); // Default message
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("Warming up Aura AI...");
 
+  // State to hold the image URIs fetched from the server action
+  const [heroImageUris, setHeroImageUris] = useState<Record<string, string | null | '__error__'>>({});
+  const [featureImageUris, setFeatureImageUris] = useState<Record<string, string | null | '__error__'>>({});
+
+  const whyChooseUsListVisible = useStaggeredAnimation(features.length, 100, whyChooseUsSectionVisible); // Assuming features.length for points
+
+  const handleImageError = useCallback((imageId: string, type: 'hero' | 'feature') => {
+    console.warn(`[LandingPage] Image load error for ID: ${imageId}, type: ${type}`);
+    if (type === 'hero') {
+      setHeroImageUris(prev => ({ ...prev, [imageId]: '__error__' }));
+    } else {
+      setFeatureImageUris(prev => ({ ...prev, [imageId]: '__error__' }));
+    }
+  }, []);
 
   useEffect(() => {
-    // No AI image fetching, directly make content visible
-    const heroTimer = setTimeout(() => setHeroVisible(true), 50);
-    const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 250);
-    const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 450);
-    const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 650);
-    return () => {
-      clearTimeout(heroTimer);
-      clearTimeout(featuresTimer);
-      clearTimeout(whyUsTimer);
-      clearTimeout(ctaTimer);
+    console.log("[LandingPage] useEffect for image fetching triggered.");
+    const fetchAllImagesAndLoadContent = async () => {
+      setIsPageLoading(true);
+      setLoadProgress(10);
+      setLoadingMessage("Initializing Aura AI visuals...");
+      console.log("[LandingPage] Initializing image fetch...");
+
+      // Limit the number of features for hero and feature cards for testing
+      const heroFeatureCount = 3; // e.g., first 3 features for hero
+      const cardFeatureCount = 3; // e.g., first 3 features for cards
+
+      const heroImageRequests: ImageRequest[] = features.slice(0, heroFeatureCount).map((feature, index) => ({
+        id: `hero-${feature.id || 'hero-item-' + index}`, // Use feature.id
+        promptText: feature.dataAiHint,
+        styleHint: 'hero',
+      }));
+
+      const featureCardImageRequests: ImageRequest[] = features.slice(0, cardFeatureCount).map((feature, index) => ({
+        id: feature.id || 'feature-item-' + index, // Use feature.id
+        promptText: feature.dataAiHint,
+        styleHint: 'featureCard',
+      }));
+      
+      const allImageRequests = [...heroImageRequests, ...featureCardImageRequests];
+      console.log("[LandingPage] All Image Requests Prepared:", allImageRequests);
+
+
+      if (allImageRequests.length === 0) {
+        console.log("[LandingPage] No image requests to process. Finalizing page.");
+        setLoadProgress(100);
+        setLoadingMessage("Visuals ready!");
+        setTimeout(() => {
+          setIsPageLoading(false);
+          setHeroVisible(true);
+          setFeaturesSectionVisible(true);
+          setWhyChooseUsSectionVisible(true);
+          setFinalCtaVisible(true);
+        }, 500);
+        return;
+      }
+      
+      setLoadProgress(25);
+      setLoadingMessage("Checking visual cache...");
+
+      try {
+        console.log("[LandingPage] Calling getLandingPageImagesWithFallback server action...");
+        const fetchedUris = await getLandingPageImagesWithFallback(allImageRequests);
+        console.log("[LandingPage] Fetched URIs from server action:", fetchedUris);
+        setLoadProgress(75);
+        setLoadingMessage("Generating latest visuals with Aura AI...");
+
+        const newHeroUris: Record<string, string | null | '__error__'> = {};
+        const newFeatureUris: Record<string, string | null | '__error__'> = {};
+
+        allImageRequests.forEach(req => {
+          if (req.id.startsWith('hero-')) {
+            newHeroUris[req.id] = fetchedUris[req.id] || null;
+          } else {
+            newFeatureUris[req.id] = fetchedUris[req.id] || null;
+          }
+        });
+        
+        console.log("[LandingPage] Setting hero URIs:", newHeroUris);
+        setHeroImageUris(newHeroUris);
+        console.log("[LandingPage] Setting feature URIs:", newFeatureUris);
+        setFeatureImageUris(newFeatureUris);
+
+        setLoadProgress(100);
+        setLoadingMessage("Visuals ready!");
+      } catch (error) {
+        console.error("[LandingPage] Critical error fetching page images:", error);
+        setLoadingMessage("Error loading visuals. Displaying fallbacks.");
+        // Initialize with nulls so fallbacks are used
+        const errorHeroUris: Record<string, string | null | '__error__'> = {};
+        const errorFeatureUris: Record<string, string | null | '__error__'> = {};
+        allImageRequests.forEach(req => {
+          if (req.id.startsWith('hero-')) errorHeroUris[req.id] = null;
+          else errorFeatureUris[req.id] = null;
+        });
+        setHeroImageUris(errorHeroUris);
+        setFeatureImageUris(errorFeatureUris);
+        setLoadProgress(100); // Still complete progress to hide loader
+      } finally {
+        setTimeout(() => {
+          setIsPageLoading(false);
+          // Trigger content visibility animations
+          const heroTimer = setTimeout(() => setHeroVisible(true), 50);
+          const featuresTimer = setTimeout(() => setFeaturesSectionVisible(true), 150);
+          const whyUsTimer = setTimeout(() => setWhyChooseUsSectionVisible(true), 250);
+          const ctaTimer = setTimeout(() => setFinalCtaVisible(true), 350);
+          console.log("[LandingPage] Image loading complete. Page should be visible.");
+          return () => {
+              clearTimeout(heroTimer); clearTimeout(featuresTimer); clearTimeout(whyUsTimer); clearTimeout(ctaTimer);
+          };
+        }, 500); // Delay to show 100% progress
+      }
     };
-  }, []);
+
+    fetchAllImagesAndLoadContent();
+  }, []); // Empty dependency array means this runs once on mount
+
 
   const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
 
-  if (isPageLoading) { // This block will likely not be hit anymore
+  if (isPageLoading) {
     return <LoadingScreen progress={loadProgress} message={loadingMessage} />;
   }
 
@@ -550,7 +632,7 @@ export default function LandingPage() {
           </header>
 
           <main className="flex-grow z-10">
-            <section className="py-20 md:py-32 text-center">
+             <section className="py-20 md:py-32 text-center">
               <div className="container mx-auto px-4">
                 <h1
                   className={cn(
@@ -595,23 +677,41 @@ export default function LandingPage() {
                     className="w-full"
                   >
                     <CarouselContent>
-                      {heroCarouselImages.map((image, index) => (
-                        <CarouselItem key={`hero-static-${index}`}>
-                          <div className={cn("relative w-full aspect-square")}>
-                            <Image
-                              src={image.src} // Using static images directly
-                              alt={image.alt}
-                              fill
-                              className="object-cover rounded-lg"
-                              priority={index < 2}
-                              sizes="100vw"
-                              data-ai-hint={image.dataAiHint}
-                            />
-                            {/* Text overlay for hero images has been removed for simplicity in static mode.
-                                Can be added back if static text per hero image is desired. */}
-                          </div>
-                        </CarouselItem>
-                      ))}
+                      {features.slice(0, 3).map((feature, index) => { // Using first 3 features for hero
+                        const heroImageId = `hero-${feature.id}`;
+                        const currentHeroImageUri = heroImageUris[heroImageId];
+                        const heroFallbackSrc = feature.imgSrc;
+
+                        return (
+                          <CarouselItem key={heroImageId}>
+                            <div className="relative w-full aspect-square group">
+                              {currentHeroImageUri === undefined ? (
+                                <Skeleton className="w-full h-full rounded-lg" />
+                              ) : currentHeroImageUri === '__error__' || !currentHeroImageUri ? (
+                                <Image
+                                  src={heroFallbackSrc}
+                                  alt={feature.title}
+                                  fill
+                                  className="object-cover rounded-lg"
+                                  onError={() => handleImageError(heroImageId, 'hero')}
+                                />
+                              ) : (
+                                <Image
+                                  src={currentHeroImageUri}
+                                  alt={`AI image for ${feature.title}`}
+                                  fill
+                                  className="object-cover rounded-lg"
+                                  onError={() => handleImageError(heroImageId, 'hero')}
+                                />
+                              )}
+                               <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-6 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <h3 className="text-2xl font-bold text-white mb-2 [text-shadow:_0_1px_3px_rgb(0_0_0_/_70%)]">{feature.title}</h3>
+                                <p className="text-sm text-slate-200 line-clamp-3 [text-shadow:_0_1px_2px_rgb(0_0_0_/_70%)]">{feature.description}</p>
+                              </div>
+                            </div>
+                          </CarouselItem>
+                        );
+                      })}
                     </CarouselContent>
                     <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary" />
                     <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary" />
@@ -629,46 +729,69 @@ export default function LandingPage() {
                 <Carousel
                   opts={{
                     align: "start",
-                    loop: features.length > 3, // Ensure loop is enabled if enough items
+                    loop: features.length > 3, 
                   }}
                   className="w-full max-w-xs sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl mx-auto"
                 >
                   <CarouselContent className="-ml-2 md:-ml-4">
-                    {features.map((feature, index) => (
-                      <CarouselItem key={feature.id} className={cn(
-                          "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 transition-all duration-500 ease-out",
-                          featuresSectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                        )}
-                        style={{transitionDelay: `${index * 100}ms`}}
-                      >
-                        <div className="p-1 h-full">
-                          <Card
-                            className={cn(
-                              glassCardClasses,
-                              "hover:shadow-2xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300 flex flex-col h-full transform border-primary/20 hover:border-accent/40"
+                    {features.map((feature, index) => {
+                        const featureImageId = feature.id;
+                        const currentFeatureImageUri = featureImageUris[featureImageId];
+                        const featureFallbackSrc = feature.imgSrc;
+                        
+                        return (
+                          <CarouselItem key={feature.id} className={cn(
+                              "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 transition-all duration-500 ease-out",
+                              featuresSectionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                             )}
+                            style={{transitionDelay: `${index * 100}ms`}}
                           >
-                            <CardHeader className="items-center text-center pt-6 px-6 pb-4">
-                              {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, "mx-auto mb-3", index % 2 === 0 ? 'text-primary' : 'text-accent') })}
-                              <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-grow px-6 pb-6 text-left">
-                              <div className="relative aspect-video w-full rounded-md overflow-hidden mb-4 border border-border/30 group">
-                                <Image
-                                  src={feature.imgSrc} // Directly use static placeholder
-                                  alt={feature.title}
-                                  fill
-                                  className="object-cover rounded-md group-hover:scale-105 transition-transform duration-300"
-                                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                  data-ai-hint={feature.dataAiHint}
-                                />
-                              </div>
-                              <p className="text-sm text-muted-foreground">{feature.description}</p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </CarouselItem>
-                    ))}
+                            <div className="p-1 h-full">
+                              <Card
+                                className={cn(
+                                  glassCardClasses,
+                                  "hover:shadow-2xl hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-300 flex flex-col h-full transform border-primary/20 hover:border-accent/40"
+                                )}
+                              >
+                                <CardHeader className="items-center text-center pt-6 px-6 pb-4">
+                                  {React.cloneElement(feature.icon, { className: cn(feature.icon.props.className, "mx-auto mb-3", index % 2 === 0 ? 'text-primary' : 'text-accent') })}
+                                  <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex-grow px-6 pb-6 text-left">
+                                  <div className="relative aspect-video w-full rounded-md overflow-hidden mb-4 border border-border/30 group">
+                                      {currentFeatureImageUri === undefined ? (
+                                          <Skeleton className="w-full h-full rounded-md" />
+                                      ) : currentFeatureImageUri === '__error__' || !currentFeatureImageUri ? (
+                                         (featureFallbackSrc && featureFallbackSrc !== "https://placehold.co/600x400.png") ? (
+                                            <Image
+                                            src={featureFallbackSrc}
+                                            alt={feature.title}
+                                            fill
+                                            className="object-cover rounded-md group-hover:scale-105 transition-transform duration-300"
+                                            onError={() => handleImageError(featureImageId, 'feature')}
+                                          />
+                                         ) : (
+                                            <div className="w-full h-full bg-muted/30 flex items-center justify-center rounded-md">
+                                              <ImageOff className="w-10 h-10 text-muted-foreground" />
+                                            </div>
+                                         )
+                                      ) : (
+                                          <Image
+                                          src={currentFeatureImageUri}
+                                          alt={`AI image for ${feature.title}`}
+                                          fill
+                                          className="object-cover rounded-md group-hover:scale-105 transition-transform duration-300"
+                                          onError={() => handleImageError(featureImageId, 'feature')}
+                                        />
+                                      )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </CarouselItem>
+                        );
+                    })}
                   </CarouselContent>
                   <CarouselPrevious className="ml-8 sm:ml-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-accent" />
                   <CarouselNext className="mr-8 sm:mr-0 text-foreground bg-background/70 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-accent" />
@@ -687,7 +810,7 @@ export default function LandingPage() {
                       We believe amazing travel experiences shouldn't break the bank. BudgetRoam is designed to be your intelligent partner, making dream vacations accessible and stress-free with unparalleled AI assistance.
                     </p>
                     <ul className="space-y-3">
-                      {whyChooseUsPoints.map((point, index) => (
+                      {features.slice(0, 6).map((point, index) => ( // Using features array for demo points
                         <li
                           key={index}
                           className={cn(
@@ -696,7 +819,7 @@ export default function LandingPage() {
                           )}
                         >
                           <CheckCircle className="w-6 h-6 text-accent mr-3 mt-0.5 shrink-0" />
-                          <span className="text-slate-200 dark:text-muted-foreground">{point}</span>
+                          <span className="text-slate-200 dark:text-muted-foreground">{point.title}: {point.description.substring(0,80)}...</span>
                         </li>
                       ))}
                     </ul>
@@ -707,7 +830,7 @@ export default function LandingPage() {
                         alt="happy diverse travelers"
                         fill
                         className="object-cover rounded-xl shadow-2xl shadow-primary/20 transform hover:scale-105 hover:shadow-primary/30 transition-all duration-500 ease-out"
-                        data-ai-hint="happy diverse travelers"
+                        data-ai-hint="happy diverse travelers using app"
                     />
                   </div>
                 </div>
@@ -756,6 +879,5 @@ export default function LandingPage() {
         </div>
   );
 }
-
 
     
