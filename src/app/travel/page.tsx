@@ -1,6 +1,5 @@
-// This file is intentionally kept minimal to avoid routing conflicts.
-// The actual page for the /travel route is located in src/app/(app)/travel/page.tsx.
-// Please delete this file (src/app/travel/page.tsx) if src/app/(app)/travel/page.tsx is the intended page.
-// export {}; // Using export {} to ensure it's treated as a module but exports nothing that can be a page.
-
-// Most definitive way to make it not a page: just a comment.
+// This file is intentionally kept minimal and exports nothing as a default React component
+// to avoid a routing conflict with /src/app/(app)/travel/page.tsx.
+// The actual page content for the /travel route should be in /src/app/(app)/travel/page.tsx.
+// Ideally, this file (src/app/travel/page.tsx) should be deleted.
+export const placeholder = null;
