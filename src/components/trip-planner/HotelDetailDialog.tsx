@@ -9,17 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { HotelOption, Room } from "@/lib/types";
-import { XIcon, InfoIcon, ImageIcon, MapPinIcon, DollarSignIcon, ImageOffIcon, BedDoubleIcon, SparklesIcon, StarIcon, BathIcon, CheckSquareIcon, HotelIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { X, Info, ImageIcon as ImageLucide, MapPin, DollarSign, ImageOff, BedDouble, Sparkles, Star, Bath, CheckSquare, Hotel } from 'lucide-react'; // Corrected ImageIcon to ImageLucide if that's the intended import, or just Image if it's a different icon. Assuming 'Image' is more likely for a general image icon.
+import { cn } from "@/lib/utils";
 
 type HotelDetailDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   hotel: HotelOption | null;
-  destinationName: string; 
+  destinationName: string;
 };
 
-const glassCardClasses = "glass-card"; 
+const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
 
 function RoomCard({ room }: { room: Room }) {
@@ -27,7 +27,7 @@ function RoomCard({ room }: { room: Room }) {
   return (
     <div className={cn("p-3 rounded-lg mb-3 border border-border/40", innerGlassEffectClasses)}>
       <h4 className="text-md font-semibold text-card-foreground mb-1.5 flex items-center">
-        <BedDoubleIcon className="w-5 h-5 mr-2 text-primary" />
+        <BedDouble className="w-5 h-5 mr-2 text-primary" />
         {room.name}
       </h4>
       {room.roomImageUri && (
@@ -70,7 +70,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
   const mapEmbedUrl = mapsApiKey
     ? `https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${mapQuery}`
     : "";
-  
+
   const hotelImageHint = hotel.name.toLowerCase().split(/[\s,]+/).slice(0, 2).join(" ");
 
   return (
@@ -80,7 +80,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
           <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
               <DialogTitle className="text-xl font-semibold text-foreground truncate" title={hotel.name}>
-                <HotelIcon className="w-6 h-6 mr-2 inline-block text-primary" />
+                <Hotel className="w-6 h-6 mr-2 inline-block text-primary" />
                 {hotel.name}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
@@ -89,7 +89,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
             </div>
             <DialogClose asChild>
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground shrink-0">
-                <XIcon className="h-5 w-5" />
+                <X className="h-5 w-5" />
               </Button>
             </DialogClose>
           </div>
@@ -110,7 +110,7 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
         )}
         {!hotel.hotelImageUri && (
             <div className={cn("h-40 bg-muted/30 flex items-center justify-center text-muted-foreground border-b border-border/30", innerGlassEffectClasses, "rounded-none")}>
-                <ImageOffIcon className="w-12 h-12"/>
+                <ImageOff className="w-12 h-12"/>
             </div>
         )}
 
@@ -119,16 +119,16 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
           <Tabs defaultValue="details" className="w-full">
             <TabsList className={cn("grid w-full grid-cols-2 sm:grid-cols-4 mb-4 glass-pane p-1", "border border-border/50")}>
               <TabsTrigger value="details" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-                <InfoIcon className="w-4 h-4" /> Details
+                <Info className="w-4 h-4" /> Details
               </TabsTrigger>
               <TabsTrigger value="rooms" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.rooms || hotel.rooms.length === 0}>
-                <BedDoubleIcon className="w-4 h-4" /> Rooms
+                <BedDouble className="w-4 h-4" /> Rooms
               </TabsTrigger>
               <TabsTrigger value="amenities" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.amenities || hotel.amenities.length === 0}>
-                <CheckSquareIcon className="w-4 h-4" /> Amenities
+                <CheckSquare className="w-4 h-4" /> Amenities
               </TabsTrigger>
               <TabsTrigger value="map" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-                <MapPinIcon className="w-4 h-4" /> Map
+                <MapPin className="w-4 h-4" /> Map
               </TabsTrigger>
             </TabsList>
 
@@ -136,12 +136,12 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
               <h3 className="text-lg font-semibold text-card-foreground mb-2">About {hotel.name}</h3>
               <p className="text-sm text-muted-foreground mb-3">{hotel.description}</p>
               <div className="flex items-center text-lg font-semibold text-primary">
-                <DollarSignIcon className="w-5 h-5 mr-2" />
+                <DollarSign className="w-5 h-5 mr-2" />
                 Price: ${hotel.price.toLocaleString()} (for the stay)
               </div>
-               {hotel.rating !== undefined && (
+               {hotel.rating !== undefined && hotel.rating !== null && (
                  <div className="mt-3 flex items-center text-md font-medium text-amber-400">
-                    <StarIcon className="w-5 h-5 mr-1.5 fill-amber-400 text-amber-400" />
+                    <Star className="w-5 h-5 mr-1.5 fill-amber-400 text-amber-400" />
                     Rating: {hotel.rating.toFixed(1)} / 5.0
                  </div>
                 )}
@@ -159,14 +159,14 @@ export function HotelDetailDialog({ isOpen, onClose, hotel, destinationName }: H
                 <p className="text-sm text-muted-foreground">Room information not available.</p>
               )}
             </TabsContent>
-            
+
             <TabsContent value="amenities" className={cn(glassCardClasses, "p-4 rounded-md")}>
                 <h3 className="text-lg font-semibold text-card-foreground mb-3">Amenities</h3>
                 {hotel.amenities && hotel.amenities.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {hotel.amenities.map((amenity, idx) => (
                         <Badge key={idx} variant="outline" className="text-sm py-1 px-2 border-primary/40 text-primary/90 bg-primary/5 flex items-center gap-1.5">
-                            <SparklesIcon className="w-3 h-3 text-accent" />
+                            <Sparkles className="w-3 h-3 text-accent" />
                             {amenity}
                         </Badge>
                     ))}
