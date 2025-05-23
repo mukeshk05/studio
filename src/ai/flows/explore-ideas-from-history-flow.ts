@@ -97,11 +97,16 @@ export const exploreIdeasFromHistoryFlow = ai.defineFlow(
     console.log(`[ExploreIdeasFlow] Starting for userId: ${userId}`);
     let searchHistoryEntries;
     try {
-      searchHistoryEntries = await getRecentUserSearchHistory(userId, 3); // Fetch last 3 searches
+      // Call the potentially updated getRecentUserSearchHistory
+      searchHistoryEntries = await getRecentUserSearchHistory(userId, 3); 
       console.log(`[ExploreIdeasFlow] Fetched ${searchHistoryEntries.length} search history entries.`);
-    } catch (error) {
-      console.error(`[ExploreIdeasFlow] Error fetching search history for userId ${userId}:`, error);
-      return { suggestions: [], contextualNote: "Could not fetch your search history to personalize ideas." };
+      if (searchHistoryEntries.length === 0) {
+        console.log(`[ExploreIdeasFlow] No search history found for user ${userId}, or an error occurred during fetch.`);
+      }
+    } catch (error: any) {
+      console.error(`[ExploreIdeasFlow] CRITICAL ERROR calling getRecentUserSearchHistory for userId ${userId}:`, error.message, error.stack);
+      // Even if getRecentUserSearchHistory is designed to return [], an unexpected error in awaiting it could land here.
+      return { suggestions: [], contextualNote: "Could not retrieve your search history due to an unexpected issue." };
     }
 
     let searchHistoryText = "User has no recent search history or it's too vague.";
@@ -117,7 +122,11 @@ export const exploreIdeasFromHistoryFlow = ai.defineFlow(
 
     if (!textOutput || !textOutput.suggestions || textOutput.suggestions.length === 0) {
       console.warn("[ExploreIdeasFlow] AI did not return valid text suggestions.");
-      return { suggestions: [], contextualNote: textOutput?.contextualNote || "Couldn't come up with personalized ideas right now. How about exploring top destinations?" };
+      // Provide a more specific note if history was empty vs. AI simply couldn't generate ideas from it.
+      const note = searchHistoryEntries.length === 0 
+        ? textOutput?.contextualNote || "No personalized ideas could be generated as your search history is empty. Explore some trips first!"
+        : textOutput?.contextualNote || "Couldn't come up with personalized ideas right now. How about exploring top destinations?";
+      return { suggestions: [], contextualNote: note };
     }
 
     const suggestionsWithImages = await Promise.all(
@@ -142,3 +151,4 @@ export const exploreIdeasFromHistoryFlow = ai.defineFlow(
 export async function getExploreIdeasFromHistory(input: ExploreIdeasFromHistoryInput): Promise<ExploreIdeasOutput> {
   return exploreIdeasFromHistoryFlow(input);
 }
+

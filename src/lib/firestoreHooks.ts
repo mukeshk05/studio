@@ -1,8 +1,8 @@
 
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { firestore } from './firebase';
-import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc } from 'firebase/firestore';
+import { firestore } from './firebase'; // Ensure firestore is correctly initialized and exported
+import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId } from 'firebase/firestore';
 import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -223,27 +223,35 @@ export function useSearchHistory(count: number = 20) {
 
 // Function to be called by Genkit tool to fetch user search history
 export async function getRecentUserSearchHistory(userId: string, count: number = 5): Promise<SearchHistoryEntry[]> {
+  console.log(`[FirestoreHooks] getRecentUserSearchHistory called for userId: ${userId}, count: ${count}`);
   if (!userId) {
-    console.error("getRecentUserSearchHistory: userId is required.");
+    console.error("[FirestoreHooks] getRecentUserSearchHistory: userId is required. Returning empty array.");
+    return [];
+  }
+  if (!firestore) {
+    console.error("[FirestoreHooks] Firestore instance is undefined in getRecentUserSearchHistory. Returning empty array.");
     return [];
   }
   try {
     const historyCollectionRef = collection(firestore, 'users', userId, 'searchHistory');
     const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(docSnapshot => {
+    const history = querySnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
         return {
             id: docSnapshot.id,
             destination: data.destination,
             travelDates: data.travelDates,
             budget: data.budget,
-            searchedAt: data.searchedAt?.toDate() || new Date(), // Convert Timestamp to Date
+            // Handle Firestore Timestamp conversion carefully
+            searchedAt: data.searchedAt?.toDate ? data.searchedAt.toDate() : (data.searchedAt ? new Date(data.searchedAt) : new Date()),
         } as SearchHistoryEntry;
     });
-  } catch (error) {
-    console.error(`Error fetching search history for user ${userId}:`, error);
-    return [];
+    console.log(`[FirestoreHooks] Fetched ${history.length} search history entries for userId ${userId}.`);
+    return history;
+  } catch (error: any) {
+    console.error(`[FirestoreHooks] Error fetching search history for user ${userId}:`, error.message, error.stack);
+    return []; // Return empty array on error to prevent flow from breaking
   }
 }
 
@@ -298,7 +306,11 @@ export function useGetUserTravelPersona() {
 // Function to be called by Genkit tool to fetch user travel persona
 export async function getUserTravelPersona(userId: string): Promise<UserTravelPersona | null> {
   if (!userId) {
-    console.error("getUserTravelPersona: userId is required.");
+    console.error("[FirestoreHooks] getUserTravelPersona: userId is required.");
+    return null;
+  }
+   if (!firestore) {
+    console.error("[FirestoreHooks] Firestore instance is undefined in getUserTravelPersona. Returning null.");
     return null;
   }
   try {
@@ -313,9 +325,64 @@ export async function getUserTravelPersona(userId: string): Promise<UserTravelPe
       } as UserTravelPersona;
     }
     return null;
-  } catch (error) {
-    console.error(`Error fetching travel persona for user ${userId}:`, error);
+  } catch (error: any) {
+    console.error(`[FirestoreHooks] Error fetching travel persona for user ${userId}:`, error.message, error.stack);
     return null;
   }
 }
 
+// Function to get all saved trips for a user (server-side or tool use)
+export async function getAllUserSavedTrips(userId: string): Promise<Itinerary[]> {
+  console.log(`[FirestoreHooks] getAllUserSavedTrips called for userId: ${userId}`);
+  if (!userId) {
+    console.error("[FirestoreHooks] getAllUserSavedTrips: userId is required.");
+    return [];
+  }
+  if (!firestore) {
+    console.error("[FirestoreHooks] Firestore instance is undefined in getAllUserSavedTrips. Returning empty array.");
+    return [];
+  }
+  try {
+    const tripsCollectionRef = collection(firestore, 'users', userId, 'savedTrips');
+    const querySnapshot = await getDocs(tripsCollectionRef);
+    const trips = querySnapshot.docs.map(docSnapshot => ({
+      ...docSnapshot.data() as Omit<Itinerary, 'id'>,
+      id: docSnapshot.id,
+      // Ensure nested objects and arrays are handled, especially if they have Timestamps
+      // For example, if dailyPlan or hotelOptions could have Timestamps, they'd need conversion
+    }));
+    console.log(`[FirestoreHooks] Fetched ${trips.length} saved trips for userId ${userId}.`);
+    return trips as Itinerary[];
+  } catch (error: any) {
+    console.error(`[FirestoreHooks] Error fetching all saved trips for user ${userId}:`, error.message, error.stack);
+    return [];
+  }
+}
+
+// Function to get a single saved trip by its ID (server-side or tool use)
+export async function getSingleUserSavedTrip(userId: string, tripId: string): Promise<Itinerary | null> {
+  console.log(`[FirestoreHooks] getSingleUserSavedTrip called for userId: ${userId}, tripId: ${tripId}`);
+  if (!userId || !tripId) {
+    console.error("[FirestoreHooks] getSingleUserSavedTrip: userId and tripId are required.");
+    return null;
+  }
+  if (!firestore) {
+    console.error("[FirestoreHooks] Firestore instance is undefined in getSingleUserSavedTrip. Returning null.");
+    return null;
+  }
+  try {
+    const tripDocRef = doc(firestore, 'users', userId, 'savedTrips', tripId);
+    const docSnap = await getDoc(tripDocRef);
+    if (docSnap.exists()) {
+      const tripData = { ...docSnap.data() as Omit<Itinerary, 'id'>, id: docSnap.id };
+      console.log(`[FirestoreHooks] Fetched single saved trip for userId ${userId}, tripId: ${tripId}.`);
+      return tripData as Itinerary;
+    } else {
+      console.log(`[FirestoreHooks] No saved trip found for userId ${userId}, tripId: ${tripId}.`);
+      return null;
+    }
+  } catch (error: any) {
+    console.error(`[FirestoreHooks] Error fetching single saved trip for user ${userId}, tripId: ${tripId}:`, error.message, error.stack);
+    return null;
+  }
+}
