@@ -87,8 +87,8 @@ For EACH hotel, you MUST provide a JSON object with ALL of the following fields:
 -   'rating': A conceptual guest rating out of 5 (e.g., 4.2, 3.8, 4.7).
 -   'description': A short, appealing description of the hotel (2-3 sentences), highlighting its vibe or key selling points.
 -   'amenities': An array of 3 to 5 key amenities (e.g., ["Pool", "Free WiFi", "Parking", "Restaurant", "Gym", "Pet-friendly"]).
--   'latitudeString': Approximate latitude of the hotel as a STRING (e.g., "48.8584" for a Paris hotel). THIS IS ABSOLUTELY CRITICAL for map display. Be as accurate as conceptually possible for the hotel's location.
--   'longitudeString': Approximate longitude of the hotel as a STRING (e.g., "2.2945" for a Paris hotel). THIS IS ABSOLUTELY CRITICAL for map display. Be as accurate as conceptually possible.
+-   'latitudeString': Approximate latitude of the hotel as a STRING (e.g., "48.8584" for a Paris hotel). THIS IS ABSOLUTELY CRITICAL for map display. Be as accurate as conceptually possible for the hotel's location. If suggesting a hotel, this must be provided.
+-   'longitudeString': Approximate longitude of the hotel as a STRING (e.g., "2.2945" for a Paris hotel). THIS IS ABSOLUTELY CRITICAL for map display. Be as accurate as conceptually possible. If suggesting a hotel, this must be provided.
 -   'imagePrompt': A concise text prompt (5-10 words) suitable for an image generation AI to create an attractive photo of this type of hotel (e.g., "modern hotel exterior sunny day city", "cozy boutique hotel room fireplace", "luxury resort pool sunset view").
 
 Example of a single hotel option object for Paris:
@@ -119,7 +119,7 @@ Example for "Hotels near latitude 40.7128, longitude -74.0060" (New York City):
 Return a JSON object with a key "hotels" containing an array of these hotel option objects, and an optional "searchSummary" string (e.g., "Here are a few hotel ideas for your stay in {{{destination}}}!").
 Ensure the output is valid JSON. These are illustrative examples, not real-time bookable hotels.
 Focus on variety in hotel types and price points if possible.
-MAKE SURE to include 'latitudeString' and 'longitudeString' for EVERY hotel suggestion.
+MAKE SURE to include 'latitudeString' and 'longitudeString' for EVERY hotel suggestion. If the specific hotel idea is very conceptual and an exact location is impossible, provide coordinates for the general city/area requested for {{{destination}}}.
 `,
 });
 
@@ -142,12 +142,12 @@ export const aiHotelSearchFlow = ai.defineFlow(
     }
     console.log(`[AI Flow - aiHotelSearchFlow] Text-only hotel suggestions received: ${textOutput.hotels.length}`);
     textOutput.hotels.forEach((hotel, index) => {
-      console.log(`[AI Flow - aiHotelSearchFlow] Hotel ${index} text data: Name: ${hotel.name}, LatStr: ${hotel.latitudeString}, LngStr: ${hotel.longitudeString}`);
+      console.log(`[AI Flow - aiHotelSearchFlow] Hotel ${index} text data: Name: ${hotel.name}, LatStr: ${hotel.latitudeString}, LngStr: ${hotel.longitudeString}, ImagePrompt: ${hotel.imagePrompt}`);
     });
 
     const hotelsWithImagesAndCoords = await Promise.all(
       textOutput.hotels.map(async (hotelText) => {
-        const fallbackHint = `${hotelText.name.substring(0, 15)} ${input.destination.substring(0, 10)}`;
+        const fallbackHint = `${hotelText.name ? hotelText.name.substring(0, 15) : 'Hotel'} ${input.destination ? input.destination.substring(0, 10) : 'Location'}`;
         const imageUri = await generateHotelImage(hotelText.imagePrompt, fallbackHint);
         
         let latitude: number | undefined = undefined;
@@ -158,33 +158,39 @@ export const aiHotelSearchFlow = ai.defineFlow(
             if (!isNaN(latNum) && latNum >= -90 && latNum <= 90) {
                  latitude = latNum;
             } else {
-                 console.warn(`[AI Flow - aiHotelSearchFlow] Could not parse latitudeString "${hotelText.latitudeString}" or it's out of range for ${hotelText.name}. Parsed: ${latNum}`);
+                 console.warn(`[AI Flow - aiHotelSearchFlow] Could not parse latitudeString "${hotelText.latitudeString}" or it's out of range for ${hotelText.name}. Parsed: ${latNum}.`);
             }
         } else {
-            console.warn(`[AI Flow - aiHotelSearchFlow] Missing latitudeString for ${hotelText.name}`);
+            console.warn(`[AI Flow - aiHotelSearchFlow] Missing latitudeString for ${hotelText.name}.`);
         }
         if (hotelText.longitudeString) {
             const lonNum = parseFloat(hotelText.longitudeString);
             if (!isNaN(lonNum) && lonNum >= -180 && lonNum <= 180) {
                 longitude = lonNum;
             } else {
-                console.warn(`[AI Flow - aiHotelSearchFlow] Could not parse longitudeString "${hotelText.longitudeString}" or it's out of range for ${hotelText.name}. Parsed: ${lonNum}`);
+                console.warn(`[AI Flow - aiHotelSearchFlow] Could not parse longitudeString "${hotelText.longitudeString}" or it's out of range for ${hotelText.name}. Parsed: ${lonNum}.`);
             }
         } else {
-            console.warn(`[AI Flow - aiHotelSearchFlow] Missing longitudeString for ${hotelText.name}`);
+            console.warn(`[AI Flow - aiHotelSearchFlow] Missing longitudeString for ${hotelText.name}.`);
         }
 
+        // Ensure all fields from AiHotelSuggestionSchema are present, even if some are undefined from parsing
         return {
-          ...hotelText,
+          name: hotelText.name,
+          conceptualPriceRange: hotelText.conceptualPriceRange,
+          rating: hotelText.rating,
+          description: hotelText.description,
+          amenities: hotelText.amenities,
+          imagePrompt: hotelText.imagePrompt,
           imageUri,
-          latitude, // This might be undefined if parsing failed or string was missing
-          longitude, // This might be undefined if parsing failed or string was missing
+          latitude, 
+          longitude,
         };
       })
     );
     
     hotelsWithImagesAndCoords.forEach((hotel, index) => {
-        console.log(`[AI Flow - aiHotelSearchFlow] Hotel ${index} processed data: Name: ${hotel.name}, Lat: ${hotel.latitude}, Lng: ${hotel.longitude}, ImageURI starts with: ${hotel.imageUri.substring(0,30)}...`);
+        console.log(`[AI Flow - aiHotelSearchFlow] Hotel ${index} processed data: Name: ${hotel.name}, Lat: ${hotel.latitude}, Lng: ${hotel.longitude}, ImageURI present: ${!!hotel.imageUri}`);
     });
 
     console.log(`[AI Flow - aiHotelSearchFlow] Processed ${hotelsWithImagesAndCoords.length} hotel suggestions with images and coordinates.`);
@@ -194,3 +200,5 @@ export const aiHotelSearchFlow = ai.defineFlow(
     };
   }
 );
+
+        
