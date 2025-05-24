@@ -8,13 +8,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Added Tabs imports
 import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
-  Search, Sparkles, Loader2, Map as LucideMap, Compass, DollarSign, Tag, ImageOff, Info, ExternalLink, X, MapPin, Star, Briefcase // Added Briefcase
+  Search, Sparkles, Loader2, Map as LucideMap, Compass, DollarSign, Tag, ImageOff, Info, ExternalLink, X, MapPin, Star, Briefcase
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getThingsToDoAction } from '@/app/actions';
@@ -36,8 +45,11 @@ function ActivitySuggestionCard({ activity, onClick }: ActivitySuggestionCardPro
     : undefined;
 
   const handleImageError = useCallback(() => {
+    console.warn(`[ActivitySuggestionCard] Image load ERROR for: ${activity.name}, src: ${activity.imageUri}`);
     setImageLoadError(true);
-  }, []);
+  }, [activity.name, activity.imageUri]);
+
+  const canDisplayImage = !imageLoadError && activity.imageUri;
 
   return (
     <Card 
@@ -48,9 +60,9 @@ function ActivitySuggestionCard({ activity, onClick }: ActivitySuggestionCardPro
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
     >
       <div className="relative w-full aspect-video bg-muted/30 group">
-        {!imageLoadError && activity.imageUri ? (
+        {canDisplayImage ? (
           <Image
-            src={activity.imageUri}
+            src={activity.imageUri!}
             alt={activity.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -106,6 +118,7 @@ function ActivityDetailDialog({ isOpen, onClose, activity: activityProp, searchL
   
   const handleImageError = useCallback(() => {
     if (activity) {
+      console.warn(`[ActivityDetailDialog] Image load ERROR for: ${activity.name}, src: ${activity.imageUri}`);
       setImageLoadError(true);
     }
   }, [activity]); 
@@ -126,6 +139,8 @@ function ActivityDetailDialog({ isOpen, onClose, activity: activityProp, searchL
     : "";
   
   const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(activity.name)}+in+${encodeURIComponent(searchLocation)}`;
+
+  const canDisplayImage = !imageLoadError && activity.imageUri;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -149,10 +164,10 @@ function ActivityDetailDialog({ isOpen, onClose, activity: activityProp, searchL
           </div>
         </DialogHeader>
 
-        {!imageLoadError && activity.imageUri ? (
+        {canDisplayImage ? (
           <div className="relative aspect-video w-full max-h-60 sm:max-h-72 border-b border-border/30">
             <Image
-              src={activity.imageUri}
+              src={activity.imageUri!}
               alt={`Image for ${activity.name}`}
               fill
               className="object-cover"
@@ -250,28 +265,40 @@ export default function ThingsToDoPage() {
 
   // Google Maps API Script Loader
   const initGoogleMapsApiThingsToDoPage = useCallback(() => {
+    console.log("[ThingsToDoPage] Google Maps API script loaded callback executed.");
     setIsMapsScriptLoaded(true);
   }, []);
 
   useEffect(() => {
+    console.log("[ThingsToDoPage] Maps API Script Loader Effect: API Key present?", !!apiKey);
     if (!apiKey) {
-      setMapsApiError("Google Maps API key is missing.");
-      setIsMapInitializing(false); return;
+      setMapsApiError("Google Maps API key is missing. Map functionality is disabled.");
+      setIsMapInitializing(false);
+      return;
     }
     if (typeof window !== 'undefined' && window.google && window.google.maps) {
-      if(!isMapsScriptLoaded) setIsMapsScriptLoaded(true); return;
+      if(!isMapsScriptLoaded) {
+        console.log("[ThingsToDoPage] Google Maps already loaded, setting script loaded state.");
+        setIsMapsScriptLoaded(true);
+      }
+      return;
     }
     const scriptId = 'google-maps-things-to-do-page-script';
     if (document.getElementById(scriptId)) {
-       if (typeof window !== 'undefined' && window.google && window.google.maps && !isMapsScriptLoaded) setIsMapsScriptLoaded(true);
+       if (typeof window !== 'undefined' && window.google && window.google.maps && !isMapsScriptLoaded) {
+            console.log("[ThingsToDoPage] Script element exists, Google Maps already loaded, setting script loaded state.");
+            setIsMapsScriptLoaded(true);
+       }
        return;
     }
+    console.log("[ThingsToDoPage] Attempting to load Google Maps API script...");
     const script = document.createElement('script');
     script.id = scriptId;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiThingsToDoPage&libraries=marker,places`;
     script.async = true; script.defer = true;
     script.onerror = () => {
-      setMapsApiError("Failed to load Google Maps script.");
+      console.error("[ThingsToDoPage] Failed to load Google Maps API script.");
+      setMapsApiError("Failed to load Google Maps script. Please check API key and network.");
       setIsMapsScriptLoaded(false); setIsMapInitializing(false);
     };
     (window as any).initGoogleMapsApiThingsToDoPage = initGoogleMapsApiThingsToDoPage;
@@ -282,8 +309,10 @@ export default function ThingsToDoPage() {
   // Map Initialization
   const initializeMap = useCallback((center: google.maps.LatLngLiteral = { lat: 20, lng: 0 }, zoom: number = 2) => {
     if (!mapRef.current || !window.google || !window.google.maps) {
+      console.warn("[ThingsToDoPage] Map ref not ready or Google Maps not loaded for initializeMap.");
       setIsMapInitializing(false); return;
     }
+    console.log(`[ThingsToDoPage] Initializing map at center: ${JSON.stringify(center)} with zoom ${zoom}`);
     try {
       const newMap = new window.google.maps.Map(mapRef.current!, {
         center, zoom, styles: [{featureType:"all",elementType:"geometry",stylers:[{color:"#202c3e"}]},{featureType:"all",elementType:"labels.text.fill",stylers:[{gamma:0.01,lightness:20,weight:"1.39",color:"#ffffff"}]},{featureType:"all",elementType:"labels.text.stroke",stylers:[{weight:"0.96",saturation:9,gamma:0.01,lightness:16,color:"#1e232a"}]},{featureType:"all",elementType:"labels.icon",stylers:[{visibility:"off"}]},{featureType:"landscape",elementType:"geometry",stylers:[{lightness:30,saturation:"9%",gamma:"1",color:"#29323e"}]},{featureType:"poi",elementType:"geometry",stylers:[{saturation:20}]},{featureType:"poi.park",elementType:"geometry",stylers:[{lightness:20,saturation:-20}]},{featureType:"road",elementType:"geometry",stylers:[{lightness:10,saturation:-30}]},{featureType:"road",elementType:"geometry.stroke",stylers:[{saturation:-20,lightness:25}]},{featureType:"water",elementType:"all",stylers:[{lightness:-20}]}],
@@ -291,38 +320,61 @@ export default function ThingsToDoPage() {
         streetViewControl: false, fullscreenControl: true, zoomControl: true,
       });
       setMap(newMap);
-    } catch (error) { setMapsApiError("Error initializing map."); }
+      console.log("[ThingsToDoPage] Map initialized successfully.");
+    } catch (error) { 
+        console.error("[ThingsToDoPage] Error initializing map:", error);
+        setMapsApiError("Error initializing map."); 
+    }
     finally { setIsMapInitializing(false); }
   }, []);
 
   useEffect(() => {
-    if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing) {
+    console.log(`[ThingsToDoPage] Map Init Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, mapRef.current=${!!mapRef.current}, !map=${!map}, isMapInitializing=${isMapInitializing}`);
+    if (isMapsScriptLoaded && mapRef.current && !map && isMapInitializing) { // Only init if script is loaded, ref exists, map not yet set, and we intend to init
+        console.log("[ThingsToDoPage] Conditions met for map initialization with default view.");
         initializeMap(); // Initialize with default global view
     }
   }, [isMapsScriptLoaded, map, isMapInitializing, initializeMap]);
 
   // Plot Markers
   const plotActivityMarkers = useCallback((activities: ActivitySuggestion[]) => {
-    if (!map || !window.google || !window.google.maps) return;
+    if (!map || !window.google || !window.google.maps) {
+        console.warn("[ThingsToDoPage] Map not ready for plotting markers. Activities to plot:", activities.length);
+        return;
+    }
+    console.log(`[ThingsToDoPage] Plotting ${activities.length} activity markers.`);
 
     mapMarkersRef.current.forEach(marker => marker.setMap(null));
     mapMarkersRef.current = [];
 
-    if (activities.length === 0) return;
+    if (activities.length === 0) {
+        console.log("[ThingsToDoPage] No activities to plot. Resetting map view if needed.");
+        // Optionally reset map view to a default or user location if no activities
+        // initializeMap(); // Or center on user location if available
+        return;
+    }
 
     const bounds = new window.google.maps.LatLngBounds();
     let validMarkersPlotted = 0;
 
     activities.forEach(activity => {
-      if (activity.latitude != null && activity.longitude != null) {
+      if (activity.latitude != null && activity.longitude != null && typeof activity.latitude === 'number' && typeof activity.longitude === 'number') {
+        console.log(`[ThingsToDoPage] Creating marker for ${activity.name} at ${activity.latitude}, ${activity.longitude}`);
         const position = { lat: activity.latitude, lng: activity.longitude };
         const marker = new window.google.maps.Marker({
           position,
           map,
           title: activity.name,
-          // icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: "hsl(var(--accent))", fillOpacity: 1, strokeColor: "hsl(var(--background))", strokeWeight: 2 } // Example custom marker
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "hsl(var(--accent))",
+            fillOpacity: 1,
+            strokeColor: "hsl(var(--background))",
+            strokeWeight: 2,
+          }
         });
-        marker.set('activityData', activity);
+        marker.set('activityData', activity); 
         marker.addListener('click', () => {
           setSelectedActivity(activity);
           setIsActivityDetailDialogOpen(true);
@@ -332,14 +384,20 @@ export default function ThingsToDoPage() {
         mapMarkersRef.current.push(marker);
         bounds.extend(position);
         validMarkersPlotted++;
+      } else {
+        console.warn(`[ThingsToDoPage] Activity "${activity.name}" missing valid coordinates. Lat: ${activity.latitude}, Lng: ${activity.longitude}. Skipping marker.`);
       }
     });
 
+    console.log(`[ThingsToDoPage] Plotted ${validMarkersPlotted} valid markers out of ${activities.length} suggestions.`);
     if (validMarkersPlotted > 0 && !bounds.isEmpty()) {
-      map.fitBounds(bounds, 100);
+      map.fitBounds(bounds, 100); 
       if (validMarkersPlotted === 1 && map.getZoom() && map.getZoom()! > 15) map.setZoom(15);
+    } else {
+      // Fallback if no valid markers, center globally or on user location if available
+      initializeMap(); 
     }
-  }, [map]);
+  }, [map, initializeMap]);
 
 
   const handleSearchThingsToDo = async (e?: React.FormEvent) => {
@@ -358,22 +416,32 @@ export default function ThingsToDoPage() {
         location: locationInput,
         interest: interestInput || undefined,
       };
+      console.log("[ThingsToDoPage] Calling getThingsToDoAction with input:", JSON.stringify(input, null, 2));
       const result = await getThingsToDoAction(input);
+      console.log("[ThingsToDoPage] AI Things To Do Result:", JSON.stringify(result, null, 2));
       setActivitySuggestions(result.activities || []);
-      setAiSearchSummary(result.searchSummary || (result.activities?.length === 0 ? `No specific activities found by AI for ${locationInput}.` : `Here are some AI-suggested activities for ${locationInput}!`));
+      setAiSearchSummary(result.searchSummary || (result.activities?.length === 0 ? `No specific activities found by AI for ${locationInput}. Try a broader search!` : `Here are some AI-suggested activities for ${locationInput}!`));
+      
       plotActivityMarkers(result.activities || []);
+      
       if(result.activities && result.activities.length > 0 && result.activities[0].latitude && result.activities[0].longitude && map) {
-        map.panTo({lat: result.activities[0].latitude, lng: result.activities[0].longitude});
+        const firstActivityLocation = { lat: result.activities[0].latitude, lng: result.activities[0].longitude };
+        console.log("[ThingsToDoPage] Panning map to first activity:", firstActivityLocation);
+        map.panTo(firstActivityLocation);
         if(result.activities.length === 1) map.setZoom(14);
       } else if (result.activities && result.activities.length === 0) {
          toast({
             title: "No Activities Found",
-            description: `Aura AI couldn't find specific activities for "${locationInput}". Try a broader search or a different location.`,
+            description: `Aura AI couldn't find specific activities for "${locationInput}". Try a different location.`,
             variant: "default",
          });
+      } else if (result.activities && result.activities.length > 0 && (!result.activities[0].latitude || !result.activities[0].longitude) && map) {
+        console.warn("[ThingsToDoPage] First activity has no coordinates, not panning map.");
       }
+
     } catch (error: any) {
       const errorMsg = `Failed to get AI suggestions for ${locationInput}: ${error.message || 'Unknown error'}`;
+      console.error("[ThingsToDoPage] Error in handleSearchThingsToDo:", errorMsg, error);
       setActivitiesError(errorMsg);
       setAiSearchSummary(errorMsg);
       toast({ title: "AI Search Error", description: errorMsg, variant: "destructive" });
@@ -408,11 +476,6 @@ export default function ThingsToDoPage() {
                 className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-11 text-base" 
               />
             </div>
-            {/* Optional Interest Filter - Can be added later */}
-            {/* <div>
-              <Label htmlFor="things-interest" className="text-card-foreground/90">Interest (Optional)</Label>
-              <Input id="things-interest" value={interestInput} onChange={(e) => setInterestInput(e.target.value)} placeholder="e.g., Museums, Hiking, Food" className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-11 text-base" />
-            </div> */}
             <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingActivities || !locationInput.trim()}>
               {isLoadingActivities ? <Loader2 className="animate-spin" /> : <Search />}
               {isLoadingActivities ? 'AI Discovering Activities...' : 'Search Things to Do with AI'}
@@ -477,13 +540,19 @@ export default function ThingsToDoPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {activitySuggestions.map((activity, index) => (
                 <ActivitySuggestionCard 
-                  key={`activity-${activity.name}-${index}`} 
+                  key={`activity-${activity.name}-${index}-${activity.latitude || index}`} 
                   activity={activity} 
                   onClick={() => { setSelectedActivity(activity); setIsActivityDetailDialogOpen(true); }} 
                 />
               ))}
             </div>
           )}
+           {!isLoadingActivities && activitySuggestions.length === 0 && aiSearchSummary && !aiSearchSummary.toLowerCase().includes("error") && !aiSearchSummary.toLowerCase().includes("searching") && (
+            <Card className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
+                <Compass className="w-12 h-12 mx-auto mb-2 opacity-70"/>
+                <p>{aiSearchSummary}</p>
+            </Card>
+           )}
         </section>
       )}
     </div>

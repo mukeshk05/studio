@@ -751,4 +751,3 @@ export default function TravelPage() {
     </div>
   );
 }
-```
