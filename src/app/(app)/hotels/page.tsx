@@ -878,5 +878,3 @@ export default function HotelsPage() {
     </>
   );
 }
-
-```
