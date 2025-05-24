@@ -11,7 +11,7 @@ import {
   type ThingsToDoSearchInput,
   ThingsToDoOutputSchema,
   type ThingsToDoOutput,
-  ActivitySuggestionSchema as BaseActivitySuggestionSchema, // Use for text part
+  ActivitySuggestionSchema as BaseActivitySuggestionSchema,
 } from '@/ai/types/things-to-do-types';
 import { generateMultipleImagesFlow, type ImagePromptItem, type ImageResultItem } from '@/ai/flows/generate-multiple-images-flow';
 
@@ -43,8 +43,8 @@ For EACH activity or attraction, you MUST provide a JSON object with ALL of the 
 -   'description': A brief, engaging description (1-2 sentences).
 -   'category': A relevant category (e.g., "Museum", "Historical Site", "Outdoor Activity", "Food Tour", "Cultural Experience", "Shopping District", "Live Music Venue").
 -   'estimatedPrice': A conceptual price indication (e.g., "Free", "$15", "$25 - $50 per person", "Approx $100 for tour", "Varies by shop/restaurant").
--   'latitudeString': Approximate latitude of the activity/attraction as a STRING (e.g., "48.8606" for Louvre). THIS IS CRITICAL.
--   'longitudeString': Approximate longitude as a STRING (e.g., "2.3376" for Louvre). THIS IS CRITICAL.
+-   'latitudeString': Approximate latitude of the activity/attraction as a STRING (e.g., "48.8606" for Louvre). THIS IS CRITICAL. If unknown, provide an empty string.
+-   'longitudeString': Approximate longitude as a STRING (e.g., "2.3376" for Louvre). THIS IS CRITICAL. If unknown, provide an empty string.
 -   'imagePrompt': A concise text prompt (4-7 words) suitable for an image generation AI to create an attractive and representative photo of this activity/attraction (e.g., "Louvre Museum pyramid sunset", "Parisian food tour croissants cheese", "Eiffel Tower sparkling night").
 
 Example for "Paris" with interest "art and history":
@@ -65,7 +65,7 @@ Example for "Paris" with interest "art and history":
 }
 
 Return a JSON object with a key "activities" containing an array of these activity objects, and an optional "searchSummary" string.
-Ensure latitudeString and longitudeString are provided for every activity.
+Ensure latitudeString and longitudeString are provided for every activity, even if empty strings.
 `,
 });
 
@@ -90,9 +90,9 @@ export const thingsToDoFlow = ai.defineFlow(
     console.log(`[AI Flow - thingsToDoFlow] Text-only activity suggestions received: ${textOutput.activities.length}`);
 
     const imagePrompts: ImagePromptItem[] = textOutput.activities.map((activity, index) => ({
-      id: `activity-${index}-${activity.name.replace(/\s+/g, '-')}`, // Create a unique ID
+      id: `activity-${index}-${activity.name.replace(/\s+/g, '-').substring(0, 30)}`,
       prompt: activity.imagePrompt,
-      styleHint: 'general', // Or a new specific style hint like 'activity'
+      styleHint: 'activity', 
     }));
 
     let imageResults: ImageResultItem[] = [];
@@ -103,17 +103,16 @@ export const thingsToDoFlow = ai.defineFlow(
             console.log(`[AI Flow - thingsToDoFlow] Image generation results received: ${imageResults.length}`);
         } catch (imgError) {
             console.error("[AI Flow - thingsToDoFlow] Error calling generateMultipleImagesFlow:", imgError);
-            // Continue without images if generation fails for all
         }
     }
     
     const activitiesWithImagesAndCoords = textOutput.activities.map((activityTextPart, index) => {
-      const correspondingImageResult = imageResults.find(imgRes => imgRes.id === `activity-${index}-${activityTextPart.name.replace(/\s+/g, '-')}`);
+      const correspondingImageResult = imageResults.find(imgRes => imgRes.id === `activity-${index}-${activityTextPart.name.replace(/\s+/g, '-').substring(0, 30)}`);
       
       let latitude: number | undefined = undefined;
       let longitude: number | undefined = undefined;
 
-      if (activityTextPart.latitudeString) {
+      if (activityTextPart.latitudeString && activityTextPart.latitudeString.trim() !== "") {
           const latNum = parseFloat(activityTextPart.latitudeString);
           if (!isNaN(latNum) && latNum >= -90 && latNum <= 90) {
                latitude = latNum;
@@ -121,15 +120,17 @@ export const thingsToDoFlow = ai.defineFlow(
                console.warn(`[AI Flow - thingsToDoFlow] Could not parse latitudeString "${activityTextPart.latitudeString}" or it's out of range for ${activityTextPart.name}. Parsed: ${latNum}.`);
           }
       } else {
-          console.warn(`[AI Flow - thingsToDoFlow] Missing latitudeString for ${activityTextPart.name}.`);
+          console.log(`[AI Flow - thingsToDoFlow] Missing or empty latitudeString for ${activityTextPart.name}.`);
       }
-      if (activityTextPart.longitudeString) {
+      if (activityTextPart.longitudeString && activityTextPart.longitudeString.trim() !== "") {
           const lonNum = parseFloat(activityTextPart.longitudeString);
           if (!isNaN(lonNum) && lonNum >= -180 && lonNum <= 180) {
               longitude = lonNum;
           } else {
               console.warn(`[AI Flow - thingsToDoFlow] Could not parse longitudeString "${activityTextPart.longitudeString}" or it's out of range for ${activityTextPart.name}. Parsed: ${lonNum}.`);
           }
+      } else {
+        console.log(`[AI Flow - thingsToDoFlow] Missing or empty longitudeString for ${activityTextPart.name}.`);
       }
       
       return {
@@ -140,10 +141,11 @@ export const thingsToDoFlow = ai.defineFlow(
       };
     });
     
-    console.log(`[AI Flow - thingsToDoFlow] Processed ${activitiesWithImagesAndCoords.length} activities with images and coordinates.`);
+    console.log(`[AI Flow - thingsToDoFlow] Processed ${activitiesWithImagesAndCoords.length} activities. Sample first:`, activitiesWithImagesAndCoords[0]);
     return {
       activities: activitiesWithImagesAndCoords,
       searchSummary: textOutput?.searchSummary || `Here are some AI-suggested activities for ${input.location}!`
     };
   }
 );
+
