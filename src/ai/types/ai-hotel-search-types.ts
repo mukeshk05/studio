@@ -6,7 +6,7 @@ import { z } from 'genkit';
 
 export const AiHotelSearchInputSchema = z.object({
   destination: z.string().min(3, { message: "Destination must be at least 3 characters." })
-    .describe('The city or area where the user wants to find a hotel.'),
+    .describe('The city or area where the user wants to find a hotel, or a contextual query like "Hotels near latitude X, longitude Y".'),
   checkInDate: z.string().describe('The desired check-in date (e.g., "YYYY-MM-DD").'),
   checkOutDate: z.string().describe('The desired check-out date (e.g., "YYYY-MM-DD").'),
   guests: z.string().min(1, { message: "Guest information is required." })
@@ -22,6 +22,8 @@ export const AiHotelSuggestionSchema = z.object({
   amenities: z.array(z.string()).min(2).max(7).describe("A list of 3-5 key amenities (e.g., ['Pool', 'Free WiFi', 'Parking', 'Restaurant', 'Gym'])."),
   imagePrompt: z.string().describe("A concise text prompt suitable for generating an attractive photo of the hotel (e.g., 'luxury hotel lobby paris', 'boutique hotel room ocean view', 'hotel exterior modern design sunny')."),
   imageUri: z.string().optional().describe("Data URI of the AI-generated image for the hotel. Populated by the flow."),
+  latitude: z.number().optional().describe("Approximate latitude of the hotel. Critical for map display."),
+  longitude: z.number().optional().describe("Approximate longitude of the hotel. Critical for map display."),
 });
 export type AiHotelSuggestion = z.infer<typeof AiHotelSuggestionSchema>;
 
@@ -30,3 +32,4 @@ export const AiHotelSearchOutputSchema = z.object({
   searchSummary: z.string().optional().describe("An optional overall summary message from the AI, e.g., 'Found some great options for your stay in Paris!' or notes if suggestions are broad."),
 });
 export type AiHotelSearchOutput = z.infer<typeof AiHotelSearchOutputSchema>;
+
