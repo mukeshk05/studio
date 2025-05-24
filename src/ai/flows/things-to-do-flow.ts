@@ -143,4 +143,7 @@ export const thingsToDoFlow = ai.defineFlow(
     console.log(`[AI Flow - thingsToDoFlow] Processed ${activitiesWithImagesAndCoords.length} activities with images and coordinates.`);
     return {
       activities: activitiesWithImagesAndCoords,
-      searchSummary: text
+      searchSummary: textOutput?.searchSummary || `Here are some AI-suggested activities for ${input.location}!`
+    };
+  }
+);

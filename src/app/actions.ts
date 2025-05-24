@@ -5,7 +5,8 @@ import { firestore } from '@/lib/firebase';
 import {
   generateMultipleImagesFlow,
   type MultipleImagesInput, 
-  type ImageResultItem, 
+  type ImagePromptItem, // Exported from generate-multiple-images-flow
+  type ImageResultItem,  // Exported from generate-multiple-images-flow
 } from '@/ai/flows/generate-multiple-images-flow';
 import { collection, doc, getDocs, query, where, writeBatch, documentId, setDoc, serverTimestamp, getDoc, Timestamp } from 'firebase/firestore';
 import type { PopularDestinationsOutput, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
@@ -21,7 +22,7 @@ import type {
 } from '@/ai/types/ai-flight-map-deals-types';
 import { conceptualFlightSearchFlow } from '@/ai/flows/conceptual-flight-search-flow';
 import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput } from '@/ai/types/conceptual-flight-search-types';
-// import { aiHotelSearchFlow } from '@/ai/flows/ai-hotel-search-flow'; // Keep this commented out for now as it's replaced conceptually
+import { aiHotelSearchFlow } from '@/ai/flows/ai-hotel-search-flow';
 import type { AiHotelSearchInput, AiHotelSearchOutput, AiHotelSuggestion } from '@/ai/types/ai-hotel-search-types';
 import { thingsToDoFlow } from '@/ai/flows/things-to-do-flow';
 import type { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-to-do-types';
@@ -30,10 +31,10 @@ import type { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-
 export interface ImageRequest {
   id: string;
   promptText: string;
-  styleHint: 'hero' | 'featureCard' | 'general' | 'activity';
+  styleHint: 'hero' | 'featureCard' | 'general' | 'destination' | 'hotel' | 'activity';
 }
 
-// Internal helper to save image URI to Firestore
+// Internal helper to save image URI to Firestore - NOT a Server Action itself
 async function saveImageUriToDbInternal({
   id,
   imageUri,
@@ -43,15 +44,15 @@ async function saveImageUriToDbInternal({
   id: string;
   imageUri: string;
   promptText: string;
-  styleHint: string; // string is fine here as it's just for storage
+  styleHint: string;
 }) {
+  console.log(`[DB Save Internal] Attempting to save image to Firestore for ID: ${id}. URI starts with: ${imageUri ? imageUri.substring(0, 50) + '...' : 'null'}`);
+  if (!firestore) {
+    console.error(`[DB Save Internal Error] Firestore instance is undefined. Cannot save image for ID ${id}.`);
+    return;
+  }
   try {
-    console.log(`[DB Save Internal] Attempting to save image to Firestore for ID: ${id}. URI starts with: ${imageUri ? imageUri.substring(0, 50) + '...' : 'null'}`);
-    if (!firestore) {
-      console.error(`[DB Save Internal Error] Firestore instance is undefined. Cannot save image for ID ${id}.`);
-      return;
-    }
-    const imageDocRef = doc(firestore, 'landingPageImages', id); // Using a generic collection name for now
+    const imageDocRef = doc(firestore, 'landingPageImages', id);
     await setDoc(imageDocRef, {
       imageUri: imageUri,
       promptUsed: promptText,
@@ -60,7 +61,7 @@ async function saveImageUriToDbInternal({
     }, { merge: true });
     console.log(`[DB Save Internal] Image for ID ${id} SAVED/UPDATED successfully in Firestore.`);
   } catch (error: any) {
-    console.error(`[DB Save Internal Error] Failed to save image for ID ${id} to Firestore:`, error.message, error.stack, error);
+    console.error(`[DB Save Internal Error] Failed to save image for ID ${id} to Firestore. Error: ${error.message}`, error);
   }
 }
 
@@ -69,11 +70,12 @@ export async function getLandingPageImagesWithFallback(
 ): Promise<Record<string, string | null>> {
   console.log(`[Server Action - getLandingPageImagesWithFallback] Started. Total requests: ${requests.length}`);
   const imageUris: Record<string, string | null> = {};
-  requests.forEach(req => imageUris[req.id] = null); // Initialize all with null
+  // Initialize all requested IDs with null
+  requests.forEach(req => imageUris[req.id] = null);
 
   const requestIds = requests.map(req => req.id);
-  const aiGenerationQueue: Array<ImageRequest> = [];
-  const MAX_FIRESTORE_IN_QUERY = 30;
+  const aiGenerationQueue: ImagePromptItem[] = []; // Corrected type to match generateMultipleImagesFlow input
+  const MAX_FIRESTORE_IN_QUERY = 30; // Firestore 'in' query limit
 
   try {
     if (requestIds.length > 0 && firestore) {
@@ -84,7 +86,7 @@ export async function getLandingPageImagesWithFallback(
           console.log("[DB Check] Empty ID chunk, skipping Firestore query for this batch.");
           continue;
         }
-        console.log(`[DB Check] Querying Firestore for IDs: ${chunkOfIds.join(', ')} (Chunk ${Math.floor(i / MAX_FIRESTORE_IN_QUERY) + 1})`);
+        console.log(`[DB Check] Querying Firestore for IDs chunk: ${chunkOfIds.join(', ')}`);
         try {
           const imageDocsQuery = query(collection(firestore, 'landingPageImages'), where(documentId(), 'in', chunkOfIds));
           const imageDocsSnap = await getDocs(imageDocsQuery);
@@ -93,14 +95,17 @@ export async function getLandingPageImagesWithFallback(
               const data = docSnap.data();
               if (data.imageUri) {
                 imageUris[docSnap.id] = data.imageUri;
-                console.log(`[DB Check] Found existing image in Firestore for ID ${docSnap.id}.`);
+                console.log(`[DB Check] Found existing image in Firestore for ID ${docSnap.id}. URI starts with: ${data.imageUri.substring(0, 50)}...`);
               } else {
-                console.log(`[DB Check] Document for ID ${docSnap.id} found but no imageUri. Will attempt AI gen.`);
+                console.log(`[DB Check] Document for ID ${docSnap.id} found but no imageUri. Will queue for AI generation.`);
               }
+            } else {
+              console.log(`[DB Check] No document found for ID ${docSnap.id} in Firestore.`);
             }
           });
         } catch (dbError: any) {
-          console.error(`[DB Check Error] Firestore query failed for chunk ${chunkOfIds.join(',')}:`, dbError.message, dbError.stack, dbError);
+          console.error(`[DB Check Error] Firestore query failed for chunk. Error: ${dbError.message}`, dbError);
+          // Continue to next chunk or AI generation, errors here shouldn't stop the whole process
         }
       }
     } else if (!firestore) {
@@ -108,54 +113,58 @@ export async function getLandingPageImagesWithFallback(
     }
 
     requests.forEach(req => {
-      if (imageUris[req.id] === null) {
-        aiGenerationQueue.push(req);
+      if (imageUris[req.id] === null) { // Only add to AI queue if not found in DB (or if DB value was explicitly null, though less likely)
+        aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint });
       }
     });
 
-    console.log(`[Server Action] Found ${Object.values(imageUris).filter(uri => uri !== null).length} images in DB. Sending ${aiGenerationQueue.length} to AI.`);
+    console.log(`[Server Action] Found ${Object.values(imageUris).filter(uri => uri !== null).length} images in DB. Sending ${aiGenerationQueue.length} to AI for generation.`);
 
     if (aiGenerationQueue.length > 0) {
       try {
-        const promptsForAi = aiGenerationQueue.map(item => ({ id: item.id, prompt: item.promptText, styleHint: item.styleHint }));
-        const aiResultsOutput = await generateMultipleImagesFlow({ prompts: promptsForAi });
+        console.log('[Server Action] Calling generateMultipleImagesFlow with prompts:', aiGenerationQueue.map(p=>p.prompt));
+        const aiResultsOutput = await generateMultipleImagesFlow({ prompts: aiGenerationQueue });
         const aiResults = aiResultsOutput.results;
-        console.log(`[Server Action] AI Results received. Count: ${aiResults.length}`);
+        console.log(`[Server Action] AI Results received. Count: ${aiResults.length}`, aiResults);
         
         aiResults.forEach(aiResult => {
           const originalRequest = requests.find(r => r.id === aiResult.id);
           if (aiResult.imageUri) {
             imageUris[aiResult.id] = aiResult.imageUri;
-            console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}.`);
+            console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}. URI starts with: ${aiResult.imageUri.substring(0,50)}...`);
             if (originalRequest) {
+              // Call save to DB asynchronously (don't await)
               saveImageUriToDbInternal({ 
                 id: aiResult.id,
                 imageUri: aiResult.imageUri,
-                promptText: originalRequest.promptText,
-                styleHint: originalRequest.styleHint,
+                promptText: originalRequest.promptText, // Use original promptText from request
+                styleHint: originalRequest.styleHint,   // Use original styleHint from request
               }).catch(dbSaveError => console.error(`[Server Action - Background Save Error] Firestore save failed for ${aiResult.id}:`, dbSaveError));
             }
           } else {
-            console.warn(`[Server Action] AI generation failed or returned null URI for ID ${aiResult.id}. Error: ${aiResult.error || 'Unknown AI error'}`);
+            console.warn(`[Server Action] AI generation failed or returned null URI for ID ${aiResult.id}. Error: ${aiResult.error || 'Unknown AI error'}. imageUris[${aiResult.id}] remains null.`);
           }
         });
       } catch (flowError: any) {
-        console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow:', flowError.message, flowError.stack, flowError);
-        aiGenerationQueue.forEach(req => { imageUris[req.id] = null; });
+        console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow. Error: ', flowError.message, flowError.stack, flowError);
+        // Ensure items queued for AI that failed remain null
+        aiGenerationQueue.forEach(req => { 
+          if (imageUris[req.id] === undefined) imageUris[req.id] = null; 
+        });
       }
     }
-    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris object (values might be URI snippets or null):`, 
-      Object.fromEntries(Object.entries(imageUris).map(([k, v]) => [k, v ? v.substring(0, 50) + '...' : null]))
-    );
+    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris object:`, JSON.stringify(Object.fromEntries(Object.entries(imageUris).map(([k, v]) => [k, v ? v.substring(0, 30) + '...' : null])), null, 2));
     return imageUris;
   } catch (error: any) {
     console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', error.message, error.stack, error);
+    // Fallback: return an object with nulls for all requested IDs
     const fallbackUris: Record<string, string | null> = {};
     requests.forEach(req => fallbackUris[req.id] = null);
     console.error('[Server Action - getLandingPageImagesWithFallback] Returning fallbackUris due to top-level error:', fallbackUris);
     return fallbackUris;
   }
 }
+
 
 export async function getPopularDestinations(
   input: PopularDestinationsInput
@@ -164,6 +173,7 @@ export async function getPopularDestinations(
   try {
     const result = await popularDestinationsFlow(input);
     console.log(`[Server Action - getPopularDestinations] AI Flow Result (destinations count): ${result.destinations?.length || 0}. Contextual Note: ${result.contextualNote}`);
+    console.log(`[Server Action - getPopularDestinations] AI Flow Result (destinations with images):`, result.destinations?.map(d => ({name: d.name, imageUriProvided: !!d.imageUri, coords: {lat: d.latitude, lng: d.longitude}})));
     return result;
   } catch (error: any) {
     console.error('[Server Action - getPopularDestinations] ERROR fetching popular destinations:', error.message, error.stack, error);
@@ -181,7 +191,7 @@ export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput)
     console.error('[Server Action - getExploreIdeasAction] ERROR fetching explore ideas:', error.message, error.stack, error);
     return { 
       suggestions: [], 
-      contextualNote: `Error GEIA1: The server action encountered an issue generating explore ideas: ${error.message}` 
+      contextualNote: `Error GEIA1: The server action encountered an issue generating explore ideas. Please try again later.` 
     };
   }
 }
@@ -218,57 +228,15 @@ export async function getConceptualFlightsAction(input: ConceptualFlightSearchIn
   }
 }
 
-// Updated getAiHotelSuggestionsAction to simulate SerpApi and use generateMultipleImagesFlow for images
 export async function getAiHotelSuggestionsAction(input: AiHotelSearchInput): Promise<AiHotelSearchOutput> {
-  console.log('[Server Action - getAiHotelSuggestionsAction] Input:', input);
+  console.log('[Server Action - getAiHotelSuggestionsAction] Input:', JSON.stringify(input, null, 2));
   try {
-    // --- SIMULATED SERPAPI / EXTERNAL API CALL ---
-    // In a real scenario, you'd call SerpApi here with input.destination, input.checkInDate etc.
-    // const serpApiKey = process.env.SERPAPI_API_KEY;
-    // For now, using mock data.
-    const mockSerpApiHotels = [
-      { name: "The Grand Plaza", price: "$250 - $350", rating: 4.5, description: "A luxurious hotel in the heart of the city, known for its stunning views and impeccable service.", amenities: ["Pool", "Spa", "Gym", "Restaurant", "Free WiFi"], latitude: input.destination.includes("Paris") ? 48.8584 : (input.destination.includes("Tokyo") ? 35.6762 : 40.7128), longitude: input.destination.includes("Paris") ? 2.2945 : (input.destination.includes("Tokyo") ? 139.6503 : -74.0060), imageDescriptor: "grand hotel plaza facade" },
-      { name: "Seaside Boutique Inn", price: "$180 - $280", rating: 4.2, description: "Charming inn with ocean views and a cozy atmosphere, perfect for a romantic getaway.", amenities: ["Beach Access", "Restaurant", "Free WiFi", "Balcony Rooms"], latitude: input.destination.includes("Paris") ? 48.8600 : (input.destination.includes("Tokyo") ? 35.6780 : 34.0522), longitude: input.destination.includes("Paris") ? 2.3000 : (input.destination.includes("Tokyo") ? 139.6700 : -118.2437), imageDescriptor: "boutique inn seaside balcony" },
-      { name: "Urban Comfort Suites", price: "$120 - $200", rating: 3.9, description: "Modern suites offering great value and convenience for city explorers and business travelers.", amenities: ["Kitchenette", "Free WiFi", "Parking", "Business Center"], latitude: input.destination.includes("Paris") ? 48.8550 : (input.destination.includes("Tokyo") ? 35.6730 : 40.7580), longitude: input.destination.includes("Paris") ? 2.2900 : (input.destination.includes("Tokyo") ? 139.6900 : -73.9855), imageDescriptor: "modern urban hotel suites exterior" },
-    ];
-    console.log('[Server Action - getAiHotelSuggestionsAction] Using mock hotel data:', mockSerpApiHotels.length, "hotels.");
-
-    const imagePromptsForHotels: ImageRequest[] = mockSerpApiHotels.map((hotel, index) => ({
-      id: `hotel-${input.destination.replace(/\s+/g, '-')}-${index}`, // Unique ID for image mapping
-      promptText: `High-quality, attractive photograph of a hotel described as: "${hotel.name}, ${hotel.description.substring(0, 50)}...". Focus: ${hotel.imageDescriptor}. Style: inviting, well-lit. Aspect ratio 16:9.`,
-      styleHint: 'general', // Or a new 'hotel' styleHint if you define one
-    }));
-
-    let hotelImageResults: Record<string, string | null> = {};
-    if (imagePromptsForHotels.length > 0) {
-        const aiImageOutput = await generateMultipleImagesFlow({ prompts: imagePromptsForHotels });
-        aiImageOutput.results.forEach(res => {
-            hotelImageResults[res.id] = res.imageUri;
-        });
-    }
-    console.log('[Server Action - getAiHotelSuggestionsAction] AI Image generation results for hotels:', hotelImageResults);
-    
-    const finalHotelSuggestions: AiHotelSuggestion[] = mockSerpApiHotels.map((mockHotel, index) => {
-        const imageRequestId = `hotel-${input.destination.replace(/\s+/g, '-')}-${index}`;
-        return {
-            name: mockHotel.name,
-            conceptualPriceRange: mockHotel.price,
-            rating: mockHotel.rating,
-            description: mockHotel.description,
-            amenities: mockHotel.amenities,
-            imagePrompt: imagePromptsForHotels.find(p=>p.id === imageRequestId)?.promptText || `Photo of ${mockHotel.name}`, // Fallback prompt
-            imageUri: hotelImageResults[imageRequestId] || `https://placehold.co/600x400.png?text=${encodeURIComponent(mockHotel.name.substring(0,10))}`,
-            latitude: mockHotel.latitude,
-            longitude: mockHotel.longitude,
-        };
+    const result = await aiHotelSearchFlow(input);
+    console.log(`[Server Action - getAiHotelSuggestionsAction] AI Flow Result (hotels count): ${result.hotels?.length || 0}. Search Summary: ${result.searchSummary}`);
+    result.hotels.forEach((hotel, index) => {
+      console.log(`[Server Action - getAiHotelSuggestionsAction] Hotel ${index}: ${hotel.name}, ImageURI: ${hotel.imageUri ? 'Present' : 'Missing'}, Lat: ${hotel.latitude}, Lng: ${hotel.longitude}`);
     });
-
-    console.log(`[Server Action - getAiHotelSuggestionsAction] Processed ${finalHotelSuggestions.length} hotel suggestions with (simulated SerpApi data + AI images).`);
-    return {
-      hotels: finalHotelSuggestions,
-      searchSummary: `Found ${finalHotelSuggestions.length} conceptual hotel ideas for ${input.destination} (data simulated, images by AI).`
-    };
-
+    return result;
   } catch (error: any) {
     console.error('[Server Action - getAiHotelSuggestionsAction] ERROR fetching/processing hotel suggestions:', error.message, error.stack, error);
     return {
@@ -290,4 +258,23 @@ export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise
     return {
       activities: [],
       searchSummary: `Sorry, an error occurred while finding things to do in ${input.location}: ${error.message}`
-    
+    };
+  }
+}
+
+// Original Server Action for a single feature image (can be deprecated or kept for other uses)
+export async function getAiImageForFeatureServerAction(promptText: string): Promise<string | null> {
+  console.log(`[Server Action - getAiImageForFeature] Received prompt: "${promptText}"`);
+  try {
+    // Assuming generateMultipleImagesFlow can handle a single item array for consistency,
+    // or you can call a specific single image generation flow if you create one.
+    const result = await generateMultipleImagesFlow({ prompts: [{ id: 'single-feature', prompt: promptText, styleHint: 'featureCard' }] });
+    if (result.results && result.results.length > 0) {
+      return result.results[0].imageUri;
+    }
+    return null;
+  } catch (error: any) {
+    console.error(`[Server Action - getAiImageForFeature] Error generating image for prompt "${promptText}":`, error.message, error.stack, error);
+    return null;
+  }
+}
