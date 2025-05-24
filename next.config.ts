@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  webpack: (config, { isServer, dev }) => { // Added 'dev' for completeness, though not used in this specific fallback
+  webpack: (config, { isServer, dev }) => { // Added 'dev' for completeness
     // IMPORTANT: This Webpack configuration correctly handles Node.js core module issues
     // for client-side bundles when Next.js uses Webpack as its bundler.
     // If you are using `next dev --turbopack`, Turbopack (which is experimental)
