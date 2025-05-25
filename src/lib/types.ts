@@ -11,6 +11,10 @@ export type Itinerary = SingleItineraryFromAI & {
     memoryText: string;
     generatedAt: string; 
   };
+  aiTripSummary?: { // New field for AI Trip Summary
+    text: string;
+    generatedAt: string; 
+  };
   culturalTip?: string | null; // Allow null
   weatherContext?: string | null; // Allow null
   riskContext?: string | null; // Allow null

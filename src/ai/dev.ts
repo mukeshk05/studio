@@ -34,3 +34,4 @@ import '@/ai/flows/ai-flight-map-deals-flow.ts';
 import '@/ai/flows/things-to-do-flow.ts';
 import '@/ai/flows/conceptual-date-grid-flow.ts';
 import '@/ai/flows/conceptual-price-graph-flow.ts';
+import '@/ai/flows/trip-summary-flow.ts'; // Added new flow

@@ -32,7 +32,7 @@ export function useAddSavedTrip() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
-  return useMutation<string, Error, Omit<Itinerary, 'id' | 'aiGeneratedMemory'>>({
+  return useMutation<string, Error, Omit<Itinerary, 'id' | 'aiGeneratedMemory' | 'aiTripSummary'>>({ // Updated to exclude aiTripSummary
     mutationFn: async (newTripData) => {
       if (!currentUser) throw new Error("User not authenticated");
       const tripsCollectionRef = collection(firestore, 'users', currentUser.uid, 'savedTrips');
@@ -77,9 +77,6 @@ export function useUpdateSavedTripMemory() {
       });
     },
     onSuccess: (_data, variables) => {
-      // Invalidate and refetch to update the UI
-      queryClient.invalidateQueries({ queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid] });
-      // Optionally, optimistically update the cache if needed for immediate UI feedback
       queryClient.setQueryData([SAVED_TRIPS_QUERY_KEY, currentUser?.uid], (oldData: Itinerary[] | undefined) =>
         oldData?.map(trip =>
           trip.id === variables.tripId ? { ...trip, aiGeneratedMemory: variables.memory } : trip
@@ -88,6 +85,33 @@ export function useUpdateSavedTripMemory() {
     },
     onError: (error) => {
       console.error("Error updating trip memory:", error);
+    }
+  });
+}
+
+// Hook to update AI generated trip summary for a saved trip
+export function useUpdateSavedTripSummary() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { tripId: string; summary: { text: string; generatedAt: string; } }>({
+    mutationFn: async ({ tripId, summary }) => {
+      if (!currentUser) throw new Error("User not authenticated");
+      const tripDocRef = doc(firestore, 'users', currentUser.uid, 'savedTrips', tripId);
+      await updateDoc(tripDocRef, {
+        aiTripSummary: summary,
+        lastModified: serverTimestamp()
+      });
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.setQueryData([SAVED_TRIPS_QUERY_KEY, currentUser?.uid], (oldData: Itinerary[] | undefined) =>
+        oldData?.map(trip =>
+          trip.id === variables.tripId ? { ...trip, aiTripSummary: variables.summary } : trip
+        )
+      );
+    },
+    onError: (error) => {
+      console.error("Error updating trip summary:", error);
     }
   });
 }

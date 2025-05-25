@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { CalendarDays, DollarSign, Info, Landmark, Trash2, Plane, Hotel, ImageOff, ListChecks, Route, Loader2, Eye, CloudSun, MessageSquareQuote, Leaf, Briefcase, Lightbulb, ScanEye, Users, BookOpenText, RefreshCw } from "lucide-react";
+import { CalendarDays, DollarSign, Info, Landmark, Trash2, Plane, Hotel, ImageOff, ListChecks, Route, Loader2, Eye, CloudSun, MessageSquareQuote, Leaf, Briefcase, Lightbulb, ScanEye, Users, BookOpenText, RefreshCw, Zap } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -32,6 +32,7 @@ import { getDestinationFact, DestinationFactInput, DestinationFactOutput } from 
 import { generateTripMemory, GenerateTripMemoryInput, GenerateTripMemoryOutput } from "@/ai/flows/generate-trip-memory-flow";
 import { cn } from "@/lib/utils";
 import { GroupSyncDialog } from "./GroupSyncDialog";
+import { TripTimelineDialog } from "./TripTimelineDialog"; // Added import
 import { useUpdateSavedTripMemory } from "@/lib/firestoreHooks"; 
 import { formatDistanceToNow } from 'date-fns';
 
@@ -93,6 +94,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
   const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false);
   const [isGroupSyncDialogOpen, setIsGroupSyncDialogOpen] = useState(false);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
+  const [isTimelineDialogOpen, setIsTimelineDialogOpen] = useState(false); // New state for timeline dialog
 
   const [packingList, setPackingList] = useState<string[] | null>(null);
   const [destinationFact, setDestinationFact] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
 
   const formatDailyPlanForAI = (dailyPlan: Itinerary['dailyPlan']): string => {
     if (!dailyPlan || dailyPlan.length === 0) return "No detailed daily plan available for this trip.";
-    return dailyPlan.map(day => `${day.day}: ${day.activities.substring(0, 150)}...`).join('\n');
+    return dailyPlan.map(day => `${day.day}: ${day.activities.substring(0, 150)}...`).join('\\n');
   };
 
   const handleFetchPackingList = async () => {
@@ -254,6 +256,13 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
             <p className="pl-5 text-xs border-l border-accent/50 ml-0.5 py-0.5">{booking.culturalTip}</p>
           </div>
         )}
+        {booking.aiTripSummary?.text && (
+          <div className="text-xs text-muted-foreground mb-3">
+            <h4 className="text-xs font-semibold text-card-foreground mb-0.5 flex items-center"><Zap className="w-3 h-3 mr-1.5 shrink-0 text-yellow-400" /> AI Generated Summary</h4>
+            <p className="pl-5 text-xs italic border-l border-yellow-400/50 ml-0.5 py-0.5">{booking.aiTripSummary.text}</p>
+          </div>
+        )}
+
 
         <Accordion type="multiple" className="w-full text-sm"  defaultValue={booking.dailyPlan && booking.dailyPlan.length > 0 ? ['daily-plan'] : []}>
           {booking.dailyPlan && booking.dailyPlan.length > 0 && (
@@ -305,25 +314,28 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
           )}
         </Accordion>
       </CardContent>
-      <CardFooter className="pt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+      <CardFooter className="pt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2"> {/* Changed to 3 columns for wider screens */}
         <Button onClick={() => { setIsPackingListDialogOpen(true); handleFetchPackingList(); }} variant="outline" size="sm" className="w-full glass-interactive">
-          <Briefcase className="mr-2 h-4 w-4" />List
+          <Briefcase className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />List
         </Button>
         <Button onClick={() => { setIsFactDialogOpen(true); handleFetchFunFact(); }} variant="outline" size="sm" className="w-full glass-interactive">
-          <Lightbulb className="mr-2 h-4 w-4" />Fact
+          <Lightbulb className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />Fact
         </Button>
         <Button onClick={() => setIsArVrDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive">
-          <ScanEye className="mr-2 h-4 w-4" />Preview
+          <ScanEye className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />Preview
         </Button>
         <Button onClick={() => setIsGroupSyncDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive">
-          <Users className="mr-2 h-4 w-4" />Sync
+          <Users className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />Sync
         </Button>
         <Button onClick={handleOpenMemoryDialog} variant="outline" size="sm" className="w-full glass-interactive">
-          <BookOpenText className="mr-2 h-4 w-4" />Memory
+          <BookOpenText className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />Memory
         </Button>
-        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50" disabled={isRemoving}>
+        <Button onClick={() => setIsTimelineDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive"> {/* New Timeline Button */}
+          <Route className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />Timeline
+        </Button>
+        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50 col-span-2 sm:col-span-3 lg:col-span-1" disabled={isRemoving}>
           {isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-          <span className="hidden md:inline">{isRemoving ? '' : 'Remove'}</span>
+          <span className="ml-1 sm:ml-2">{isRemoving ? '' : 'Remove'}</span>
         </Button>
       </CardFooter>
     </Card>
@@ -463,6 +475,13 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         isOpen={isGroupSyncDialogOpen}
         onClose={() => setIsGroupSyncDialogOpen(false)}
         trip={booking} 
+      />
+    )}
+    {booking && (
+      <TripTimelineDialog
+        isOpen={isTimelineDialogOpen}
+        onClose={() => setIsTimelineDialogOpen(false)}
+        trip={booking}
       />
     )}
     </>
