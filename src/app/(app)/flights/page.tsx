@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FormItem } from "@/components/ui/form";
+import { FormItem } from "@/components/ui/form"; // Keep if used, otherwise can be removed if RadioGroup doesn't need it directly
 import {
   Dialog,
   DialogContent,
@@ -386,6 +386,10 @@ export default function FlightsPage() {
   const [destination, setDestination] = useState('');
   const [dates, setDates] = useState<DateRange | undefined>(undefined);
 
+  const originInputRef = useRef<HTMLInputElement>(null);
+  const destinationInputRef = useRef<HTMLInputElement>(null);
+  const mapDealTargetDestinationCityInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     setDates({ from: new Date(), to: addDays(new Date(), 7) });
   }, []);
@@ -394,7 +398,7 @@ export default function FlightsPage() {
   const [passengers, setPassengers] = useState("1 adult");
   const [cabinClass, setCabinClass] = useState("economy");
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingConceptualFlights, setIsLoadingConceptualFlights] = useState(false);
   const [conceptualFlightData, setConceptualFlightData] = useState<ConceptualFlightSearchOutput | null>(null);
   const [selectedFlightForDetails, setSelectedFlightForDetails] = useState<ConceptualFlightOption | null>(null);
   const [isFlightDetailsDialogOpen, setIsFlightDetailsDialogOpen] = useState(false);
@@ -463,7 +467,7 @@ export default function FlightsPage() {
     console.log("[FlightsPage] Attempting to load Google Maps API script...");
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiFlightsPage&libraries=marker,geometry`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiFlightsPage&libraries=places,marker,geometry`;
     script.async = true; script.defer = true;
     script.onerror = () => {
       console.error("[FlightsPage] Failed to load Google Maps API script.");
@@ -532,7 +536,7 @@ export default function FlightsPage() {
   }, [isMapsScriptLoaded, map, isMapInitializing, initializeMap, isFetchingUserLocationForMap]);
 
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearchFlights = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
       toast({ title: "Please Log In", description: "You need to be logged in to search for flights.", variant: "destructive" });
@@ -543,7 +547,7 @@ export default function FlightsPage() {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingConceptualFlights(true);
     setConceptualFlightData(null);
     
     const input: ConceptualFlightSearchInput = {
@@ -582,7 +586,7 @@ export default function FlightsPage() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoadingConceptualFlights(false);
     }
   };
 
@@ -821,6 +825,35 @@ export default function FlightsPage() {
     }
   }, [map, isMapsScriptLoaded, mapDealSuggestions, userLocation, setSelectedMapDeal, setIsMapDealDialogOpen]);
 
+  // Autocomplete for main flight search form
+  useEffect(() => {
+    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && originInputRef.current) {
+      const autocomplete = new window.google.maps.places.Autocomplete(originInputRef.current, { types: ['(cities)', 'airport'] });
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        setOrigin(place.formatted_address || place.name || '');
+      });
+    }
+    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && destinationInputRef.current) {
+      const autocomplete = new window.google.maps.places.Autocomplete(destinationInputRef.current, { types: ['(cities)', 'airport'] });
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        setDestination(place.formatted_address || place.name || '');
+      });
+    }
+  }, [isMapsScriptLoaded]);
+
+  // Autocomplete for Map Deals destination input
+  useEffect(() => {
+    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && mapDealTargetDestinationCityInputRef.current) {
+      const autocomplete = new window.google.maps.places.Autocomplete(mapDealTargetDestinationCityInputRef.current, { types: ['(cities)'] });
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        setMapDealTargetDestinationCity(place.formatted_address || place.name || '');
+      });
+    }
+  }, [isMapsScriptLoaded]);
+
 
   return (
     <div className="container mx-auto py-8 px-4 animate-fade-in-up space-y-12">
@@ -830,15 +863,21 @@ export default function FlightsPage() {
           <CardDescription className="text-muted-foreground">Enter your travel details. Aura AI will generate conceptual flight options and ideas.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSearch} className="space-y-6">
+          <form onSubmit={handleSearchFlights} className="space-y-6">
             <RadioGroup value={tripType} onValueChange={(value: "round-trip" | "one-way" | "multi-city") => setTripType(value)} className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
               {["round-trip", "one-way", "multi-city"].map((type) => (<FormItem key={type} className="flex-1"><RadioGroupItem value={type} id={type} className="sr-only peer" /><Label htmlFor={type} className={cn("flex items-center justify-center p-3 text-sm font-medium rounded-md border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary", "transition-all cursor-pointer glass-pane")}>{type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</Label></FormItem>))}
             </RadioGroup>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-              <div className="relative"><Label htmlFor="origin" className="text-sm font-medium text-card-foreground/90">Origin</Label><Input id="origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="City or airport" className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-12 text-base" /></div>
+              <div className="relative">
+                <Label htmlFor="origin" className="text-sm font-medium text-card-foreground/90">Origin</Label>
+                <Input ref={originInputRef} id="origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="City or airport" className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-12 text-base" />
+                </div>
               <div className="relative flex items-center md:self-end">
                 <Button variant="ghost" size="icon" className="mx-1 text-muted-foreground hover:bg-accent/10 hidden md:flex" type="button" onClick={() => { setOrigin(destination); setDestination(origin); }} aria-label="Swap origin and destination"><ArrowRightLeft className="w-5 h-5" /></Button>
-                <div className="flex-grow"><Label htmlFor="destination" className="text-sm font-medium text-card-foreground/90">Destination</Label><Input id="destination" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="City or airport" className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-12 text-base" /></div>
+                <div className="flex-grow">
+                  <Label htmlFor="destination" className="text-sm font-medium text-card-foreground/90">Destination</Label>
+                  <Input ref={destinationInputRef} id="destination" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="City or airport" className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-12 text-base" />
+                  </div>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -852,14 +891,14 @@ export default function FlightsPage() {
                 <div><Label htmlFor="cabin-class" className="text-sm font-medium text-card-foreground/90 flex items-center"><Briefcase className="w-4 h-4 mr-1.5" /> Cabin Class</Label><Select value={cabinClass} onValueChange={setCabinClass}><SelectTrigger suppressHydrationWarning className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="economy">Economy</SelectItem><SelectItem value="premium-economy">Premium Economy</SelectItem><SelectItem value="business">Business</SelectItem><SelectItem value="first">First</SelectItem></SelectContent></Select></div>
               </div>
             </div>
-            <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin" /> : <Search />}{isLoading ? 'AI Finding Conceptual Flights...' : 'Search Flights with AI'}</Button>
+            <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingConceptualFlights}>{isLoadingConceptualFlights ? <Loader2 className="animate-spin" /> : <Search />}{isLoadingConceptualFlights ? 'AI Finding Conceptual Flights...' : 'Search Flights with AI'}</Button>
           </form>
         </CardContent>
       </Card>
 
-      {isLoading && (<div className="text-center py-10 text-muted-foreground"><Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" /><p className="text-lg">Aura AI is searching for conceptual flight options...</p></div>)}
+      {isLoadingConceptualFlights && (<div className="text-center py-10 text-muted-foreground"><Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" /><p className="text-lg">Aura AI is searching for conceptual flight options...</p></div>)}
 
-      {conceptualFlightData?.flights && conceptualFlightData.flights.length > 0 && !isLoading && (
+      {conceptualFlightData?.flights && conceptualFlightData.flights.length > 0 && !isLoadingConceptualFlights && (
         <div className="mt-8 animate-fade-in-up">
           <Separator className="my-6" />
            <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-2">
@@ -875,7 +914,7 @@ export default function FlightsPage() {
             </Alert>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {conceptualFlightData.flights.map((flightOpt, itineraryIndex) => ( // Renamed index to itineraryIndex for clarity
+            {conceptualFlightData.flights.map((flightOpt, itineraryIndex) => ( 
               <ConceptualFlightResultCard 
                 key={`conceptual-flight-${itineraryIndex}-${flightOpt.airlineName}-${flightOpt.departureTime}`} 
                 flight={flightOpt}
@@ -885,7 +924,7 @@ export default function FlightsPage() {
           </div>
         </div>
       )}
-      {!isLoading && conceptualFlightData && (!conceptualFlightData.flights || conceptualFlightData.flights.length === 0) && (
+      {!isLoadingConceptualFlights && conceptualFlightData && (!conceptualFlightData.flights || conceptualFlightData.flights.length === 0) && (
          <div className="mt-8 text-center text-muted-foreground">
           {conceptualFlightData.summaryMessage || "No conceptual flight options found by AI for this query. Try adjusting your search."}
           </div>
@@ -908,6 +947,7 @@ export default function FlightsPage() {
                 <div className="flex-grow">
                     <Label htmlFor="map-deal-target-destination" className="text-sm font-medium text-card-foreground/90">Enter Destination City for AI Deals</Label>
                     <Input
+                        ref={mapDealTargetDestinationCityInputRef}
                         id="map-deal-target-destination"
                         value={mapDealTargetDestinationCity}
                         onChange={(e) => setMapDealTargetDestinationCity(e.target.value)}
