@@ -39,6 +39,7 @@ import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAss
 import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
 import { DynamicItineraryOptimizerPlaceholder } from "@/components/dashboard/DynamicItineraryOptimizerPlaceholder";
 import { SmartBudgetingAssistantPlaceholder } from "@/components/dashboard/SmartBudgetingAssistantPlaceholder";
+import { AiRiskScenarioSimulatorCard } from "@/components/dashboard/AiRiskScenarioSimulatorCard";
 
 
 export default function DashboardPage() {
@@ -243,6 +244,10 @@ export default function DashboardPage() {
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.45s'}}>
           <WhatIfSimulatorPlaceholder />
+        </div>
+        
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.48s'}}>
+          <AiRiskScenarioSimulatorCard />
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.5s'}}>
