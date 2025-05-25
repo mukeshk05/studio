@@ -1396,5 +1396,3 @@ export default function FlightsPage() {
     </div>
   );
 }
-
-```

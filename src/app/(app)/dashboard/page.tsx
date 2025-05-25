@@ -3,12 +3,12 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp } from 'lucide-react';
+import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles, Briefcase, DollarSign } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -74,8 +74,6 @@ export default function DashboardPage() {
       if (bundledTripData) {
         try {
           if (router) {
-            // Dispatch event *before* navigation to ensure listener on planner page can potentially catch it
-            // if it's already mounted and listening.
             window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
             router.push('/planner');
           }
@@ -188,6 +186,40 @@ export default function DashboardPage() {
             <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
         </div>
         
+        {/* New Premium Plan Placeholder Card */}
+        <Card className={cn("lg:col-span-3", "glass-card", "animate-fade-in-up", "border-amber-500/30 hover:border-amber-400/50 transition-all")} style={{animationDelay: '0.22s'}}>
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-card-foreground">
+              <Sparkles className="w-6 h-6 mr-2 text-amber-400" />
+              Unlock BudgetRoam Premium! (Conceptual)
+            </CardTitle>
+            <CardDescription className="text-muted-foreground pt-1">
+              Supercharge your travel planning with exclusive AI features and benefits.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc list-inside space-y-1 text-sm text-card-foreground/90 mb-4 pl-2">
+              <li>Unlimited AI-powered itinerary generations.</li>
+              <li>Advanced price tracking alerts for multiple flights & hotels.</li>
+              <li>Priority access to new AI features (like AR Previews & Ethical Audits).</li>
+              <li>Ad-free experience across the platform.</li>
+              <li>Enhanced group planning tools.</li>
+            </ul>
+             <p className="text-xs text-muted-foreground italic mb-3">
+                Secure payment processing via Stripe/PayPal would be integrated here.
+              </p>
+            <Button size="lg" className="w-full text-lg py-3 shadow-md shadow-amber-400/30 hover:shadow-lg hover:shadow-amber-400/40 bg-amber-500 hover:bg-amber-600 text-white" disabled>
+              <DollarSign className="mr-2"/> Upgrade to Premium (Coming Soon)
+            </Button>
+          </CardContent>
+           <CardFooter>
+            <p className="text-xs text-muted-foreground text-center w-full">
+              Full payment integration with Stripe/PayPal is a future enhancement.
+            </p>
+          </CardFooter>
+        </Card>
+
+
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.25s'}}>
           <LocalInsiderTipsCard />
         </div>
