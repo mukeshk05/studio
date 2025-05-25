@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,14 +68,14 @@ import {
   Grid2X2,
   Lightbulb
 } from 'lucide-react';
-import { format, addDays, isValid, parseISO } from 'date-fns';
+import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
 import { 
   getPopularDestinations, 
   getConceptualFlightsAction,
   getAiFlightMapDealsAction, 
-  getPriceAdviceAction,
+  getPriceAdviceAction, // Renamed to avoid conflict
   getConceptualDateGridAction,
   getConceptualPriceGraphAction
 } from '@/app/actions';
@@ -99,12 +99,13 @@ const prominentButtonClassesSm = "text-sm py-2 shadow-md shadow-primary/30 hover
 
 
 interface ConceptualFlightResultCardProps {
-  flight: ConceptualFlightOption;
+  flightOption: ConceptualFlightOption; // Changed from 'flight' to 'flightOption'
   onViewDetails: () => void;
+  itineraryDestination: string; // Pass this to construct Google Flights URL
 }
 
-function ConceptualFlightResultCard({ flight, onViewDetails }: ConceptualFlightResultCardProps) {
-  const airlinePlaceholderText = flight.airlineName ? flight.airlineName.split(' ')[0] : "Airline";
+function ConceptualFlightResultCard({ flightOption, onViewDetails, itineraryDestination }: ConceptualFlightResultCardProps) {
+  const airlinePlaceholderText = flightOption.airlineName ? flightOption.airlineName.split(' ')[0] : "Airline";
   return (
     <Card className={cn(glassCardClasses, "mb-4 transform hover:scale-[1.01] transition-transform duration-200 ease-out")}>
       <CardContent className="p-4 space-y-3">
@@ -112,40 +113,40 @@ function ConceptualFlightResultCard({ flight, onViewDetails }: ConceptualFlightR
           <div className="flex items-center gap-3">
             <Image
               src={`https://placehold.co/80x30.png?text=${encodeURIComponent(airlinePlaceholderText)}`}
-              alt={`${flight.airlineName} logo placeholder`}
+              alt={`${flightOption.airlineName} logo placeholder`}
               data-ai-hint={`logo ${airlinePlaceholderText.toLowerCase()}`}
               width={80}
               height={30}
               className="h-auto object-contain rounded-sm bg-muted/20 p-0.5"
             />
             <div>
-              <p className="text-sm font-semibold text-card-foreground">{flight.airlineName}</p>
-              {flight.flightNumber && <p className="text-xs text-muted-foreground">{flight.flightNumber}</p>}
+              <p className="text-sm font-semibold text-card-foreground">{flightOption.airlineName}</p>
+              {flightOption.flightNumber && <p className="text-xs text-muted-foreground">{flightOption.flightNumber}</p>}
             </div>
           </div>
-          <Badge variant="outline" className="text-xs border-accent/50 text-accent bg-accent/10">{flight.stops}</Badge>
+          <Badge variant="outline" className="text-xs border-accent/50 text-accent bg-accent/10">{flightOption.stops}</Badge>
         </div>
 
         <div className="flex items-center justify-between text-xs text-card-foreground/90">
           <div className="text-center">
-            <p className="font-medium">{flight.departureTime}</p>
-            <p className="text-muted-foreground">{flight.departureAirport}</p>
+            <p className="font-medium">{flightOption.departureTime}</p>
+            <p className="text-muted-foreground">{flightOption.departureAirport}</p>
           </div>
           <div className="flex flex-col items-center text-muted-foreground">
             <Route className="w-4 h-4 mb-0.5" />
-            <span className="text-[0.65rem] leading-tight">{flight.duration}</span>
+            <span className="text-[0.65rem] leading-tight">{flightOption.duration}</span>
           </div>
           <div className="text-center">
-            <p className="font-medium">{flight.arrivalTime}</p>
-            <p className="text-muted-foreground">{flight.arrivalAirport}</p>
+            <p className="font-medium">{flightOption.arrivalTime}</p>
+            <p className="text-muted-foreground">{flightOption.arrivalAirport}</p>
           </div>
         </div>
         
-        {flight.extraDetails && <p className="text-xs text-muted-foreground italic border-t border-border/20 pt-2 mt-2">{flight.extraDetails}</p>}
+        {flightOption.extraDetails && <p className="text-xs text-muted-foreground italic border-t border-border/20 pt-2 mt-2">{flightOption.extraDetails}</p>}
 
       </CardContent>
       <CardFooter className="p-3 bg-muted/20 dark:bg-muted/10 flex justify-between items-center border-t border-border/30">
-        <p className="text-lg font-bold text-primary">{flight.conceptualPrice}</p>
+        <p className="text-lg font-bold text-primary">{flightOption.conceptualPrice}</p>
         <Button size="sm" onClick={onViewDetails} className={cn(prominentButtonClassesSm, "py-1.5 px-4 text-sm")}>
           View Details & AI Insights
         </Button>
@@ -328,18 +329,10 @@ function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: 
     
     if (formValues.departureDate) {
        try {
-        const parts = formValues.departureDate.split('-');
-        if (parts.length === 3) {
-            const depDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            if (!isNaN(depDate.getTime())) {
+            const depDate = new Date(formValues.departureDate); // Works if YYYY-MM-DD
+            if (isValid(depDate)) {
               params.append('dt', format(depDate, 'yyyy-MM-dd'));
             }
-        } else {
-            const depDate = new Date(formValues.departureDate);
-            if (!isNaN(depDate.getTime())) {
-                params.append('dt', format(depDate, 'yyyy-MM-dd'));
-            }
-        }
       } catch (e) { console.error("Error formatting departure date for Google Flights:", e);}
     }
     return `${url}?${params.toString()}`;
@@ -419,7 +412,13 @@ const priceLevelMapping: Record<string, number> = {
   "high": 5, "peak": 6, "very high": 7,
 };
 const priceIndicatorToNumericForGraph = (indicator: string): number => {
-  return priceLevelMapping[indicator.toLowerCase()] || 3; // Default to Average (3)
+  const lowerIndicator = indicator.toLowerCase();
+  for (const key in priceLevelMapping) {
+    if (lowerIndicator.includes(key)) {
+      return priceLevelMapping[key];
+    }
+  }
+  return 3; // Default to Average (3) if no keyword found
 };
 
 const yAxisTickFormatter = (value: number): string => {
@@ -523,7 +522,6 @@ export default function FlightsPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
-    // Initialize dates on the client side to avoid hydration mismatch
     setDates({ from: new Date(), to: addDays(new Date(), 7) });
   }, []);
 
@@ -542,8 +540,7 @@ export default function FlightsPage() {
       return;
     }
     if (typeof window !== 'undefined' && window.google && window.google.maps) {
-      if (!isMapsScriptLoaded) setIsMapsScriptLoaded(true);
-      return;
+      if(!isMapsScriptLoaded) setIsMapsScriptLoaded(true); return;
     }
     const scriptId = 'google-maps-flights-page-script';
     if (document.getElementById(scriptId)) {
@@ -692,11 +689,10 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setGeneralAiDestinations(processed);
-        setGeneralContextualNote(result.contextualNote || (processed.length === 0 ? "AI couldn't find general flight destinations. Try again later!" : "Explore these popular spots for flights!"));
       } else {
-        setGeneralAiDestinations([]);
-        setGeneralContextualNote("No general destination ideas returned by AI.");
+         setGeneralAiDestinations([]);
       }
+       setGeneralContextualNote(result?.contextualNote || (result.destinations && result.destinations.length === 0 ? "AI couldn't find general flight destinations. Try again later!" : "Explore these popular spots for flights!"));
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching general AI destinations:", error);
         setGeneralDestsError(`Could not fetch general suggestions: ${error.message}`);
@@ -735,11 +731,10 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setLocationAiDestinations(processed);
-        setLocationContextualNote(result.contextualNote || (processed.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : "Popular flight spots near your location."));
       } else {
         setLocationAiDestinations([]);
-        setLocationContextualNote("No location-based destination ideas returned by AI.");
       }
+      setLocationContextualNote(result?.contextualNote || (result.destinations && result.destinations.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : "Popular flight spots near your location."));
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching location-based AI destinations:", error);
         setLocationDestsError(`Could not fetch location-based suggestions: ${error.message}`);
@@ -750,10 +745,14 @@ export default function FlightsPage() {
 
   useEffect(() => {
     fetchGeneralPopularFlightDests();
-    if ((userLocation || geolocationMapError) && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) {
+    if (userLocation && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) { // Check if userLocation exists before calling
       handleFetchLocationAndDests();
+    } else if (!userLocation && !geolocationMapError && isFetchingUserLocationForMap === false && locationAiDestinations.length === 0 && !isFetchingLocationDests) {
+        // If initial geo failed or was never available, and no location-based suggestions loaded yet,
+        // we can set a note indicating that.
+        setLocationContextualNote("Enable location or search to see relevant flight ideas.");
     }
-  }, [userLocation, geolocationMapError, fetchGeneralPopularFlightDests, handleFetchLocationAndDests, locationAiDestinations.length, isFetchingLocationDests, locationDestsError]);
+  }, [userLocation, geolocationMapError, fetchGeneralPopularFlightDests, handleFetchLocationAndDests, locationAiDestinations.length, isFetchingLocationDests, locationDestsError, isFetchingUserLocationForMap]);
 
 
  const handleFetchMapDeals = async () => {
@@ -873,7 +872,7 @@ export default function FlightsPage() {
               geodesic: true,
               strokeColor: 'hsl(var(--accent))', 
               strokeOpacity: 0.9, 
-              strokeWeight: 5, 
+              strokeWeight: 5, // Increased from 2 to 5 for better visibility
               icons: [{ 
                 icon: {
                   path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
@@ -898,9 +897,9 @@ export default function FlightsPage() {
         map.fitBounds(bounds, {top: 50, bottom: 50, left: 50, right: 50}); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
           let currentZoom = map.getZoom() || 0;
-          if (currentZoom > 10 && newMarkers.length > 1) { // Avoid over-zooming if only one destination
-            map.setZoom(Math.min(currentZoom, 10)); // Cap zoom at 10 for multiple deals
-          } else if (currentZoom > 12) { // For single deal, allow slightly more zoom
+          if (currentZoom > 10 && newMarkers.length > 2) { // >2 to account for user loc marker
+            map.setZoom(Math.min(currentZoom, 10));
+          } else if (currentZoom > 12) {
              map.setZoom(12);
           }
         });
@@ -911,7 +910,7 @@ export default function FlightsPage() {
  const initializeAutocomplete = useCallback((inputRef: React.RefObject<HTMLInputElement>, onPlaceChanged: (place: google.maps.places.PlaceResult) => void, options?: google.maps.places.AutocompleteOptions) => {
     if (isMapsScriptLoaded && window.google && window.google.maps.places && inputRef.current) {
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, options);
-      autocomplete.setFields(['formatted_address', 'name', 'geometry']); // Added geometry to get lat/lng
+      autocomplete.setFields(['formatted_address', 'name', 'geometry']);
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
         if (place.geometry || place.formatted_address || place.name) {
@@ -1088,7 +1087,8 @@ export default function FlightsPage() {
             {conceptualFlightData.flights.map((flightOpt, itineraryIndex) => ( 
               <ConceptualFlightResultCard 
                 key={`conceptual-flight-${itineraryIndex}-${flightOpt.airlineName}-${flightOpt.departureTime}`} 
-                flight={flightOpt}
+                flightOption={flightOpt}
+                itineraryDestination={destination} // Pass the main destination for context
                 onViewDetails={() => { setSelectedFlightForDetails(flightOpt); setIsFlightDetailsDialogOpen(true); }}
               />
             ))}
@@ -1289,12 +1289,18 @@ export default function FlightsPage() {
                                         indicator="line" 
                                         labelKey="priceLevel" 
                                         nameKey="timeframe" 
-                                        formatter={(value, name, props) => (
-                                             <div className="text-xs">
-                                                <p className="font-semibold">{props.payload.timeframe}</p>
-                                                <p>Relative Price: {props.payload.originalIndicator}</p>
-                                            </div>
-                                        )}
+                                        formatter={(value, name, props) => {
+                                            const payloadItem = props.payload?.[0]?.payload;
+                                            if (payloadItem) {
+                                                return (
+                                                    <div className="text-xs">
+                                                        <p className="font-semibold">{payloadItem.timeframe}</p>
+                                                        <p>Relative Price: {payloadItem.originalIndicator}</p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
                                     />} 
                         />
                         <Line type="monotone" dataKey="priceLevel" stroke="var(--color-priceLevel)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--color-priceLevel)" }} activeDot={{ r: 6 }} />
@@ -1390,3 +1396,5 @@ export default function FlightsPage() {
     </div>
   );
 }
+
+```
