@@ -1,3 +1,4 @@
+
 import { config } from 'dotenv';
 config();
 
@@ -28,6 +29,6 @@ import '@/ai/flows/popular-destinations-flow.ts';
 import '@/ai/flows/generate-multiple-images-flow.ts';
 import '@/ai/flows/explore-ideas-from-history-flow.ts'; 
 import '@/ai/flows/ai-flight-map-deals-flow.ts';
-import '@/ai/flows/conceptual-flight-search-flow.ts';
-import '@/ai/flows/ai-hotel-search-flow.ts';
-import '@/ai/flows/things-to-do-flow.ts'; // Added new flow
+// import '@/ai/flows/conceptual-flight-search-flow.ts'; // Replaced by mock SerpApi in actions.ts
+// import '@/ai/flows/ai-hotel-search-flow.ts'; // Replaced by mock SerpApi + image generation in actions.ts
+import '@/ai/flows/things-to-do-flow.ts';
