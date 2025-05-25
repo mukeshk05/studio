@@ -55,36 +55,45 @@ For example, if the mood is 'romantic', suggest adventurous yet romantic activit
     {{#if weatherContext}}
     The user has provided specific weather context: {{{weatherContext}}}.
     Use this information to tailor activities. For example, if rain is expected, suggest more indoor activities or alternatives. If sunny, emphasize outdoor options.
+    If the {{{weatherContext}}} indicates severe or dangerous weather (e.g., hurricane warning, extreme heatwave) for the primary {{{destination}}} during {{{travelDates}}}, this is a MAJOR RISK FACTOR.
     {{else}}
     Assume you have access to a general weather forecast for the destination and travel dates.
     If rain is likely for typically outdoor activities, suggest indoor alternatives or note this possibility. If the weather is expected to be pleasant, emphasize outdoor activities. This consideration should be subtly woven into the daily plan.
+    If your general knowledge indicates a high probability of severe weather (e.g., known monsoon season, high hurricane risk for that region/time), treat this as a MAJOR RISK FACTOR for the primary {{{destination}}}.
     {{/if}}
-2.  **Risks, Visa & Accessibility (Journey Sentinel Mode):**
+
+2.  **Risk, Visa & Accessibility (Journey Sentinel Mode):**
     {{#if riskContext}}
-    The user has provided the following specific concerns or requests: {{{riskContext}}}.
+    The user has provided the following specific concerns or requests related to risks, visas, or accessibility: {{{riskContext}}}.
     Please explicitly consider this information:
-    - If it mentions safety concerns, suggest appropriate precautions or safer alternatives directly in the daily plan or trip summary.
-    - If it mentions visa questions, add a reminder in the trip summary to check official visa requirements for {{{destination}}} for their nationality. Do NOT provide definitive visa advice.
-    - If it mentions accessibility needs (e.g., 'step-free access', 'quiet areas for sensory sensitivity'), try to suggest suitable activities and note if some attractions might be challenging in the daily plan. Also, mention in the trip summary if accessibility needs were a key consideration in the plan.
-    - If it mentions weather preferences (e.g., "prefer sunny activities"), try to align the plan accordingly.
+    - If it mentions safety concerns, visa questions, or accessibility needs, address them by suggesting precautions, reminders, or suitable activities.
+    - **If the {{{riskContext}}} indicates the primary {{{destination}}} is significantly compromised or ill-advised (e.g., 'Major political unrest in {{{destination}}}', 'Volcano eruption near {{{destination}}}', 'Massive, prolonged transport strike affecting all of {{{destination}}}'): Treat this as a MAJOR RISK FACTOR.**
     {{else}}
-    Proactively act as a "Journey Sentinel":
-    - Based on the destination: {{{destination}}} and travel dates: {{{travelDates}}}, identify 1-2 common, general risks or advisories (e.g., pickpocketing in crowded tourist spots, local customs to be aware of, seasonal insect activity, common tourist scams if applicable, transport reliability if generally known).
+    Proactively act as a "Journey Sentinel" for {{{destination}}} on {{{travelDates}}}:
+    - Based on general knowledge, identify 1-2 common, general risks or advisories (e.g., pickpocketing in crowded tourist spots, local customs to be aware of, seasonal insect activity, common tourist scams if applicable, transport reliability if generally known).
     - If such general risks are identified, subtly integrate brief, actionable advice or precautions directly into the relevant 'activities' of the 'dailyPlan' or within the 'tripSummary'.
     - Always include a general reminder in the 'tripSummary': "For a smooth journey, remember to check current travel advisories and verify visa requirements for {{{destination}}} well before your trip."
     {{/if}}
-    If you've included proactive risk advice or made adjustments based on general advisories (not directly requested by the user), or if you've addressed specific accessibility needs, briefly mention this in the 'tripSummary' as part of your comprehensive planning.
-3.  **Sustainable Travel Considerations (Conceptual):**
+
+3.  **Alternative Destination Suggestion (If Major Risk Factor Identified):**
+    If a MAJOR RISK FACTOR has been identified for the primary {{{destination}}} (from user-provided {{{weatherContext}}}, {{{riskContext}}}, or your general knowledge of severe seasonal risks):
+    - You MUST attempt to generate at least **ONE itinerary for a completely different, alternative destination**.
+    - This alternative destination should, as much as possible, match the user's original budget ({{{budget}}}), travel dates ({{{travelDates}}}), desired mood ({{{desiredMood}}}), and travel persona ({{{userPersona}}}). Pick a destination that offers a similar type of experience but without the identified major risk.
+    - The 'tripSummary' for this alternative itinerary MUST clearly state: "Alternative Suggestion: Due to [specific major risk, e.g., 'the hurricane warning for {{{destination}}}' or 'the ongoing major transport strike in {{{destination}}}'], Aura AI suggests considering [Alternative Destination Name]. This location offers [briefly state its similar appeal, e.g., 'a wonderful beach experience with sunny skies expected' or 'a rich cultural exploration without current travel disruptions']."
+    - If suggesting an alternative destination, you should still provide 1-2 itineraries for the original {{{destination}}}, but these MUST heavily feature warnings, contingency plans (e.g., "focus on indoor activities due to expected heavy rain," "be prepared for significant travel delays and have backup transport options"), and acknowledge the major risk in their summaries.
+
+4.  **Sustainable Travel Considerations (Conceptual):**
     When planning, and if appropriate for the destination and trip style, subtly weave in considerations for sustainable travel. This could involve suggesting public transport where efficient, mentioning eco-friendly tours if known, or highlighting locally-owned businesses or experiences. If you incorporate such suggestions, briefly mention this aspect in the trip summary.
-4.  **Conceptual Alert Response Simulation:**
-    If this trip plan were being generated *in response to a hypothetical critical alert* (e.g., a major price drop for a pre-tracked flight for this destination/dates, or a sudden severe weather warning), briefly note in the 'tripSummary' how the plan might be adjusted or what alternatives could be considered. Frame this as a conceptual example of how the AI would respond to such an alert.
+
+5.  **Conceptual Alert Response Simulation:**
+    If this trip plan were being generated *in response to a hypothetical critical alert* (e.g., a major price drop for a pre-tracked flight for this destination/dates, or a sudden severe weather warning), briefly note in the 'tripSummary' how the plan might be adjusted or what *alternative destinations or significantly different trip styles* could be considered. For example, if a severe weather warning for {{{destination}}} occurs, you might suggest shifting to destination Z with similar appeal but better weather.
 
 **Cultural Tip:**
 Generate one concise (1-2 sentences) and helpful cultural tip relevant to the destination: {{{destination}}}. This should be practical or insightful for a first-time visitor. Place this in the 'culturalTip' field of the output.
 
 You will generate a range of possible itineraries (usually 2-3) based on the user's budget, destination and travel dates.
 For each itinerary:
-1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa/accessibility reminders, conceptual sustainability considerations, and the conceptual alert response simulation.
+1.  Provide a 'tripSummary' which is a concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details, but should incorporate any necessary risk/visa/accessibility reminders, conceptual sustainability considerations, and the conceptual alert response simulation. If it's an alternative destination, ensure the summary makes this clear as per instruction 3.
 2.  Provide a 'dailyPlan' as an array of objects matching the DailyPlanItemSchema. Each object in the array should represent one day and have two fields:
     - 'day': A string for the day's label (e.g., "Day 1", "Arrival Day").
     - 'activities': A string describing the activities for that day in detail. Be engaging and descriptive. You can suggest morning, afternoon, and evening activities. Ensure this is a comprehensive plan.
@@ -112,7 +121,7 @@ Each hotel option must include:
 The 'estimatedCost' for the overall itinerary should be a sum of a representative flight option and a representative hotel option.
 Consider a variety of options for flights, accommodations, and activities that would fit within the budget.
 Provide multiple itineraries with varying levels of luxury and activity so the user has multiple choices.
-Among these itineraries, try to include at least one that could serve as a distinct 'backup plan' or 'alternative approach' to the trip.
+Among these itineraries, try to include at least one that could serve as a distinct 'backup plan' or 'alternative approach' to the trip, especially if major risks are identified for the primary destination.
 
 Return the itineraries and the single culturalTip in JSON format according to the defined output schema. Ensure all fields are populated.
 `,
@@ -278,7 +287,7 @@ const aiTripPlannerFlow = ai.defineFlow(
     }
     
     let guardianConsiderations: string[] = [];
-    if (input.riskContext) { // This now covers risks AND accessibility
+    if (input.riskContext) { 
         guardianConsiderations.push("your specific concerns/preferences (" + input.riskContext.substring(0, 30) + (input.riskContext.length > 30 ? "...)" : ")"));
     }
     if (input.weatherContext) {
@@ -296,6 +305,11 @@ const aiTripPlannerFlow = ai.defineFlow(
     } else {
         personalizationNoteParts.push(`Plans for ${input.destination} were generated based on your core request, including conceptual sustainability considerations.`);
     }
+
+    // Check if an alternative destination was suggested
+    if (itinerariesWithImages.some(it => it.tripSummary && it.tripSummary.toLowerCase().includes("alternative suggestion:"))) {
+        personalizationNoteParts.push("An alternative destination was suggested due to potential issues with your original choice.");
+    }
     
     const personalizationNote = personalizationNoteParts.join(' ');
 
@@ -307,3 +321,4 @@ const aiTripPlannerFlow = ai.defineFlow(
 );
 
     
+
