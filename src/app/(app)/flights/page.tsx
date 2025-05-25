@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,9 +22,17 @@ import {
   DialogClose,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert'; // Aliased imports
+import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartConfig,
+} from "@/components/ui/chart";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+
 
 import { cn } from '@/lib/utils';
 import {
@@ -75,7 +83,7 @@ import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/typ
 import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
 import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput, ConceptualFlightOption } from '@/ai/types/conceptual-flight-search-types';
 import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/flows/price-advisor-flow';
-import type { ConceptualDateGridInput, ConceptualDateGridOutput, ExampleDeal } from '@/ai/types/ai-conceptual-date-grid-types';
+import type { ConceptualDateGridInput, ConceptualDateGridOutput, DatePricePoint } from '@/ai/types/ai-conceptual-date-grid-types';
 import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput, ConceptualDataPoint } from '@/ai/types/ai-conceptual-price-graph-types';
 
 
@@ -320,7 +328,6 @@ function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: 
     
     if (formValues.departureDate) {
        try {
-        // Ensure date string is treated as local date, not UTC, to avoid off-by-one day issues
         const parts = formValues.departureDate.split('-');
         if (parts.length === 3) {
             const depDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -328,7 +335,6 @@ function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: 
               params.append('dt', format(depDate, 'yyyy-MM-dd'));
             }
         } else {
-            // Fallback for other date string formats, assuming it can be parsed directly
             const depDate = new Date(formValues.departureDate);
             if (!isNaN(depDate.getTime())) {
                 params.append('dt', format(depDate, 'yyyy-MM-dd'));
@@ -408,15 +414,34 @@ const modernMapStyle: google.maps.MapTypeStyle[] = [
   { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
 ];
 
+const priceLevelMapping: Record<string, number> = {
+  "very low": 1, "low": 2, "average": 3, "slightly high": 4,
+  "high": 5, "peak": 6, "very high": 7,
+};
+const priceIndicatorToNumericForGraph = (indicator: string): number => {
+  return priceLevelMapping[indicator.toLowerCase()] || 3; // Default to Average (3)
+};
+
+const yAxisTickFormatter = (value: number): string => {
+  const mapping: Record<number, string> = {
+    1: "V.Low", 2: "Low", 3: "Avg", 4: "S.High", 5: "High", 6: "Peak", 7: "V.High"
+  };
+  return mapping[value] || value.toString(); // Fallback to number if not in mapping
+};
+
+const priceGraphChartConfig = {
+  priceLevel: {
+    label: "Rel. Price Level",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig;
+
+
 export default function FlightsPage() {
   const [tripType, setTripType] = useState<"round-trip" | "one-way" | "multi-city">("round-trip");
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [dates, setDates] = useState<DateRange | undefined>(undefined);
-
-  useEffect(() => {
-    setDates({ from: new Date(), to: addDays(new Date(), 7) });
-  }, []);
 
   const originInputRef = useRef<HTMLInputElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
@@ -497,6 +522,11 @@ export default function FlightsPage() {
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+  useEffect(() => {
+    // Initialize dates on the client side to avoid hydration mismatch
+    setDates({ from: new Date(), to: addDays(new Date(), 7) });
+  }, []);
+
 
   const initGoogleMapsApiFlightsPage = useCallback(() => {
     console.log("[FlightsPage] Google Maps API script loaded callback executed.");
@@ -557,7 +587,7 @@ export default function FlightsPage() {
 
    useEffect(() => {
     console.log(`[FlightsPage] Map/Location Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, mapRef.current=${!!mapRef.current}, !map=${!map}, isFetchingUserLocationForMap=${isFetchingUserLocationForMap}`);
-    if (isMapsScriptLoaded && mapRef.current && !map && isFetchingUserLocationForMap) { // Ensure this runs only once for initial setup
+    if (isMapsScriptLoaded && mapRef.current && !map && isFetchingUserLocationForMap) { 
       console.log("[FlightsPage] Maps script loaded, attempting to fetch user location for initial map center.");
        setIsMapInitializing(true);
       if (navigator.geolocation) {
@@ -584,7 +614,7 @@ export default function FlightsPage() {
         initializeMap({ lat: 20, lng: 0 }, 2);
       }
       setIsFetchingUserLocationForMap(false); 
-    } else if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing && !isFetchingUserLocationForMap) { // Fallback if geo attempt already done/skipped
+    } else if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing && !isFetchingUserLocationForMap) { 
         console.log("[FlightsPage] Maps script loaded, geo attempt already finished/skipped, map not init. Initializing with default.");
         setIsMapInitializing(true);
         initializeMap({ lat: 20, lng: 0 }, 2);
@@ -662,11 +692,11 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setGeneralAiDestinations(processed);
+        setGeneralContextualNote(result.contextualNote || (processed.length === 0 ? "AI couldn't find general flight destinations. Try again later!" : "Explore these popular spots for flights!"));
       } else {
         setGeneralAiDestinations([]);
+        setGeneralContextualNote("No general destination ideas returned by AI.");
       }
-       setGeneralContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find general flight destinations. Try again later!" : "Explore these popular spots for flights!"));
-
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching general AI destinations:", error);
         setGeneralDestsError(`Could not fetch general suggestions: ${error.message}`);
@@ -705,10 +735,11 @@ export default function FlightsPage() {
       if (result && result.destinations) {
         const processed = result.destinations.map(d => ({ ...d, imageUri: d.imageUri || `https://placehold.co/600x400.png?text=${encodeURIComponent(d.name.substring(0, 10))}` }));
         setLocationAiDestinations(processed);
+        setLocationContextualNote(result.contextualNote || (processed.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : "Popular flight spots near your location."));
       } else {
         setLocationAiDestinations([]);
+        setLocationContextualNote("No location-based destination ideas returned by AI.");
       }
-      setLocationContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find flight destinations near you. Try exploring general ideas!" : "Popular flight spots near your location."));
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching location-based AI destinations:", error);
         setLocationDestsError(`Could not fetch location-based suggestions: ${error.message}`);
@@ -722,8 +753,7 @@ export default function FlightsPage() {
     if ((userLocation || geolocationMapError) && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) {
       handleFetchLocationAndDests();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, geolocationMapError]); // Dependencies managed carefully
+  }, [userLocation, geolocationMapError, fetchGeneralPopularFlightDests, handleFetchLocationAndDests, locationAiDestinations.length, isFetchingLocationDests, locationDestsError]);
 
 
  const handleFetchMapDeals = async () => {
@@ -789,7 +819,7 @@ export default function FlightsPage() {
             this.dealData = props.deal; this.clickHandler = props.onClick; this.mapInstanceRef = props.map; this.setMap(props.map);
         }
         onAdd() {
-            this.div = document.createElement('div'); this.div.className = 'custom-map-marker-price'; // Ensure this CSS class is defined globally
+            this.div = document.createElement('div'); this.div.className = 'custom-map-marker-price'; 
             this.div.innerHTML = `<span class="price-text">${this.dealData.conceptualPriceRange.split('-')[0].trim()}</span><span class="pulse-price"></span>`;
             this.div.title = `${this.dealData.destinationCity}: ${this.dealData.conceptualPriceRange}`;
             this.div.addEventListener('click', this.clickHandler);
@@ -843,7 +873,7 @@ export default function FlightsPage() {
               geodesic: true,
               strokeColor: 'hsl(var(--accent))', 
               strokeOpacity: 0.9, 
-              strokeWeight: 5, // Increased from 2 to 5
+              strokeWeight: 5, 
               icons: [{ 
                 icon: {
                   path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
@@ -857,6 +887,7 @@ export default function FlightsPage() {
               }]
             });
             polyline.setMap(map);
+            if (routePolylineRef.current) routePolylineRef.current.setMap(null); // Clear previous polyline
             routePolylineRef.current = polyline; 
           }
         }
@@ -867,8 +898,10 @@ export default function FlightsPage() {
         map.fitBounds(bounds, {top: 50, bottom: 50, left: 50, right: 50}); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
           let currentZoom = map.getZoom() || 0;
-          if (currentZoom > 10) { 
-            map.setZoom(10); 
+          if (currentZoom > 10 && newMarkers.length > 1) { // Avoid over-zooming if only one destination
+            map.setZoom(Math.min(currentZoom, 10)); // Cap zoom at 10 for multiple deals
+          } else if (currentZoom > 12) { // For single deal, allow slightly more zoom
+             map.setZoom(12);
           }
         });
       }
@@ -878,7 +911,7 @@ export default function FlightsPage() {
  const initializeAutocomplete = useCallback((inputRef: React.RefObject<HTMLInputElement>, onPlaceChanged: (place: google.maps.places.PlaceResult) => void, options?: google.maps.places.AutocompleteOptions) => {
     if (isMapsScriptLoaded && window.google && window.google.maps.places && inputRef.current) {
       const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, options);
-      autocomplete.setFields(['formatted_address', 'name', 'geometry']);
+      autocomplete.setFields(['formatted_address', 'name', 'geometry']); // Added geometry to get lat/lng
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
         if (place.geometry || place.formatted_address || place.name) {
@@ -963,7 +996,7 @@ export default function FlightsPage() {
     try {
       const result = await getConceptualDateGridAction({ origin: dateGridOrigin, destination: dateGridDestination, monthToExplore: dateGridMonth });
       setDateGridResult(result);
-      if (!result.gridSummary && (!result.exampleDeals || result.exampleDeals.length === 0)) {
+      if (!result.gridSummary && (!result.datePricePoints || result.datePricePoints.length === 0)) {
         toast({ title: "No Insights", description: "AI couldn't generate date grid insights for this query."});
       }
     } catch (error: any) {
@@ -1202,14 +1235,18 @@ export default function FlightsPage() {
               <div><Label htmlFor="date-grid-month" className="text-xs text-muted-foreground">Month to Explore</Label><Input id="date-grid-month" value={dateGridMonth} onChange={e => setDateGridMonth(e.target.value)} placeholder="e.g., December 2024" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
               {isLoadingDateGrid && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-accent mx-auto" /></div>}
               {dateGridResult && (
-                <div className={cn("p-2.5 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-1", innerGlassEffectClasses)}>
+                <div className={cn("p-3 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-2", innerGlassEffectClasses)}>
                   <p className="font-semibold text-card-foreground">AI Date Insights:</p>
                   <p className="italic text-muted-foreground">{dateGridResult.gridSummary}</p>
-                  {dateGridResult.exampleDeals && dateGridResult.exampleDeals.length > 0 && (
-                    <div className="pt-1">
-                      <p className="font-medium text-card-foreground/90">Example Deals:</p>
-                      {dateGridResult.exampleDeals.map((deal, i) => (
-                        <p key={i} className="text-muted-foreground">&bull; {deal.dateRange}: <span className="text-primary/80">{deal.priceIdea}</span></p>
+                  {dateGridResult.datePricePoints && dateGridResult.datePricePoints.length > 0 && (
+                    <div className="pt-1 space-y-1">
+                      <p className="font-medium text-card-foreground/90">Example Price Points:</p>
+                      {dateGridResult.datePricePoints.map((dp, i) => (
+                        <Card key={i} className={cn("p-2 bg-card/50 dark:bg-card/40 border-border/30 shadow-sm")}>
+                          <p className="font-semibold text-sm text-primary">{dp.dateLabel}</p>
+                          <p className="text-xs text-muted-foreground">Price Idea: <span className="text-primary/90">{dp.priceIndicator}</span></p>
+                          {dp.notes && <p className="text-xs italic text-muted-foreground/80 mt-0.5">Note: {dp.notes}</p>}
+                        </Card>
                       ))}
                     </div>
                   )}
@@ -1228,7 +1265,7 @@ export default function FlightsPage() {
           <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3"><PieChart className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Price Graph</CardTitle></div>
-              <CardDescription className="text-xs text-muted-foreground pt-1">AI insights on historical price trends.</CardDescription>
+              <CardDescription className="text-xs text-muted-foreground pt-1">AI insights on price trends.</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-3 mt-2">
               <div><Label htmlFor="price-graph-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={priceGraphOriginInputRef} id="price-graph-origin" value={priceGraphOrigin} onChange={e => setPriceGraphOrigin(e.target.value)} placeholder="e.g., London" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
@@ -1236,16 +1273,35 @@ export default function FlightsPage() {
               <div><Label htmlFor="price-graph-dates" className="text-xs text-muted-foreground">Travel Dates Hint</Label><Input id="price-graph-dates" value={priceGraphDatesHint} onChange={e => setPriceGraphDatesHint(e.target.value)} placeholder="e.g., Next 3 months" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
               {isLoadingPriceGraph && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-accent mx-auto" /></div>}
               {priceGraphResult && (
-                 <div className={cn("p-2.5 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-1", innerGlassEffectClasses)}>
+                 <div className={cn("p-3 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-2", innerGlassEffectClasses)}>
                   <p className="font-semibold text-card-foreground">AI Price Trend Insights:</p>
-                  <p className="italic text-muted-foreground">{priceGraphResult.trendDescription}</p>
-                   {priceGraphResult.conceptualDataPoints && priceGraphResult.conceptualDataPoints.length > 0 && (
-                    <div className="pt-1">
-                      <p className="font-medium text-card-foreground/90">Conceptual Trend Points:</p>
-                      {priceGraphResult.conceptualDataPoints.map((dp, i) => (
-                        <p key={i} className="text-muted-foreground">&bull; {dp.timeframe}: <span className="text-primary/80">{dp.relativePriceIndicator}</span></p>
-                      ))}
-                    </div>
+                  <p className="italic text-muted-foreground mb-2">{priceGraphResult.trendDescription}</p>
+                   {priceGraphResult.conceptualDataPoints && priceGraphResult.conceptualDataPoints.length > 0 ? (
+                    <ChartContainer config={priceGraphChartConfig} className="min-h-[200px] w-full">
+                      <LineChart data={priceGraphResult.conceptualDataPoints.map(dp => ({ timeframe: dp.timeframe, priceLevel: priceIndicatorToNumericForGraph(dp.relativePriceIndicator), originalIndicator: dp.relativePriceIndicator }))}
+                       margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.4)" />
+                        <XAxis dataKey="timeframe" tickLine={false} axisLine={false} tickMargin={8} className="text-[0.65rem]" />
+                        <YAxis dataKey="priceLevel" type="number" domain={[0, 8]} ticks={[1,2,3,4,5,6,7]} tickFormatter={yAxisTickFormatter} tickLine={false} axisLine={false} tickMargin={8} className="text-[0.65rem]" />
+                        <RechartsTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent 
+                                        indicator="line" 
+                                        labelKey="priceLevel" 
+                                        nameKey="timeframe" 
+                                        formatter={(value, name, props) => (
+                                             <div className="text-xs">
+                                                <p className="font-semibold">{props.payload.timeframe}</p>
+                                                <p>Relative Price: {props.payload.originalIndicator}</p>
+                                            </div>
+                                        )}
+                                    />} 
+                        />
+                        <Line type="monotone" dataKey="priceLevel" stroke="var(--color-priceLevel)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--color-priceLevel)" }} activeDot={{ r: 6 }} />
+                      </LineChart>
+                    </ChartContainer>
+                  ) : (
+                    <p className="text-muted-foreground text-center">No trend data points to display.</p>
                   )}
                 </div>
               )}
@@ -1272,12 +1328,12 @@ export default function FlightsPage() {
         </div>
         {(isFetchingUserLocationForSuggestions && !userLocation) && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2 inline-block" />Fetching your location to find relevant flights...</div>}
 
-        {!isFetchingUserLocationForSuggestions && geolocationMapError && (
+        {!isFetchingUserLocationForSuggestions && geolocationSuggestionsError && (
             <Alert variant="default" className={cn("mb-4 bg-amber-500/10 border-amber-500/30 text-amber-300")}>
               <AlertTriangle className="h-4 w-4 !text-amber-400" />
               <ShadcnAlertTitle className="text-amber-200">Location Error</ShadcnAlertTitle>
               <ShadcnAlertDescription className="text-amber-400/80">
-                {geolocationMapError}
+                {geolocationSuggestionsError}
               </ShadcnAlertDescription>
             </Alert>
         )}
@@ -1334,4 +1390,3 @@ export default function FlightsPage() {
     </div>
   );
 }
-

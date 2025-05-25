@@ -11,14 +11,15 @@ export const ConceptualDateGridInputSchema = z.object({
 });
 export type ConceptualDateGridInput = z.infer<typeof ConceptualDateGridInputSchema>;
 
-export const ExampleDealSchema = z.object({
-  dateRange: z.string().describe("A specific example date range (e.g., 'Dec 10-15', 'First week of July')."),
-  priceIdea: z.string().describe("A conceptual price idea for that date range (e.g., 'Around $300', 'Could be lower', 'Higher due to holiday')."),
+export const DatePricePointSchema = z.object({
+  dateLabel: z.string().describe("A label for the specific date or short date range (e.g., 'Dec 10', 'Dec 1-7', 'Weekend of Dec 12')."),
+  priceIndicator: z.string().describe("A conceptual price idea (e.g., 'Around $280', '$350 - $420') or a relative level ('Low', 'Avg', 'High')."),
+  notes: z.string().optional().describe("Optional brief notes, e.g., 'Potential event', 'Mid-week dip'."),
 });
-export type ExampleDeal = z.infer<typeof ExampleDealSchema>;
+export type DatePricePoint = z.infer<typeof DatePricePointSchema>;
 
 export const ConceptualDateGridOutputSchema = z.object({
   gridSummary: z.string().describe("A textual summary from the AI describing likely cheaper or more expensive periods within the specified month for the given route."),
-  exampleDeals: z.array(ExampleDealSchema).optional().describe("An array of 1-2 specific example date ranges with conceptual price ideas."),
+  datePricePoints: z.array(DatePricePointSchema).optional().max(7).describe("An array of up to 7 conceptual date price points, each with a date label, price indicator, and optional notes."),
 });
 export type ConceptualDateGridOutput = z.infer<typeof ConceptualDateGridOutputSchema>;
