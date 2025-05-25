@@ -20,6 +20,6 @@ export type DatePricePoint = z.infer<typeof DatePricePointSchema>;
 
 export const ConceptualDateGridOutputSchema = z.object({
   gridSummary: z.string().describe("A textual summary from the AI describing likely cheaper or more expensive periods within the specified month for the given route."),
-  datePricePoints: z.array(DatePricePointSchema).optional().max(7).describe("An array of up to 7 conceptual date price points, each with a date label, price indicator, and optional notes."),
+  datePricePoints: z.array(DatePricePointSchema).max(7).optional().describe("An array of up to 7 conceptual date price points, each with a date label, price indicator, and optional notes."),
 });
 export type ConceptualDateGridOutput = z.infer<typeof ConceptualDateGridOutputSchema>;
