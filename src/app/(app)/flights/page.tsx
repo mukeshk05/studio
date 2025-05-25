@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FormItem } from "@/components/ui/form"; // Corrected: FormItem might still be useful for layout
+import { FormItem } from "@/components/ui/form";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import {
   DialogClose,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription } from '@/components/ui/alert'; // Aliased imports
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 
@@ -57,12 +57,20 @@ import {
   Route,
   CheckCircle,
   PieChart,
-  Grid2X2
+  Grid2X2,
+  Lightbulb
 } from 'lucide-react';
 import { format, addDays, isValid, parseISO } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { getPopularDestinations, getAiFlightMapDealsAction, getConceptualFlightsAction, getAiPriceAdviceAction, getConceptualDateGridAction, getConceptualPriceGraphAction } from '@/app/actions';
+import { 
+  getPopularDestinations, 
+  getConceptualFlightsAction,
+  getAiFlightMapDealsAction, 
+  getPriceAdviceAction,
+  getConceptualDateGridAction,
+  getConceptualPriceGraphAction
+} from '@/app/actions';
 import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
 import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
 import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput, ConceptualFlightOption } from '@/ai/types/conceptual-flight-search-types';
@@ -160,7 +168,7 @@ function FlightDestinationSuggestionCard({ destination, onPlanTrip }: FlightDest
   const handlePlan = () => {
     const plannerInput: AITripPlannerInput = {
       destination: destination.name + (destination.country ? `, ${destination.country}` : ''),
-      travelDates: "Flexible dates", // Default sensible dates
+      travelDates: "Flexible dates", 
       budget: parseInt(destination.flightIdea?.priceRange?.match(/\$(\d+)/)?.[0].replace('$','') || '1000', 10),
     };
     onPlanTrip(plannerInput);
@@ -312,9 +320,19 @@ function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: 
     
     if (formValues.departureDate) {
        try {
-        const depDate = new Date(formValues.departureDate + "T00:00:00"); 
-        if (!isNaN(depDate.getTime())) {
-          params.append('dt', format(depDate, 'yyyy-MM-dd'));
+        // Ensure date string is treated as local date, not UTC, to avoid off-by-one day issues
+        const parts = formValues.departureDate.split('-');
+        if (parts.length === 3) {
+            const depDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            if (!isNaN(depDate.getTime())) {
+              params.append('dt', format(depDate, 'yyyy-MM-dd'));
+            }
+        } else {
+            // Fallback for other date string formats, assuming it can be parsed directly
+            const depDate = new Date(formValues.departureDate);
+            if (!isNaN(depDate.getTime())) {
+                params.append('dt', format(depDate, 'yyyy-MM-dd'));
+            }
         }
       } catch (e) { console.error("Error formatting departure date for Google Flights:", e);}
     }
@@ -396,6 +414,10 @@ export default function FlightsPage() {
   const [destination, setDestination] = useState('');
   const [dates, setDates] = useState<DateRange | undefined>(undefined);
 
+  useEffect(() => {
+    setDates({ from: new Date(), to: addDays(new Date(), 7) });
+  }, []);
+
   const originInputRef = useRef<HTMLInputElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
   const mapDealTargetDestinationCityInputRef = useRef<HTMLInputElement>(null);
@@ -405,12 +427,6 @@ export default function FlightsPage() {
   const dateGridDestinationInputRef = useRef<HTMLInputElement>(null);
   const priceGraphOriginInputRef = useRef<HTMLInputElement>(null);
   const priceGraphDestinationInputRef = useRef<HTMLInputElement>(null);
-
-
-  useEffect(() => {
-    // Initialize dates on the client side to avoid hydration mismatch
-    setDates({ from: new Date(), to: addDays(new Date(), 7) });
-  }, []);
 
 
   const [passengers, setPassengers] = useState("1 adult");
@@ -450,7 +466,6 @@ export default function FlightsPage() {
   const routePolylineRef = useRef<google.maps.Polyline | null>(null);
   const userLocationMarkerRef = useRef<google.maps.Marker | null>(null);
 
-  // State for "Track Prices" tool
   const [trackOrigin, setTrackOrigin] = useState('');
   const [trackDestination, setTrackDestination] = useState('');
   const [trackTravelDates, setTrackTravelDates] = useState('');
@@ -459,14 +474,12 @@ export default function FlightsPage() {
   const [trackPriceAiAdvice, setTrackPriceAiAdvice] = useState<string | null>(null);
   const [isTrackingPrice, setIsTrackingPrice] = useState(false);
 
-  // State for "Date Grid" tool
   const [dateGridOrigin, setDateGridOrigin] = useState('');
   const [dateGridDestination, setDateGridDestination] = useState('');
   const [dateGridMonth, setDateGridMonth] = useState('');
   const [dateGridResult, setDateGridResult] = useState<ConceptualDateGridOutput | null>(null);
   const [isLoadingDateGrid, setIsLoadingDateGrid] = useState(false);
 
-  // State for "Price Graph" tool
   const [priceGraphOrigin, setPriceGraphOrigin] = useState('');
   const [priceGraphDestination, setPriceGraphDestination] = useState('');
   const [priceGraphDatesHint, setPriceGraphDatesHint] = useState('');
@@ -514,7 +527,7 @@ export default function FlightsPage() {
     script.async = true; script.defer = true;
     script.onerror = () => {
       console.error("[FlightsPage] Failed to load Google Maps API script.");
-      setMapsApiError("Failed to load Google Maps. Please check API key and network.");
+      setMapsApiError("Failed to load Google Maps script. Please check API key and network.");
       setIsMapsScriptLoaded(false);
       setIsFetchingUserLocationForMap(false);
       setIsMapInitializing(false);
@@ -544,7 +557,7 @@ export default function FlightsPage() {
 
    useEffect(() => {
     console.log(`[FlightsPage] Map/Location Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, mapRef.current=${!!mapRef.current}, !map=${!map}, isFetchingUserLocationForMap=${isFetchingUserLocationForMap}`);
-    if (isMapsScriptLoaded && mapRef.current && !map && isFetchingUserLocationForMap) {
+    if (isMapsScriptLoaded && mapRef.current && !map && isFetchingUserLocationForMap) { // Ensure this runs only once for initial setup
       console.log("[FlightsPage] Maps script loaded, attempting to fetch user location for initial map center.");
        setIsMapInitializing(true);
       if (navigator.geolocation) {
@@ -571,7 +584,7 @@ export default function FlightsPage() {
         initializeMap({ lat: 20, lng: 0 }, 2);
       }
       setIsFetchingUserLocationForMap(false); 
-    } else if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing && !isFetchingUserLocationForMap) {
+    } else if (isMapsScriptLoaded && mapRef.current && !map && !isMapInitializing && !isFetchingUserLocationForMap) { // Fallback if geo attempt already done/skipped
         console.log("[FlightsPage] Maps script loaded, geo attempt already finished/skipped, map not init. Initializing with default.");
         setIsMapInitializing(true);
         initializeMap({ lat: 20, lng: 0 }, 2);
@@ -673,7 +686,7 @@ export default function FlightsPage() {
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 7000, enableHighAccuracy: true, maximumAge: 0 }));
         currentLoc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-        setUserLocation(currentLoc); // Update the main userLocation state
+        setUserLocation(currentLoc); 
         console.log("[FlightsPage] User location fetched on demand for AI suggestions:", currentLoc);
          setGeolocationSuggestionsError(null);
       } catch (err: any) {
@@ -710,7 +723,7 @@ export default function FlightsPage() {
       handleFetchLocationAndDests();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, geolocationMapError]); 
+  }, [userLocation, geolocationMapError]); // Dependencies managed carefully
 
 
  const handleFetchMapDeals = async () => {
@@ -758,8 +771,8 @@ export default function FlightsPage() {
   useEffect(() => {
     if (!map || !isMapsScriptLoaded || !(window.google && window.google.maps && window.google.maps.OverlayView)) {
       mapDealMarkersRef.current.forEach(marker => marker.setMap(null)); mapDealMarkersRef.current = [];
-      if(userLocationMarkerRef.current) userLocationMarkerRef.current.setMap(null);
-      if(routePolylineRef.current) routePolylineRef.current.setMap(null);
+      if(userLocationMarkerRef.current) userLocationMarkerRef.current.setMap(null); userLocationMarkerRef.current = null;
+      if(routePolylineRef.current) routePolylineRef.current.setMap(null); routePolylineRef.current = null;
       return;
     }
     console.log("[FlightsPage] Updating map deal markers. Suggestions count:", mapDealSuggestions.length);
@@ -776,7 +789,7 @@ export default function FlightsPage() {
             this.dealData = props.deal; this.clickHandler = props.onClick; this.mapInstanceRef = props.map; this.setMap(props.map);
         }
         onAdd() {
-            this.div = document.createElement('div'); this.div.className = 'custom-map-marker-price';
+            this.div = document.createElement('div'); this.div.className = 'custom-map-marker-price'; // Ensure this CSS class is defined globally
             this.div.innerHTML = `<span class="price-text">${this.dealData.conceptualPriceRange.split('-')[0].trim()}</span><span class="pulse-price"></span>`;
             this.div.title = `${this.dealData.destinationCity}: ${this.dealData.conceptualPriceRange}`;
             this.div.addEventListener('click', this.clickHandler);
@@ -830,7 +843,7 @@ export default function FlightsPage() {
               geodesic: true,
               strokeColor: 'hsl(var(--accent))', 
               strokeOpacity: 0.9, 
-              strokeWeight: 5, 
+              strokeWeight: 5, // Increased from 2 to 5
               icons: [{ 
                 icon: {
                   path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
@@ -931,7 +944,7 @@ export default function FlightsPage() {
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
       };
-      const adviceResult = await getAiPriceAdviceAction(adviceInput);
+      const adviceResult = await getPriceAdviceAction(adviceInput);
       setTrackPriceAiAdvice(adviceResult.advice);
     } catch (error: any) {
       console.error("Error tracking price or getting advice:", error);
@@ -1007,13 +1020,13 @@ export default function FlightsPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid grid-cols-2 gap-2">
-                <div><Label htmlFor="departure-date" className="text-sm font-medium text-card-foreground/90">Departure</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.from && "text-muted-foreground")}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.from ? format(dates.from, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={tripType === 'one-way' ? 1 : 2} disabled={{ before: new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>
-                {tripType === 'round-trip' && (<div><Label htmlFor="return-date" className="text-sm font-medium text-card-foreground/90">Return</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.to && "text-muted-foreground")} disabled={!dates?.from}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.to ? format(dates.to, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={2} disabled={{ before: dates?.from || new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>)}
+                <div><Label htmlFor="departure-date" className="text-sm font-medium text-card-foreground/90">Departure</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.from && "text-muted-foreground")}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.from && isValid(dates.from) ? format(dates.from, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={tripType === 'one-way' ? 1 : 2} disabled={{ before: new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>
+                {tripType === 'round-trip' && (<div><Label htmlFor="return-date" className="text-sm font-medium text-card-foreground/90">Return</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.to && "text-muted-foreground")} disabled={!dates?.from}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.to && isValid(dates.to) ? format(dates.to, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={2} disabled={{ before: dates?.from || new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>)}
                 {tripType === 'one-way' && (<div><Label htmlFor="one-way-date" className="text-sm font-medium text-card-foreground/90 opacity-0 md:opacity-100">.</Label></div>)}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div><Label htmlFor="passengers" className="text-sm font-medium text-card-foreground/90 flex items-center"><Users className="w-4 h-4 mr-1.5" /> Passengers</Label><Select value={passengers} onValueChange={setPassengers}><SelectTrigger suppressHydrationWarning className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="1 adult">1 adult</SelectItem><SelectItem value="2 adults">2 adults</SelectItem><SelectItem value="3 adults">3 adults</SelectItem><SelectItem value="custom">Custom...</SelectItem></SelectContent></Select></div>
-                <div><Label htmlFor="cabin-class" className="text-sm font-medium text-card-foreground/90 flex items-center"><Briefcase className="w-4 h-4 mr-1.5" /> Cabin Class</Label><Select value={cabinClass} onValueChange={setCabinClass}><SelectTrigger suppressHydrationWarning className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="economy">Economy</SelectItem><SelectItem value="premium-economy">Premium Economy</SelectItem><SelectItem value="business">Business</SelectItem><SelectItem value="first">First</SelectItem></SelectContent></Select></div>
+                <div><Label htmlFor="passengers" className="text-sm font-medium text-card-foreground/90 flex items-center"><Users className="w-4 h-4 mr-1.5" /> Passengers</Label><Select value={passengers} onValueChange={setPassengers}><SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="1 adult">1 adult</SelectItem><SelectItem value="2 adults">2 adults</SelectItem><SelectItem value="3 adults">3 adults</SelectItem><SelectItem value="custom">Custom...</SelectItem></SelectContent></Select></div>
+                <div><Label htmlFor="cabin-class" className="text-sm font-medium text-card-foreground/90 flex items-center"><Briefcase className="w-4 h-4 mr-1.5" /> Cabin Class</Label><Select value={cabinClass} onValueChange={setCabinClass}><SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="economy">Economy</SelectItem><SelectItem value="premium-economy">Premium Economy</SelectItem><SelectItem value="business">Business</SelectItem><SelectItem value="first">First</SelectItem></SelectContent></Select></div>
               </div>
             </div>
             <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingConceptualFlights}>{isLoadingConceptualFlights ? <Loader2 className="animate-spin" /> : <Search />}{isLoadingConceptualFlights ? 'AI Finding Conceptual Flights...' : 'Search Flights with AI'}</Button>
@@ -1123,7 +1136,7 @@ export default function FlightsPage() {
          {!isFetchingGeneralDests && generalAiDestinations.length === 0 && generalContextualNote && (
             <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary text-sm")}>
               <Info className="h-4 w-4 !text-primary" />
-              <ShadcnAlertTitle className="font-semibold">AI Note</ShadcnAlertTitle>
+              <ShadcnAlertTitle className="font-semibold">Aura's Note</ShadcnAlertTitle>
               <ShadcnAlertDescription className="text-primary/80">
                 {generalContextualNote}
               </ShadcnAlertDescription>
@@ -1164,8 +1177,8 @@ export default function FlightsPage() {
               {trackPriceAiAdvice && (
                 <Alert variant="default" className="p-2.5 text-xs border-accent/50 bg-accent/10 text-card-foreground">
                   <Sparkles className="h-4 w-4 text-accent" />
-                  <AlertTitle className="text-xs font-semibold text-accent mb-0.5">AI Advice</AlertTitle>
-                  <AlertDescription className="text-xs">{trackPriceAiAdvice}</AlertDescription>
+                  <ShadcnAlertTitle className="text-xs font-semibold text-accent mb-0.5">AI Advice</ShadcnAlertTitle>
+                  <ShadcnAlertDescription className="text-xs">{trackPriceAiAdvice}</ShadcnAlertDescription>
                 </Alert>
               )}
             </CardContent>
@@ -1259,12 +1272,12 @@ export default function FlightsPage() {
         </div>
         {(isFetchingUserLocationForSuggestions && !userLocation) && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2 inline-block" />Fetching your location to find relevant flights...</div>}
 
-        {!isFetchingUserLocationForSuggestions && geolocationSuggestionsError && (
+        {!isFetchingUserLocationForSuggestions && geolocationMapError && (
             <Alert variant="default" className={cn("mb-4 bg-amber-500/10 border-amber-500/30 text-amber-300")}>
               <AlertTriangle className="h-4 w-4 !text-amber-400" />
               <ShadcnAlertTitle className="text-amber-200">Location Error</ShadcnAlertTitle>
               <ShadcnAlertDescription className="text-amber-400/80">
-                {geolocationSuggestionsError}
+                {geolocationMapError}
               </ShadcnAlertDescription>
             </Alert>
         )}
@@ -1282,7 +1295,7 @@ export default function FlightsPage() {
         {!isFetchingLocationDests && locationAiDestinations.length === 0 && locationContextualNote && (
           <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary text-sm")}>
             <Info className="h-4 w-4 !text-primary" />
-            <ShadcnAlertTitle className="font-semibold">AI Note</ShadcnAlertTitle>
+            <ShadcnAlertTitle className="font-semibold">Aura's Note</ShadcnAlertTitle>
             <ShadcnAlertDescription className="text-primary/80">
               {locationContextualNote}
             </ShadcnAlertDescription>
@@ -1321,3 +1334,4 @@ export default function FlightsPage() {
     </div>
   );
 }
+
