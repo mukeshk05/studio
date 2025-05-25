@@ -5,19 +5,21 @@ import type { PriceTrackerEntry, PriceForecast } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plane, Hotel, DollarSign, Tag, Trash2, RefreshCw, Bell, Sparkles, Loader2, TrendingUp, LineChart, CalendarDays, MapPin } from "lucide-react";
+import { Plane, Hotel, DollarSign, Tag, Trash2, RefreshCw, Bell, Sparkles, Loader2, TrendingUp, LineChart, CalendarDays, MapPin, CheckCircle, Info } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import { getPriceAdvice, PriceAdvisorInput as AIPAdInput } from "@/ai/flows/price-advisor-flow"; 
 import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow.ts";
-import React from "react";
+import React, { useState } from "react"; // Added useState
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { PriceForecastChart } from "./PriceForecastChart"; 
+import { Switch } from "@/components/ui/switch"; // Added Switch import
+import { Separator } from "@/components/ui/separator"; // Added Separator
 
 type PriceTrackerItemProps = {
   item: PriceTrackerEntry;
@@ -42,6 +44,18 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   const [isForecastChartDialogOpen, setIsForecastChartDialogOpen] = React.useState(false);
   const [simulatedChartData, setSimulatedChartData] = React.useState<Array<{ time: string; price: number | null }>>([]);
 
+  const [enableAutoBook, setEnableAutoBook] = useState(false); // State for conceptual auto-book
+
+  const handleAutoBookToggle = (checked: boolean) => {
+    setEnableAutoBook(checked);
+    toast({
+      title: `Conceptual Auto-Book ${checked ? "Enabled" : "Disabled"}`,
+      description: checked 
+        ? `BudgetRoam would conceptually attempt to auto-book ${item.itemName} if the price hits $${item.targetPrice.toLocaleString()}.`
+        : `Conceptual auto-booking for ${item.itemName} is now off.`,
+      duration: 4000,
+    });
+  };
 
   const handleRecheckPriceSubmit = async () => {
     const currentPriceNum = parseFloat(newCurrentPrice);
@@ -245,6 +259,31 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
               </Alert>
           )}
 
+          <Separator className="my-3" />
+
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id={`auto-book-${item.id}`}
+                checked={enableAutoBook}
+                onCheckedChange={handleAutoBookToggle}
+                className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-input"
+              />
+              <Label htmlFor={`auto-book-${item.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                Enable Auto-Book if Target Price Met (Conceptual)
+              </Label>
+            </div>
+            {enableAutoBook && (
+              <Alert variant="default" className="p-2.5 text-xs border-green-500/30 bg-green-500/10 text-card-foreground">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <AlertTitle className="text-xs font-semibold text-green-600 dark:text-green-400 mb-0.5">Conceptual Auto-Book Enabled</AlertTitle>
+                <AlertDescription className="text-xs">
+                  If this were a live feature, BudgetRoam AI would attempt to automatically book this item for you if its price drops to or below your target of ${item.targetPrice.toLocaleString()}. This would require pre-configured payment methods and booking preferences (Future Vision).
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
         </CardContent>
         <CardFooter className="grid grid-cols-2 gap-2 pt-3">
           <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
@@ -357,4 +396,3 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     </>
   );
 }
-
