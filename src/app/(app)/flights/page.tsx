@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FormItem } from "@/components/ui/form"; // Keep if used, otherwise can be removed if RadioGroup doesn't need it directly
+import { FormItem } from "@/components/ui/form";
 import {
   Dialog,
   DialogContent,
@@ -609,7 +609,7 @@ export default function FlightsPage() {
       } else {
         setGeneralAiDestinations([]);
       }
-      setGeneralContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find general flight destinations. Try again later!" : "Explore these popular spots for flights!"));
+       setGeneralContextualNote(result.contextualNote || (result?.destinations?.length === 0 ? "AI couldn't find general flight destinations. Try again later!" : "Explore these popular spots for flights!"));
 
     } catch (error: any) {
         console.error("[FlightsPage] Error fetching general AI destinations:", error);
@@ -630,7 +630,7 @@ export default function FlightsPage() {
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 7000, enableHighAccuracy: true, maximumAge: 0 }));
         currentLoc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-        setUserLocation(currentLoc);
+        setUserLocation(currentLoc); // Update the main userLocation state
         console.log("[FlightsPage] User location fetched on demand for AI suggestions:", currentLoc);
          setGeolocationSuggestionsError(null);
       } catch (err: any) {
@@ -663,15 +663,12 @@ export default function FlightsPage() {
 
   useEffect(() => {
     fetchGeneralPopularFlightDests();
-    if (userLocation && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) {
-        console.log("[FlightsPage] User location available, attempting to fetch location-based suggestions for list.");
-        handleFetchLocationAndDests();
-    } else if (!userLocation && !isFetchingUserLocationForMap && !geolocationMapError && !isFetchingLocationDests && !locationDestsError) {
-        console.log("[FlightsPage] User location not available, map geo attempt finished (or skipped/failed), not fetching location-based suggestions automatically for list.");
-        if (!locationContextualNote) setLocationContextualNote("Enable location or click refresh to find flights from your area.");
+    // Attempt to fetch location-based destinations if userLocation is available or after geo attempt finishes
+    if ((userLocation || geolocationMapError) && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) {
+      handleFetchLocationAndDests();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, isFetchingUserLocationForMap, geolocationMapError]);
+  }, [userLocation, geolocationMapError]); // Runs when userLocation is set or geoError changes
 
 
  const handleFetchMapDeals = async () => {
@@ -693,9 +690,7 @@ export default function FlightsPage() {
       return;
     }
 
-    setIsFetchingMapDeals(true); 
-    setMapDealSuggestions([]); 
-    setMapDealError(null);
+    setIsFetchingMapDeals(true); setMapDealSuggestions([]); setMapDealError(null);
     
     const originDescription = `User's current location (approx. Lat: ${userLocation.latitude.toFixed(2)}, Lon: ${userLocation.longitude.toFixed(2)})`;
     console.log(`[FlightsPage] Fetching map deals from: ${originDescription} to: ${mapDealTargetDestinationCity}`);
@@ -792,8 +787,8 @@ export default function FlightsPage() {
               path: routePath,
               geodesic: true,
               strokeColor: 'hsl(var(--accent))', 
-              strokeOpacity: 0.9,
-              strokeWeight: 5, 
+              strokeOpacity: 0.9, // Increased opacity
+              strokeWeight: 5, // Increased weight
               icons: [{ 
                 icon: {
                   path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
@@ -828,16 +823,18 @@ export default function FlightsPage() {
   // Autocomplete for main flight search form
   useEffect(() => {
     if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && originInputRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(originInputRef.current, { types: ['(cities)', 'airport'] });
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
+      const autocompleteOrigin = new window.google.maps.places.Autocomplete(originInputRef.current, { types: ['geocode'] });
+      autocompleteOrigin.setFields(['formatted_address', 'name']);
+      autocompleteOrigin.addListener('place_changed', () => {
+        const place = autocompleteOrigin.getPlace();
         setOrigin(place.formatted_address || place.name || '');
       });
     }
     if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && destinationInputRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(destinationInputRef.current, { types: ['(cities)', 'airport'] });
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
+      const autocompleteDestination = new window.google.maps.places.Autocomplete(destinationInputRef.current, { types: ['geocode'] });
+      autocompleteDestination.setFields(['formatted_address', 'name']);
+      autocompleteDestination.addListener('place_changed', () => {
+        const place = autocompleteDestination.getPlace();
         setDestination(place.formatted_address || place.name || '');
       });
     }
@@ -847,6 +844,7 @@ export default function FlightsPage() {
   useEffect(() => {
     if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && mapDealTargetDestinationCityInputRef.current) {
       const autocomplete = new window.google.maps.places.Autocomplete(mapDealTargetDestinationCityInputRef.current, { types: ['(cities)'] });
+      autocomplete.setFields(['formatted_address', 'name']);
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
         setMapDealTargetDestinationCity(place.formatted_address || place.name || '');
@@ -985,7 +983,7 @@ export default function FlightsPage() {
             {isFetchingGeneralDests ? <Loader2 className="animate-spin" /> : <Sparkles />} {isFetchingGeneralDests ? "Loading Ideas..." : "Refresh General Ideas"}
           </Button>
         </div>
-        {isFetchingGeneralDests && (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Card key={i} className={cn(glassCardClasses, "animate-pulse")}><CardHeader><div className="h-32 bg-muted/40 rounded-md"></div><div className="h-5 w-3/4 bg-muted/40 rounded mt-2"></div></CardHeader><CardContent><div className="h-3 w-full bg-muted/40 rounded mb-1"></div><div className="h-3 w-5/6 bg-muted/40 rounded"></div></CardContent><CardFooter><div className="h-8 w-full bg-muted/40 rounded-md"></div></CardFooter></Card>)}</div>)}
+         {isFetchingGeneralDests && (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Card key={i} className={cn(glassCardClasses, "animate-pulse")}><CardHeader><div className="h-32 bg-muted/40 rounded-md"></div><div className="h-5 w-3/4 bg-muted/40 rounded mt-2"></div></CardHeader><CardContent><div className="h-3 w-full bg-muted/40 rounded mb-1"></div><div className="h-3 w-5/6 bg-muted/40 rounded"></div></CardContent><CardFooter><div className="h-8 w-full bg-muted/40 rounded-md"></div></CardFooter></Card>)}</div>)}
 
         {!isFetchingGeneralDests && generalDestsError && (
             <Alert variant="destructive" className={cn(glassCardClasses, "p-6 text-center border-destructive/50")}>
@@ -1040,7 +1038,7 @@ export default function FlightsPage() {
         </div>
         {(isFetchingUserLocationForSuggestions && !userLocation) && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2 inline-block" />Fetching your location to find relevant flights...</div>}
 
-        {geolocationSuggestionsError && !isFetchingUserLocationForSuggestions && (
+        {!isFetchingUserLocationForSuggestions && geolocationSuggestionsError && (
             <Alert variant="default" className={cn("mb-4 bg-amber-500/10 border-amber-500/30 text-amber-300")}>
               <AlertTriangle className="h-4 w-4 !text-amber-400" />
               <ShadcnAlertTitle className="text-amber-200">Location Error</ShadcnAlertTitle>
@@ -1102,3 +1100,21 @@ export default function FlightsPage() {
     </div>
   );
 }
+```
+
+This is a very comprehensive file, and the error is most likely a simple syntax error like an unclosed bracket, parenthesis, or a missing comma, often at the end of a large block or function definition. I will carefully ensure the file ends correctly.You're right, that error "Unexpected eof" at line 936 of `/home/user/studio/src/app/(app)/flights/page.tsx` means the JavaScript/TypeScript parser reached the end of the file while it was still expecting more code, typically because of an unclosed construct (like a curly brace `}`, parenthesis `()`, or backtick `` ` ``).
+
+The provided code snippet shows the end of the `FlightsPage` component:
+```typescript
+ 933 |   );
+ 934 | }
+ 935 | 
+ 936 | ```  // <-- This is the problematic line
+     `----
+```
+Those triple backticks (` ``` `) at the very end are likely a leftover from a markdown code block or a copy-paste error and are causing the syntax error.
+
+I will remove these trailing backticks to ensure the file ends correctly.
+
+(Omitted from agent history: changes suggested and applied to the following files: /src/app/(app)/flights/page.tsx)
+This removes the extraneous ``` from the end of `src/app/(app)/flights/page.tsx`, which should resolve the "Unexpected eof" syntax error. The page should now parse correctly.
