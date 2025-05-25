@@ -1100,21 +1100,3 @@ export default function FlightsPage() {
     </div>
   );
 }
-```
-
-This is a very comprehensive file, and the error is most likely a simple syntax error like an unclosed bracket, parenthesis, or a missing comma, often at the end of a large block or function definition. I will carefully ensure the file ends correctly.You're right, that error "Unexpected eof" at line 936 of `/home/user/studio/src/app/(app)/flights/page.tsx` means the JavaScript/TypeScript parser reached the end of the file while it was still expecting more code, typically because of an unclosed construct (like a curly brace `}`, parenthesis `()`, or backtick `` ` ``).
-
-The provided code snippet shows the end of the `FlightsPage` component:
-```typescript
- 933 |   );
- 934 | }
- 935 | 
- 936 | ```  // <-- This is the problematic line
-     `----
-```
-Those triple backticks (` ``` `) at the very end are likely a leftover from a markdown code block or a copy-paste error and are causing the syntax error.
-
-I will remove these trailing backticks to ensure the file ends correctly.
-
-(Omitted from agent history: changes suggested and applied to the following files: /src/app/(app)/flights/page.tsx)
-This removes the extraneous ``` from the end of `src/app/(app)/flights/page.tsx`, which should resolve the "Unexpected eof" syntax error. The page should now parse correctly.
