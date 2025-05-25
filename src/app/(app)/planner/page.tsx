@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -6,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/types/trip-planner-types";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
+import type { CoTravelAgentInput, CoTravelAgentOutput } from "@/ai/types/co-travel-agent-types"; // For new chat
+import { getCoTravelAgentResponse } from "@/app/actions"; // For new chat
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
-import { History, Send, Loader2 } from "lucide-react"; 
+import { Input } from "@/components/ui/input"; // For new chat input
+import { History, Send, Loader2, MessageSquare, Bot } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +21,7 @@ import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailS
 
 export interface ChatMessage {
   id: string;
-  type: "user" | "ai" | "error" | "loading" | "system" | "booking_guidance";
+  type: "user" | "ai" | "error" | "loading" | "system" | "booking_guidance" | "ai_text_response"; // Added ai_text_response
   payload?: any;
   timestamp: Date;
   title?: string;
@@ -27,11 +29,13 @@ export interface ChatMessage {
 
 export default function TripPlannerPage() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [currentUserInput, setCurrentUserInput] = useState(""); // State for the new chat input
   const [isInputSheetOpen, setIsInputSheetOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isSearchHistoryDrawerOpen, setIsSearchHistoryDrawerOpen] = useState(false);
   const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null);
+  const [isAiRespondingToChat, setIsAiRespondingToChat] = useState(false); // Loading state for chat input AI
 
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -41,6 +45,8 @@ export default function TripPlannerPage() {
   const addSearchHistoryMutation = useAddSearchHistory();
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     const bundledTripData = localStorage.getItem('tripBundleToPlan');
@@ -59,7 +65,7 @@ export default function TripPlannerPage() {
         {
           id: crypto.randomUUID(),
           type: "system",
-          payload: "Welcome to your AI Trip Planner! Click the 'Compose Trip Request' button below to describe your ideal trip.",
+          payload: "Welcome to your AI Trip Planner & Concierge! Click 'Compose Trip Request' for detailed planning or ask me a quick travel question below.",
           timestamp: new Date(),
         },
       ]);
@@ -107,6 +113,7 @@ export default function TripPlannerPage() {
       type: "user",
       payload: input,
       timestamp: new Date(),
+      title: "Trip Plan Request"
     };
     const loadingMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -155,8 +162,10 @@ export default function TripPlannerPage() {
         })),
         destinationImageUri: it.destinationImageUri, 
         culturalTip: it.culturalTip === undefined ? null : it.culturalTip,
-        weatherContext: it.weatherContext === undefined ? null : it.weatherContext,
-        riskContext: it.riskContext === undefined ? null : it.riskContext,
+        isAlternative: it.isAlternative,
+        alternativeReason: it.alternativeReason,
+        destinationLatitude: it.destinationLatitude,
+        destinationLongitude: it.destinationLongitude,
       }));
 
 
@@ -189,6 +198,79 @@ export default function TripPlannerPage() {
     }
   };
 
+  const handleSendUserChatMessage = async () => {
+    const text = currentUserInput.trim();
+    if (!text) return;
+    if (!currentUser) {
+      toast({ title: "Please Log In", description: "You need to be logged in to chat.", variant: "destructive" });
+      return;
+    }
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      type: 'user',
+      payload: { text }, // Store as object for consistency, even if just text
+      timestamp: new Date(),
+    };
+    const loadingMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      type: 'loading',
+      timestamp: new Date(),
+    };
+    setChatHistory(prev => [...prev, userMsg, loadingMsg]);
+    setCurrentUserInput("");
+    setIsAiRespondingToChat(true);
+
+    let aiResponsePayload: string;
+    let aiResponseType: ChatMessage['type'] = "ai_text_response";
+
+    // Simple intent parsing
+    const lowerText = text.toLowerCase();
+    const questionKeywords = ['what is', 'what are', 'how do', 'can i', 'is it', 'visa', 'customs', 'etiquette', 'rule for', 'currency in'];
+    const searchKeywords = ['hotel in', 'flight to', 'find me a', 'book a', 'look for'];
+    const modificationKeywords = ['add to', 'change my', 'update my', 'modify the'];
+
+    if (questionKeywords.some(kw => lowerText.includes(kw))) {
+      // Try to extract destination
+      const forMatch = lowerText.match(/(?:for|in|about|of)\s+([\w\s,]+)/i);
+      const destination = forMatch?.[1]?.trim().replace(/\?$/, '').trim();
+
+      if (destination) {
+        try {
+          const coAgentInput: CoTravelAgentInput = { destination, question: text };
+          const coAgentResponse: CoTravelAgentOutput = await getCoTravelAgentResponse(coAgentInput);
+          let responseText = coAgentResponse.answer;
+          if (coAgentResponse.relevantTips && coAgentResponse.relevantTips.length > 0) {
+            responseText += "\n\nHere are some relevant tips:\n- " + coAgentResponse.relevantTips.join("\n- ");
+          }
+          aiResponsePayload = responseText;
+        } catch (e: any) {
+          console.error("Error calling CoTravelAgent:", e);
+          aiResponsePayload = "Sorry, I had trouble looking that up. Could you try rephrasing?";
+          aiResponseType = "error";
+        }
+      } else {
+        aiResponsePayload = "I can try to answer that! Which destination are you asking about?";
+      }
+    } else if (searchKeywords.some(kw => lowerText.includes(kw))) {
+      aiResponsePayload = "I can help you find flights or hotels! Please use the 'Compose Trip Request' button above to provide details like dates, budget, and specific preferences for the best results.";
+    } else if (modificationKeywords.some(kw => lowerText.includes(kw))) {
+      aiResponsePayload = "To modify an existing plan or create an updated one, please use the 'Compose Trip Request' button. You can describe your changes there, and I'll generate new itineraries for you.";
+    } else {
+      aiResponsePayload = "I'm here to help with general travel questions or guide you in planning a new trip. For detailed itinerary planning, the 'Compose Trip Request' button is your best bet!";
+    }
+
+    const aiMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      type: aiResponseType,
+      payload: aiResponsePayload,
+      timestamp: new Date(),
+    };
+    setChatHistory(prev => prev.filter(msg => msg.type !== 'loading').concat(aiMsg));
+    setIsAiRespondingToChat(false);
+  };
+
+
   const handleViewDetails = (itinerary: Itinerary) => {
     setSelectedItinerary(itinerary);
     setIsDetailSheetOpen(true);
@@ -207,11 +289,8 @@ export default function TripPlannerPage() {
           trip.estimatedCost === itineraryToSave.estimatedCost
       );
 
-      // If it's a new temporary ID or it doesn't exist in savedTrips by content
       if (!('id' in itineraryToSave) || (itineraryToSave.id && itineraryToSave.id.startsWith('temp-')) || !alreadyExists) {
-         // Strip temporary ID if present before saving
         const { id, ...dataToSaveReal } = itineraryToSave as Itinerary; 
-
         await addSavedTripMutation.mutateAsync(dataToSaveReal as Omit<Itinerary, 'id' | 'aiGeneratedMemory'>);
         toast({
           title: "Trip Saved!",
@@ -229,16 +308,10 @@ export default function TripPlannerPage() {
 
   const isTripSaved = (itinerary: Itinerary | Omit<Itinerary, 'id'>): boolean => {
     if (isLoadingSavedTrips || !savedTrips) return false;
-    
-    // If it's a temporary ID, it's definitely not saved yet by its final ID
     if ('id' in itinerary && itinerary.id && itinerary.id.startsWith('temp-')) return false;
-
-    // Check if a trip with the same final ID exists (if it's already been saved once)
     if ('id' in itinerary && itinerary.id && savedTrips.some(trip => trip.id === itinerary.id)) {
       return true;
     }
-    
-    // Fallback content check for items that might not have a persistent ID yet or if ID comparison fails
     return savedTrips.some(
       (trip) =>
         trip.destination === itinerary.destination &&
@@ -250,7 +323,6 @@ export default function TripPlannerPage() {
   const handleInitiateBookingGuidance = (itinerary: Itinerary) => {
     const flightSearchUrl = `https://www.google.com/travel/flights?q=flights+to+${encodeURIComponent(itinerary.destination)}`;
     const hotelSearchUrl = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(itinerary.destination)}`;
-
     const guidanceMessage: ChatMessage = {
       id: crypto.randomUUID(),
       type: "booking_guidance",
@@ -268,8 +340,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
     setIsDetailSheetOpen(false); 
   };
 
-
-  const isAiProcessing = chatHistory.some(msg => msg.type === 'loading');
+  const isAiProcessingMainPlan = chatHistory.some(msg => msg.type === 'loading' && !isAiRespondingToChat);
 
   const handleSelectHistoryEntry = (entryData: Partial<AITripPlannerInput>) => {
     setCurrentFormInitialValues(entryData);
@@ -317,13 +388,15 @@ Remember to compare prices and check cancellation policies before booking. Happy
   const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background"> {/* Assumes header is 4rem */}
       <div className={cn("p-3 border-b border-border/30 flex justify-between items-center", "glass-pane")}>
-        <h2 className="text-lg font-semibold text-foreground">AI Trip Planner</h2>
+        <h2 className="text-lg font-semibold text-foreground flex items-center">
+            <Bot className="w-6 h-6 mr-2 text-primary"/> AI Trip Planner & Concierge
+        </h2>
         <Button
           size="sm"
           onClick={() => setIsSearchHistoryDrawerOpen(true)}
-          disabled={!currentUser || addSearchHistoryMutation.isPending || isAiProcessing}
+          disabled={!currentUser || addSearchHistoryMutation.isPending || isAiProcessingMainPlan || isAiRespondingToChat}
           className={cn(
             "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
             "bg-gradient-to-r from-primary to-accent text-primary-foreground",
@@ -338,26 +411,57 @@ Remember to compare prices and check cancellation policies before booking. Happy
       </div>
 
       <ScrollArea className="flex-grow p-4 sm:p-6" ref={chatContainerRef}>
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="max-w-3xl mx-auto space-y-6 pb-4"> {/* Added pb-4 for spacing from chat input */}
           {chatHistory.map((msg) => (
             <ChatMessageCard key={msg.id} message={msg} onViewDetails={handleViewDetails} />
           ))}
         </div>
       </ScrollArea>
-
-      <div className={cn("p-4 border-t border-border/30", "glass-pane")}>
-        <div className="max-w-3xl mx-auto">
+      
+      {/* Chat Input Section */}
+      <div className={cn("p-3 border-t border-border/30", "glass-pane")}>
+        <div className="max-w-3xl mx-auto space-y-3">
             <Button
               onClick={handleOpenInputSheetForNewPlan}
               className={cn(prominentButtonClasses, "w-full")}
               size="lg"
-              disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessing || addSearchHistoryMutation.isPending}
+              disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessingMainPlan || isAiRespondingToChat || addSearchHistoryMutation.isPending}
             >
-              {isAiProcessing ? <Loader2 className="w-6 h-6 mr-2 animate-spin" /> : <Send className="w-6 h-6 mr-2" />} 
-              {isAiProcessing ? "AI is responding..." : "Compose Trip Request"}
+              {isAiProcessingMainPlan ? <Loader2 className="w-6 h-6 mr-2 animate-spin" /> : <Send className="w-6 h-6 mr-2" />} 
+              {isAiProcessingMainPlan ? "AI is generating full plan..." : "Compose Detailed Trip Request"}
             </Button>
+            
+            <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                <Input
+                    ref={chatInputRef}
+                    type="text"
+                    placeholder={currentUser ? "Ask Aura a quick travel question..." : "Log in to chat with Aura AI"}
+                    value={currentUserInput}
+                    onChange={(e) => setCurrentUserInput(e.target.value)}
+                    onKeyPress={(e) => { if (e.key === 'Enter' && !isAiRespondingToChat) handleSendUserChatMessage(); }}
+                    disabled={!currentUser || isAiRespondingToChat || isAiProcessingMainPlan}
+                    className="flex-grow bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"
+                />
+                <Button
+                    onClick={handleSendUserChatMessage}
+                    disabled={!currentUserInput.trim() || isAiRespondingToChat || isAiProcessingMainPlan || !currentUser}
+                    size="icon"
+                    className={cn(
+                        "shadow-sm shadow-accent/30 hover:shadow-md hover:shadow-accent/40 aspect-square",
+                        "bg-gradient-to-r from-accent to-primary text-primary-foreground",
+                        "hover:from-primary hover:to-accent",
+                        "focus-visible:ring-2 focus-visible:ring-accent/40",
+                         "transform transition-all duration-300 ease-out hover:scale-[1.05] active:scale-100"
+                    )}
+                >
+                    {isAiRespondingToChat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span className="sr-only">Send</span>
+                </Button>
+            </div>
         </div>
       </div>
+
 
       <TripPlannerInputSheet
         isOpen={isInputSheetOpen}

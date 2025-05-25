@@ -1,17 +1,16 @@
-
 "use client";
 
-import React from 'react'; // Added React import
+import React from 'react'; 
 import type { ChatMessage } from "@/app/(app)/planner/page";
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import type { Itinerary } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card, CardHeader, CardTitle
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
-import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send } from "lucide-react"; // Corrected
+import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare } from "lucide-react"; 
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
-import Link from "next/link"; // Added Link for markdown-like links
+import Link from "next/link"; 
 
 // Function to parse markdown-like links: [Text](URL)
 const renderMarkdownLinks = (text: string) => {
@@ -21,11 +20,9 @@ const renderMarkdownLinks = (text: string) => {
   let match;
 
   while ((match = linkRegex.exec(text)) !== null) {
-    // Add text before the link
     if (match.index > lastIndex) {
       parts.push(text.substring(lastIndex, match.index));
     }
-    // Add the link
     parts.push(
       <Link
         key={match.index}
@@ -40,7 +37,6 @@ const renderMarkdownLinks = (text: string) => {
     lastIndex = linkRegex.lastIndex;
   }
 
-  // Add any remaining text after the last link
   if (lastIndex < text.length) {
     parts.push(text.substring(lastIndex));
   }
@@ -64,18 +60,26 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
   const renderPayload = () => {
     switch (message.type) {
       case "user":
-        const input = message.payload as AITripPlannerInput;
-        return (
-          <div>
-            <p><strong>Destination:</strong> {input.destination}</p>
-            <p><strong>Dates:</strong> {input.travelDates}</p>
-            <p><strong>Budget:</strong> ${input.budget.toLocaleString()}</p>
-            {input.desiredMood && <p><strong>Mood:</strong> {input.desiredMood}</p>}
-            {input.riskContext && <p><strong>Concerns:</strong> {input.riskContext}</p>}
-            {input.weatherContext && <p><strong>Weather Context:</strong> {input.weatherContext}</p>}
-          </div>
-        );
-      case "ai":
+        const userInputPayload = message.payload as AITripPlannerInput | { text: string }; // Can be full plan input or simple text
+        if ('destination' in userInputPayload) { // Full trip plan request
+          const input = userInputPayload as AITripPlannerInput;
+          return (
+            <div>
+              <p className="font-semibold text-sm mb-1">{message.title || "My Trip Request:"}</p>
+              <p><strong>Destination:</strong> {input.destination}</p>
+              <p><strong>Dates:</strong> {input.travelDates}</p>
+              <p><strong>Budget:</strong> ${input.budget.toLocaleString()}</p>
+              {input.desiredMood && <p><strong>Mood:</strong> {input.desiredMood}</p>}
+              {input.riskContext && <p><strong>Concerns:</strong> {input.riskContext}</p>}
+              {input.weatherContext && <p><strong>Weather Context:</strong> {input.weatherContext}</p>}
+            </div>
+          );
+        } else if ('text' in userInputPayload) { // Simple text message
+           return <p>{(userInputPayload as { text: string }).text}</p>;
+        }
+        return <p>My message</p>; // Fallback for user message
+
+      case "ai": // Full AI trip plan
         const aiOutput = message.payload as AITripPlannerOutput;
         const itineraries = aiOutput.itineraries as Itinerary[];
         if (!itineraries || itineraries.length === 0) {
@@ -101,6 +105,8 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
             ))}
           </div>
         );
+      case "ai_text_response": // Simple text response from AI
+        return <div className="whitespace-pre-line">{renderMarkdownLinks(message.payload as string)}</div>;
       case "error":
         return (
           <div className="flex items-center text-destructive-foreground bg-destructive/80 p-3 rounded-md">
@@ -118,7 +124,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
         return (
           <div className="flex items-center text-card-foreground">
             <Sparkles className="w-5 h-5 mr-3 animate-pulse text-primary" />
-            <span>BudgetRoam AI is crafting your journey...</span>
+            <span>BudgetRoam AI is thinking...</span>
           </div>
         );
       case "booking_guidance":
@@ -158,7 +164,7 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
                 <AvatarFallback className="bg-destructive text-destructive-foreground"><AlertTriangle /></AvatarFallback>
             </Avatar>
             )}
-            <div className={cn("max-w-[75%] p-0")}>
+            <div className={cn("max-w-[85%] sm:max-w-[75%] p-0")}> {/* Adjusted max-width */}
                 <CardContent className={cn("p-3 rounded-xl text-sm", bubbleClasses, "bg-destructive text-destructive-foreground whitespace-pre-line")}>
                  {renderPayload()}
                 </CardContent>
@@ -166,6 +172,11 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
                 {format(message.timestamp, "p")}
                 </p>
             </div>
+             {isUser && (
+                <Avatar className="w-8 h-8 shrink-0 border border-primary/50">
+                <AvatarFallback className="bg-muted/50"><User /></AvatarFallback>
+                </Avatar>
+            )}
         </div>
      )
    }
@@ -174,14 +185,27 @@ export function ChatMessageCard({ message, onViewDetails }: ChatMessageCardProps
     <div className={cn("flex items-end gap-3 animate-fade-in", bubbleAlignment)}>
       {!isUser && (
         <Avatar className="w-8 h-8 shrink-0 border border-primary/50">
-          <AvatarFallback className={cn("bg-primary/20 text-primary", message.type === 'loading' && "bg-muted/30", message.type === 'booking_guidance' && "bg-accent/20 text-accent")}>
+          <AvatarFallback className={cn(
+              "bg-primary/20 text-primary", 
+              message.type === 'loading' && "bg-muted/30", 
+              message.type === 'booking_guidance' && "bg-accent/20 text-accent",
+              message.type === 'ai_text_response' && "bg-teal-500/20 text-teal-500" // Example for new type
+            )}>
             {message.type === 'loading' ? <Loader2 className="animate-spin" /> : 
-             message.type === 'booking_guidance' ? <Send /> : <Bot />}
+             message.type === 'booking_guidance' ? <Send /> : 
+             message.type === 'ai_text_response' ? <MessageSquare /> : // Example icon
+             <Bot />}
           </AvatarFallback>
         </Avatar>
       )}
-      <div className={cn("max-w-[85%] sm:max-w-[75%] p-0")}>
-        <CardContent className={cn("p-3 rounded-xl text-sm", bubbleClasses, message.type === 'loading' && "py-4", "whitespace-pre-line")}>
+      <div className={cn("max-w-[85%] sm:max-w-[75%] p-0")}> {/* Adjusted max-width */}
+        <CardContent className={cn(
+            "p-3 rounded-xl text-sm", 
+            bubbleClasses, 
+            message.type === 'loading' && "py-4", 
+            message.type === 'ai_text_response' && "bg-card/80 dark:bg-card/60 border-teal-500/40", // Example styling for new type
+            "whitespace-pre-line"
+            )}>
           {renderPayload()}
         </CardContent>
         <p className={cn("text-xs text-muted-foreground mt-1 px-1", isUser ? 'text-right' : 'text-left')}>
