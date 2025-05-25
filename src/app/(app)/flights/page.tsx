@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FormItem } from "@/components/ui/form";
+import { FormItem } from "@/components/ui/form"; // Corrected: FormItem might still be useful for layout
 import {
   Dialog,
   DialogContent,
@@ -54,19 +54,27 @@ import {
   MessageSquareQuote,
   MapPin,
   ListFilter,
-  Route
+  Route,
+  CheckCircle,
+  PieChart,
+  Grid2X2
 } from 'lucide-react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isValid, parseISO } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { getPopularDestinations, getAiFlightMapDealsAction, getConceptualFlightsAction } from '@/app/actions';
+import { getPopularDestinations, getAiFlightMapDealsAction, getConceptualFlightsAction, getAiPriceAdviceAction, getConceptualDateGridAction, getConceptualPriceGraphAction } from '@/app/actions';
 import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
 import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
 import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput, ConceptualFlightOption } from '@/ai/types/conceptual-flight-search-types';
+import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/flows/price-advisor-flow';
+import type { ConceptualDateGridInput, ConceptualDateGridOutput, ExampleDeal } from '@/ai/types/ai-conceptual-date-grid-types';
+import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput, ConceptualDataPoint } from '@/ai/types/ai-conceptual-price-graph-types';
+
 
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAddTrackedItem } from '@/lib/firestoreHooks';
 
 const glassCardClasses = "glass-card bg-card/80 dark:bg-card/50 backdrop-blur-lg border-border/20";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -143,14 +151,16 @@ function FlightDestinationSuggestionCard({ destination, onPlanTrip }: FlightDest
     : undefined;
 
   const handleImageError = useCallback(() => {
-    console.warn(`[FlightDestinationSuggestionCard] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
+    if(destination.imageUri) { 
+        console.warn(`[FlightDestinationSuggestionCard] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
+    }
     setImageLoadError(true);
   }, [destination.name, destination.imageUri]);
 
   const handlePlan = () => {
     const plannerInput: AITripPlannerInput = {
       destination: destination.name + (destination.country ? `, ${destination.country}` : ''),
-      travelDates: "Flexible dates",
+      travelDates: "Flexible dates", // Default sensible dates
       budget: parseInt(destination.flightIdea?.priceRange?.match(/\$(\d+)/)?.[0].replace('$','') || '1000', 10),
     };
     onPlanTrip(plannerInput);
@@ -389,8 +399,16 @@ export default function FlightsPage() {
   const originInputRef = useRef<HTMLInputElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
   const mapDealTargetDestinationCityInputRef = useRef<HTMLInputElement>(null);
+  const trackOriginInputRef = useRef<HTMLInputElement>(null);
+  const trackDestinationInputRef = useRef<HTMLInputElement>(null);
+  const dateGridOriginInputRef = useRef<HTMLInputElement>(null);
+  const dateGridDestinationInputRef = useRef<HTMLInputElement>(null);
+  const priceGraphOriginInputRef = useRef<HTMLInputElement>(null);
+  const priceGraphDestinationInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
+    // Initialize dates on the client side to avoid hydration mismatch
     setDates({ from: new Date(), to: addDays(new Date(), 7) });
   }, []);
 
@@ -407,6 +425,7 @@ export default function FlightsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { currentUser } = useAuth();
+  const addTrackedItemMutation = useAddTrackedItem();
 
   const [generalAiDestinations, setGeneralAiDestinations] = useState<AiDestinationSuggestion[]>([]);
   const [isFetchingGeneralDests, setIsFetchingGeneralDests] = useState(false);
@@ -430,6 +449,30 @@ export default function FlightsPage() {
   const mapDealMarkersRef = useRef<(google.maps.OverlayView | google.maps.Marker)[]>([]);
   const routePolylineRef = useRef<google.maps.Polyline | null>(null);
   const userLocationMarkerRef = useRef<google.maps.Marker | null>(null);
+
+  // State for "Track Prices" tool
+  const [trackOrigin, setTrackOrigin] = useState('');
+  const [trackDestination, setTrackDestination] = useState('');
+  const [trackTravelDates, setTrackTravelDates] = useState('');
+  const [trackTargetPrice, setTrackTargetPrice] = useState('');
+  const [trackCurrentConceptualPrice, setTrackCurrentConceptualPrice] = useState('');
+  const [trackPriceAiAdvice, setTrackPriceAiAdvice] = useState<string | null>(null);
+  const [isTrackingPrice, setIsTrackingPrice] = useState(false);
+
+  // State for "Date Grid" tool
+  const [dateGridOrigin, setDateGridOrigin] = useState('');
+  const [dateGridDestination, setDateGridDestination] = useState('');
+  const [dateGridMonth, setDateGridMonth] = useState('');
+  const [dateGridResult, setDateGridResult] = useState<ConceptualDateGridOutput | null>(null);
+  const [isLoadingDateGrid, setIsLoadingDateGrid] = useState(false);
+
+  // State for "Price Graph" tool
+  const [priceGraphOrigin, setPriceGraphOrigin] = useState('');
+  const [priceGraphDestination, setPriceGraphDestination] = useState('');
+  const [priceGraphDatesHint, setPriceGraphDatesHint] = useState('');
+  const [priceGraphResult, setPriceGraphResult] = useState<ConceptualPriceGraphOutput | null>(null);
+  const [isLoadingPriceGraph, setIsLoadingPriceGraph] = useState(false);
+
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -663,12 +706,11 @@ export default function FlightsPage() {
 
   useEffect(() => {
     fetchGeneralPopularFlightDests();
-    // Attempt to fetch location-based destinations if userLocation is available or after geo attempt finishes
     if ((userLocation || geolocationMapError) && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) {
       handleFetchLocationAndDests();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLocation, geolocationMapError]); // Runs when userLocation is set or geoError changes
+  }, [userLocation, geolocationMapError]); 
 
 
  const handleFetchMapDeals = async () => {
@@ -787,8 +829,8 @@ export default function FlightsPage() {
               path: routePath,
               geodesic: true,
               strokeColor: 'hsl(var(--accent))', 
-              strokeOpacity: 0.9, // Increased opacity
-              strokeWeight: 5, // Increased weight
+              strokeOpacity: 0.9, 
+              strokeWeight: 5, 
               icons: [{ 
                 icon: {
                   path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
@@ -820,37 +862,122 @@ export default function FlightsPage() {
     }
   }, [map, isMapsScriptLoaded, mapDealSuggestions, userLocation, setSelectedMapDeal, setIsMapDealDialogOpen]);
 
-  // Autocomplete for main flight search form
-  useEffect(() => {
-    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && originInputRef.current) {
-      const autocompleteOrigin = new window.google.maps.places.Autocomplete(originInputRef.current, { types: ['geocode'] });
-      autocompleteOrigin.setFields(['formatted_address', 'name']);
-      autocompleteOrigin.addListener('place_changed', () => {
-        const place = autocompleteOrigin.getPlace();
-        setOrigin(place.formatted_address || place.name || '');
-      });
-    }
-    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && destinationInputRef.current) {
-      const autocompleteDestination = new window.google.maps.places.Autocomplete(destinationInputRef.current, { types: ['geocode'] });
-      autocompleteDestination.setFields(['formatted_address', 'name']);
-      autocompleteDestination.addListener('place_changed', () => {
-        const place = autocompleteDestination.getPlace();
-        setDestination(place.formatted_address || place.name || '');
+ const initializeAutocomplete = useCallback((inputRef: React.RefObject<HTMLInputElement>, onPlaceChanged: (place: google.maps.places.PlaceResult) => void, options?: google.maps.places.AutocompleteOptions) => {
+    if (isMapsScriptLoaded && window.google && window.google.maps.places && inputRef.current) {
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, options);
+      autocomplete.setFields(['formatted_address', 'name', 'geometry']);
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry || place.formatted_address || place.name) {
+          onPlaceChanged(place);
+        }
       });
     }
   }, [isMapsScriptLoaded]);
 
-  // Autocomplete for Map Deals destination input
   useEffect(() => {
-    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && mapDealTargetDestinationCityInputRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(mapDealTargetDestinationCityInputRef.current, { types: ['(cities)'] });
-      autocomplete.setFields(['formatted_address', 'name']);
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        setMapDealTargetDestinationCity(place.formatted_address || place.name || '');
-      });
+    initializeAutocomplete(originInputRef, (place) => setOrigin(place.formatted_address || place.name || ''), { types: ['geocode'] });
+    initializeAutocomplete(destinationInputRef, (place) => setDestination(place.formatted_address || place.name || ''), { types: ['geocode'] });
+    initializeAutocomplete(mapDealTargetDestinationCityInputRef, (place) => setMapDealTargetDestinationCity(place.formatted_address || place.name || ''), { types: ['(cities)'] });
+    
+    initializeAutocomplete(trackOriginInputRef, (place) => setTrackOrigin(place.formatted_address || place.name || ''), { types: ['geocode'] });
+    initializeAutocomplete(trackDestinationInputRef, (place) => setTrackDestination(place.formatted_address || place.name || ''), { types: ['geocode'] });
+
+    initializeAutocomplete(dateGridOriginInputRef, (place) => setDateGridOrigin(place.formatted_address || place.name || ''), { types: ['geocode'] });
+    initializeAutocomplete(dateGridDestinationInputRef, (place) => setDateGridDestination(place.formatted_address || place.name || ''), { types: ['geocode'] });
+    
+    initializeAutocomplete(priceGraphOriginInputRef, (place) => setPriceGraphOrigin(place.formatted_address || place.name || ''), { types: ['geocode'] });
+    initializeAutocomplete(priceGraphDestinationInputRef, (place) => setPriceGraphDestination(place.formatted_address || place.name || ''), { types: ['geocode'] });
+
+  }, [isMapsScriptLoaded, initializeAutocomplete]);
+
+  const handleTrackPriceAndGetAdvice = async () => {
+    if (!currentUser) {
+      toast({ title: "Please Log In", description: "You need to be logged in to track prices.", variant: "destructive" });
+      return;
     }
-  }, [isMapsScriptLoaded]);
+    if (!trackOrigin || !trackDestination || !trackTargetPrice || !trackCurrentConceptualPrice) {
+      toast({ title: "Missing Information", description: "Please fill in all required fields for price tracking.", variant: "destructive" });
+      return;
+    }
+    const targetPriceNum = parseFloat(trackTargetPrice);
+    const currentPriceNum = parseFloat(trackCurrentConceptualPrice);
+
+    if (isNaN(targetPriceNum) || targetPriceNum <= 0 || isNaN(currentPriceNum) || currentPriceNum <= 0) {
+      toast({ title: "Invalid Price", description: "Target and current prices must be positive numbers.", variant: "destructive" });
+      return;
+    }
+
+    setIsTrackingPrice(true);
+    setTrackPriceAiAdvice(null);
+    try {
+      const itemName = `Flight from ${trackOrigin} to ${trackDestination}`;
+      await addTrackedItemMutation.mutateAsync({
+        itemType: 'flight',
+        itemName,
+        originCity: trackOrigin,
+        destination: trackDestination,
+        targetPrice: targetPriceNum,
+        currentPrice: currentPriceNum,
+        travelDates: trackTravelDates || undefined,
+      });
+      toast({ title: "Price Tracking Started", description: `${itemName} is now being tracked!` });
+
+      const adviceInput: PriceAdvisorInput = {
+        itemType: 'flight',
+        itemName,
+        originCity: trackOrigin,
+        destination: trackDestination,
+        targetPrice: targetPriceNum,
+        currentPrice: currentPriceNum,
+      };
+      const adviceResult = await getAiPriceAdviceAction(adviceInput);
+      setTrackPriceAiAdvice(adviceResult.advice);
+    } catch (error: any) {
+      console.error("Error tracking price or getting advice:", error);
+      toast({ title: "Error", description: `Could not start tracking or get advice: ${error.message}`, variant: "destructive" });
+    } finally {
+      setIsTrackingPrice(false);
+    }
+  };
+
+  const handleGetDateGridInsights = async () => {
+    if (!dateGridOrigin || !dateGridDestination || !dateGridMonth) {
+      toast({ title: "Missing Information", description: "Origin, Destination, and Month are required for Date Grid.", variant: "destructive"});
+      return;
+    }
+    setIsLoadingDateGrid(true); setDateGridResult(null);
+    try {
+      const result = await getConceptualDateGridAction({ origin: dateGridOrigin, destination: dateGridDestination, monthToExplore: dateGridMonth });
+      setDateGridResult(result);
+      if (!result.gridSummary && (!result.exampleDeals || result.exampleDeals.length === 0)) {
+        toast({ title: "No Insights", description: "AI couldn't generate date grid insights for this query."});
+      }
+    } catch (error: any) {
+      toast({ title: "AI Error", description: `Failed to get date grid insights: ${error.message}`, variant: "destructive"});
+    } finally {
+      setIsLoadingDateGrid(false);
+    }
+  };
+
+  const handleGetPriceTrendInsights = async () => {
+    if (!priceGraphOrigin || !priceGraphDestination || !priceGraphDatesHint) {
+      toast({ title: "Missing Information", description: "Origin, Destination, and Dates Hint are required for Price Graph.", variant: "destructive"});
+      return;
+    }
+    setIsLoadingPriceGraph(true); setPriceGraphResult(null);
+    try {
+      const result = await getConceptualPriceGraphAction({ origin: priceGraphOrigin, destination: priceGraphDestination, travelDatesHint: priceGraphDatesHint });
+      setPriceGraphResult(result);
+       if (!result.trendDescription && (!result.conceptualDataPoints || result.conceptualDataPoints.length === 0)) {
+        toast({ title: "No Insights", description: "AI couldn't generate price trend insights for this query."});
+      }
+    } catch (error: any) {
+      toast({ title: "AI Error", description: `Failed to get price trend insights: ${error.message}`, variant: "destructive"});
+    } finally {
+      setIsLoadingPriceGraph(false);
+    }
+  };
 
 
   return (
@@ -880,8 +1007,8 @@ export default function FlightsPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="grid grid-cols-2 gap-2">
-                <div><Label htmlFor="departure-date" className="text-sm font-medium text-card-foreground/90">Departure</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.from && "text-muted-foreground")}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.from ? format(dates.from, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={tripType === 'one-way' ? 1 : 2} disabled={{ before: new Date() }} /></PopoverContent></Popover></div>
-                {tripType === 'round-trip' && (<div><Label htmlFor="return-date" className="text-sm font-medium text-card-foreground/90">Return</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.to && "text-muted-foreground")} disabled={!dates?.from}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.to ? format(dates.to, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={2} disabled={{ before: dates?.from || new Date() }} /></PopoverContent></Popover></div>)}
+                <div><Label htmlFor="departure-date" className="text-sm font-medium text-card-foreground/90">Departure</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.from && "text-muted-foreground")}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.from ? format(dates.from, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={tripType === 'one-way' ? 1 : 2} disabled={{ before: new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>
+                {tripType === 'round-trip' && (<div><Label htmlFor="return-date" className="text-sm font-medium text-card-foreground/90">Return</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.to && "text-muted-foreground")} disabled={!dates?.from}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.to ? format(dates.to, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={2} disabled={{ before: dates?.from || new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>)}
                 {tripType === 'one-way' && (<div><Label htmlFor="one-way-date" className="text-sm font-medium text-card-foreground/90 opacity-0 md:opacity-100">.</Label></div>)}
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -930,6 +1057,7 @@ export default function FlightsPage() {
 
       <Separator className="my-12 border-border/40" />
 
+      {/* AI Flight Deal Explorer Map Section */}
       <section className="animate-fade-in-up" style={{animationDelay: '0.2s'}}>
         <Card className={cn(glassCardClasses, "border-primary/30")}>
           <CardHeader>
@@ -1015,25 +1143,118 @@ export default function FlightsPage() {
 
       <Separator className="my-12 border-border/40" />
 
+      {/* Useful Tools Section */}
       <section className="animate-fade-in-up" style={{animationDelay: '0.6s'}}>
         <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-6">Useful tools to help you find the best flight deals</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className={cn(glassCardClasses, "flex flex-col")}>
-            <CardHeader className="pb-3"><div className="flex items-center gap-3"><TrendingUp className="w-8 h-8 text-primary" /><CardTitle className="text-lg text-card-foreground">Track Prices</CardTitle></div><CardDescription className="text-xs text-muted-foreground pt-1">Monitor flight prices and get alerts. (Conceptual UI)</CardDescription></CardHeader>
-            <CardContent className="flex-grow"><form onSubmit={(e) => { e.preventDefault(); toast({ title: "Price Tracking (Conceptual)", description: `Tracking prices for ${e.currentTarget.origin.value} to ${e.currentTarget.destination.value}.` }); }} className="space-y-3 mt-2"><div><Label htmlFor="track-origin" className="text-xs text-muted-foreground">Origin</Label><Input id="track-origin" name="origin" placeholder="e.g., New York" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div><div><Label htmlFor="track-dest" className="text-xs text-muted-foreground">Destination</Label><Input id="track-dest" name="destination" placeholder="e.g., London" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div><Button type="submit" className={cn("w-full glass-interactive", prominentButtonClassesSm, "py-2 text-sm")}>Track Prices (Demo)</Button></form></CardContent>
+          {/* Track Prices Tool */}
+          <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3"><TrendingUp className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Track Prices & Get AI Advice</CardTitle></div>
+              <CardDescription className="text-xs text-muted-foreground pt-1">Monitor flight prices and get AI insights.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-3 mt-2">
+              <div><Label htmlFor="track-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={trackOriginInputRef} id="track-origin" value={trackOrigin} onChange={e => setTrackOrigin(e.target.value)} placeholder="e.g., New York" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              <div><Label htmlFor="track-dest" className="text-xs text-muted-foreground">Destination</Label><Input ref={trackDestinationInputRef} id="track-dest" value={trackDestination} onChange={e => setTrackDestination(e.target.value)} placeholder="e.g., London" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              <div><Label htmlFor="track-dates" className="text-xs text-muted-foreground">Travel Dates (Optional)</Label><Input id="track-dates" value={trackTravelDates} onChange={e => setTrackTravelDates(e.target.value)} placeholder="e.g., Mid-December" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label htmlFor="track-target-price" className="text-xs text-muted-foreground">Target Price ($)</Label><Input id="track-target-price" type="number" value={trackTargetPrice} onChange={e => setTrackTargetPrice(e.target.value)} placeholder="e.g., 300" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                <div><Label htmlFor="track-current-price" className="text-xs text-muted-foreground">Current Price ($)</Label><Input id="track-current-price" type="number" value={trackCurrentConceptualPrice} onChange={e => setTrackCurrentConceptualPrice(e.target.value)} placeholder="e.g., 350" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              </div>
+              {trackPriceAiAdvice && (
+                <Alert variant="default" className="p-2.5 text-xs border-accent/50 bg-accent/10 text-card-foreground">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  <AlertTitle className="text-xs font-semibold text-accent mb-0.5">AI Advice</AlertTitle>
+                  <AlertDescription className="text-xs">{trackPriceAiAdvice}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleTrackPriceAndGetAdvice} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isTrackingPrice || !currentUser}>
+                {isTrackingPrice ? <Loader2 className="animate-spin"/> : <CheckCircle />}
+                {isTrackingPrice ? "Processing..." : "Track & Get Advice"}
+              </Button>
+            </CardFooter>
           </Card>
-          <Card className={cn(glassCardClasses, "flex flex-col")}><CardHeader className="pb-3"><div className="flex items-center gap-3"><CalendarSearch className="w-8 h-8 text-primary" /><CardTitle className="text-lg text-card-foreground">Date Grid</CardTitle></div><CardDescription className="text-xs text-muted-foreground pt-1">Compares prices across dates. (Conceptual)</CardDescription></CardHeader><CardContent className="flex-grow"><div className="bg-muted/30 dark:bg-muted/10 p-6 rounded-md text-center text-muted-foreground min-h-[150px] flex flex-col items-center justify-center"><CalendarSearch className="w-12 h-12 text-primary/50 mb-2" /><p className="font-semibold text-sm">Date Grid View</p><p className="text-xs">Coming soon!</p></div></CardContent></Card>
-          <Card className={cn(glassCardClasses, "flex flex-col")}><CardHeader className="pb-3"><div className="flex items-center gap-3"><BarChartHorizontalBig className="w-8 h-8 text-primary" /><CardTitle className="text-lg text-card-foreground">Price Graph</CardTitle></div><CardDescription className="text-xs text-muted-foreground pt-1">Shows historical price trends. (Conceptual)</CardDescription></CardHeader><CardContent className="flex-grow"><div className="bg-muted/30 dark:bg-muted/10 p-6 rounded-md text-center text-muted-foreground min-h-[150px] flex flex-col items-center justify-center"><BarChartHorizontalBig className="w-12 h-12 text-primary/50 mb-2" /><p className="font-semibold text-sm">Price Trend Graph</p><p className="text-xs">Coming soon!</p></div></CardContent></Card>
+
+          {/* Date Grid Tool */}
+          <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3"><Grid2X2 className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Date Grid</CardTitle></div>
+              <CardDescription className="text-xs text-muted-foreground pt-1">AI insights on price variations across dates.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-3 mt-2">
+              <div><Label htmlFor="date-grid-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={dateGridOriginInputRef} id="date-grid-origin" value={dateGridOrigin} onChange={e => setDateGridOrigin(e.target.value)} placeholder="e.g., Los Angeles" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              <div><Label htmlFor="date-grid-dest" className="text-xs text-muted-foreground">Destination</Label><Input ref={dateGridDestinationInputRef} id="date-grid-dest" value={dateGridDestination} onChange={e => setDateGridDestination(e.target.value)} placeholder="e.g., Tokyo" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              <div><Label htmlFor="date-grid-month" className="text-xs text-muted-foreground">Month to Explore</Label><Input id="date-grid-month" value={dateGridMonth} onChange={e => setDateGridMonth(e.target.value)} placeholder="e.g., December 2024" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              {isLoadingDateGrid && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-accent mx-auto" /></div>}
+              {dateGridResult && (
+                <div className={cn("p-2.5 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-1", innerGlassEffectClasses)}>
+                  <p className="font-semibold text-card-foreground">AI Date Insights:</p>
+                  <p className="italic text-muted-foreground">{dateGridResult.gridSummary}</p>
+                  {dateGridResult.exampleDeals && dateGridResult.exampleDeals.length > 0 && (
+                    <div className="pt-1">
+                      <p className="font-medium text-card-foreground/90">Example Deals:</p>
+                      {dateGridResult.exampleDeals.map((deal, i) => (
+                        <p key={i} className="text-muted-foreground">&bull; {deal.dateRange}: <span className="text-primary/80">{deal.priceIdea}</span></p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleGetDateGridInsights} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isLoadingDateGrid}>
+                 {isLoadingDateGrid ? <Loader2 className="animate-spin"/> : <Sparkles />}
+                Get Date Insights
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Price Graph Tool */}
+          <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3"><PieChart className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Price Graph</CardTitle></div>
+              <CardDescription className="text-xs text-muted-foreground pt-1">AI insights on historical price trends.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-3 mt-2">
+              <div><Label htmlFor="price-graph-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={priceGraphOriginInputRef} id="price-graph-origin" value={priceGraphOrigin} onChange={e => setPriceGraphOrigin(e.target.value)} placeholder="e.g., London" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              <div><Label htmlFor="price-graph-dest" className="text-xs text-muted-foreground">Destination</Label><Input ref={priceGraphDestinationInputRef} id="price-graph-dest" value={priceGraphDestination} onChange={e => setPriceGraphDestination(e.target.value)} placeholder="e.g., Rome" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              <div><Label htmlFor="price-graph-dates" className="text-xs text-muted-foreground">Travel Dates Hint</Label><Input id="price-graph-dates" value={priceGraphDatesHint} onChange={e => setPriceGraphDatesHint(e.target.value)} placeholder="e.g., Next 3 months" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+              {isLoadingPriceGraph && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-accent mx-auto" /></div>}
+              {priceGraphResult && (
+                 <div className={cn("p-2.5 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-1", innerGlassEffectClasses)}>
+                  <p className="font-semibold text-card-foreground">AI Price Trend Insights:</p>
+                  <p className="italic text-muted-foreground">{priceGraphResult.trendDescription}</p>
+                   {priceGraphResult.conceptualDataPoints && priceGraphResult.conceptualDataPoints.length > 0 && (
+                    <div className="pt-1">
+                      <p className="font-medium text-card-foreground/90">Conceptual Trend Points:</p>
+                      {priceGraphResult.conceptualDataPoints.map((dp, i) => (
+                        <p key={i} className="text-muted-foreground">&bull; {dp.timeframe}: <span className="text-primary/80">{dp.relativePriceIndicator}</span></p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleGetPriceTrendInsights} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isLoadingPriceGraph}>
+                {isLoadingPriceGraph ? <Loader2 className="animate-spin"/> : <Sparkles />}
+                Get Trend Insights
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       </section>
 
       <Separator className="my-12 border-border/40" />
 
+      {/* Popular from User Location Section */}
       <section className="animate-fade-in-up" style={{animationDelay: '0.8s'}}>
          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center"><LocateFixed className="w-7 h-7 mr-3 text-accent" />Popular flight destinations {userLocation ? 'from your area' : ' (Location N/A)'}</h2>
            <Button onClick={handleFetchLocationAndDests} disabled={isFetchingUserLocationForSuggestions || isFetchingLocationDests} className={cn(prominentButtonClassesSm, "text-base py-2 px-4")}>
-            {(isFetchingUserLocationForSuggestions || isFetchingLocationDests) ? <Loader2 className="animate-spin" /> : <Sparkles />}{(isFetchingUserLocationForSuggestions || isFetchingLocationDests) ? "Finding Nearby Ideas..." : "Refresh Nearby Ideas"}
+            {(isFetchingUserLocationForSuggestions || isFetchingLocationDests) ? <Loader2 className="animate-spin" /> : <Sparkles />}{(isFetchingUserLocationForSuggestions || isFetchingLocationDests) ? "Finding Ideas..." : "Refresh Nearby Ideas"}
           </Button>
         </div>
         {(isFetchingUserLocationForSuggestions && !userLocation) && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2 inline-block" />Fetching your location to find relevant flights...</div>}

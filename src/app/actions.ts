@@ -24,16 +24,21 @@ import type {
 } from '@/ai/types/ai-flight-map-deals-types';
 // import { conceptualFlightSearchFlow } from '@/ai/flows/conceptual-flight-search-flow'; // Replaced by mock SerpApi
 import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput, ConceptualFlightOption } from '@/ai/types/conceptual-flight-search-types';
-// import { aiHotelSearchFlow } from '@/ai/flows/ai-hotel-search-flow'; // Replaced by mock SerpApi
 import type { AiHotelSearchInput, AiHotelSearchOutput, AiHotelSuggestion } from '@/ai/types/ai-hotel-search-types';
 import { thingsToDoFlow } from '@/ai/flows/things-to-do-flow';
 import type { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-to-do-types';
+import { getPriceAdvice, PriceAdvisorInput } from '@/ai/flows/price-advisor-flow';
+import type { PriceAdvisorOutput } from '@/ai/flows/price-advisor-flow';
+import { conceptualDateGridFlow } from '@/ai/flows/conceptual-date-grid-flow';
+import type { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/types/ai-conceptual-date-grid-types';
+import { conceptualPriceGraphFlow } from '@/ai/flows/conceptual-price-graph-flow';
+import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
 
-// --- Landing Page Image Caching & Generation (No changes here) ---
+
 export interface ImageRequest {
   id: string;
   promptText: string;
-  styleHint: 'hero' | 'featureCard' | 'destination' | 'general' | 'activity' | 'hotelRoom'; // Added hotelRoom
+  styleHint: 'hero' | 'featureCard' | 'destination' | 'general' | 'activity' | 'hotel' | 'hotelRoom';
 }
 
 async function saveImageUriToDbInternal({
@@ -62,7 +67,7 @@ async function saveImageUriToDbInternal({
     }, { merge: true });
     console.log(`[DB Save Internal] Image for ID ${id} SAVED/UPDATED successfully in Firestore.`);
   } catch (error: any) {
-    console.error(`[DB Save Internal Error] Failed to save image for ID ${id} to Firestore. Error: ${error.message}`, error);
+    console.error(`[DB Save Internal Error] Failed to save image for ID ${id} to Firestore. Error: ${error.message}`, error.stack);
   }
 }
 
@@ -71,7 +76,7 @@ export async function getLandingPageImagesWithFallback(
 ): Promise<Record<string, string | null>> {
   console.log(`[Server Action - getLandingPageImagesWithFallback] Started. Total requests: ${requests.length}`);
   const imageUris: Record<string, string | null> = {};
-  requests.forEach(req => imageUris[req.id] = null); // Initialize all with null
+  requests.forEach(req => imageUris[req.id] = null);
 
   const requestIds = requests.map(req => req.id);
   const aiGenerationQueue: ImagePromptItem[] = [];
@@ -95,23 +100,21 @@ export async function getLandingPageImagesWithFallback(
               const data = docSnap.data();
               if (data.imageUri) {
                 imageUris[docSnap.id] = data.imageUri;
-                console.log(`[DB Check] Found existing image for ID ${docSnap.id}. URI starts with: ${data.imageUri.substring(0, 30)}...`);
+                console.log(`[DB Check] Found existing image for ID ${docSnap.id}.`);
               } else {
                 console.log(`[DB Check] Doc for ID ${docSnap.id} found but no imageUri. Queuing for AI.`);
                 const originalRequest = requests.find(r => r.id === docSnap.id);
                 if (originalRequest) aiGenerationQueue.push({ id: originalRequest.id, prompt: originalRequest.promptText, styleHint: originalRequest.styleHint });
               }
             } else {
-              console.log(`[DB Check] No doc for ID ${docSnap.id}. Queuing for AI.`);
-              const originalRequest = requests.find(r => r.id === docSnap.id);
-              if (originalRequest) aiGenerationQueue.push({ id: originalRequest.id, prompt: originalRequest.promptText, styleHint: originalRequest.styleHint });
+              // This means the document itself doesn't exist, so it's definitely not in the cache.
+              // No need to log "No doc for ID..." here, it's an expected case.
             }
           });
         } catch (dbError: any) {
-          console.error(`[DB Check Error] Firestore query failed for chunk. Error: ${dbError.message}`, dbError);
-          // For IDs in this failed chunk, ensure they go to AI queue if not already processed
+          console.error(`[DB Check Error] Firestore query failed for chunk. Error: ${dbError.message}`, dbError.stack);
           chunkOfIds.forEach(idInChunk => {
-            if (imageUris[idInChunk] === null) { // Only if not already found from a (hypothetical) previous successful chunk
+            if (imageUris[idInChunk] === null) {
               const originalRequest = requests.find(r => r.id === idInChunk);
               if (originalRequest && !aiGenerationQueue.find(q => q.id === idInChunk)) {
                 aiGenerationQueue.push({ id: originalRequest.id, prompt: originalRequest.promptText, styleHint: originalRequest.styleHint });
@@ -125,9 +128,9 @@ export async function getLandingPageImagesWithFallback(
       requests.forEach(req => aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint }));
     }
 
-    // Fill in any remaining nulls (requests not found in DB or added due to DB error)
     requests.forEach(req => {
       if (imageUris[req.id] === null && !aiGenerationQueue.find(q => q.id === req.id)) {
+        console.log(`[Server Action] ID ${req.id} missed cache, adding to AI queue.`);
         aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint });
       }
     });
@@ -143,7 +146,7 @@ export async function getLandingPageImagesWithFallback(
         aiResults.forEach(aiResult => {
           if (aiResult.imageUri) {
             imageUris[aiResult.id] = aiResult.imageUri;
-            console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}. URI starts with: ${aiResult.imageUri.substring(0,50)}...`);
+            console.log(`[Server Action] Updated imageUris with AI result for ID ${aiResult.id}.`);
             const originalRequest = requests.find(r => r.id === aiResult.id);
             if (originalRequest) {
               saveImageUriToDbInternal({ 
@@ -155,27 +158,27 @@ export async function getLandingPageImagesWithFallback(
             }
           } else {
             console.warn(`[Server Action] AI generation failed or returned null URI for ID ${aiResult.id}. Error: ${aiResult.error || 'Unknown AI error'}. imageUris[${aiResult.id}] remains null.`);
+            imageUris[aiResult.id] = null; // Ensure it's explicitly null if AI failed
           }
         });
       } catch (flowError: any) {
-        console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow. Error: ', flowError.message, flowError.stack, flowError);
+        console.error('[Server Action] CRITICAL ERROR calling generateMultipleImagesFlow. Error: ', flowError.message, flowError.stack);
         aiGenerationQueue.forEach(req => { 
           if (imageUris[req.id] === undefined || imageUris[req.id] === null) imageUris[req.id] = null; 
         });
       }
     }
-    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris object:`, JSON.stringify(Object.fromEntries(Object.entries(imageUris).map(([k, v]) => [k, v ? v.substring(0, 30) + '...' : null])), null, 2));
+    console.log(`[Server Action - getLandingPageImagesWithFallback] RETURNING imageUris object. Keys: ${Object.keys(imageUris).length}`);
     return imageUris;
 
   } catch (topLevelError: any) {
-    console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', topLevelError.message, topLevelError.stack, topLevelError);
+    console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', topLevelError.message, topLevelError.stack);
     const fallbackUris: Record<string, string | null> = {};
-    requests.forEach(req => fallbackUris[req.id] = null);
+    requests.forEach(req => fallbackUris[req.id] = null); // Return null for all on critical failure
     return fallbackUris;
   }
 }
 
-// --- Popular Destinations (Used by /travel and /explore) ---
 export async function getPopularDestinations(
   input: PopularDestinationsInput
 ): Promise<PopularDestinationsOutput> {
@@ -186,12 +189,11 @@ export async function getPopularDestinations(
     console.log(`[Server Action - getPopularDestinations] AI Flow Result (destinations with images):`, result.destinations?.map(d => ({name: d.name, imageUriProvided: !!d.imageUri, coords: {lat:d.latitude, lng:d.longitude}})));
     return result;
   } catch (error: any) {
-    console.error('[Server Action - getPopularDestinations] ERROR fetching popular destinations:', error.message, error.stack, error);
+    console.error('[Server Action - getPopularDestinations] ERROR fetching popular destinations:', error);
     return { destinations: [], contextualNote: `Sorry, we encountered an error: ${error.message}` };
   }
 }
 
-// --- Explore Ideas from History (Used by /explore) ---
 export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput): Promise<ExploreIdeasOutput> {
   console.log(`[Server Action - getExploreIdeasAction] Input userId: ${input.userId}`);
   try {
@@ -199,7 +201,7 @@ export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput)
     console.log(`[Server Action - getExploreIdeasAction] AI Flow Result (suggestions count): ${result.suggestions?.length || 0}. ContextualNote: ${result.contextualNote}`);
     return result;
   } catch (error: any) {
-    console.error('[Server Action - getExploreIdeasAction] ERROR fetching explore ideas:', error.message, error.stack, error);
+    console.error('[Server Action - getExploreIdeasAction] ERROR fetching explore ideas:', error);
     return { 
       suggestions: [], 
       contextualNote: `Error GEIA1: The server action encountered an issue generating explore ideas. Please try again later.` 
@@ -207,7 +209,6 @@ export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput)
   }
 }
 
-// --- Flight Map Deals (Used by /flights) ---
 export async function getAiFlightMapDealsAction(
   input: AiFlightMapDealInput 
 ): Promise<AiFlightMapDealOutput> {
@@ -217,7 +218,7 @@ export async function getAiFlightMapDealsAction(
     console.log(`[Server Action - getAiFlightMapDealsAction] AI Flow Result (suggestions count): ${result.suggestions.length}`);
     return result;
   } catch (error: any) {
-    console.error('[Server Action - getAiFlightMapDealsAction] ERROR fetching flight map deals:', error.message, error.stack, error);
+    console.error('[Server Action - getAiFlightMapDealsAction] ERROR fetching flight map deals:', error);
     return { 
         suggestions: [], 
         contextualNote: `Sorry, we encountered a server error: ${error.message}` 
@@ -225,163 +226,113 @@ export async function getAiFlightMapDealsAction(
   }
 }
 
-// --- Conceptual Flight Search (Used by /flights) - SIMULATING SerpApi ---
+// --- Mock/Simulated Conceptual Flight Search (No actual API Key needed for this mock) ---
 export async function getConceptualFlightsAction(input: ConceptualFlightSearchInput): Promise<ConceptualFlightSearchOutput> {
-  console.log('[Server Action - getConceptualFlightsAction] Simulating SerpApi call with input:', input);
+  console.log('[Server Action - getConceptualFlightsAction] Simulating Conceptual Flight Search with input:', input);
   
-  // TODO: User to implement actual SerpApi call here.
-  // const serpApiKey = process.env.SERPAPI_API_KEY;
-  // if (!serpApiKey) {
-  //   console.error("SERPAPI_API_KEY not found in environment variables.");
-  //   return { flights: [], summaryMessage: "Flight API key not configured." };
-  // }
-  // Example using fetch (you'd need to install 'node-fetch' or use built-in fetch if Node.js version >= 18)
-  // const params = new URLSearchParams({
-  //   engine: "google_flights",
-  //   api_key: serpApiKey,
-  //   departure_id: input.origin, // Assuming input.origin is airport code
-  //   arrival_id: input.destination, // Assuming input.destination is airport code
-  //   outbound_date: input.departureDate,
-  //   return_date: input.returnDate || '', // if round-trip
-  //   // ... other params like passengers, cabinClass, tripType might need mapping
-  // });
-  // const serpApiUrl = `https://serpapi.com/search.json?${params.toString()}`;
-  // try {
-  //   const response = await fetch(serpApiUrl);
-  //   if (!response.ok) throw new Error(`SerpApi request failed with status ${response.status}`);
-  //   const serpApiData = await response.json();
-  //   // Now map serpApiData.best_flights or .other_flights to ConceptualFlightOption[]
-  //   // This mapping will be highly dependent on SerpApi's response structure.
-  // } catch (error: any) {
-  //   console.error('[Server Action - getConceptualFlightsAction] Error calling real SerpApi:', error);
-  //   return { flights: [], summaryMessage: `Error fetching live flight data: ${error.message}` };
-  // }
-
-  // --- MOCK SERPAPI DATA FOR NOW ---
   const mockFlights: ConceptualFlightOption[] = [];
-  const airlines = ["SkyLink Airways", "BudgetFlyer", "AeroConnect", "TransGlobe Express"];
-  const flightRemarks = ["Usually on time.", "Newer aircraft.", "Good for early birds.", "Check baggage allowance."];
+  const airlines = ["SkyLink Airways", "BudgetFlyer", "AeroConnect", "TransGlobe Express", "Nova Air", "Starlight Flights"];
+  const flightRemarks = [
+    "Usually on time. Good legroom.", 
+    "Newer aircraft model.", 
+    "Popular choice for this route.", 
+    "Check baggage allowance carefully.",
+    "Often has early bird discounts.",
+    "Known for good in-flight snacks."
+  ];
   const numFlights = Math.floor(Math.random() * 2) + 2; // 2 to 3 mock flights
 
   for (let i = 0; i < numFlights; i++) {
-    const price = Math.floor(Math.random() * 300) + 150; // $150 - $450
-    const depHour = Math.floor(Math.random() * 12) + 6; // 6 AM to 5 PM
-    const depMin = Math.random() > 0.5 ? 30 : 0;
-    const durationHours = Math.floor(Math.random() * 5) + 2; // 2 to 6 hours
-    const durationMins = Math.random() > 0.5 ? 30 : 0;
-    const arrHour = (depHour + durationHours + Math.floor((depMin + durationMins) / 60)) % 24;
-    const arrMin = (depMin + durationMins) % 60;
+    const price = Math.floor(Math.random() * 400) + 150; // $150 - $550
+    const depHour = Math.floor(Math.random() * 14) + 6; // 6 AM to 7 PM
+    const depMin = [0, 15, 30, 45][Math.floor(Math.random() * 4)];
+    const durationHours = Math.floor(Math.random() * 6) + 1; // 1 to 6 hours
+    const durationMins = [0, 15, 30, 45][Math.floor(Math.random() * 4)];
+    
+    let depDate = new Date();
+    try {
+      if (input.departureDate) depDate = new Date(input.departureDate + "T00:00:00Z"); // Assume UTC
+    } catch (e) { /* ignore, use current date as base */ }
+
+    const depDateTime = new Date(depDate);
+    depDateTime.setUTCHours(depHour, depMin, 0, 0);
+
+    const arrDateTime = new Date(depDateTime.getTime() + (durationHours * 60 + durationMins) * 60000);
 
     mockFlights.push({
       airlineName: airlines[Math.floor(Math.random() * airlines.length)],
-      flightNumber: `${airlines[0].substring(0,2).toUpperCase()}${Math.floor(Math.random() * 800) + 100}`,
+      flightNumber: `${airlines[i % airlines.length].substring(0,2).toUpperCase()}${Math.floor(Math.random() * 800) + 100}`,
       departureAirport: input.origin,
       arrivalAirport: input.destination,
-      departureTime: `${String(depHour).padStart(2, '0')}:${String(depMin).padStart(2, '0')} AM/PM`, // Placeholder
-      arrivalTime: `${String(arrHour).padStart(2, '0')}:${String(arrMin).padStart(2, '0')} AM/PM Local`, // Placeholder
+      departureTime: depDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: true}),
+      arrivalTime: arrDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: true }) + " Local",
       duration: `${durationHours}h ${durationMins}m`,
-      stops: Math.random() > 0.6 ? "1 stop" : "Non-stop",
+      stops: Math.random() > 0.7 ? "1 stop" : "Non-stop",
       conceptualPrice: `Around $${price}`,
       bookingHint: flightRemarks[Math.floor(Math.random() * flightRemarks.length)],
-      extraDetails: Math.random() > 0.5 ? "Includes 1 checked bag" : "Wi-Fi available (paid)",
+      extraDetails: Math.random() > 0.4 ? "Includes 1 checked bag" : "Wi-Fi available for purchase",
     });
   }
   
   console.log(`[Server Action - getConceptualFlightsAction] Returning ${mockFlights.length} mock flights.`);
   return { 
     flights: mockFlights, 
-    summaryMessage: `Here are ${mockFlights.length} conceptual flight ideas from a simulated live API. Images by AI.` 
+    summaryMessage: `Aura AI found ${mockFlights.length} conceptual flight ideas for your trip from ${input.origin} to ${input.destination}. These are illustrative examples.` 
   };
 }
 
-// --- Hotel Search (Used by /hotels) - SIMULATING SerpApi & Using AI for Images ---
+
+// --- Simulated Real-time Hotel Data (Mocked API call) + AI Image Generation ---
 export async function getAiHotelSuggestionsAction(input: AiHotelSearchInput): Promise<AiHotelSearchOutput> {
-  console.log('[Server Action - getAiHotelSuggestionsAction] Simulating SerpApi call with input:', JSON.stringify(input, null, 2));
+  console.log('[Server Action - getAiHotelSuggestionsAction] Simulating API hotel data fetch & AI image generation. Input:', JSON.stringify(input, null, 2));
 
-  // TODO: User to implement actual SerpApi hotel search call here.
-  // const serpApiKey = process.env.SERPAPI_API_KEY;
-  // if (!serpApiKey) { /* ... handle missing key ... */ }
-  // const params = new URLSearchParams({
-  //   engine: "google_hotels",
-  //   api_key: serpApiKey,
-  //   q: input.destination,
-  //   check_in_date: input.checkInDate,
-  //   check_out_date: input.checkOutDate,
-  //   adults: input.guests, // This might need parsing for SerpApi's format
-  //   // ... other params
-  // });
-  // const serpApiUrl = `https://serpapi.com/search.json?${params.toString()}`;
-  // try {
-  //   const response = await fetch(serpApiUrl);
-  //   if (!response.ok) throw new Error(`SerpApi request failed with status ${response.status}`);
-  //   const serpApiData = await response.json();
-  //   // Map serpApiData.properties (or similar key) to AiHotelSuggestion[]
-  //   // This mapping will be highly dependent on SerpApi's response structure.
-  // } catch (error: any) { /* ... handle error ... */ }
-
-  // --- MOCK SERPAPI HOTEL DATA FOR NOW ---
-  const mockSerpApiHotels: Array<Partial<AiHotelSuggestion> & { name: string; description: string; latitudeString?: string; longitudeString?: string; amenities: string[] }> = [
-    { name: `Grand Plaza Hotel ${input.destination.split(',')[0]}`, conceptualPriceRange: "$200 - $350 / night", rating: 4.5, description: "A luxurious hotel in the heart of the city, perfect for sightseeing.", amenities: ["Pool", "Spa", "Gym", "Restaurant", "Free WiFi"], latitudeString: (Math.random() * 180 - 90).toFixed(4), longitudeString: (Math.random() * 360 - 180).toFixed(4) },
-    { name: `Cozy Boutique Inn ${input.destination.split(',')[0]}`, conceptualPriceRange: "$120 - $180 / night", rating: 4.2, description: "Charming inn with personalized service and a cozy atmosphere.", amenities: ["Free WiFi", "Breakfast Included", "Garden"], latitudeString: (Math.random() * 180 - 90).toFixed(4), longitudeString: (Math.random() * 360 - 180).toFixed(4) },
-    { name: `Modern Hub Suites ${input.destination.split(',')[0]}`, conceptualPriceRange: "$150 - $220 / night", rating: 4.0, description: "Sleek and contemporary suites for business or leisure.", amenities: ["Gym", "Business Center", "Kitchenette", "Free WiFi"], latitudeString: (Math.random() * 180 - 90).toFixed(4), longitudeString: (Math.random() * 360 - 180).toFixed(4) },
-    { name: `Budget Traveler's Rest ${input.destination.split(',')[0]}`, conceptualPriceRange: "$70 - $110 / night", rating: 3.8, description: "Clean and affordable accommodation for budget-conscious travelers.", amenities: ["Shared Kitchen", "Lockers", "Free WiFi"], latitudeString: (Math.random() * 180 - 90).toFixed(4), longitudeString: (Math.random() * 360 - 180).toFixed(4) },
+  // Simulate a list of hotels that might come from SerpApi or similar
+  const mockApiHotelsData = [
+    { id: 'hotel1', name: `The Grand City Central - ${input.destination.split(',')[0]}`, price: `${Math.floor(Math.random() * 100) + 180}`, rating: (Math.random() * 1.2 + 3.8).toFixed(1), description: "Luxurious hotel in the heart of the city, offering stunning views and premium amenities. Perfect for both business and leisure travelers seeking comfort and convenience.", amenities: ["Pool", "Spa", "Fitness Center", "Restaurant", "Free WiFi", "Valet Parking"], lat: (Math.random() * 0.2 - 0.1 + 40.7128).toFixed(4) , lng: (Math.random() * 0.2 - 0.1 + -74.0060).toFixed(4) }, // Example: Near NYC
+    { id: 'hotel2', name: `Riverside Boutique Hotel - ${input.destination.split(',')[0]}`, price: `${Math.floor(Math.random() * 80) + 120}`, rating: (Math.random() * 1.0 + 4.0).toFixed(1), description: "Charming boutique hotel with personalized service, located by the scenic riverfront. Ideal for a romantic getaway or a peaceful retreat.", amenities: ["Free WiFi", "Breakfast Included", "Garden Terrace", "Bike Rentals"], lat: (Math.random() * 0.2 - 0.1 + 34.0522).toFixed(4) , lng: (Math.random() * 0.2 - 0.1 + -118.2437).toFixed(4) }, // Example: Near LA
+    { id: 'hotel3', name: `Modern Tech Hub Suites - ${input.destination.split(',')[0]}`, price: `${Math.floor(Math.random() * 70) + 150}`, rating: (Math.random() * 1.0 + 3.9).toFixed(1), description: "Sleek, contemporary suites equipped with the latest technology, catering to the modern traveler. Close to business districts and transport links.", amenities: ["Gym", "Business Center", "High-speed WiFi", "Kitchenette", "Rooftop Lounge"], lat: (Math.random() * 0.2 - 0.1 + 51.5074).toFixed(4) , lng: (Math.random() * 0.2 - 0.1 + -0.1278).toFixed(4) }, // Example: Near London
+    { id: 'hotel4', name: `Budget Traveler's Rest Stop - ${input.destination.split(',')[0]}`, price: `${Math.floor(Math.random() * 40) + 70}`, rating: (Math.random() * 0.8 + 3.5).toFixed(1), description: "Clean, comfortable, and affordable accommodation for budget-conscious travelers. Offers essential amenities and a friendly atmosphere.", amenities: ["Shared Kitchen", "Lockers", "Free WiFi", "Laundry Facilities"], lat: (Math.random() * 0.2 - 0.1 + 35.6895).toFixed(4) , lng: (Math.random() * 0.2 - 0.1 + 139.6917).toFixed(4) }, // Example: Near Tokyo
   ].slice(0, Math.floor(Math.random() * 2) + 3); // 3 to 4 mock hotels
 
-  const imagePromptsForHotels: ImagePromptItem[] = mockSerpApiHotels.map((hotel, index) => ({
-    id: `hotel-${index}-${hotel.name?.replace(/\s+/g, '-') || 'unknown'}`,
-    prompt: hotel.imagePrompt || `photo of ${hotel.name}, ${hotel.description?.substring(0, 50)}, exterior view`,
+  const imagePromptsForHotels: ImagePromptItem[] = mockApiHotelsData.map((hotel, index) => ({
+    id: hotel.id, // Use hotel ID for mapping image results
+    prompt: `attractive photo of ${hotel.name}, ${hotel.description.substring(0, 70)}, exterior or lobby view`,
     styleHint: 'hotel',
   }));
 
   let hotelImageUris: Record<string, string | null> = {};
   if (imagePromptsForHotels.length > 0) {
     try {
+      console.log(`[Server Action - getAiHotelSuggestionsAction] Generating ${imagePromptsForHotels.length} hotel images with AI...`);
       const imageResults = await generateMultipleImagesFlow({ prompts: imagePromptsForHotels });
       imageResults.results.forEach(res => {
         hotelImageUris[res.id] = res.imageUri;
       });
       console.log("[Server Action - getAiHotelSuggestionsAction] Hotel images generated/fetched.");
-    } catch (imgError) {
-      console.error("[Server Action - getAiHotelSuggestionsAction] Error generating hotel images:", imgError);
+    } catch (imgError: any) {
+      console.error("[Server Action - getAiHotelSuggestionsAction] Error generating hotel images:", imgError.message);
     }
   }
 
-  const finalHotelSuggestions: AiHotelSuggestion[] = mockSerpApiHotels.map((hotel, index) => {
-    const imageId = `hotel-${index}-${hotel.name?.replace(/\s+/g, '-') || 'unknown'}`;
-    let lat: number | undefined = undefined;
-    let lon: number | undefined = undefined;
-    if (hotel.latitudeString) {
-        const parsedLat = parseFloat(hotel.latitudeString);
-        if (!isNaN(parsedLat)) lat = parsedLat;
-    }
-    if (hotel.longitudeString) {
-        const parsedLon = parseFloat(hotel.longitudeString);
-        if (!isNaN(parsedLon)) lon = parsedLon;
-    }
-
-    return {
-      name: hotel.name!,
-      conceptualPriceRange: hotel.conceptualPriceRange || "$100 - $200 / night",
-      rating: hotel.rating,
-      description: hotel.description!,
-      amenities: hotel.amenities || ["WiFi"],
-      imagePrompt: imagePromptsForHotels.find(p => p.id === imageId)?.prompt || `photo of ${hotel.name}`,
-      imageUri: hotelImageUris[imageId] || `https://placehold.co/600x400.png?text=${encodeURIComponent(hotel.name!.substring(0,15))}`,
-      latitude: lat,
-      longitude: lon,
-    };
-  });
+  const finalHotelSuggestions: AiHotelSuggestion[] = mockApiHotelsData.map(hotel => ({
+    name: hotel.name,
+    conceptualPriceRange: `$${hotel.price} / night`,
+    rating: parseFloat(hotel.rating || "4.0"),
+    description: hotel.description,
+    amenities: hotel.amenities,
+    imagePrompt: imagePromptsForHotels.find(p => p.id === hotel.id)?.prompt || `photo of ${hotel.name}`,
+    imageUri: hotelImageUris[hotel.id] || `https://placehold.co/600x400.png?text=${encodeURIComponent(hotel.name.substring(0,15))}`,
+    latitude: hotel.lat ? parseFloat(hotel.lat) : undefined,
+    longitude: hotel.lng ? parseFloat(hotel.lng) : undefined,
+  }));
   
-  console.log(`[Server Action - getAiHotelSuggestionsAction] Returning ${finalHotelSuggestions.length} mock hotels with AI images.`);
-  finalHotelSuggestions.forEach(h => console.log(`Hotel: ${h.name}, Lat: ${h.latitude}, Lng: ${h.longitude}, ImageURI: ${h.imageUri?.substring(0,30)}...`));
-
+  console.log(`[Server Action - getAiHotelSuggestionsAction] Returning ${finalHotelSuggestions.length} conceptual hotels with AI images.`);
   return {
     hotels: finalHotelSuggestions,
-    searchSummary: `Found ${finalHotelSuggestions.length} conceptual hotel ideas for ${input.destination} from a simulated live API. Images by AI.`
+    searchSummary: `Aura AI found ${finalHotelSuggestions.length} conceptual hotel ideas for ${input.destination}. These are simulated live results combined with AI-generated images.`
   };
 }
 
-// --- Things to Do (Used by /things-to-do) ---
 export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise<ThingsToDoOutput> {
   console.log('[Server Action - getThingsToDoAction] Input:', input);
   try {
@@ -389,10 +340,49 @@ export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise
     console.log(`[Server Action - getThingsToDoAction] AI Flow Result (activities count): ${result.activities?.length || 0}`);
     return result;
   } catch (error: any) {
-    console.error('[Server Action - getThingsToDoAction] ERROR fetching things to do:', error.message, error.stack, error);
+    console.error('[Server Action - getThingsToDoAction] ERROR fetching things to do:', error);
     return {
       activities: [],
       searchSummary: `Sorry, an error occurred while finding things to do in ${input.location}: ${error.message}`
+    };
+  }
+}
+
+export async function getAiPriceAdviceAction(input: PriceAdvisorInput): Promise<PriceAdvisorOutput> {
+  console.log('[Server Action - getAiPriceAdviceAction] Input:', input);
+  try {
+    const result = await getPriceAdvice(input);
+    return result;
+  } catch (error: any) {
+    console.error('[Server Action - getAiPriceAdviceAction] ERROR fetching price advice:', error);
+    return { advice: "Sorry, could not fetch AI price advice at this moment." };
+  }
+}
+
+export async function getConceptualDateGridAction(input: ConceptualDateGridInput): Promise<ConceptualDateGridOutput> {
+  console.log('[Server Action - getConceptualDateGridAction] Input:', input);
+  try {
+    const result = await conceptualDateGridFlow(input);
+    return result;
+  } catch (error: any) {
+    console.error('[Server Action - getConceptualDateGridAction] ERROR fetching conceptual date grid:', error);
+    return { 
+      gridSummary: `Error fetching date insights: ${error.message}`,
+      exampleDeals: [] 
+    };
+  }
+}
+
+export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphInput): Promise<ConceptualPriceGraphOutput> {
+  console.log('[Server Action - getConceptualPriceGraphAction] Input:', input);
+  try {
+    const result = await conceptualPriceGraphFlow(input);
+    return result;
+  } catch (error: any) {
+    console.error('[Server Action - getConceptualPriceGraphAction] ERROR fetching conceptual price graph:', error);
+    return { 
+      trendDescription: `Error fetching price trend insights: ${error.message}`,
+      conceptualDataPoints: []
     };
   }
 }
