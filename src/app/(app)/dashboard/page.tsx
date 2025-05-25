@@ -37,6 +37,7 @@ import { LocalLegendNarratorCard } from "@/components/dashboard/LocalLegendNarra
 import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
 import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
 import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
+import { DynamicItineraryOptimizerPlaceholder } from "@/components/dashboard/DynamicItineraryOptimizerPlaceholder";
 
 
 export default function DashboardPage() {
@@ -219,7 +220,6 @@ export default function DashboardPage() {
           </CardFooter>
         </Card>
 
-
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.25s'}}>
           <LocalInsiderTipsCard />
         </div>
@@ -270,6 +270,10 @@ export default function DashboardPage() {
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.85s'}}>
           <EthicalImpactAuditorPlaceholder />
+        </div>
+        
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.88s'}}>
+          <DynamicItineraryOptimizerPlaceholder />
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.9s'}}>
