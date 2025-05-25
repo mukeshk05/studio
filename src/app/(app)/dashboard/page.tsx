@@ -38,6 +38,7 @@ import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesi
 import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
 import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
 import { DynamicItineraryOptimizerPlaceholder } from "@/components/dashboard/DynamicItineraryOptimizerPlaceholder";
+import { SmartBudgetingAssistantPlaceholder } from "@/components/dashboard/SmartBudgetingAssistantPlaceholder";
 
 
 export default function DashboardPage() {
@@ -222,6 +223,10 @@ export default function DashboardPage() {
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.25s'}}>
           <LocalInsiderTipsCard />
+        </div>
+        
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.28s'}}>
+          <SmartBudgetingAssistantPlaceholder />
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.3s'}}>
