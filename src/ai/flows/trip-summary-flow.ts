@@ -4,25 +4,16 @@
  * @fileOverview Generates a concise AI summary for a given trip itinerary.
  *
  * - generateTripSummary - A function to get an AI-generated trip summary.
- * - TripSummaryInputSchema - The input type for the generateTripSummary function.
- * - TripSummaryOutputSchema - The return type for the generateTripSummary function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-
-export const TripSummaryInputSchema = z.object({
-  destination: z.string().describe('The main destination of the trip.'),
-  travelDates: z.string().describe('The travel dates, used to infer duration (e.g., "July 10-17, 2024", "Next month for 1 week").'),
-  budget: z.number().describe('The approximate total budget for the trip in USD.'),
-  dailyActivitiesText: z.string().describe('A concatenated string summarizing the daily activities planned for the trip. Used to infer key themes.'),
-});
-export type TripSummaryInput = z.infer<typeof TripSummaryInputSchema>;
-
-export const TripSummaryOutputSchema = z.object({
-  summary: z.string().describe('A concise, engaging 1-2 sentence summary of the trip.'),
-});
-export type TripSummaryOutput = z.infer<typeof TripSummaryOutputSchema>;
+// Import schemas and types from the new types file
+import {
+  TripSummaryInputSchema,
+  type TripSummaryInput,
+  TripSummaryOutputSchema,
+  type TripSummaryOutput,
+} from '@/ai/types/trip-summary-types';
 
 export async function generateTripSummary(input: TripSummaryInput): Promise<TripSummaryOutput> {
   return tripSummaryFlow(input);
