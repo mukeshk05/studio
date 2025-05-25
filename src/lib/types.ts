@@ -11,8 +11,9 @@ export type Itinerary = SingleItineraryFromAI & {
     memoryText: string;
     generatedAt: string; 
   };
-  culturalTip?: string; // Added from AITripPlannerOutputSchema implicitly
-  weatherContext?: string; // Added as it's in booking-card
+  culturalTip?: string | null; // Allow null
+  weatherContext?: string | null; // Allow null
+  riskContext?: string | null; // Allow null
 };
 
 // Type for a single hotel option, derived from the itinerary type
@@ -31,9 +32,9 @@ export interface PriceForecast {
 export interface PriceTrackerEntry {
   id: string;
   itemType: "flight" | "hotel";
-  itemName: string; // For hotels: Hotel Name. For flights: Flight number/route
-  originCity?: string; // Specifically for flights
-  destination?: string; // For hotels: Location/City. For flights: Arrival city
+  itemName: string; 
+  originCity?: string; 
+  destination?: string; 
   targetPrice: number;
   currentPrice: number; 
   travelDates?: string;
@@ -64,7 +65,8 @@ export interface UserTravelPersona {
 
 export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
-export type AITripPlannerInput = AITripPlannerInputOriginal & {
+// Update AITripPlannerInput to allow null for optional fields
+export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' | 'desiredMood' | 'weatherContext' | 'riskContext'> & {
   userPersona?: {
     name: string;
     description: string;
@@ -73,4 +75,3 @@ export type AITripPlannerInput = AITripPlannerInputOriginal & {
   weatherContext?: string | null;
   riskContext?: string | null;
 };
-

@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { AdventureQuizForm } from "@/components/quiz/AdventureQuizForm";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Loader2, Sparkles, ExternalLink, Info, Route, CalendarDays, DollarSignIcon, MessageCircle } from "lucide-react";
+import { Brain, Loader2, Sparkles, ExternalLink, Info, Route, CalendarDays, DollarSign, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { matchAdventure } from "@/ai/flows/adventure-matcher-flow";
 import type { AdventureQuizInput, AdventureMatcherOutput, AdventureSuggestion } from "@/ai/types/adventure-matcher-types";
@@ -64,6 +64,7 @@ export default function AdventureQuizPage() {
           description: "We couldn't find a perfect match this time. Feel free to adjust your answers or explore general planning options!",
           variant: "default"
         });
+        setAiSuggestions([]); // Set to empty array to show "Take quiz again"
       }
     } catch (error) {
       console.error("Error matching adventure:", error);
@@ -79,7 +80,6 @@ export default function AdventureQuizPage() {
 
   const handlePlanSuggestedTrip = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
-    // Dispatch event for planner page to listen if it's already mounted
     window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
     router.push('/planner');
   };
@@ -116,8 +116,11 @@ export default function AdventureQuizPage() {
             <div className="space-y-6 mt-8">
               <h2 className="text-2xl font-semibold text-center text-foreground mb-6 flex items-center justify-center">
                 <Sparkles className="w-7 h-7 mr-2 text-accent" />
-                Your Adventure Matches!
+                {aiSuggestions.length > 0 ? "Your Adventure Matches!" : "No Specific Matches Found"}
               </h2>
+              {aiSuggestions.length === 0 && (
+                 <p className="text-center text-muted-foreground">We couldn't pinpoint an exact match this time. Try adjusting your answers or explore general planning options!</p>
+              )}
               {aiSuggestions.map((suggestion, index) => (
                 <Card key={index} className={cn(glassCardClasses, "border-accent/30 animate-fade-in-up")} style={{animationDelay: `${index * 120}ms`}}>
                   <CardHeader className="pb-3">
@@ -151,7 +154,7 @@ export default function AdventureQuizPage() {
                          <div className={cn("p-3 rounded-md mb-3 text-xs space-y-1", innerGlassEffectClasses, "border-accent/20")}>
                             <p><strong className="text-accent/90">Destination:</strong> {suggestion.suggestedTripIdea.destination}</p>
                             <p><strong className="text-accent/90 flex items-center"><CalendarDays className="w-3 h-3 mr-1"/>Dates:</strong> {suggestion.suggestedTripIdea.travelDates}</p>
-                            <p><strong className="text-accent/90 flex items-center"><DollarSignIcon className="w-3 h-3 mr-1"/>Budget:</strong> ${suggestion.suggestedTripIdea.budget.toLocaleString()}</p>
+                            <p><strong className="text-accent/90 flex items-center"><DollarSign className="w-3 h-3 mr-1"/>Budget:</strong> ${suggestion.suggestedTripIdea.budget.toLocaleString()}</p>
                          </div>
                         <Button
                             onClick={() => handlePlanSuggestedTrip(suggestion.suggestedTripIdea!)}
@@ -170,7 +173,6 @@ export default function AdventureQuizPage() {
               <Button
                 onClick={() => {
                     setAiSuggestions(null);
-                    // Optionally, reset form state if AdventureQuizForm holds its own state
                 }}
                 variant="outline"
                 size="lg"

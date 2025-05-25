@@ -4,12 +4,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Plane, Brain, Compass } from "lucide-react"; // Added Compass
+import { LayoutDashboard, Plane, Brain, Compass } from "lucide-react"; 
 
 const navItems = [
   { href: "/planner", label: "Plan Trip", icon: Plane },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/explore", label: "Explore", icon: Compass }, // Added Explore link
+  { href: "/explore", label: "Explore", icon: Compass },
   { href: "/quiz", label: "Adventure Quiz", icon: Brain },
 ];
 
@@ -39,5 +39,3 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
     </nav>
   );
 }
-
-    

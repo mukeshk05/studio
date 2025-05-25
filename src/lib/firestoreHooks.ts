@@ -256,8 +256,7 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
     const querySnapshot = await getDocs(q);
     const history = querySnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
-        // Robust timestamp conversion
-        let searchedAtDate = new Date(); // Default to now if problematic
+        let searchedAtDate = new Date(); 
         if (data.searchedAt instanceof Timestamp) {
           searchedAtDate = data.searchedAt.toDate();
         } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
@@ -266,7 +265,7 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
           if (tsSeconds !== undefined) {
             searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
           } else {
-            const parsed = new Date(data.searchedAt); // Try parsing directly if it's a string like ISO date
+            const parsed = new Date(data.searchedAt); 
             if (!isNaN(parsed.getTime())) {
               searchedAtDate = parsed;
             } else {
@@ -291,7 +290,7 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
     console.error(`[FirestoreHooks] CRITICAL ERROR in getRecentUserSearchHistory for user ${userId}:`, error.message);
     console.error(`[FirestoreHooks] Full error object:`, error);
     if(error.stack) console.error(`[FirestoreHooks] Error stack:`, error.stack);
-    return []; // Return empty array on error to prevent flow from breaking
+    return []; 
   }
 }
 
@@ -330,7 +329,6 @@ export function useGetUserTravelPersona() {
       const docSnap = await getDoc(personaDocRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        // Robust timestamp conversion
         let lastUpdatedDate = new Date();
         if (data.lastUpdated instanceof Timestamp) {
           lastUpdatedDate = data.lastUpdated.toDate();
@@ -347,7 +345,7 @@ export function useGetUserTravelPersona() {
       return null;
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 15, // Cache persona for 15 minutes
   });
 }
 
@@ -367,7 +365,6 @@ export async function getUserTravelPersona(userId: string): Promise<UserTravelPe
     const docSnap = await getDoc(personaDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Robust timestamp conversion
       let lastUpdatedDate = new Date();
         if (data.lastUpdated instanceof Timestamp) {
           lastUpdatedDate = data.lastUpdated.toDate();
@@ -447,4 +444,3 @@ export async function getSingleUserSavedTrip(userId: string, tripId: string): Pr
     return null;
   }
 }
-    
