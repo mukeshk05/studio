@@ -24,7 +24,13 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'www.gstatic.com', // Ensure this entry is present
+        hostname: 'www.gstatic.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com', // Added for Google User Content
         port: '',
         pathname: '/**',
       }

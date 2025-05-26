@@ -421,7 +421,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
 export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promise<SerpApiHotelSearchOutput> {
   console.log('[Server Action - getRealHotelsAction] Received input:', input);
-  const apiKey = process.env.SERPAPI_API_KEY;
+  const apiKey = "6f6955d85e5df06f0fdd5464515ee96571d7a8eee0f6b400fa404ff5d739b3d4";
   if (!apiKey || apiKey === "YOUR_SERPAPI_API_KEY") {
     console.error('[Server Action - getRealHotelsAction] SerpApi API key is not configured or is placeholder. Please set SERPAPI_API_KEY in your .env file.');
     return { hotels: [], error: "Hotel search service is not configured correctly (API key missing or invalid)." };
