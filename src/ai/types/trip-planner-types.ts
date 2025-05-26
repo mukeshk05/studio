@@ -1,7 +1,8 @@
 
 import { z } from 'genkit';
-import type { SerpApiFlightOptionSchema } from './serpapi-flight-search-types'; // For real flight options input
-import type { SerpApiHotelSuggestionSchema } from './serpapi-hotel-search-types'; // For real hotel options input
+// Corrected imports: Zod schemas are runtime values, not just types.
+import { SerpApiFlightOptionSchema } from './serpapi-flight-search-types'; // For real flight options input
+import { SerpApiHotelSuggestionSchema } from './serpapi-hotel-search-types'; // For real hotel options input
 
 // Schema for User Persona, if passed into the planner
 export const UserPersonaSchema = z.object({
@@ -33,6 +34,7 @@ export const FlightOptionSchema = z.object({
   derived_stops_description: z.string().optional().describe("Description of stops, e.g., 'Non-stop' or '1 stop in ORD'. From real option or AI conceptual."),
   link: z.string().url().optional().describe("Direct booking link (e.g., Google Flights), if available from real option.")
 });
+export type FlightOption = z.infer<typeof FlightOptionSchema>;
 
 export const RoomSchema = z.object({
   name: z.string().describe("Name of the room type (e.g., 'Deluxe King Room', 'Standard Twin Room with City View')."),
@@ -42,6 +44,7 @@ export const RoomSchema = z.object({
   roomImagePrompt: z.string().optional().describe("A concise text prompt suitable for generating a representative image of this room type (e.g., 'Modern hotel room king bed city view', 'Cozy twin room with balcony')."),
   roomImageUri: z.string().optional().describe("A data URI of a generated image representing this room type. Expected format: 'data:image/png;base64,<encoded_data>'. This will be populated by the flow."),
 });
+export type Room = z.infer<typeof RoomSchema>;
 
 // Updated HotelOptionSchema to align with SerpApi data + AI selection/description
 export const HotelOptionSchema = z.object({
@@ -56,20 +59,23 @@ export const HotelOptionSchema = z.object({
   longitude: z.number().optional().describe("Longitude of the hotel, if available from real option."),
   link: z.string().url().optional().describe("Direct booking link for the hotel, if available from real option.")
 });
+export type HotelOption = z.infer<typeof HotelOptionSchema>;
+
 
 export const DailyPlanItemSchema = z.object({
   day: z.string().describe('The day number or label (e.g., "Day 1", "Arrival Day").'),
   activities: z.string().describe('A detailed description of activities planned for this day, including potential morning, afternoon, and evening segments if applicable. Be descriptive and engaging.'),
 });
+export type DailyPlanItem = z.infer<typeof DailyPlanItemSchema>;
 
 export const ItineraryItemSchema = z.object({
   destination: z.string().describe('The destination for this itinerary.'),
   travelDates: z.string().describe('The travel dates for this itinerary.'),
   estimatedCost: z.number().describe('The total estimated cost for this itinerary in USD, summing a representative flight and hotel option.'),
-  tripSummary: z.string().describe('A concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details.'),
-  dailyPlan: z.array(DailyPlanItemSchema).describe('A detailed day-by-day plan of potential activities. Each item should clearly state the day and the activities for that day.'),
-  flightOptions: z.array(FlightOptionSchema).describe('A list of flight options for this itinerary. Aim for 1-2 distinct options, prioritizing real options if provided and suitable.'),
-  hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary, each including a generated image for the hotel and its rooms. Aim for 1-2 distinct options, prioritizing real options if provided and suitable.'),
+  tripSummary: z.string().optional().describe('A concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details.'),
+  dailyPlan: z.array(DailyPlanItemSchema).optional().describe('A detailed day-by-day plan of potential activities. Each item should clearly state the day and the activities for that day.'),
+  flightOptions: z.array(FlightOptionSchema).optional().describe('A list of flight options for this itinerary. Aim for 1-2 distinct options, prioritizing real options if provided and suitable.'),
+  hotelOptions: z.array(HotelOptionSchema).optional().describe('A list of hotel options for this itinerary, each including a generated image for the hotel and its rooms. Aim for 1-2 distinct options, prioritizing real options if provided and suitable.'),
   destinationImageUri: z.string().describe("A data URI of a generated image representing the destination. Expected format: 'data:image/png;base64,<encoded_data>'."),
   culturalTip: z.string().optional().describe("A single, concise cultural tip relevant to the destination."),
   // New fields for indicating if the suggestion is an alternative and why
@@ -78,6 +84,8 @@ export const ItineraryItemSchema = z.object({
   destinationLatitude: z.number().optional().describe("Approximate latitude of the destination for map display, if available."),
   destinationLongitude: z.number().optional().describe("Approximate longitude of the destination for map display, if available."),
 });
+export type ItineraryItem = z.infer<typeof ItineraryItemSchema>;
+
 
 export const AITripPlannerOutputSchema = z.object({
   itineraries: z.array(ItineraryItemSchema).describe('A list of possible itineraries based on the input, including generated images for destination, hotels, and hotel rooms, and a structured daily plan.'),
@@ -92,7 +100,9 @@ export const HotelOptionTextOnlySchema = HotelOptionSchema.omit({ hotelImageUri:
 });
 
 export const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true, culturalTip: true }).extend({
-  hotelOptions: z.array(HotelOptionTextOnlySchema),
+  hotelOptions: z.array(HotelOptionTextOnlySchema).optional(), // Made optional as hotels might not always be present
+  flightOptions: z.array(FlightOptionSchema).optional(), // Made optional for consistency
+  dailyPlan: z.array(DailyPlanItemSchema).optional(), // Made optional
 });
 
 // Schema for the text-only output of the AI, used before image generation
