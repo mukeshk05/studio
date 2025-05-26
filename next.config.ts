@@ -36,7 +36,19 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lh4.googleusercontent.com', // Added this new entry
+        hostname: 'lh4.googleusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh5.googleusercontent.com', // Added this for good measure
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh6.googleusercontent.com', // Added this new entry
         port: '',
         pathname: '/**',
       }
