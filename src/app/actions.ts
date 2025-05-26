@@ -20,7 +20,6 @@ import {
 import type {
     AiFlightMapDealInput,
     AiFlightMapDealOutput,
-    AiFlightMapDealSuggestion,
 } from '@/ai/types/ai-flight-map-deals-types';
 import { getJson as getSerpApiJson } from 'serpapi';
 import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types';
@@ -37,7 +36,7 @@ import type { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/typ
 import { conceptualPriceGraphFlow as conceptualPriceGraphFlowOriginal } from '@/ai/flows/conceptual-price-graph-flow';
 import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
 
-import { getCoTravelAgentResponse as getCoTravelAgentResponseOriginal } from '@/ai/flows/co-travel-agent-flow';
+import { answerTravelQuestion as getCoTravelAgentResponseOriginal } from '@/ai/flows/co-travel-agent-flow';
 import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
 
 import { getItineraryAssistance as getItineraryAssistanceOriginal } from '@/ai/flows/itinerary-assistance-flow';
@@ -239,7 +238,6 @@ export async function getAiFlightMapDealsAction(
   try {
     let realPriceContextString: string | undefined;
 
-    // 1. Get Real Flight Data for context
     const now = new Date();
     const startDate = addMonths(now, 1);
     const endDate = addDays(startDate, 7);
@@ -263,6 +261,7 @@ export async function getAiFlightMapDealsAction(
 
     const flowInput: AiFlightMapDealInput & { realPriceContext?: string } = {
       ...input,
+      // @ts-ignore
       realPriceContext: realPriceContextString,
     };
 
@@ -319,6 +318,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   }
 
   try {
+    console.log('[Server Action - getRealFlightsAction] Attempting to call SerpApi with params:', params);
     const response = await getSerpApiJson(params);
     console.log('[Server Action - getRealFlightsAction] RAW SerpApi Response:', JSON.stringify(response, null, 2));
 
@@ -420,33 +420,35 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
 
 export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promise<SerpApiHotelSearchOutput> {
-  console.log('[Server Action - getRealHotelsAction] Input:', input);
+  console.log('[Server Action - getRealHotelsAction] Received input:', input);
   const apiKey = process.env.SERPAPI_API_KEY;
-  if (!apiKey) {
-    console.error('[Server Action - getRealHotelsAction] SerpApi API key is not configured.');
-    return { error: "Hotel search service is not configured." };
+  if (!apiKey || apiKey === "YOUR_SERPAPI_API_KEY") {
+    console.error('[Server Action - getRealHotelsAction] SerpApi API key is not configured or is placeholder. Please set SERPAPI_API_KEY in your .env file.');
+    return { hotels: [], error: "Hotel search service is not configured correctly (API key missing or invalid)." };
   }
+  console.log('[Server Action - getRealHotelsAction] SerpApi API key found.');
 
   const params: any = {
     engine: "google_hotels",
     q: input.destination,
     check_in_date: input.checkInDate,
     check_out_date: input.checkOutDate,
-    adults: input.guests || "2", // Default to "2" if not provided
+    adults: input.guests || "2",
     currency: input.currency || "USD",
     hl: input.hl || "en",
     api_key: apiKey,
   };
 
-  console.log('[Server Action - getRealHotelsAction] Parameters sent to SerpApi:', params);
+  console.log('[Server Action - getRealHotelsAction] Parameters being sent to SerpApi:', params);
 
   try {
+    console.log('[Server Action - getRealHotelsAction] >>> ATTEMPTING SERPAPI CALL for hotels <<<');
     const response = await getSerpApiJson(params);
     console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response:', JSON.stringify(response, null, 2));
 
     if (response.error) {
       console.error('[Server Action - getRealHotelsAction] SerpApi returned an error:', response.error);
-      return { error: `SerpApi error: ${response.error}` };
+      return { hotels: [], error: `SerpApi error: ${response.error}` };
     }
     
     const rawHotels = response.properties || [];
@@ -475,14 +477,14 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     const searchSummary = response.search_information?.displayed_query || `Found ${hotels.length} hotel options.`;
 
     return {
-      hotels: hotels.length > 0 ? hotels : undefined,
+      hotels: hotels.length > 0 ? hotels : [], // Return empty array instead of undefined
       search_summary: searchSummary,
       error: hotels.length === 0 && !response.error ? "No hotels found by SerpApi for this query." : undefined,
     };
 
   } catch (error: any) {
-    console.error('[Server Action - getRealHotelsAction] Error calling SerpApi or processing response:', error);
-    return { error: `Failed to fetch hotels from SerpApi: ${error.message || 'Unknown error'}` };
+    console.error('[Server Action - getRealHotelsAction] Error calling SerpApi or processing response for hotels:', error);
+    return { hotels: [], error: `Failed to fetch hotels from SerpApi: ${error.message || 'Unknown error'}` };
   }
 }
 

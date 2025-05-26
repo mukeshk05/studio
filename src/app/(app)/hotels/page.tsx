@@ -51,8 +51,8 @@ import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
 import { getRealHotelsAction } from '@/app/actions';
-import type { AiHotelSearchInput } from '@/ai/types/ai-hotel-search-types'; // This path seems incorrect now
-import type { SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types'; // Should use this
+// Removed import for AiHotelSearchInput as it's no longer used for the primary search
+import type { SerpApiHotelSearchInput, SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types'; // Should use this
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -81,28 +81,40 @@ type HotelSearchFormValues = z.infer<typeof hotelSearchFormSchema>;
 
 interface UserLocation { latitude: number; longitude: number; }
 
+// Type for the structure expected by AiHotelCard and HotelDetailDialog
+// This structure is now mapped from SerpApiHotelSuggestion
+interface DisplayableHotelSuggestion {
+  name: string;
+  conceptualPriceRange: string; // This will be derived from SerpApi's price_details or price_per_night
+  rating?: number;
+  description: string;
+  amenities: string[];
+  imagePrompt?: string; // May not be used if SerpApi provides images
+  imageUri?: string;    // Will come from SerpApi if available
+  latitude?: number;
+  longitude?: number;
+  link?: string;        // Booking link from SerpApi
+}
+
+
 // Map SerpApiHotelSuggestion to the structure expected by AiHotelCard
-// This ensures AiHotelCard can be reused or adapted easily
-const mapSerpApiToAiHotelSuggestion = (hotel: SerpApiHotelSuggestion, destinationQuery: string): AiHotelSuggestion => {
+const mapSerpApiToDisplayableHotel = (hotel: SerpApiHotelSuggestion, destinationQuery: string): DisplayableHotelSuggestion => {
   return {
     name: hotel.name || "Unknown Hotel",
-    conceptualPriceRange: hotel.price_details || (hotel.price_per_night ? `$${hotel.price_per_night}/night` : (hotel.total_price ? `$${hotel.total_price} total` : "Price N/A")),
+    conceptualPriceRange: hotel.price_details || (hotel.price_per_night ? `$${hotel.price_per_night.toLocaleString()}/night` : (hotel.total_price ? `$${hotel.total_price.toLocaleString()} total` : "Price N/A")),
     rating: hotel.rating,
     description: hotel.description || "Detailed description not available from search provider.",
     amenities: hotel.amenities || [],
-    imagePrompt: `hotel exterior ${hotel.name} ${hotel.type || ''} in ${destinationQuery}`, // Conceptual prompt for fallback or AI image generation
-    imageUri: hotel.thumbnail || hotel.images?.[0]?.thumbnail, // Use real image if available
+    imageUri: hotel.thumbnail || hotel.images?.[0]?.thumbnail, 
     latitude: hotel.coordinates?.latitude,
     longitude: hotel.coordinates?.longitude,
     link: hotel.link,
-    // @ts-ignore - rooms are not part of SerpApiHotelSuggestion schema
-    rooms: [], // Conceptual rooms would be AI generated later if needed for a full itinerary
   };
 };
 
 
 interface AiHotelCardProps {
-  hotel: AiHotelSuggestion; // Expects this structure
+  hotel: DisplayableHotelSuggestion; 
   onClick: () => void;
 }
 
@@ -192,7 +204,7 @@ function AiHotelCard({ hotel, onClick }: AiHotelCardProps) {
 interface HotelDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  hotel: AiHotelSuggestion | null; // Expects mapped structure
+  hotel: DisplayableHotelSuggestion | null; 
   searchDestination: string; 
 }
 
@@ -375,27 +387,27 @@ export default function HotelsPage() {
   useEffect(() => {
     form.reset({
       destination: "",
-      guests: "2 adults",
+      guests: "2", // Default to 2 as per SerpApi expectation for 'adults' param
       dates: { from: new Date(), to: addDays(new Date(), 3) },
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false); // Changed initial state
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
 
-  const [initialHotelSuggestions, setInitialHotelSuggestions] = useState<AiHotelSuggestion[]>([]);
+  const [initialHotelSuggestions, setInitialHotelSuggestions] = useState<DisplayableHotelSuggestion[]>([]);
   const [isLoadingInitialHotels, setIsLoadingInitialHotels] = useState(false);
   const [initialHotelsError, setInitialHotelsError] = useState<string | null>(null);
   const [initialHotelsContextualNote, setInitialHotelsContextualNote] = useState<string | null>(null);
 
-  const [searchedHotelSuggestions, setSearchedHotelSuggestions] = useState<AiHotelSuggestion[]>([]);
+  const [searchedHotelSuggestions, setSearchedHotelSuggestions] = useState<DisplayableHotelSuggestion[]>([]);
   const [isLoadingSearchedHotels, setIsLoadingSearchedHotels] = useState(false);
   const [searchedHotelsError, setSearchedHotelsError] = useState<string | null>(null);
   const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
 
-  const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<AiHotelSuggestion | null>(null);
+  const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<DisplayableHotelSuggestion | null>(null);
   const [isHotelDetailDialogOpen, setIsHotelDetailDialogOpen] = useState(false);
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -403,7 +415,7 @@ export default function HotelsPage() {
   const mapMarkersRef = useRef<google.maps.Marker[]>([]);
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
-  const [isMapInitializing, setIsMapInitializing] = useState(true);
+  const [isMapInitializing, setIsMapInitializing] = useState(true); // Start as true
   
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -476,7 +488,7 @@ export default function HotelsPage() {
     finally { setIsMapInitializing(false); }
   }, []);
 
-  const plotHotelMarkers = useCallback((hotelsToDisplay: AiHotelSuggestion[]) => {
+  const plotHotelMarkers = useCallback((hotelsToDisplay: DisplayableHotelSuggestion[]) => {
     if (!map || !window.google || !window.google.maps) {
       console.warn("[HotelsPage] Map not ready for plotting markers. Hotels to plot:", hotelsToDisplay.length);
       return;
@@ -542,33 +554,34 @@ export default function HotelsPage() {
     console.log(`[HotelsPage] fetchInitialOrNearbyHotels called. Location:`, location);
     setIsLoadingInitialHotels(true);
     setInitialHotelsError(null);
-    setInitialHotelSuggestions([]);
+    setInitialHotelSuggestions([]); // Clear previous initial suggestions
 
-    let searchInput: import('@/ai/types/serpapi-hotel-search-types').SerpApiHotelSearchInput;
+    let searchInput: SerpApiHotelSearchInput;
     let destinationQuery: string;
 
     if (location) {
       destinationQuery = `Hotels near latitude ${location.latitude.toFixed(4)}, longitude ${location.longitude.toFixed(4)}`;
       setInitialHotelsContextualNote("Finding hotel ideas near you from SerpApi...");
     } else {
-      destinationQuery = "Paris"; // Default popular destination for initial load without geo
+      destinationQuery = "Paris"; 
       setInitialHotelsContextualNote("Finding popular hotel ideas from SerpApi (e.g., Paris)...");
     }
     
     searchInput = {
         destination: destinationQuery,
-        checkInDate: format(addDays(new Date(), 30), "yyyy-MM-dd"), // Search a month out
-        checkOutDate: format(addDays(new Date(), 33), "yyyy-MM-dd"), // For 3 nights
-        guests: "2",
+        checkInDate: format(addDays(new Date(), 30), "yyyy-MM-dd"), 
+        checkOutDate: format(addDays(new Date(), 33), "yyyy-MM-dd"), 
+        guests: "2", // Default for initial suggestions
     };
 
     console.log("[HotelsPage] Initial/Nearby hotels searchInput to SerpApi:", JSON.stringify(searchInput, null, 2));
     try {
+      console.log("[HotelsPage] Calling getRealHotelsAction for initial/nearby hotels...");
       const result = await getRealHotelsAction(searchInput);
       console.log("[HotelsPage] Initial/Nearby SerpApi hotels result:", result);
       
       const validHotels = (result.hotels || []).filter(h => h.name && (h.price_details || h.price_per_night || h.total_price));
-      const mappedSuggestions = validHotels.map(h => mapSerpApiToAiHotelSuggestion(h, destinationQuery));
+      const mappedSuggestions = validHotels.map(h => mapSerpApiToDisplayableHotel(h, destinationQuery));
       setInitialHotelSuggestions(mappedSuggestions);
 
       if (result.error) {
@@ -595,8 +608,8 @@ export default function HotelsPage() {
 
   useEffect(() => {
     console.log(`[HotelsPage] Initial Data Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, map initialized=${!!map}, isMapInitializing=${isMapInitializing}`);
-    if (isMapsScriptLoaded && !map && !isMapInitializing) { 
-        setIsMapInitializing(true);
+    if (isMapsScriptLoaded && !map && isMapInitializing) { 
+        setIsMapInitializing(true); // Ensure it's true before starting geo
         setIsFetchingLocation(true);
         console.log("[HotelsPage] Attempting geolocation for map and initial hotel fetch...");
         navigator.geolocation.getCurrentPosition(
@@ -614,7 +627,7 @@ export default function HotelsPage() {
                 setGeolocationError(`Geolocation Error: ${error.message}. Showing popular ideas for Paris.`);
                 setUserLocation(null);
                 initializeMap({ lat: 48.8566, lng: 2.3522 }, 10); // Default to Paris
-                fetchInitialOrNearbyHotels(); // Fetch for default (Paris)
+                fetchInitialOrNearbyHotels(); 
                 setIsFetchingLocation(false);
             },
             { timeout: 8000, enableHighAccuracy: true, maximumAge: 0 }
@@ -625,18 +638,19 @@ export default function HotelsPage() {
 
   const handleHotelSearchSubmit = async (values: HotelSearchFormValues) => {
     console.log("[HotelsPage] Form submitted with values:", values);
+    console.log("[HotelsPage] Attempting to call getRealHotelsAction from handleHotelSearchSubmit.");
     setIsLoadingSearchedHotels(true);
-    setSearchedHotelSuggestions([]);
-    setInitialHotelSuggestions([]); 
+    setSearchedHotelSuggestions([]); // Clear previous search results
+    setInitialHotelSuggestions([]); // Also clear initial suggestions to focus on search
     setInitialHotelsContextualNote(null);
     setSearchedHotelsError(null);
     setAiSearchSummary(`Searching for hotels in ${values.destination} via SerpApi...`);
 
-    const searchInput: import('@/ai/types/serpapi-hotel-search-types').SerpApiHotelSearchInput = {
+    const searchInput: SerpApiHotelSearchInput = {
       destination: values.destination,
       checkInDate: format(values.dates.from!, "yyyy-MM-dd"),
       checkOutDate: format(values.dates.to!, "yyyy-MM-dd"),
-      guests: values.guests, // SerpApi often takes a string like "2" for adults
+      guests: values.guests, 
     };
 
     console.log("[HotelsPage] Specific hotel searchInput to SerpApi:", JSON.stringify(searchInput, null, 2));
@@ -645,7 +659,7 @@ export default function HotelsPage() {
       console.log("[HotelsPage] Searched SerpApi hotels result:", result);
       
       const validHotels = (result.hotels || []).filter(h => h.name && (h.price_details || h.price_per_night || h.total_price));
-      const mappedSuggestions = validHotels.map(h => mapSerpApiToAiHotelSuggestion(h, values.destination));
+      const mappedSuggestions = validHotels.map(h => mapSerpApiToDisplayableHotel(h, values.destination));
       setSearchedHotelSuggestions(mappedSuggestions);
 
       if(result.error) {
@@ -669,7 +683,7 @@ export default function HotelsPage() {
     }
   };
 
-  const handleOpenHotelDetails = useCallback((hotel: AiHotelSuggestion) => {
+  const handleOpenHotelDetails = useCallback((hotel: DisplayableHotelSuggestion) => {
     console.log("[HotelsPage] Opening details for hotel:", hotel.name, "Coords:", hotel.latitude, hotel.longitude);
     setSelectedHotelForDetails(hotel);
     setIsHotelDetailDialogOpen(true);
@@ -863,8 +877,8 @@ export default function HotelsPage() {
           <CardContent>
             <div className={cn("h-[450px] p-1 rounded-lg shadow-inner", innerGlassEffectClasses, "border-accent/20")}>
               {mapsApiError && <div className="w-full h-full flex flex-col items-center justify-center bg-destructive/10 text-destructive-foreground p-3 rounded-md"><MapPin className="w-10 h-10 mb-2"/><p className="font-semibold">Map Error</p><p className="text-xs text-center">{mapsApiError}</p></div>}
-              {(!mapsApiError && (isMapInitializing || (isFetchingLocation && !map)) ) && <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mb-2 text-accent"/><p className="text-xs">{isFetchingLocation ? "Getting your location..." : "Initializing Map..."}</p></div>}
-              <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing || (isFetchingLocation && !map)) ? "hidden" : "")} />
+              {(!mapsApiError && isMapInitializing ) && <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mb-2 text-accent"/><p className="text-xs">Initializing Map...</p></div>}
+              <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing) ? "hidden" : "")} />
             </div>
             {geolocationError && !isFetchingLocation && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>{geolocationError}</p>}
           </CardContent>
