@@ -6,8 +6,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Itinerary, HotelOption, DailyPlanItem } from "@/lib/types";
-import { Bookmark, CalendarDays, DollarSign, Info, Landmark, Plane, Hotel, ExternalLink, ImageOff, ListChecks, Route, Loader2, Eye, CloudSun, MessageSquareQuote, Leaf } from "lucide-react";
+import type { Itinerary, HotelOption, DailyPlanItem, FlightOption } from "@/lib/types";
+import { Bookmark, CalendarDays, DollarSign, Info, Landmark, Plane, Hotel, ExternalLink, ImageOff, ListChecks, Route, Loader2, Eye, CloudSun, MessageSquareQuote, Leaf, Ticket, Clock } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -57,11 +57,44 @@ function HotelOptionDisplay({ hotel, onClick }: { hotel: HotelOption; onClick: (
         <p className="font-semibold text-card-foreground group-hover:text-accent">{hotel.name}</p>
         <p className="text-xs text-muted-foreground line-clamp-2 mb-1">{hotel.description}</p>
         <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
-            <DollarSign className="w-3 h-3 mr-1"/> ${hotel.price.toLocaleString()}
+            <DollarSign className="w-3 h-3 mr-1"/> ${hotel.price.toLocaleString()} (Total)
         </Badge>
+        {hotel.rating && <Badge variant="outline" className="ml-1.5 text-xs border-amber-500/50 text-amber-400 bg-amber-500/10">{hotel.rating.toFixed(1)} ★</Badge>}
       </div>
       <Eye className="w-5 h-5 text-muted-foreground self-center ml-auto shrink-0 group-hover:text-accent transition-colors" />
     </button>
+  );
+}
+
+function FlightOptionDisplay({ flight }: { flight: FlightOption }) {
+  return (
+    <div className="p-2 rounded-md border border-border/50 bg-card/50">
+      <div className="flex items-center gap-2 mb-1">
+        {flight.airline_logo ? (
+          <Image src={flight.airline_logo} alt={flight.name || "Airline logo"} width={20} height={20} className="rounded-sm" />
+        ) : (
+          <Plane className="w-4 h-4 text-primary" />
+        )}
+        <p className="font-semibold text-card-foreground text-sm">{flight.name}</p>
+      </div>
+      <p className="text-xs text-muted-foreground">{flight.description}</p>
+      <div className="flex justify-between items-center mt-1">
+        <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
+          <DollarSign className="w-3 h-3 mr-1"/> ${flight.price.toLocaleString()}
+        </Badge>
+        {flight.total_duration && (
+          <Badge variant="outline" className="text-xs border-border/70">
+            <Clock className="w-3 h-3 mr-1"/> {Math.floor(flight.total_duration / 60)}h {flight.total_duration % 60}m
+          </Badge>
+        )}
+        {flight.derived_stops_description && <Badge variant="outline" className="text-xs border-border/70">{flight.derived_stops_description}</Badge>}
+      </div>
+      {flight.link && (
+         <Button variant="link" size="sm" asChild className="text-xs p-0 h-auto mt-1 text-accent hover:text-accent/80">
+            <a href={flight.link} target="_blank" rel="noopener noreferrer">View Deal <ExternalLink className="w-3 h-3 ml-1"/></a>
+         </Button>
+      )}
+    </div>
   );
 }
 
@@ -89,6 +122,12 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
   };
 
   const handleFindDeals = () => {
+    // If a specific flight link exists, prioritize that. Otherwise, general search.
+    const flightLink = itinerary.flightOptions?.[0]?.link;
+    if (flightLink) {
+        window.open(flightLink, "_blank", "noopener,noreferrer");
+        return;
+    }
     const baseUrl = "https://www.google.com/search"; 
     const queryParams = new URLSearchParams({
       q: `Book trip to ${itinerary.destination} for ${itinerary.travelDates} with budget ${itinerary.estimatedCost} USD`,
@@ -194,15 +233,12 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
             <AccordionItem value="flights" className="border-border/30">
               <AccordionTrigger className="text-sm font-medium hover:no-underline py-2 text-card-foreground/90 [&[data-state=open]>svg]:text-primary">
                 <div className="flex items-center">
-                  <Plane className="w-4 h-4 mr-2 text-primary" /> Flight Options ({itinerary.flightOptions.length})
+                  <Ticket className="w-4 h-4 mr-2 text-primary" /> Flight Options ({itinerary.flightOptions.length})
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-2 space-y-2">
                 {itinerary.flightOptions.map((flight, index) => (
-                  <div key={`flight-${itinerary.id}-${index}`} className="p-2 rounded-md border border-border/50 bg-card/50">
-                    <p className="font-semibold text-card-foreground">{flight.name} - ${flight.price.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{flight.description}</p>
-                  </div>
+                  <FlightOptionDisplay key={`flight-${itinerary.id}-${index}`} flight={flight} />
                 ))}
               </AccordionContent>
             </AccordionItem>
@@ -260,7 +296,6 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         isOpen={isHotelDetailOpen}
         onClose={() => {
           setIsHotelDetailOpen(false);
-          // setSelectedHotel(null); // Optional: clear selected hotel on close
         }}
         hotel={selectedHotel}
         destinationName={itinerary.destination}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -5,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/types/trip-planner-types";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
-import type { CoTravelAgentInput, CoTravelAgentOutput } from "@/ai/types/co-travel-agent-types"; // For new chat
-import { getCoTravelAgentResponse } from "@/app/actions"; // For new chat
+import type { CoTravelAgentInput, CoTravelAgentOutput } from "@/ai/types/co-travel-agent-types"; 
+import { getCoTravelAgentResponse } from "@/app/actions"; 
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
-import { Input } from "@/components/ui/input"; // For new chat input
+import { Input } from "@/components/ui/input"; 
 import { History, Send, Loader2, MessageSquare, Bot } from "lucide-react"; 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useAddSavedTrip, useAddSearchHistory, useGetUserTravelPersona } from "@/lib/firestoreHooks";
@@ -18,24 +19,64 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet"; 
+import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions"; // Import SerpApi actions
+import type { SerpApiFlightSearchInput, SerpApiHotelSearchInput, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; // Adjusted to import from lib/types
+import { format, addDays, parse, differenceInDays } from 'date-fns';
+
 
 export interface ChatMessage {
   id: string;
-  type: "user" | "ai" | "error" | "loading" | "system" | "booking_guidance" | "ai_text_response"; // Added ai_text_response
+  type: "user" | "ai" | "error" | "loading" | "system" | "booking_guidance" | "ai_text_response"; 
   payload?: any;
   timestamp: Date;
   title?: string;
 }
 
+// Helper function to parse flexible date strings (simplified for demo)
+function parseFlexibleDates(dateString: string): { from: Date, to: Date, durationDays: number } {
+  const now = new Date();
+  let fromDate = addDays(now, 30); // Default to next month
+  let toDate = addDays(fromDate, 7); // Default 7 days duration
+
+  // Very basic parsing logic
+  if (dateString.toLowerCase().includes("next week")) {
+    fromDate = addDays(now, 7);
+    toDate = addDays(fromDate, 7);
+  } else if (dateString.toLowerCase().includes("next month")) {
+    fromDate = addDays(now, 30);
+    toDate = addDays(fromDate, 7);
+  } else if (dateString.match(/(\d+)\s*days/i)) {
+    const daysMatch = dateString.match(/(\d+)\s*days/i);
+    if (daysMatch) {
+      const numDays = parseInt(daysMatch[1], 10);
+      toDate = addDays(fromDate, numDays -1); // -1 because 'for X days' includes start day
+    }
+  } else {
+    // Try to parse M/D/YYYY - M/D/YYYY
+    const parts = dateString.split(/\s*-\s*/);
+    if (parts.length === 2) {
+      const d1 = parse(parts[0], 'MM/dd/yyyy', new Date());
+      const d2 = parse(parts[1], 'MM/dd/yyyy', new Date());
+      if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
+        fromDate = d1;
+        toDate = d2;
+      }
+    }
+  }
+  const duration = differenceInDays(toDate, fromDate) + 1;
+  return { from: fromDate, to: toDate, durationDays: duration };
+}
+
+
 export default function TripPlannerPage() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [currentUserInput, setCurrentUserInput] = useState(""); // State for the new chat input
+  const [currentUserInput, setCurrentUserInput] = useState(""); 
   const [isInputSheetOpen, setIsInputSheetOpen] = useState(false);
   const [selectedItinerary, setSelectedItinerary] = useState<Itinerary | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [isSearchHistoryDrawerOpen, setIsSearchHistoryDrawerOpen] = useState(false);
   const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null);
-  const [isAiRespondingToChat, setIsAiRespondingToChat] = useState(false); // Loading state for chat input AI
+  const [isAiRespondingToChat, setIsAiRespondingToChat] = useState(false); 
 
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -122,15 +163,57 @@ export default function TripPlannerPage() {
     };
 
     setChatHistory((prev) => [...prev, userMessage, loadingMessage]);
+    
+    // Parse dates for SerpApi
+    const parsedDates = parseFlexibleDates(input.travelDates);
 
-    const plannerInput: AITripPlannerInput = {
+    let realFlights: SerpApiFlightOption[] = [];
+    let realHotels: SerpApiHotelSuggestion[] = [];
+
+    try {
+      console.log("Fetching real flights...");
+      const flightSearchInput: SerpApiFlightSearchInput = {
+        origin: "NYC", // TODO: Get origin from user profile or input form
+        destination: input.destination,
+        departureDate: format(parsedDates.from, "yyyy-MM-dd"),
+        returnDate: format(parsedDates.to, "yyyy-MM-dd"), // Assuming round trip for now
+        tripType: "round-trip",
+      };
+      const flightResults = await getRealFlightsAction(flightSearchInput);
+      if (flightResults.best_flights) realFlights.push(...flightResults.best_flights);
+      if (flightResults.other_flights) realFlights.push(...flightResults.other_flights);
+      console.log(`Fetched ${realFlights.length} real flight options.`);
+    } catch (e) {
+      console.error("Error fetching real flights:", e);
+      // Continue without real flights if this fails
+    }
+
+    try {
+      console.log("Fetching real hotels...");
+      const hotelSearchInput: SerpApiHotelSearchInput = {
+        destination: input.destination,
+        checkInDate: format(parsedDates.from, "yyyy-MM-dd"),
+        checkOutDate: format(parsedDates.to, "yyyy-MM-dd"),
+        guests: "2 adults", // TODO: Get guests from input form
+      };
+      const hotelResults = await getRealHotelsAction(hotelSearchInput);
+      if (hotelResults.hotels) realHotels = hotelResults.hotels;
+      console.log(`Fetched ${realHotels.length} real hotel options.`);
+    } catch (e) {
+      console.error("Error fetching real hotels:", e);
+      // Continue without real hotels
+    }
+
+    const plannerInputForAI: AITripPlannerInput = {
       ...input,
       userPersona: userPersona ? { name: userPersona.name, description: userPersona.description } : undefined,
+      realFlightOptions: realFlights.length > 0 ? realFlights : undefined,
+      realHotelOptions: realHotels.length > 0 ? realHotels : undefined,
     };
 
     try {
-      const result: AITripPlannerOutput = await aiTripPlanner(plannerInput);
-       const itinerariesFromAI: Omit<Itinerary, 'id' | 'aiGeneratedMemory'>[] = (result.itineraries || []).map(it => ({
+      const result: AITripPlannerOutput = await aiTripPlanner(plannerInputForAI);
+      const itinerariesFromAI: Omit<Itinerary, 'id' | 'aiGeneratedMemory'>[] = (result.itineraries || []).map(it => ({
         destination: it.destination,
         travelDates: it.travelDates,
         estimatedCost: it.estimatedCost,
@@ -143,6 +226,10 @@ export default function TripPlannerPage() {
           name: fo.name,
           description: fo.description,
           price: fo.price,
+          airline_logo: fo.airline_logo,
+          total_duration: fo.total_duration,
+          derived_stops_description: fo.derived_stops_description,
+          link: fo.link,
         })),
         hotelOptions: (it.hotelOptions || []).map(hotel => ({
           name: hotel.name,
@@ -159,6 +246,9 @@ export default function TripPlannerPage() {
             roomImagePrompt: room.roomImagePrompt === undefined ? null : room.roomImagePrompt,
             roomImageUri: room.roomImageUri === undefined ? null : room.roomImageUri,
           })),
+          latitude: hotel.latitude,
+          longitude: hotel.longitude,
+          link: hotel.link,
         })),
         destinationImageUri: it.destinationImageUri, 
         culturalTip: it.culturalTip === undefined ? null : it.culturalTip,
@@ -181,7 +271,7 @@ export default function TripPlannerPage() {
          const noResultsMessage: ChatMessage = {
             id: crypto.randomUUID(),
             type: "system",
-            payload: "I couldn't find any itineraries based on your request. Please try different criteria.",
+            payload: "I couldn't find any itineraries based on your request. Please try different criteria or check if real-time data was available.",
             timestamp: new Date(),
           };
           setChatHistory((prev) => [...prev, noResultsMessage]);
@@ -209,7 +299,7 @@ export default function TripPlannerPage() {
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       type: 'user',
-      payload: { text }, // Store as object for consistency, even if just text
+      payload: { text }, 
       timestamp: new Date(),
     };
     const loadingMsg: ChatMessage = {
@@ -224,14 +314,12 @@ export default function TripPlannerPage() {
     let aiResponsePayload: string;
     let aiResponseType: ChatMessage['type'] = "ai_text_response";
 
-    // Simple intent parsing
     const lowerText = text.toLowerCase();
     const questionKeywords = ['what is', 'what are', 'how do', 'can i', 'is it', 'visa', 'customs', 'etiquette', 'rule for', 'currency in'];
     const searchKeywords = ['hotel in', 'flight to', 'find me a', 'book a', 'look for'];
     const modificationKeywords = ['add to', 'change my', 'update my', 'modify the'];
 
     if (questionKeywords.some(kw => lowerText.includes(kw))) {
-      // Try to extract destination
       const forMatch = lowerText.match(/(?:for|in|about|of)\s+([\w\s,]+)/i);
       const destination = forMatch?.[1]?.trim().replace(/\?$/, '').trim();
 
@@ -388,7 +476,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
   const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background"> {/* Assumes header is 4rem */}
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background"> 
       <div className={cn("p-3 border-b border-border/30 flex justify-between items-center", "glass-pane")}>
         <h2 className="text-lg font-semibold text-foreground flex items-center">
             <Bot className="w-6 h-6 mr-2 text-primary"/> AI Trip Planner & Concierge
@@ -411,14 +499,13 @@ Remember to compare prices and check cancellation policies before booking. Happy
       </div>
 
       <ScrollArea className="flex-grow p-4 sm:p-6" ref={chatContainerRef}>
-        <div className="max-w-3xl mx-auto space-y-6 pb-4"> {/* Added pb-4 for spacing from chat input */}
+        <div className="max-w-3xl mx-auto space-y-6 pb-4"> 
           {chatHistory.map((msg) => (
             <ChatMessageCard key={msg.id} message={msg} onViewDetails={handleViewDetails} />
           ))}
         </div>
       </ScrollArea>
       
-      {/* Chat Input Section */}
       <div className={cn("p-3 border-t border-border/30", "glass-pane")}>
         <div className="max-w-3xl mx-auto space-y-3">
             <Button

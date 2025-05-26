@@ -6,22 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Itinerary } from "@/lib/types";
-import { CalendarDays, DollarSign, Eye, Landmark, ImageOff } from "lucide-react"; // Corrected
+import { CalendarDays, DollarSign, Eye, Landmark, ImageOff, Plane } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 
 type CompactItineraryCardProps = {
-  itinerary: Itinerary; // Assumes Itinerary has a temp ID if not saved
+  itinerary: Itinerary; 
   onViewDetails: () => void;
 };
 
 export function CompactItineraryCard({ itinerary, onViewDetails }: CompactItineraryCardProps) {
   const hintWords = itinerary.destination.toLowerCase().split(/[\s,]+/);
   const aiHint = hintWords.slice(0, 2).join(" ");
+  const primaryFlight = itinerary.flightOptions?.[0];
 
   return (
     <Card className={cn(
         "overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-200", 
-        "glass-card hover:border-primary/50" // Applied glass-card
+        "glass-card hover:border-primary/50" 
         )}>
       <div className="flex">
         {itinerary.destinationImageUri && (
@@ -54,6 +55,16 @@ export function CompactItineraryCard({ itinerary, onViewDetails }: CompactItiner
           </CardHeader>
           <CardContent className="p-0 pb-2 text-xs text-muted-foreground flex-grow">
             <p className="line-clamp-2">{itinerary.tripSummary || "View details for more information."}</p>
+            {primaryFlight && (
+              <div className="mt-1.5 pt-1.5 border-t border-border/20 flex items-center gap-1.5">
+                {primaryFlight.airline_logo ? (
+                  <Image src={primaryFlight.airline_logo} alt={primaryFlight.name || "Airline"} width={16} height={16} className="rounded-sm" />
+                ) : (
+                  <Plane className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+                <span className="text-xs text-muted-foreground truncate">{primaryFlight.name.substring(0, 25)}{primaryFlight.name.length > 25 ? "..." : ""} - ${primaryFlight.price?.toLocaleString()}</span>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="p-0 flex justify-between items-center">
             <Badge variant="secondary" className="py-0.5 px-2 text-xs bg-primary/20 text-primary border-primary/30">

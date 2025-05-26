@@ -1,5 +1,7 @@
 
 import { z } from 'genkit';
+import type { SerpApiFlightOptionSchema } from './serpapi-flight-search-types'; // For real flight options input
+import type { SerpApiHotelSuggestionSchema } from './serpapi-hotel-search-types'; // For real hotel options input
 
 // Schema for User Persona, if passed into the planner
 export const UserPersonaSchema = z.object({
@@ -8,20 +10,28 @@ export const UserPersonaSchema = z.object({
 }).optional();
 
 export const AITripPlannerInputSchema = z.object({
-  travelDates: z.string().describe('The desired travel dates (e.g., MM/DD/YYYY-MM/DD/YYYY).'),
+  travelDates: z.string().describe('The desired travel dates (e.g., MM/DD/YYYY-MM/DD/YYYY, or descriptive like "next summer for 2 weeks").'),
   destination: z.string().describe('The destination for the trip.'),
   budget: z.number().describe('The budget for the trip in USD.'),
   userPersona: UserPersonaSchema.describe("Optional: The user's travel persona to help tailor the trip plan."),
-  desiredMood: z.string().optional().describe("Optional: The desired mood or vibe for the trip (e.g., 'relaxing', 'adventurous', 'romantic')."),
+  desiredMood: z.string().optional().describe("Optional: The desired mood or vibe for the trip (e.g., 'relaxing', 'adventurous', 'romantic', 'vibrant street food')."),
   weatherContext: z.string().optional().describe("Optional: General weather context or forecast summary for the destination and dates. If not provided, AI should infer based on typical conditions."),
   riskContext: z.string().optional().describe("Optional: User-provided specific concerns, questions (e.g., about visas), or preferences (e.g., weather, accessibility, safety) for the trip."),
+  // New fields for real-time data
+  realFlightOptions: z.array(SerpApiFlightOptionSchema).optional().describe("Optional: Array of real flight options fetched from SerpApi."),
+  realHotelOptions: z.array(SerpApiHotelSuggestionSchema).optional().describe("Optional: Array of real hotel options fetched from SerpApi."),
 });
 export type AITripPlannerInput = z.infer<typeof AITripPlannerInputSchema>;
 
+// Updated FlightOptionSchema to align with SerpApi data + AI selection
 export const FlightOptionSchema = z.object({
-  name: z.string().describe('Flight carrier and number, or general description (e.g., "Budget Airline Option 1").'),
-  description: z.string().describe('Details about the flight (e.g., layovers, departure/arrival times, airline).'),
-  price: z.number().describe('Estimated price of the flight in USD.')
+  name: z.string().describe('Flight carrier and flight numbers (e.g., "United UA123, UA456"). AI should derive this from selected real options or create conceptually.'),
+  description: z.string().describe('Details about the flight (e.g., "Departs JFK 10:00 AM, Arrives CDG 11:00 PM, 1 stop in LHR (2h 30m)"). AI to summarize from real option or create conceptually.'),
+  price: z.number().describe('Estimated price of the flight in USD. From selected real option or AI conceptual price.'),
+  airline_logo: z.string().url().optional().describe("URL of the airline logo, if available from real option."),
+  total_duration: z.number().optional().describe("Total flight duration in minutes, if available from real option."),
+  derived_stops_description: z.string().optional().describe("Description of stops, e.g., 'Non-stop' or '1 stop in ORD'. From real option or AI conceptual."),
+  link: z.string().url().optional().describe("Direct booking link (e.g., Google Flights), if available from real option.")
 });
 
 export const RoomSchema = z.object({
@@ -33,14 +43,18 @@ export const RoomSchema = z.object({
   roomImageUri: z.string().optional().describe("A data URI of a generated image representing this room type. Expected format: 'data:image/png;base64,<encoded_data>'. This will be populated by the flow."),
 });
 
+// Updated HotelOptionSchema to align with SerpApi data + AI selection/description
 export const HotelOptionSchema = z.object({
-  name: z.string().describe('Name of the hotel or accommodation type (e.g., "City Center Hotel", "Boutique Guesthouse").'),
-  description: z.string().describe('Details about the hotel (e.g., amenities, location rating, type). This description will be used to generate a representative image.'),
-  price: z.number().describe('Estimated price for the hotel for the duration of the stay in USD.'),
-  hotelImageUri: z.string().describe("A data URI of a generated image representing the hotel. Expected format: 'data:image/png;base64,<encoded_data>'."),
-  rating: z.number().min(0).max(5).optional().describe("Overall guest rating out of 5 (e.g., 4.5)."),
-  amenities: z.array(z.string()).optional().describe("List of key amenities (e.g., ['Free WiFi', 'Pool', 'Restaurant', 'Pet-friendly', 'Gym', 'Spa', 'Parking']). Provide 3-7 important amenities."),
-  rooms: z.array(RoomSchema).optional().describe("A list of 2-3 available room types with their details. For each room, include name, description, features, and a 'roomImagePrompt' for image generation."),
+  name: z.string().describe('Name of the hotel. From selected real option or AI conceptual name.'),
+  description: z.string().describe('AI-generated details about the hotel (e.g., amenities, location rating, type), informed by real option if available. This description will be used to generate a representative image.'),
+  price: z.number().describe('Estimated total price for the hotel for the entire duration of the stay in USD. From selected real option or AI conceptual price.'),
+  hotelImageUri: z.string().describe("A data URI of an AI-generated image representing the hotel. Expected format: 'data:image/png;base64,<encoded_data>'."),
+  rating: z.number().min(0).max(5).optional().describe("Overall guest rating out of 5 (e.g., 4.5). From selected real option or AI conceptual rating."),
+  amenities: z.array(z.string()).optional().describe("List of key amenities. From selected real option or AI conceptual list."),
+  rooms: z.array(RoomSchema).optional().describe("A list of 2-3 available conceptual room types with their details. For each room, include name, description, features, and a 'roomImagePrompt' for image generation."),
+  latitude: z.number().optional().describe("Latitude of the hotel, if available from real option."),
+  longitude: z.number().optional().describe("Longitude of the hotel, if available from real option."),
+  link: z.string().url().optional().describe("Direct booking link for the hotel, if available from real option.")
 });
 
 export const DailyPlanItemSchema = z.object({
@@ -54,10 +68,15 @@ export const ItineraryItemSchema = z.object({
   estimatedCost: z.number().describe('The total estimated cost for this itinerary in USD, summing a representative flight and hotel option.'),
   tripSummary: z.string().describe('A concise and engaging summary of the overall trip, highlighting its theme or key attractions. This summary should NOT include the detailed day-by-day plan or specific flight/hotel details.'),
   dailyPlan: z.array(DailyPlanItemSchema).describe('A detailed day-by-day plan of potential activities. Each item should clearly state the day and the activities for that day.'),
-  flightOptions: z.array(FlightOptionSchema).describe('A list of flight options for this itinerary. Aim for 2-3 distinct options.'),
-  hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary, each including a generated image for the hotel and its rooms. Aim for 2-3 distinct options.'),
+  flightOptions: z.array(FlightOptionSchema).describe('A list of flight options for this itinerary. Aim for 1-2 distinct options, prioritizing real options if provided and suitable.'),
+  hotelOptions: z.array(HotelOptionSchema).describe('A list of hotel options for this itinerary, each including a generated image for the hotel and its rooms. Aim for 1-2 distinct options, prioritizing real options if provided and suitable.'),
   destinationImageUri: z.string().describe("A data URI of a generated image representing the destination. Expected format: 'data:image/png;base64,<encoded_data>'."),
   culturalTip: z.string().optional().describe("A single, concise cultural tip relevant to the destination."),
+  // New fields for indicating if the suggestion is an alternative and why
+  isAlternative: z.boolean().optional().describe("True if this itinerary is an alternative suggestion due to issues with the primary request."),
+  alternativeReason: z.string().optional().describe("Reason why this alternative is suggested (e.g., 'Due to hurricane warning for original destination...')."),
+  destinationLatitude: z.number().optional().describe("Approximate latitude of the destination for map display, if available."),
+  destinationLongitude: z.number().optional().describe("Approximate longitude of the destination for map display, if available."),
 });
 
 export const AITripPlannerOutputSchema = z.object({
@@ -72,7 +91,7 @@ export const HotelOptionTextOnlySchema = HotelOptionSchema.omit({ hotelImageUri:
   rooms: z.array(RoomSchema.omit({ roomImageUri: true })).optional(),
 });
 
-export const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true, culturalTip: true }).extend({ // Exclude culturalTip from text-only for now
+export const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationImageUri: true, culturalTip: true }).extend({
   hotelOptions: z.array(HotelOptionTextOnlySchema),
 });
 

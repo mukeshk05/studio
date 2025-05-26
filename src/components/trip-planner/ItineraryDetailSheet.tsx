@@ -22,7 +22,6 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -77,9 +76,14 @@ export function ItineraryDetailSheet({
     : { ...itinerary, id: `temp-${crypto.randomUUID()}`};
 
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const mapEmbedUrl = mapsApiKey
-    ? `https://www.google.com/maps/embed/v1/search?key=${mapsApiKey}&q=hotels+in+${encodeURIComponent(itinerary.destination)}`
-    : "";
+  let mapEmbedUrl = "";
+  if (mapsApiKey) {
+    const mapQuery = itinerary.destinationLatitude && itinerary.destinationLongitude
+      ? `${itinerary.destinationLatitude},${itinerary.destinationLongitude}`
+      : encodeURIComponent(`${itinerary.destination}`);
+    mapEmbedUrl = `https://www.google.com/maps/embed/v1/search?key=${mapsApiKey}&q=${mapQuery}&zoom=10`;
+  }
+
 
   const handleFetchArPreview = async () => {
     if (!itinerary.destination) return;
@@ -159,7 +163,7 @@ export function ItineraryDetailSheet({
               <div className={cn("mt-6 p-4", glassCardClasses)}>
                 <h3 className="text-lg font-semibold mb-3 flex items-center text-card-foreground">
                   <MapPin className="w-5 h-5 mr-2 text-primary" />
-                  Location & Hotels Map
+                  Explore {itinerary.destination} Hotels & Area
                 </h3>
                 {mapsApiKey ? (
                   <div className="aspect-video w-full rounded-md overflow-hidden border border-border/50">
