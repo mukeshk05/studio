@@ -82,7 +82,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
             *   Suggest 2-3 conceptual 'rooms' within this hotel, providing a 'name', optional 'description', 'features', and a **'roomImagePrompt'** for each room (e.g., "Modern hotel room king bed city view", "Cozy twin room with balcony").
 
 3.  **Fallback Strategy:**
-    *   If no `realFlightOptions` or `realHotelOptions` are provided, OR if the provided real options are unsuitable (e.g., all drastically over budget, wrong location type):
+    *   If no realFlightOptions or realHotelOptions are provided, OR if the provided real options are unsuitable (e.g., all drastically over budget, wrong location type):
         *   You MUST clearly state this in the 'tripSummary' (e.g., "No suitable real-time flights/hotels found within budget, so here are some conceptual ideas...").
         *   In this case, generate *conceptual* flight and hotel options as you did previously, ensuring they fit the user's criteria.
 
@@ -91,12 +91,12 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   Include conceptual sustainable travel considerations.
 
 5.  **Itinerary Construction (For each of 1-2 itineraries):**
-    *   `destination`, `travelDates`: From user input.
-    *   `estimatedCost`: Sum of your selected flight and hotel prices.
-    *   `tripSummary`: Engaging summary, including any necessary risk/visa/accessibility reminders, sustainability notes, and clear indication if using real vs. conceptual options.
-    *   `dailyPlan`: Detailed, engaging day-by-day activities.
-    *   `flightOptions`: Your selected (real or conceptual) flight(s).
-    *   `hotelOptions`: Your selected (real or conceptual) hotel(s), with AI-written descriptions and room prompts.
+    *   \`destination\`, \`travelDates\`: From user input.
+    *   \`estimatedCost\`: Sum of your selected flight and hotel prices.
+    *   \`tripSummary\`: Engaging summary, including any necessary risk/visa/accessibility reminders, sustainability notes, and clear indication if using real vs. conceptual options.
+    *   \`dailyPlan\`: Detailed, engaging day-by-day activities.
+    *   \`flightOptions\`: Your selected (real or conceptual) flight(s).
+    *   \`hotelOptions\`: Your selected (real or conceptual) hotel(s), with AI-written descriptions and room prompts.
 
 6.  **Cultural Tip:** Provide one concise cultural tip for the main destination in the 'culturalTip' field.
 
