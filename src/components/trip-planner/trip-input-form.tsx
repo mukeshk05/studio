@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { AITripPlannerInput as AITripPlannerInputTypeFromFlow, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Loader2, MapPin, CalendarDays, DollarSign, Sparkles, Lightbulb, AlertTriangle, CloudSun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +39,7 @@ type TripInputFormProps = {
   setIsLoading: (isLoading: boolean) => void;
   onSubmitProp?: (values: AITripPlannerInputTypeFromFlow) => Promise<void>;
   initialValues?: Partial<AITripPlannerInputTypeFromFlow> | null;
+  isMapsScriptLoaded?: boolean; // New prop
 };
 
 const suggestedPrompts = [
@@ -48,7 +49,9 @@ const suggestedPrompts = [
   "Cultural exploration of Kyoto, Japan for 5 days with $1500, interested in quiet temples and traditional tea ceremonies, also want to experience vibrant local markets.",
 ];
 
-export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: TripInputFormProps) {
+export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMapsScriptLoaded }: TripInputFormProps) {
+  const destinationInputRef = useRef<HTMLInputElement>(null);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -71,6 +74,21 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
       weatherContext: initialValues?.weatherContext || "",
     });
   }, [initialValues, form]);
+
+  useEffect(() => {
+    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && destinationInputRef.current) {
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        destinationInputRef.current,
+        { types: ['(cities)', 'airport'] } // Suggest cities and airports
+      );
+      autocomplete.setFields(['formatted_address', 'name']); // Get formatted address and name
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        const address = place.formatted_address || place.name || "";
+        form.setValue('destination', address, { shouldValidate: true });
+      });
+    }
+  }, [isMapsScriptLoaded, form]);
 
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
@@ -145,7 +163,12 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 <FormItem>
                   <FormLabel className="flex items-center text-foreground/90"><MapPin className="w-4 h-4 mr-2" />Destination</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Paris, France or Tokyo, Japan" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
+                    <Input 
+                      ref={destinationInputRef}
+                      placeholder="e.g., Paris, France or JFK Airport" 
+                      {...field} 
+                      className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -216,7 +239,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
                 </FormItem>
               )}
             />
-            <Button type="submit" className={cn(primaryButtonClasses)} size="lg" disabled={form.formState.isSubmitting}>
+            <Button type="submit" className={cn(primaryButtonClasses)} size="lg" disabled={form.formState.isSubmitting || !isMapsScriptLoaded}>
               {form.formState.isSubmitting ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
@@ -224,6 +247,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues }: Tri
               )}
               {initialValues ? "Update Plan" : "Get AI Trip Plan"}
             </Button>
+             {!isMapsScriptLoaded && (
+                <p className="text-xs text-center text-muted-foreground">Loading location services...</p>
+            )}
           </form>
         </Form>
         <div className="mt-2 pt-4 border-t border-border/30">

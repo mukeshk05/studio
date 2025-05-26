@@ -20,12 +20,13 @@ type TripPlannerInputSheetProps = {
   isOpen: boolean;
   onClose: () => void;
   onPlanRequest: (input: AITripPlannerInput) => Promise<void>;
-  initialValues?: Partial<AITripPlannerInput> | null; // Added optional prop
+  initialValues?: Partial<AITripPlannerInput> | null;
+  isMapsScriptLoaded?: boolean; // New prop
 };
 
 const glassPaneClasses = "glass-pane";
 
-export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest, initialValues }: TripPlannerInputSheetProps) {
+export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest, initialValues, isMapsScriptLoaded }: TripPlannerInputSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleFormSubmit = async (values: AITripPlannerInput) => {
@@ -58,7 +59,8 @@ export function TripPlannerInputSheet({ isOpen, onClose, onPlanRequest, initialV
             onItinerariesFetched={() => {}}
             setIsLoading={setIsSubmitting}
             onSubmitProp={handleFormSubmit}
-            initialValues={initialValues} // Pass initial values to the form
+            initialValues={initialValues}
+            isMapsScriptLoaded={isMapsScriptLoaded} // Pass prop down
           />
         </div>
       </SheetContent>

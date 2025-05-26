@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/types/trip-planner-types";
@@ -19,8 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet"; 
-import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions"; // Import SerpApi actions
-import type { SerpApiFlightSearchInput, SerpApiHotelSearchInput, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; // Adjusted to import from lib/types
+import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions";
+import type { SerpApiFlightSearchInput, SerpApiHotelSearchInput, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types";
 import { format, addDays, parse, differenceInDays } from 'date-fns';
 
 
@@ -38,7 +38,6 @@ function parseFlexibleDates(dateString: string): { from: Date, to: Date, duratio
   let fromDate = addDays(now, 30); // Default to next month
   let toDate = addDays(fromDate, 7); // Default 7 days duration
 
-  // Very basic parsing logic
   if (dateString.toLowerCase().includes("next week")) {
     fromDate = addDays(now, 7);
     toDate = addDays(fromDate, 7);
@@ -49,10 +48,9 @@ function parseFlexibleDates(dateString: string): { from: Date, to: Date, duratio
     const daysMatch = dateString.match(/(\d+)\s*days/i);
     if (daysMatch) {
       const numDays = parseInt(daysMatch[1], 10);
-      toDate = addDays(fromDate, numDays -1); // -1 because 'for X days' includes start day
+      toDate = addDays(fromDate, numDays -1); 
     }
   } else {
-    // Try to parse M/D/YYYY - M/D/YYYY
     const parts = dateString.split(/\s*-\s*/);
     if (parts.length === 2) {
       const d1 = parse(parts[0], 'MM/dd/yyyy', new Date());
@@ -87,6 +85,51 @@ export default function TripPlannerPage() {
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  const initGoogleMapsApiPlannerPage = useCallback(() => {
+    console.log("[PlannerPage] Google Maps API script loaded callback executed.");
+    setIsMapsScriptLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!apiKey) {
+      console.error("[PlannerPage] Google Maps API key is missing. Autocomplete in form will not work.");
+      return;
+    }
+    if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
+      if(!isMapsScriptLoaded) setIsMapsScriptLoaded(true);
+      return;
+    }
+    const scriptId = 'google-maps-planner-page-script';
+    if (document.getElementById(scriptId)) {
+      if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places && !isMapsScriptLoaded) {
+        setIsMapsScriptLoaded(true);
+      }
+      return;
+    }
+    
+    console.log("[PlannerPage] Attempting to load Google Maps API script (with Places)...");
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMapsApiPlannerPage`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      console.error("[PlannerPage] Failed to load Google Maps API script.");
+      setIsMapsScriptLoaded(false); 
+    };
+    (window as any).initGoogleMapsApiPlannerPage = initGoogleMapsApiPlannerPage;
+    document.head.appendChild(script);
+
+    return () => { 
+        if ((window as any).initGoogleMapsApiPlannerPage) {
+            delete (window as any).initGoogleMapsApiPlannerPage;
+        }
+    };
+  }, [apiKey, isMapsScriptLoaded, initGoogleMapsApiPlannerPage]);
 
 
   useEffect(() => {
@@ -164,7 +207,6 @@ export default function TripPlannerPage() {
 
     setChatHistory((prev) => [...prev, userMessage, loadingMessage]);
     
-    // Parse dates for SerpApi
     const parsedDates = parseFlexibleDates(input.travelDates);
 
     let realFlights: SerpApiFlightOption[] = [];
@@ -173,10 +215,10 @@ export default function TripPlannerPage() {
     try {
       console.log("Fetching real flights...");
       const flightSearchInput: SerpApiFlightSearchInput = {
-        origin: "NYC", // TODO: Get origin from user profile or input form
+        origin: "NYC", 
         destination: input.destination,
         departureDate: format(parsedDates.from, "yyyy-MM-dd"),
-        returnDate: format(parsedDates.to, "yyyy-MM-dd"), // Assuming round trip for now
+        returnDate: format(parsedDates.to, "yyyy-MM-dd"), 
         tripType: "round-trip",
       };
       const flightResults = await getRealFlightsAction(flightSearchInput);
@@ -185,7 +227,6 @@ export default function TripPlannerPage() {
       console.log(`Fetched ${realFlights.length} real flight options.`);
     } catch (e) {
       console.error("Error fetching real flights:", e);
-      // Continue without real flights if this fails
     }
 
     try {
@@ -194,14 +235,13 @@ export default function TripPlannerPage() {
         destination: input.destination,
         checkInDate: format(parsedDates.from, "yyyy-MM-dd"),
         checkOutDate: format(parsedDates.to, "yyyy-MM-dd"),
-        guests: "2 adults", // TODO: Get guests from input form
+        guests: "2", 
       };
       const hotelResults = await getRealHotelsAction(hotelSearchInput);
       if (hotelResults.hotels) realHotels = hotelResults.hotels;
       console.log(`Fetched ${realHotels.length} real hotel options.`);
     } catch (e) {
       console.error("Error fetching real hotels:", e);
-      // Continue without real hotels
     }
 
     const plannerInputForAI: AITripPlannerInput = {
@@ -555,6 +595,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
         onClose={() => setIsInputSheetOpen(false)}
         onPlanRequest={handlePlanRequest}
         initialValues={currentFormInitialValues}
+        isMapsScriptLoaded={isMapsScriptLoaded} 
       />
 
       <SearchHistoryDrawer
