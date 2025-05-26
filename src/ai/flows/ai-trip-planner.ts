@@ -42,7 +42,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   {{#if riskContext}}Risk/Accessibility Context: {{{riskContext}}}{{/if}}
 
 2.  **Process Real-Time Options (CRITICAL):**
-    *   **Real Flights (`realFlightOptions`):** You will receive an array of real flight options. Each option might look like:
+    *   **Real Flights (realFlightOptions):** You will receive an array of real flight options. Each option might look like:
         \`\`\`json
         { // Example of ONE SerpApiFlightOption (simplified for prompt)
           "price": 550,
@@ -61,7 +61,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
         Your task is to select 1-2 of these real flights that best fit the user's budget and travel dates/destination. If multiple fit, choose options that offer good value (e.g., balance of price and duration/stops).
         **Output these selected flights in the 'flightOptions' array of your itinerary.** Ensure you map the data correctly to the 'FlightOptionSchema' (name, description, price, airline_logo, total_duration, derived_stops_description, link).
 
-    *   **Real Hotels (`realHotelOptions`):** You will receive an array of real hotel options. Each option might look like:
+    *   **Real Hotels (realHotelOptions):** You will receive an array of real hotel options. Each option might look like:
         \`\`\`json
         { // Example of ONE SerpApiHotelSuggestion (simplified for prompt)
           "name": "The Grand Plaza Hotel",
@@ -326,3 +326,4 @@ const aiTripPlannerFlow = ai.defineFlow(
     };
   }
 );
+
