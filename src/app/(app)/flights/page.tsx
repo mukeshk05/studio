@@ -66,22 +66,24 @@ import {
   CheckCircle,
   PieChart,
   Grid2X2,
-  Lightbulb
+  Lightbulb,
+  Ticket,
+  Globe
 } from 'lucide-react';
-import { format, addDays, isValid } from 'date-fns';
+import { format, addDays, isValid, parseISO } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
 import { 
   getPopularDestinations, 
-  getConceptualFlightsAction,
+  getRealFlightsAction, // Changed from getConceptualFlightsAction
   getAiFlightMapDealsAction, 
-  getPriceAdviceAction, // Renamed to avoid conflict
+  getPriceAdviceAction,
   getConceptualDateGridAction,
   getConceptualPriceGraphAction
 } from '@/app/actions';
 import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
 import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
-import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput, ConceptualFlightOption } from '@/ai/types/conceptual-flight-search-types';
+import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types'; // Changed from Conceptual types
 import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/flows/price-advisor-flow';
 import type { ConceptualDateGridInput, ConceptualDateGridOutput, DatePricePoint } from '@/ai/types/ai-conceptual-date-grid-types';
 import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput, ConceptualDataPoint } from '@/ai/types/ai-conceptual-price-graph-types';
@@ -98,57 +100,82 @@ const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:s
 const prominentButtonClassesSm = "text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
 
-interface ConceptualFlightResultCardProps {
-  flightOption: ConceptualFlightOption; // Changed from 'flight' to 'flightOption'
+interface RealFlightResultCardProps {
+  flightOption: SerpApiFlightOption;
   onViewDetails: () => void;
-  itineraryDestination: string; // Pass this to construct Google Flights URL
 }
 
-function ConceptualFlightResultCard({ flightOption, onViewDetails, itineraryDestination }: ConceptualFlightResultCardProps) {
-  const airlinePlaceholderText = flightOption.airlineName ? flightOption.airlineName.split(' ')[0] : "Airline";
+function RealFlightResultCard({ flightOption, onViewDetails }: RealFlightResultCardProps) {
+  const airlineLogo = flightOption.airline_logo || flightOption.flights?.[0]?.airline_logo;
+  const airlineName = flightOption.airline || flightOption.flights?.[0]?.airline || "Multiple Airlines";
+  const airlinePlaceholderText = airlineName.split(' ')[0];
+  
+  const formatDuration = (minutes?: number) => {
+    if (minutes === undefined || minutes === null) return "N/A";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h}h ${m}m`;
+  };
+
   return (
     <Card className={cn(glassCardClasses, "mb-4 transform hover:scale-[1.01] transition-transform duration-200 ease-out")}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image
-              src={`https://placehold.co/80x30.png?text=${encodeURIComponent(airlinePlaceholderText)}`}
-              alt={`${flightOption.airlineName} logo placeholder`}
-              data-ai-hint={`logo ${airlinePlaceholderText.toLowerCase()}`}
-              width={80}
-              height={30}
-              className="h-auto object-contain rounded-sm bg-muted/20 p-0.5"
-            />
+            {airlineLogo ? (
+              <Image
+                src={airlineLogo}
+                alt={`${airlineName} logo`}
+                width={80}
+                height={30}
+                className="h-auto object-contain rounded-sm bg-muted/20 p-0.5"
+              />
+            ) : (
+              <Image
+                src={`https://placehold.co/80x30.png?text=${encodeURIComponent(airlinePlaceholderText)}`}
+                alt={`${airlineName} logo placeholder`}
+                data-ai-hint={`logo ${airlinePlaceholderText.toLowerCase()}`}
+                width={80}
+                height={30}
+                className="h-auto object-contain rounded-sm bg-muted/20 p-0.5"
+              />
+            )}
             <div>
-              <p className="text-sm font-semibold text-card-foreground">{flightOption.airlineName}</p>
-              {flightOption.flightNumber && <p className="text-xs text-muted-foreground">{flightOption.flightNumber}</p>}
+              <p className="text-sm font-semibold text-card-foreground">{airlineName}</p>
+              {flightOption.derived_flight_numbers && <p className="text-xs text-muted-foreground">{flightOption.derived_flight_numbers}</p>}
             </div>
           </div>
-          <Badge variant="outline" className="text-xs border-accent/50 text-accent bg-accent/10">{flightOption.stops}</Badge>
+          <Badge variant="outline" className="text-xs border-accent/50 text-accent bg-accent/10">{flightOption.derived_stops_description}</Badge>
         </div>
 
         <div className="flex items-center justify-between text-xs text-card-foreground/90">
           <div className="text-center">
-            <p className="font-medium">{flightOption.departureTime}</p>
-            <p className="text-muted-foreground">{flightOption.departureAirport}</p>
+            <p className="font-medium">{flightOption.derived_departure_time || "N/A"}</p>
+            <p className="text-muted-foreground">{flightOption.derived_departure_airport_name || "N/A"}</p>
           </div>
           <div className="flex flex-col items-center text-muted-foreground">
             <Route className="w-4 h-4 mb-0.5" />
-            <span className="text-[0.65rem] leading-tight">{flightOption.duration}</span>
+            <span className="text-[0.65rem] leading-tight">{formatDuration(flightOption.total_duration)}</span>
           </div>
           <div className="text-center">
-            <p className="font-medium">{flightOption.arrivalTime}</p>
-            <p className="text-muted-foreground">{flightOption.arrivalAirport}</p>
+            <p className="font-medium">{flightOption.derived_arrival_time || "N/A"}</p>
+            <p className="text-muted-foreground">{flightOption.derived_arrival_airport_name || "N/A"}</p>
           </div>
         </div>
         
-        {flightOption.extraDetails && <p className="text-xs text-muted-foreground italic border-t border-border/20 pt-2 mt-2">{flightOption.extraDetails}</p>}
+        {flightOption.carbon_emissions?.this_flight && (
+          <p className="text-xs text-muted-foreground italic border-t border-border/20 pt-2 mt-2">
+            CO₂: {flightOption.carbon_emissions.this_flight}kg 
+            {flightOption.carbon_emissions.difference_percent !== undefined && 
+             ` (${flightOption.carbon_emissions.difference_percent > 0 ? '+' : ''}${flightOption.carbon_emissions.difference_percent}% vs typical)`}
+          </p>
+        )}
 
       </CardContent>
       <CardFooter className="p-3 bg-muted/20 dark:bg-muted/10 flex justify-between items-center border-t border-border/30">
-        <p className="text-lg font-bold text-primary">{flightOption.conceptualPrice}</p>
+        <p className="text-lg font-bold text-primary">${flightOption.price?.toLocaleString() || 'N/A'}</p>
         <Button size="sm" onClick={onViewDetails} className={cn(prominentButtonClassesSm, "py-1.5 px-4 text-sm")}>
-          View Details & AI Insights
+          View Details
         </Button>
       </CardFooter>
     </Card>
@@ -304,48 +331,30 @@ function MapDealDetailsDialog({ isOpen, onClose, deal, onPlanTrip }: MapDealDeta
   );
 }
 
-interface ConceptualFlightDetailsDialogProps {
+interface RealFlightDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  flight: ConceptualFlightOption | null;
-  formValues: { origin: string; destination: string; departureDate: string; returnDate?: string; };
+  flight: SerpApiFlightOption | null;
 }
 
-function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: ConceptualFlightDetailsDialogProps) {
+function RealFlightDetailsDialog({ isOpen, onClose, flight }: RealFlightDetailsDialogProps) {
   if (!flight) return null;
 
-  const googleFlightsUrl = () => {
-    let url = `https://www.google.com/travel/flights`;
-    const params = new URLSearchParams();
-    
-    const originAirportCode = flight.departureAirport?.match(/\b[A-Z]{3}\b/)?.[0] || formValues.origin;
-    const destinationAirportCode = flight.arrivalAirport?.match(/\b[A-Z]{3}\b/)?.[0] || formValues.destination;
-
-    if (originAirportCode && destinationAirportCode) {
-      params.append('q', `flights from ${originAirportCode} to ${destinationAirportCode}`);
-    } else if (formValues.origin && formValues.destination) {
-      params.append('q', `flights from ${formValues.origin} to ${formValues.destination}`);
-    }
-    
-    if (formValues.departureDate) {
-       try {
-            const depDate = new Date(formValues.departureDate); // Works if YYYY-MM-DD
-            if (isValid(depDate)) {
-              params.append('dt', format(depDate, 'yyyy-MM-dd'));
-            }
-      } catch (e) { console.error("Error formatting departure date for Google Flights:", e);}
-    }
-    return `${url}?${params.toString()}`;
+  const formatLegDuration = (minutes?: number) => {
+    if (minutes === undefined || minutes === null) return "N/A";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h}h ${m}m`;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if(!open) onClose(); }}>
-      <DialogContent className={cn(glassCardClasses, "sm:max-w-lg p-0 border-primary/30")}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className={cn(glassCardClasses, "sm:max-w-xl p-0 border-primary/30")}>
         <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
            <div className="flex justify-between items-center">
             <DialogTitle className="text-lg font-semibold text-foreground flex items-center">
-              <Plane className="w-5 h-5 mr-2 text-primary" />
-              {flight.airlineName} {flight.flightNumber || ''}
+              <Ticket className="w-5 h-5 mr-2 text-primary" />
+              Flight Details: {flight.derived_departure_airport_name} to {flight.derived_arrival_airport_name}
             </DialogTitle>
             <DialogClose asChild>
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
@@ -354,30 +363,71 @@ function ConceptualFlightDetailsDialog({ isOpen, onClose, flight, formValues }: 
             </DialogClose>
           </div>
           <DialogDescription className="text-xs text-muted-foreground">
-            Conceptual details for {flight.departureAirport} to {flight.arrivalAirport}
+            Airline: {flight.airline || "Multiple Airlines"} - Total Price: ${flight.price?.toLocaleString() || 'N/A'}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[calc(80vh-120px)]">
-          <div className="p-4 sm:p-6 space-y-3 text-sm">
+        <ScrollArea className="max-h-[calc(80vh-160px)]"> {/* Adjusted max-height */}
+          <div className="p-4 sm:p-6 space-y-4 text-sm">
             <div className="flex items-center justify-between">
-              <p className="font-medium text-card-foreground">Price (Conceptual):</p>
-              <p className="text-lg font-bold text-primary">{flight.conceptualPrice}</p>
+              <p className="font-medium text-card-foreground">Total Price:</p>
+              <p className="text-lg font-bold text-primary">${flight.price?.toLocaleString() || 'N/A'}</p>
             </div>
             <Separator/>
-            <p><strong className="text-card-foreground/90">Route:</strong> {flight.departureAirport} → {flight.arrivalAirport}</p>
-            <p><strong className="text-card-foreground/90">Time:</strong> {flight.departureTime} – {flight.arrivalTime}</p>
-            <p><strong className="text-card-foreground/90">Duration:</strong> {flight.duration}</p>
-            <p><strong className="text-card-foreground/90">Stops:</strong> {flight.stops}</p>
-            {flight.bookingHint && <p className="italic text-xs text-muted-foreground border-l-2 border-accent pl-2 py-1 my-1"><strong className="text-accent">AI Booking Hint:</strong> {flight.bookingHint}</p>}
-            {flight.extraDetails && <p className="italic text-xs text-muted-foreground border-l-2 border-primary pl-2 py-1 my-1"><strong className="text-primary">AI Extra Details:</strong> {flight.extraDetails}</p>}
+            <p><strong className="text-card-foreground/90">Total Duration:</strong> {formatLegDuration(flight.total_duration)}</p>
+            <p><strong className="text-card-foreground/90">Type:</strong> {flight.type || "N/A"}</p>
+            <p><strong className="text-card-foreground/90">Stops:</strong> {flight.derived_stops_description || "N/A"}</p>
+            
+            {flight.flights && flight.flights.length > 0 && (
+              <div className="mt-3 space-y-3">
+                <h4 className="text-sm font-semibold text-card-foreground">Flight Legs:</h4>
+                {flight.flights.map((leg, index) => (
+                  <Card key={index} className={cn(innerGlassEffectClasses, "p-3 text-xs")}>
+                    <div className="flex items-center gap-2 mb-1">
+                      {leg.airline_logo && <Image src={leg.airline_logo} alt={leg.airline || ""} width={20} height={20} className="rounded-sm"/>}
+                      <span className="font-semibold text-card-foreground">{leg.airline} {leg.flight_number}</span>
+                      {leg.airplane && <span className="text-muted-foreground text-[0.7rem]">({leg.airplane})</span>}
+                    </div>
+                    <p><strong className="text-card-foreground/80">Departs:</strong> {leg.departure_airport?.name} ({leg.departure_airport?.id}) at {leg.departure_airport?.time}</p>
+                    <p><strong className="text-card-foreground/80">Arrives:</strong> {leg.arrival_airport?.name} ({leg.arrival_airport?.id}) at {leg.arrival_airport?.time}</p>
+                    <p><strong className="text-card-foreground/80">Duration:</strong> {formatLegDuration(leg.duration)}</p>
+                    {leg.travel_class && <p><strong className="text-card-foreground/80">Class:</strong> {leg.travel_class}</p>}
+                    {leg.extensions && leg.extensions.length > 0 && <p><strong className="text-card-foreground/80">Notes:</strong> {leg.extensions.join(', ')}</p>}
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {flight.layovers && flight.layovers.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                <h4 className="text-sm font-semibold text-card-foreground">Layovers:</h4>
+                {flight.layovers.map((layover, index) => (
+                  <p key={index} className="text-xs text-muted-foreground pl-2">
+                    - {layover.name || layover.id} ({formatLegDuration(layover.duration)})
+                  </p>
+                ))}
+              </div>
+            )}
+             {flight.carbon_emissions && (
+              <p className="text-xs text-muted-foreground italic border-t border-border/20 pt-2 mt-2">
+                Estimated CO₂: {flight.carbon_emissions.this_flight || 'N/A'}kg 
+                {flight.carbon_emissions.difference_percent !== undefined && 
+                ` (${flight.carbon_emissions.difference_percent > 0 ? '+' : ''}${flight.carbon_emissions.difference_percent}% vs typical for route)`}
+              </p>
+            )}
           </div>
         </ScrollArea>
         <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30", "glass-pane")}>
-          <Button asChild size="lg" className={cn(prominentButtonClasses, "w-full")}>
-            <a href={googleFlightsUrl()} target="_blank" rel="noopener noreferrer">
-              <Search className="mr-2" /> Search Live Flights on Google
-            </a>
-          </Button>
+          {flight.link ? (
+            <Button asChild size="lg" className={cn(prominentButtonClasses, "w-full")}>
+              <a href={flight.link} target="_blank" rel="noopener noreferrer">
+                <Globe className="mr-2" /> View on Google Flights
+              </a>
+            </Button>
+          ) : (
+            <Button size="lg" className={cn(prominentButtonClasses, "w-full")} disabled>
+               Booking Link Not Available
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -437,7 +487,7 @@ const priceGraphChartConfig = {
 
 
 export default function FlightsPage() {
-  const [tripType, setTripType] = useState<"round-trip" | "one-way" | "multi-city">("round-trip");
+  const [tripType, setTripType] = useState<"round-trip" | "one-way">("round-trip"); // Multi-city not supported by current SerpApi simple params
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [dates, setDates] = useState<DateRange | undefined>(undefined);
@@ -453,12 +503,13 @@ export default function FlightsPage() {
   const priceGraphDestinationInputRef = useRef<HTMLInputElement>(null);
 
 
-  const [passengers, setPassengers] = useState("1 adult");
-  const [cabinClass, setCabinClass] = useState("economy");
+  const [passengers, setPassengers] = useState("1 adult"); // Keep for UI, but SerpApi uses different format
+  const [cabinClass, setCabinClass] = useState("economy"); // Keep for UI, SerpApi uses different format
 
-  const [isLoadingConceptualFlights, setIsLoadingConceptualFlights] = useState(false);
-  const [conceptualFlightData, setConceptualFlightData] = useState<ConceptualFlightSearchOutput | null>(null);
-  const [selectedFlightForDetails, setSelectedFlightForDetails] = useState<ConceptualFlightOption | null>(null);
+
+  const [isLoadingRealFlights, setIsLoadingRealFlights] = useState(false);
+  const [realFlightData, setRealFlightData] = useState<SerpApiFlightSearchOutput | null>(null);
+  const [selectedFlightForDetails, setSelectedFlightForDetails] = useState<SerpApiFlightOption | null>(null);
   const [isFlightDetailsDialogOpen, setIsFlightDetailsDialogOpen] = useState(false);
 
 
@@ -630,46 +681,44 @@ export default function FlightsPage() {
       return;
     }
 
-    setIsLoadingConceptualFlights(true);
-    setConceptualFlightData(null);
+    setIsLoadingRealFlights(true);
+    setRealFlightData(null);
     
-    const input: ConceptualFlightSearchInput = {
+    const input: SerpApiFlightSearchInput = {
       origin,
       destination,
       departureDate: format(dates.from, "yyyy-MM-dd"),
       returnDate: dates.to && tripType === 'round-trip' ? format(dates.to, "yyyy-MM-dd") : undefined,
-      passengers,
-      cabinClass,
       tripType,
     };
 
-    console.log("[FlightsPage] Calling AI Conceptual Flight Search with input:", input);
+    console.log("[FlightsPage] Calling Real Flight Search with input:", input);
 
     try {
-      const result: ConceptualFlightSearchOutput = await getConceptualFlightsAction(input);
-      console.log("[FlightsPage] AI Conceptual Flight Search result:", result);
-      setConceptualFlightData(result);
-      if (!result.flights || result.flights.length === 0) {
+      const result: SerpApiFlightSearchOutput = await getRealFlightsAction(input);
+      console.log("[FlightsPage] Real Flight Search result:", result);
+      setRealFlightData(result);
+      if (result.error || (!result.best_flights?.length && !result.other_flights?.length)) {
         toast({
-          title: "No Conceptual Flights Found",
-          description: result.summaryMessage || "Aura AI couldn't generate conceptual flight options for this search. Try different parameters.",
+          title: "No Flights Found",
+          description: result.error || result.search_summary || "SerpApi couldn't find flight options for this search. Try different parameters.",
           variant: "default"
         });
       } else {
          toast({
-          title: "AI Conceptual Flights Generated!",
-          description: result.summaryMessage || "Scroll down to see Aura AI's conceptual suggestions.",
+          title: "Flight Search Complete!",
+          description: result.search_summary || "Scroll down to see flight options.",
         });
       }
     } catch (error: any) {
-      console.error("[FlightsPage] Error calling AI Conceptual Flight Search:", error);
+      console.error("[FlightsPage] Error calling Real Flight Search:", error);
       toast({
-        title: "AI Search Error",
-        description: `Failed to get conceptual flight ideas: ${error.message || 'Unknown error'}. Please try again.`,
+        title: "Search Error",
+        description: `Failed to get flight ideas: ${error.message || 'Unknown error'}. Please try again.`,
         variant: "destructive",
       });
     } finally {
-      setIsLoadingConceptualFlights(false);
+      setIsLoadingRealFlights(false);
     }
   };
 
@@ -872,7 +921,7 @@ export default function FlightsPage() {
               geodesic: true,
               strokeColor: 'hsl(var(--accent))', 
               strokeOpacity: 0.9, 
-              strokeWeight: 5, // Increased from 2 to 5 for better visibility
+              strokeWeight: 5, 
               icons: [{ 
                 icon: {
                   path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
@@ -886,7 +935,7 @@ export default function FlightsPage() {
               }]
             });
             polyline.setMap(map);
-            if (routePolylineRef.current) routePolylineRef.current.setMap(null); // Clear previous polyline
+            if (routePolylineRef.current) routePolylineRef.current.setMap(null); 
             routePolylineRef.current = polyline; 
           }
         }
@@ -897,7 +946,7 @@ export default function FlightsPage() {
         map.fitBounds(bounds, {top: 50, bottom: 50, left: 50, right: 50}); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
           let currentZoom = map.getZoom() || 0;
-          if (currentZoom > 10 && newMarkers.length > 2) { // >2 to account for user loc marker
+          if (currentZoom > 10 && newMarkers.length > 2) { 
             map.setZoom(Math.min(currentZoom, 10));
           } else if (currentZoom > 12) {
              map.setZoom(12);
@@ -1030,12 +1079,12 @@ export default function FlightsPage() {
       <Card className={cn(glassCardClasses, "mb-8")}>
         <CardHeader>
           <CardTitle className="text-3xl font-bold tracking-tight text-foreground flex items-center"><Plane className="w-8 h-8 mr-3 text-primary" />Find Your Next Flight</CardTitle>
-          <CardDescription className="text-muted-foreground">Enter your travel details. Aura AI will generate conceptual flight options and ideas.</CardDescription>
+          <CardDescription className="text-muted-foreground">Enter your travel details. SerpApi will provide real flight options and ideas.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearchFlights} className="space-y-6">
-            <RadioGroup value={tripType} onValueChange={(value: "round-trip" | "one-way" | "multi-city") => setTripType(value)} className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-              {["round-trip", "one-way", "multi-city"].map((type) => (<FormItem key={type} className="flex-1"><RadioGroupItem value={type} id={type} className="sr-only peer" /><Label htmlFor={type} className={cn("flex items-center justify-center p-3 text-sm font-medium rounded-md border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary", "transition-all cursor-pointer glass-pane")}>{type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</Label></FormItem>))}
+            <RadioGroup value={tripType} onValueChange={(value: "round-trip" | "one-way") => setTripType(value)} className="grid grid-cols-2 sm:grid-cols-2 gap-2 mb-4"> {/* Simplified to two options */}
+              {["round-trip", "one-way"].map((type) => (<FormItem key={type} className="flex-1"><RadioGroupItem value={type} id={type} className="sr-only peer" /><Label htmlFor={type} className={cn("flex items-center justify-center p-3 text-sm font-medium rounded-md border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary", "transition-all cursor-pointer glass-pane")}>{type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</Label></FormItem>))}
             </RadioGroup>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
               <div className="relative">
@@ -1056,50 +1105,57 @@ export default function FlightsPage() {
                 {tripType === 'round-trip' && (<div><Label htmlFor="return-date" className="text-sm font-medium text-card-foreground/90">Return</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.to && "text-muted-foreground")} disabled={!dates?.from}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.to && isValid(dates.to) ? format(dates.to, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={2} disabled={{ before: dates?.from || new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>)}
                 {tripType === 'one-way' && (<div><Label htmlFor="one-way-date" className="text-sm font-medium text-card-foreground/90 opacity-0 md:opacity-100">.</Label></div>)}
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2"> {/* These are UI only for now, not passed to SerpApi basic search */}
                 <div><Label htmlFor="passengers" className="text-sm font-medium text-card-foreground/90 flex items-center"><Users className="w-4 h-4 mr-1.5" /> Passengers</Label><Select value={passengers} onValueChange={setPassengers}><SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="1 adult">1 adult</SelectItem><SelectItem value="2 adults">2 adults</SelectItem><SelectItem value="3 adults">3 adults</SelectItem><SelectItem value="custom">Custom...</SelectItem></SelectContent></Select></div>
                 <div><Label htmlFor="cabin-class" className="text-sm font-medium text-card-foreground/90 flex items-center"><Briefcase className="w-4 h-4 mr-1.5" /> Cabin Class</Label><Select value={cabinClass} onValueChange={setCabinClass}><SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="economy">Economy</SelectItem><SelectItem value="premium-economy">Premium Economy</SelectItem><SelectItem value="business">Business</SelectItem><SelectItem value="first">First</SelectItem></SelectContent></Select></div>
               </div>
             </div>
-            <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingConceptualFlights}>{isLoadingConceptualFlights ? <Loader2 className="animate-spin" /> : <Search />}{isLoadingConceptualFlights ? 'AI Finding Conceptual Flights...' : 'Search Flights with AI'}</Button>
+            <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingRealFlights}>{isLoadingRealFlights ? <Loader2 className="animate-spin" /> : <Search />}{isLoadingRealFlights ? 'Searching Real Flights...' : 'Search Flights (SerpApi)'}</Button>
           </form>
         </CardContent>
       </Card>
 
-      {isLoadingConceptualFlights && (<div className="text-center py-10 text-muted-foreground"><Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" /><p className="text-lg">Aura AI is searching for conceptual flight options...</p></div>)}
+      {isLoadingRealFlights && (<div className="text-center py-10 text-muted-foreground"><Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" /><p className="text-lg">SerpApi is searching for flight options...</p></div>)}
 
-      {conceptualFlightData?.flights && conceptualFlightData.flights.length > 0 && !isLoadingConceptualFlights && (
+      {realFlightData && (realFlightData.best_flights?.length || realFlightData.other_flights?.length) && !isLoadingRealFlights && (
         <div className="mt-8 animate-fade-in-up">
           <Separator className="my-6" />
            <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-2">
-            AI-Generated Conceptual Flight Information
+            Real Flight Information (from SerpApi)
           </h2>
-          {conceptualFlightData.summaryMessage && (
+          {realFlightData.search_summary && (
              <Alert variant="default" className={cn("mb-4 bg-primary/10 border-primary/20 text-primary text-sm")}>
                 <Info className="h-4 w-4 !text-primary" />
-                <ShadcnAlertTitle className="font-semibold">Aura's Note</ShadcnAlertTitle>
+                <ShadcnAlertTitle className="font-semibold">Search Note</ShadcnAlertTitle>
                 <ShadcnAlertDescription className="text-primary/80">
-                {conceptualFlightData.summaryMessage}
+                {realFlightData.search_summary}
                 </ShadcnAlertDescription>
             </Alert>
           )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {conceptualFlightData.flights.map((flightOpt, itineraryIndex) => ( 
-              <ConceptualFlightResultCard 
-                key={`conceptual-flight-${itineraryIndex}-${flightOpt.airlineName}-${flightOpt.departureTime}`} 
+            {(realFlightData.best_flights || []).concat(realFlightData.other_flights || []).map((flightOpt, index) => ( 
+              <RealFlightResultCard 
+                key={`real-flight-${index}-${flightOpt.flights?.[0]?.flight_number || index}`} 
                 flightOption={flightOpt}
-                itineraryDestination={destination} // Pass the main destination for context
                 onViewDetails={() => { setSelectedFlightForDetails(flightOpt); setIsFlightDetailsDialogOpen(true); }}
               />
             ))}
           </div>
         </div>
       )}
-      {!isLoadingConceptualFlights && conceptualFlightData && (!conceptualFlightData.flights || conceptualFlightData.flights.length === 0) && (
+      {!isLoadingRealFlights && realFlightData && (!realFlightData.best_flights?.length && !realFlightData.other_flights?.length) && (
          <div className="mt-8 text-center text-muted-foreground">
-          {conceptualFlightData.summaryMessage || "No conceptual flight options found by AI for this query. Try adjusting your search."}
+          {realFlightData.search_summary || realFlightData.error || "No flight options found by SerpApi for this query. Try adjusting your search."}
           </div>
       )}
+       {!isLoadingRealFlights && realFlightData?.error && (
+         <Alert variant="destructive" className="mt-8">
+            <AlertTriangle className="h-4 w-4" />
+            <ShadcnAlertTitle>Search Error</ShadcnAlertTitle>
+            <ShadcnAlertDescription>{realFlightData.error}</ShadcnAlertDescription>
+         </Alert>
+      )}
+
 
       <Separator className="my-12 border-border/40" />
 
@@ -1386,11 +1442,10 @@ export default function FlightsPage() {
       )}
 
       {selectedFlightForDetails && (
-        <ConceptualFlightDetailsDialog
+        <RealFlightDetailsDialog
           isOpen={isFlightDetailsDialogOpen}
           onClose={() => { setIsFlightDetailsDialogOpen(false); setSelectedFlightForDetails(null);}}
           flight={selectedFlightForDetails}
-          formValues={{ origin, destination, departureDate: dates?.from ? format(dates.from, "yyyy-MM-dd") : "", returnDate: dates?.to ? format(dates.to, "yyyy-MM-dd") : undefined }}
         />
       )}
     </div>

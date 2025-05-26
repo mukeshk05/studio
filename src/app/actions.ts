@@ -21,9 +21,11 @@ import type {
     AiFlightMapDealInput,
     AiFlightMapDealOutput,
 } from '@/ai/types/ai-flight-map-deals-types';
-import { conceptualFlightSearchFlow } from '@/ai/flows/conceptual-flight-search-flow';
-import type { ConceptualFlightSearchInput, ConceptualFlightSearchOutput } from '@/ai/types/conceptual-flight-search-types';
-import { aiHotelSearchFlow } from '@/ai/flows/ai-hotel-search-flow'; // Ensure this is correctly pointing if it's still used, or remove if SerpAPI sim replaced it
+// Removed conceptualFlightSearchFlow import
+import { getJson as getSerpApiJson } from 'serpapi';
+import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types';
+
+import { aiHotelSearchFlow } from '@/ai/flows/ai-hotel-search-flow'; 
 import type { AiHotelSearchInput, AiHotelSearchOutput } from '@/ai/types/ai-hotel-search-types';
 import { thingsToDoFlow } from '@/ai/flows/things-to-do-flow';
 import type { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-to-do-types';
@@ -228,20 +230,111 @@ export async function getAiFlightMapDealsAction(
   }
 }
 
-export async function getConceptualFlightsAction(input: ConceptualFlightSearchInput): Promise<ConceptualFlightSearchOutput> {
-  console.log('[Server Action - getConceptualFlightsAction] Calling Conceptual Flight Search with input:', input);
+function formatSerpApiDuration(minutes?: number): string {
+  if (minutes === undefined || minutes === null) return "N/A";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}h ${m}m`;
+}
+
+function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
+    if (!flightOption.flights || flightOption.flights.length === 0) return "Unknown stops";
+    if (flightOption.flights.length === 1) return "Non-stop";
+    const numStops = (flightOption.layovers?.length || flightOption.flights.length - 1);
+    if (numStops === 0) return "Non-stop"; // Should be caught by flights.length === 1 but good fallback
+    
+    let stopsDesc = `${numStops} stop${numStops > 1 ? 's' : ''}`;
+    if (flightOption.layovers && flightOption.layovers.length > 0) {
+        const layoverAirports = flightOption.layovers.map(l => l.name || l.id || "Unknown Airport").join(', ');
+        if (layoverAirports) {
+            stopsDesc += ` in ${layoverAirports}`;
+        }
+    }
+    return stopsDesc;
+}
+
+export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Promise<SerpApiFlightSearchOutput> {
+  console.log('[Server Action - getRealFlightsAction] Input:', input);
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey) {
+    console.error('[Server Action - getRealFlightsAction] SerpApi API key is not configured.');
+    return { error: "SerpApi API key is not configured." };
+  }
+
+  const params: any = {
+    engine: "google_flights",
+    departure_id: input.origin, // SerpApi uses departure_id for origin
+    arrival_id: input.destination, // and arrival_id for destination
+    outbound_date: input.departureDate,
+    currency: input.currency || "USD",
+    hl: input.hl || "en",
+    api_key: apiKey,
+  };
+
+  if (input.tripType === "round-trip" && input.returnDate) {
+    params.return_date = input.returnDate;
+  }
+  // TODO: Add passengers and travel_class later if needed, SerpApi format is like:
+  // adults: 1, children: 0, infants_in_seat: 0, infants_on_lap: 0
+  // travel_class: 1 (Economy), 2 (Premium Economy), 3 (Business), 4 (First)
+
   try {
-    const result = await conceptualFlightSearchFlow(input);
-    console.log(`[Server Action - getConceptualFlightsAction] Returning ${result.flights.length} conceptual flights.`);
-    return result;
-  } catch (error: any) {
-    console.error('[Server Action - getConceptualFlightsAction] Error calling conceptualFlightSearchFlow:', error);
-    return {
-      flights: [],
-      summaryMessage: `Aura AI encountered an error trying to generate conceptual flight ideas: ${error.message}. Please try again.`
+    const response = await getSerpApiJson(params);
+    console.log('[Server Action - getRealFlightsAction] SerpApi Response received (first few best_flights):', JSON.stringify((response.best_flights || []).slice(0,2), null, 2));
+    
+    const processFlights = (flights: any[] | undefined): SerpApiFlightOption[] => {
+        if (!flights) return [];
+        return flights.map((flight: any): SerpApiFlightOption => {
+            const firstLeg = flight.flights?.[0];
+            const lastLeg = flight.flights?.[flight.flights.length - 1];
+            return {
+                flights: flight.flights?.map((leg: any): SerpApiFlightLeg => ({
+                    departure_airport: leg.departure_airport,
+                    arrival_airport: leg.arrival_airport,
+                    duration: leg.duration,
+                    airline: leg.airline,
+                    airline_logo: leg.airline_logo,
+                    flight_number: leg.flight_number,
+                    airplane: leg.airplane,
+                    travel_class: leg.travel_class,
+                    extensions: leg.extensions,
+                })),
+                layovers: flight.layovers,
+                total_duration: flight.total_duration,
+                price: flight.price,
+                type: flight.type,
+                airline: flight.airline || firstLeg?.airline, // Best guess for overall airline
+                airline_logo: flight.airline_logo || firstLeg?.airline_logo,
+                link: flight.link,
+                carbon_emissions: flight.carbon_emissions,
+                // Derived fields
+                derived_departure_time: firstLeg?.departure_airport?.time,
+                derived_arrival_time: lastLeg?.arrival_airport?.time,
+                derived_departure_airport_name: firstLeg?.departure_airport?.name,
+                derived_arrival_airport_name: lastLeg?.arrival_airport?.name,
+                derived_flight_numbers: flight.flights?.map((f:any) => f.flight_number).filter(Boolean).join(', '),
+                derived_stops_description: deriveStopsDescription(flight),
+            };
+        });
+    }
+
+    const output: SerpApiFlightSearchOutput = {
+      search_summary: `Found ${ (response.best_flights?.length || 0) + (response.other_flights?.length || 0)} flight options.`,
+      best_flights: processFlights(response.best_flights),
+      other_flights: processFlights(response.other_flights),
+      price_insights: response.price_insights,
     };
+
+    console.log('[Server Action - getRealFlightsAction] Processed Output (first 2 best flights):', JSON.stringify((output.best_flights || []).slice(0,2), null, 2));
+    return output;
+
+  } catch (error: any) {
+    console.error('[Server Action - getRealFlightsAction] Error calling SerpApi:', error);
+    return { error: `Failed to fetch flights from SerpApi: ${error.message || 'Unknown error'}` };
   }
 }
+
+// Removed getConceptualFlightsAction as it's replaced by getRealFlightsAction
 
 
 export async function getAiHotelSuggestionsAction(input: AiHotelSearchInput): Promise<AiHotelSearchOutput> {

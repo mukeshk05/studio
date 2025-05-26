@@ -29,8 +29,8 @@ import '@/ai/flows/popular-destinations-flow.ts';
 import '@/ai/flows/generate-multiple-images-flow.ts';
 import '@/ai/flows/explore-ideas-from-history-flow.ts'; 
 import '@/ai/flows/ai-flight-map-deals-flow.ts';
-// import '@/ai/flows/conceptual-flight-search-flow.ts'; // Replaced by mock SerpApi in actions.ts
-// import '@/ai/flows/ai-hotel-search-flow.ts'; // Replaced by mock SerpApi + image generation in actions.ts
+// import '@/ai/flows/conceptual-flight-search-flow.ts'; // Removed as replaced by SerpApi in actions.ts
+// import '@/ai/flows/ai-hotel-search-flow.ts'; // This remains as it's a conceptual AI search, not directly replaced by a data API yet.
 import '@/ai/flows/things-to-do-flow.ts';
 import '@/ai/flows/conceptual-date-grid-flow.ts';
 import '@/ai/flows/conceptual-price-graph-flow.ts';
