@@ -50,8 +50,9 @@ import {
 import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { getRealHotelsAction } from '@/app/actions'; // Corrected import
-import type { AiHotelSearchInput, AiHotelSuggestion } from '@/ai/types/ai-hotel-search-types'; // This type might be from SerpApi types now
+import { getRealHotelsAction } from '@/app/actions';
+import type { AiHotelSearchInput } from '@/ai/types/ai-hotel-search-types'; // This path seems incorrect now
+import type { SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types'; // Should use this
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -68,10 +69,10 @@ const hotelSearchFormSchema = z.object({
     to: z.date().optional(),
   }).refine(data => !!data.from && !!data.to, {
     message: "Both check-in and check-out dates are required.",
-    path: ["from"], // Point error to the 'from' field or a general dates field
+    path: ["from"], 
   }).refine(data => !data.from || !data.to || data.to >= data.from, {
     message: "Check-out date must be after check-in date.",
-    path: ["to"], // Point error to 'to' or a general dates field
+    path: ["to"], 
   }),
   guests: z.string().min(1, "Please specify number of guests."),
 });
@@ -80,8 +81,28 @@ type HotelSearchFormValues = z.infer<typeof hotelSearchFormSchema>;
 
 interface UserLocation { latitude: number; longitude: number; }
 
+// Map SerpApiHotelSuggestion to the structure expected by AiHotelCard
+// This ensures AiHotelCard can be reused or adapted easily
+const mapSerpApiToAiHotelSuggestion = (hotel: SerpApiHotelSuggestion, destinationQuery: string): AiHotelSuggestion => {
+  return {
+    name: hotel.name || "Unknown Hotel",
+    conceptualPriceRange: hotel.price_details || (hotel.price_per_night ? `$${hotel.price_per_night}/night` : (hotel.total_price ? `$${hotel.total_price} total` : "Price N/A")),
+    rating: hotel.rating,
+    description: hotel.description || "Detailed description not available from search provider.",
+    amenities: hotel.amenities || [],
+    imagePrompt: `hotel exterior ${hotel.name} ${hotel.type || ''} in ${destinationQuery}`, // Conceptual prompt for fallback or AI image generation
+    imageUri: hotel.thumbnail || hotel.images?.[0]?.thumbnail, // Use real image if available
+    latitude: hotel.coordinates?.latitude,
+    longitude: hotel.coordinates?.longitude,
+    link: hotel.link,
+    // @ts-ignore - rooms are not part of SerpApiHotelSuggestion schema
+    rooms: [], // Conceptual rooms would be AI generated later if needed for a full itinerary
+  };
+};
+
+
 interface AiHotelCardProps {
-  hotel: AiHotelSuggestion;
+  hotel: AiHotelSuggestion; // Expects this structure
   onClick: () => void;
 }
 
@@ -171,7 +192,7 @@ function AiHotelCard({ hotel, onClick }: AiHotelCardProps) {
 interface HotelDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  hotel: AiHotelSuggestion | null;
+  hotel: AiHotelSuggestion | null; // Expects mapped structure
   searchDestination: string; 
 }
 
@@ -212,8 +233,8 @@ function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestinatio
   const mapEmbedUrl = mapsApiKey
     ? `https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${mapQuery}`
     : "";
-
-  const googleSearchUrl = `https://www.google.com/search?q=hotel+${encodeURIComponent(hotel.name)}+in+${encodeURIComponent(searchDestination)}`;
+  
+  const googleSearchUrl = hotel.link || `https://www.google.com/search?q=hotel+${encodeURIComponent(hotel.name)}+in+${encodeURIComponent(searchDestination)}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -226,7 +247,7 @@ function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestinatio
                 {hotel.name}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
-                in {searchDestination} (Conceptual AI Suggestion)
+                in {searchDestination} (Data from Search Provider)
               </DialogDescription>
             </div>
             <DialogClose asChild>
@@ -258,12 +279,9 @@ function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestinatio
 
         <div className="flex-grow overflow-y-auto p-4 sm:p-6">
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className={cn("grid w-full grid-cols-2 sm:grid-cols-4 mb-4 glass-pane p-1", "border border-border/50")}>
+            <TabsList className={cn("grid w-full grid-cols-2 sm:grid-cols-3 mb-4 glass-pane p-1", "border border-border/50")}>
               <TabsTrigger value="details" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
                 <Info className="w-4 h-4" /> Details
-              </TabsTrigger>
-              <TabsTrigger value="rooms" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.rooms || hotel.rooms.length === 0}>
-                <BedDouble className="w-4 h-4" /> Rooms
               </TabsTrigger>
               <TabsTrigger value="amenities" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!hotel.amenities || hotel.amenities.length === 0}>
                 <CheckSquare className="w-4 h-4" /> Amenities
@@ -286,57 +304,6 @@ function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestinatio
                     Rating: {hotel.rating.toFixed(1)} / 5.0
                  </div>
                 )}
-            </TabsContent>
-
-            <TabsContent value="rooms" className={cn(glassCardClasses, "p-4 rounded-md")}>
-              <h3 className="text-lg font-semibold text-card-foreground mb-3">Available Rooms (Conceptual)</h3>
-              {hotel.rooms && hotel.rooms.length > 0 ? (
-                <ScrollArea className="max-h-96 pr-3">
-                  {hotel.rooms.map((room, idx) => (
-                    <div key={idx} className={cn("p-3 rounded-lg mb-3 border border-border/40", innerGlassEffectClasses)}>
-                      <h4 className="text-md font-semibold text-card-foreground mb-1.5 flex items-center">
-                        <BedDouble className="w-5 h-5 mr-2 text-primary" />
-                        {room.name}
-                      </h4>
-                      {room.roomImageUri && (
-                        <div className="relative aspect-video w-full rounded-md overflow-hidden mb-2 border border-border/30 shadow-sm">
-                          <Image
-                            src={room.roomImageUri}
-                            alt={`Image of ${room.name}`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 640px) 80vw, 300px"
-                            data-ai-hint={room.roomImageUri.startsWith('https://placehold.co') ? (room.roomImagePrompt || room.name.toLowerCase().split(" ").slice(0,2).join(" ")) : undefined}
-                          />
-                        </div>
-                      )}
-                       {!room.roomImageUri && (
-                          <div className="aspect-video w-full bg-muted/30 flex items-center justify-center rounded-md mb-2">
-                            <ImageOff className="w-8 h-8 text-muted-foreground"/>
-                          </div>
-                        )}
-                      {room.description && <p className="text-xs text-muted-foreground mb-1.5">{room.description}</p>}
-                      {room.features && room.features.length > 0 && (
-                        <div>
-                          <h5 className="text-xs font-medium text-card-foreground mb-1">Features:</h5>
-                          <div className="flex flex-wrap gap-1.5">
-                            {room.features.map((feature, fIdx) => (
-                              <Badge key={fIdx} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{feature}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {room.pricePerNight && (
-                        <p className="text-sm font-semibold text-primary mt-2">
-                          ${room.pricePerNight.toLocaleString()}/night (est.)
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </ScrollArea>
-              ) : (
-                <p className="text-sm text-muted-foreground">Conceptual room information not available.</p>
-              )}
             </TabsContent>
 
             <TabsContent value="amenities" className={cn(glassCardClasses, "p-4 rounded-md")}>
@@ -382,7 +349,7 @@ function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestinatio
         <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30", "glass-pane")}>
             <Button asChild size="lg" className={cn(prominentButtonClasses, "w-full")}>
                 <a href={googleSearchUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2"/> Search Hotel on Google
+                    <ExternalLink className="mr-2"/> {hotel.link ? "View Deal on Provider Site" : "Search Hotel on Google"}
                 </a>
             </Button>
         </DialogFooter>
@@ -437,7 +404,7 @@ export default function HotelsPage() {
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
   const [isMapInitializing, setIsMapInitializing] = useState(true);
-
+  
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const initGoogleMapsApiHotelsPage = useCallback(() => {
@@ -475,12 +442,11 @@ export default function HotelsPage() {
     return () => { if ((window as any).initGoogleMapsApiHotelsPage) delete (window as any).initGoogleMapsApiHotelsPage; };
   }, [apiKey, isMapsScriptLoaded, initGoogleMapsApiHotelsPage]);
 
-  // Initialize Google Places Autocomplete for destination input
   useEffect(() => {
     if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && destinationInputRef.current) {
       const autocomplete = new window.google.maps.places.Autocomplete(
         destinationInputRef.current,
-        { types: ['(cities)'] } // Restrict to cities for hotel destinations
+        { types: ['(cities)'] } 
       );
       autocomplete.setFields(['formatted_address', 'name', 'geometry']);
       autocomplete.addListener('place_changed', () => {
@@ -570,7 +536,7 @@ export default function HotelsPage() {
     } else {
       map.setCenter({ lat: 20, lng: 0 }); map.setZoom(2);
     }
-  }, [map, userLocation]); // handleOpenHotelDetails removed from deps, will be added later
+  }, [map, userLocation]); 
 
   const fetchInitialOrNearbyHotels = useCallback(async (location?: UserLocation) => {
     console.log(`[HotelsPage] fetchInitialOrNearbyHotels called. Location:`, location);
@@ -578,57 +544,53 @@ export default function HotelsPage() {
     setInitialHotelsError(null);
     setInitialHotelSuggestions([]);
 
-    let searchInput: AiHotelSearchInput;
-    if (location) {
-      searchInput = {
-        destination: `Hotels near latitude ${location.latitude.toFixed(4)}, longitude ${location.longitude.toFixed(4)}`,
-        checkInDate: format(addDays(new Date(), 7), "yyyy-MM-dd"),
-        checkOutDate: format(addDays(new Date(), 10), "yyyy-MM-dd"),
-        guests: "2 adults",
-      };
-       setInitialHotelsContextualNote("Finding hotel ideas near you...");
-    } else {
-      searchInput = {
-        destination: "Popular tourist destinations like London, Tokyo, Bali", // AI will pick some
-        checkInDate: format(addDays(new Date(), 30), "yyyy-MM-dd"),
-        checkOutDate: format(addDays(new Date(), 37), "yyyy-MM-dd"),
-        guests: "2 adults",
-      };
-       setInitialHotelsContextualNote("Finding popular hotel ideas...");
-    }
+    let searchInput: import('@/ai/types/serpapi-hotel-search-types').SerpApiHotelSearchInput;
+    let destinationQuery: string;
 
-    console.log("[HotelsPage] Initial/Nearby hotels searchInput to AI:", JSON.stringify(searchInput, null, 2));
+    if (location) {
+      destinationQuery = `Hotels near latitude ${location.latitude.toFixed(4)}, longitude ${location.longitude.toFixed(4)}`;
+      setInitialHotelsContextualNote("Finding hotel ideas near you from SerpApi...");
+    } else {
+      destinationQuery = "Paris"; // Default popular destination for initial load without geo
+      setInitialHotelsContextualNote("Finding popular hotel ideas from SerpApi (e.g., Paris)...");
+    }
+    
+    searchInput = {
+        destination: destinationQuery,
+        checkInDate: format(addDays(new Date(), 30), "yyyy-MM-dd"), // Search a month out
+        checkOutDate: format(addDays(new Date(), 33), "yyyy-MM-dd"), // For 3 nights
+        guests: "2",
+    };
+
+    console.log("[HotelsPage] Initial/Nearby hotels searchInput to SerpApi:", JSON.stringify(searchInput, null, 2));
     try {
-      const result = await getRealHotelsAction(searchInput); // Corrected: Use getRealHotelsAction
-      console.log("[HotelsPage] Initial/Nearby AI hotels result:", result);
-      const validHotels = (result.hotels || []).filter(h => h.name && (h.price_details || h.price_per_night || h.total_price)); // Adjusted filter for SerpApi
-      setInitialHotelSuggestions(validHotels.map(h => ({ // Map to AiHotelSuggestion type
-          name: h.name,
-          conceptualPriceRange: h.price_details || (h.price_per_night ? `$${h.price_per_night}/night` : (h.total_price ? `$${h.total_price} total` : "N/A")),
-          rating: h.rating,
-          description: h.description || "No description available.",
-          amenities: h.amenities || [],
-          imagePrompt: `hotel exterior ${h.name} ${h.type || ''}`, // Conceptual prompt
-          imageUri: h.thumbnail || h.images?.[0]?.thumbnail, // Use real image if available
-          latitude: h.coordinates?.latitude,
-          longitude: h.coordinates?.longitude,
-          link: h.link,
-          // @ts-ignore - rooms will be AI generated if needed, or not present
-          rooms: [], //Conceptual rooms are not from SerpApi here. Could be added by AI later if needed.
-      })));
-      setInitialHotelsContextualNote(result.searchSummary || (validHotels.length === 0 ? (location ? "No specific AI hotel ideas found near you." : "No popular AI hotel ideas found.") : (location ? "Here are some AI-conceptualized hotel ideas near you!" : "Here are some popular AI-conceptualized hotel ideas!")));
-      if (map) plotHotelMarkers(initialHotelSuggestions); // Plot the mapped suggestions
+      const result = await getRealHotelsAction(searchInput);
+      console.log("[HotelsPage] Initial/Nearby SerpApi hotels result:", result);
+      
+      const validHotels = (result.hotels || []).filter(h => h.name && (h.price_details || h.price_per_night || h.total_price));
+      const mappedSuggestions = validHotels.map(h => mapSerpApiToAiHotelSuggestion(h, destinationQuery));
+      setInitialHotelSuggestions(mappedSuggestions);
+
+      if (result.error) {
+        setInitialHotelsContextualNote(result.error);
+        setInitialHotelsError(result.error);
+      } else if (validHotels.length === 0) {
+        setInitialHotelsContextualNote(result.search_summary || (location ? "SerpApi found no specific hotel ideas near you." : "SerpApi found no popular hotel ideas for the default search."));
+      } else {
+        setInitialHotelsContextualNote(result.search_summary || (location ? "Here are some hotel ideas near you from SerpApi!" : "Here are some popular hotel ideas from SerpApi!"));
+      }
+      if (map) plotHotelMarkers(mappedSuggestions);
     } catch (error: any) {
-      const errorMsg = `Failed to get initial AI hotel ideas: ${error.message || 'Unknown error'}`;
+      const errorMsg = `Failed to get initial hotel ideas from SerpApi: ${error.message || 'Unknown error'}`;
       console.error("[HotelsPage] Error in fetchInitialOrNearbyHotels:", errorMsg);
       setInitialHotelsError(errorMsg);
       setInitialHotelsContextualNote(errorMsg);
-      toast({ title: "AI Error", description: errorMsg, variant: "destructive" });
+      toast({ title: "SerpApi Error", description: errorMsg, variant: "destructive" });
       if (map) plotHotelMarkers([]);
     } finally {
       setIsLoadingInitialHotels(false);
     }
-  }, [map, plotHotelMarkers, toast, initialHotelSuggestions]);
+  }, [map, plotHotelMarkers, toast]);
 
 
   useEffect(() => {
@@ -649,10 +611,10 @@ export default function HotelsPage() {
             },
             (error) => {
                 console.warn("[HotelsPage] Geolocation error:", error);
-                setGeolocationError(`Geolocation Error: ${error.message}. Showing popular ideas.`);
+                setGeolocationError(`Geolocation Error: ${error.message}. Showing popular ideas for Paris.`);
                 setUserLocation(null);
-                initializeMap({ lat: 20, lng: 0 }, 2);
-                fetchInitialOrNearbyHotels();
+                initializeMap({ lat: 48.8566, lng: 2.3522 }, 10); // Default to Paris
+                fetchInitialOrNearbyHotels(); // Fetch for default (Paris)
                 setIsFetchingLocation(false);
             },
             { timeout: 8000, enableHighAccuracy: true, maximumAge: 0 }
@@ -668,42 +630,39 @@ export default function HotelsPage() {
     setInitialHotelSuggestions([]); 
     setInitialHotelsContextualNote(null);
     setSearchedHotelsError(null);
-    setAiSearchSummary(`Searching for hotels in ${values.destination}...`);
+    setAiSearchSummary(`Searching for hotels in ${values.destination} via SerpApi...`);
 
-    const searchInput: AiHotelSearchInput = {
+    const searchInput: import('@/ai/types/serpapi-hotel-search-types').SerpApiHotelSearchInput = {
       destination: values.destination,
       checkInDate: format(values.dates.from!, "yyyy-MM-dd"),
       checkOutDate: format(values.dates.to!, "yyyy-MM-dd"),
-      guests: values.guests,
+      guests: values.guests, // SerpApi often takes a string like "2" for adults
     };
 
-    console.log("[HotelsPage] Specific hotel searchInput to AI:", JSON.stringify(searchInput, null, 2));
+    console.log("[HotelsPage] Specific hotel searchInput to SerpApi:", JSON.stringify(searchInput, null, 2));
     try {
-      const result = await getRealHotelsAction(searchInput); // Corrected: Use getRealHotelsAction
-      console.log("[HotelsPage] Searched AI hotels result:", result);
+      const result = await getRealHotelsAction(searchInput);
+      console.log("[HotelsPage] Searched SerpApi hotels result:", result);
+      
       const validHotels = (result.hotels || []).filter(h => h.name && (h.price_details || h.price_per_night || h.total_price));
-      setSearchedHotelSuggestions(validHotels.map(h => ({
-          name: h.name,
-          conceptualPriceRange: h.price_details || (h.price_per_night ? `$${h.price_per_night}/night` : (h.total_price ? `$${h.total_price} total` : "N/A")),
-          rating: h.rating,
-          description: h.description || "No description available.",
-          amenities: h.amenities || [],
-          imagePrompt: `hotel exterior ${h.name} ${h.type || ''}`,
-          imageUri: h.thumbnail || h.images?.[0]?.thumbnail,
-          latitude: h.coordinates?.latitude,
-          longitude: h.coordinates?.longitude,
-          link: h.link,
-           // @ts-ignore
-          rooms: [], 
-      })));
-      setAiSearchSummary(result.searchSummary || (validHotels.length === 0 ? `No specific conceptual hotel ideas found by AI for ${values.destination}.` : `Here are some AI-conceptualized hotel ideas for ${values.destination}!`));
-      if (map) plotHotelMarkers(searchedHotelSuggestions); // Plot the mapped suggestions
+      const mappedSuggestions = validHotels.map(h => mapSerpApiToAiHotelSuggestion(h, values.destination));
+      setSearchedHotelSuggestions(mappedSuggestions);
+
+      if(result.error) {
+        setAiSearchSummary(result.error);
+        setSearchedHotelsError(result.error);
+      } else if (validHotels.length === 0) {
+        setAiSearchSummary(result.search_summary || `SerpApi found no hotels for ${values.destination}. Try different criteria.`);
+      } else {
+        setAiSearchSummary(result.search_summary || `Displaying hotel options from SerpApi for ${values.destination}!`);
+      }
+      if (map) plotHotelMarkers(mappedSuggestions);
     } catch (error: any) {
-      const errorMsg = `Failed to get AI hotel ideas for ${values.destination}: ${error.message || 'Unknown error'}`;
+      const errorMsg = `Failed to get hotel ideas from SerpApi for ${values.destination}: ${error.message || 'Unknown error'}`;
       console.error("[HotelsPage] Error in handleHotelSearchSubmit:", errorMsg);
       setSearchedHotelsError(errorMsg);
       setAiSearchSummary(errorMsg);
-      toast({ title: "AI Search Error", description: errorMsg, variant: "destructive" });
+      toast({ title: "SerpApi Search Error", description: errorMsg, variant: "destructive" });
       if (map) plotHotelMarkers([]);
     } finally {
       setIsLoadingSearchedHotels(false);
@@ -717,7 +676,7 @@ export default function HotelsPage() {
     if (map && hotel.latitude != null && hotel.longitude != null && typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number') {
       map.panTo({ lat: hotel.latitude, lng: hotel.longitude });
       map.setZoom(15);
-    } else if (map && window.google && window.google.maps) { // Added window.google check
+    } else if (map && window.google && window.google.maps) { 
       console.warn("[HotelsPage] Hotel coordinates missing or invalid for map pan/zoom. Hotel:", hotel.name);
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode({ address: form.getValues("destination") || hotel.name }, (results, status) => {
@@ -741,7 +700,7 @@ export default function HotelsPage() {
             Find your perfect stay
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Enter your destination, dates, and guest count. Aura AI will find conceptual hotel options for you.
+            Enter your destination, dates, and guest count. Real hotel options powered by SerpApi.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -825,11 +784,11 @@ export default function HotelsPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className={glassCardClasses}>
-                          <SelectItem value="1 adult">1 adult</SelectItem>
-                          <SelectItem value="2 adults">2 adults</SelectItem>
-                          <SelectItem value="1 adult, 1 child">1 adult, 1 child</SelectItem>
-                          <SelectItem value="2 adults, 1 child">2 adults, 1 child</SelectItem>
-                          <SelectItem value="2 adults, 2 children">2 adults, 2 children</SelectItem>
+                          <SelectItem value="1">1 adult</SelectItem>
+                          <SelectItem value="2">2 adults</SelectItem>
+                          <SelectItem value="3">1 adult, 1 child</SelectItem>
+                          <SelectItem value="4">2 adults, 1 child</SelectItem>
+                          <SelectItem value="5">2 adults, 2 children</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -839,21 +798,20 @@ export default function HotelsPage() {
               </div>
               <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingSearchedHotels || form.formState.isSubmitting}>
                 {isLoadingSearchedHotels || form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : <Search />}
-                {isLoadingSearchedHotels || form.formState.isSubmitting ? 'AI Searching Hotels...' : 'Search Hotels with AI'}
+                {isLoadingSearchedHotels || form.formState.isSubmitting ? 'SerpApi Searching Hotels...' : 'Search Hotels (SerpApi)'}
               </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
 
-      {/* Section for Specific Search Results */}
-      {(isLoadingSearchedHotels || searchedHotelSuggestions.length > 0 || searchedHotelsError || aiSearchSummary && !isLoadingInitialHotels && initialHotelSuggestions.length === 0) && (
+      {(isLoadingSearchedHotels || searchedHotelSuggestions.length > 0 || searchedHotelsError || (aiSearchSummary && !isLoadingInitialHotels && initialHotelSuggestions.length === 0)) && (
         <section className="animate-fade-in-up" style={{animationDelay: '0.1s'}}>
           <Separator className="my-8 border-border/40" />
            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center">
                 <Sparkles className="w-7 h-7 mr-3 text-primary" />
-                Search Results {form.getValues("destination") ? `for ${form.getValues("destination")}`: ""}
+                Search Results {form.getValues("destination") ? `for ${form.getValues("destination")}`: ""} (from SerpApi)
             </h2>
           </div>
           {aiSearchSummary && !isLoadingSearchedHotels && (
@@ -890,7 +848,6 @@ export default function HotelsPage() {
         </section>
       )}
 
-
       <Separator className="my-8 border-border/40" />
 
       <section className="animate-fade-in-up" style={{animationDelay: '0.2s'}}>
@@ -920,10 +877,10 @@ export default function HotelsPage() {
          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center">
                 <LocateFixed className="w-7 h-7 mr-3 text-primary" />
-                {userLocation && !geolocationError ? "Hotel Ideas Near You (AI Suggested)" : "Popular Conceptual Hotel Ideas (AI)"}
+                {userLocation && !geolocationError ? "Hotel Ideas Near You (from SerpApi)" : "Popular Hotel Ideas (e.g., Paris, from SerpApi)"}
             </h2>
             <Button
-                onClick={() => fetchInitialOrNearbyHotels(userLocation)}
+                onClick={() => fetchInitialOrNearbyHotels(userLocation || undefined)}
                 disabled={isLoadingInitialHotels || isFetchingLocation}
                 variant="outline"
                 className="glass-interactive"
