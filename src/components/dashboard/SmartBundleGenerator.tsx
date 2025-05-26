@@ -6,30 +6,58 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Sparkles, Info, ExternalLink, Wand2 } from 'lucide-react';
-import { generateSmartBundles } from '@/ai/flows/smart-bundle-flow';
-import type { SmartBundleInput, SmartBundleOutput } from '@/ai/types/smart-bundle-types';
+import { Loader2, Sparkles, Info, ExternalLink, Wand2, Plane, Hotel as HotelIcon, AlertTriangle, DollarSign } from 'lucide-react'; // Added HotelIcon alias
+import { generateSmartBundles } from '@/app/actions'; // Updated to use the action
+import type { SmartBundleInput, SmartBundleOutput, BundleSuggestion } from '@/ai/types/smart-bundle-types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
+import type { AITripPlannerInput, FlightOption, HotelOption } from '@/ai/types/trip-planner-types';
+import { Separator } from '../ui/separator';
+import { Badge } from '../ui/badge';
 
 
 type SmartBundleGeneratorProps = {
     onPlanTripFromBundle: (tripIdea: AITripPlannerInput) => void;
 };
 
+const glassCardClasses = "glass-card";
+const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
+
+
+function RealDataSnippet({ flight, hotel }: { flight?: FlightOption; hotel?: HotelOption }) {
+    if (!flight && !hotel) return null;
+    return (
+        <div className={cn("p-2 mt-2 text-xs border rounded-md", innerGlassEffectClasses)}>
+            {flight && (
+                <div className="mb-1.5">
+                    <p className="font-medium text-card-foreground/90 flex items-center"><Plane className="w-3.5 h-3.5 mr-1.5 text-primary" /> Flight Example:</p>
+                    <p className="pl-5 text-muted-foreground">{flight.name} - ~${flight.price.toLocaleString()}</p>
+                     {flight.derived_stops_description && <p className="pl-5 text-muted-foreground text-[0.7rem]">({flight.derived_stops_description})</p>}
+                </div>
+            )}
+            {hotel && (
+                 <div className={flight ? "pt-1.5 border-t border-border/30" : ""}>
+                    <p className="font-medium text-card-foreground/90 flex items-center"><HotelIcon className="w-3.5 h-3.5 mr-1.5 text-primary" /> Hotel Example:</p>
+                    <p className="pl-5 text-muted-foreground">{hotel.name} - ~${hotel.price.toLocaleString()} (est. total)</p>
+                    {hotel.rating && <p className="pl-5 text-muted-foreground text-[0.7rem]">Rating: {hotel.rating.toFixed(1)} ★</p>}
+                </div>
+            )}
+        </div>
+    );
+}
+
 
 export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGeneratorProps) {
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const router = useRouter();
+  // const router = useRouter(); // Not directly used for navigation here, onPlanTripFromBundle handles it
 
   const [availability, setAvailability] = useState('');
   const [interests, setInterests] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<SmartBundleOutput['suggestions'] | null>(null);
+  const [suggestions, setSuggestions] = useState<BundleSuggestion[] | null>(null); // Updated type
 
   const handleGenerateBundle = async () => {
     if (!currentUser) {
@@ -44,7 +72,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
         upcomingAvailability: availability || undefined,
         travelInterests: interests || undefined,
       };
-      const result = await generateSmartBundles(input);
+      const result = await generateSmartBundles(input); // Calls the action
       setSuggestions(result.suggestions);
       if (!result.suggestions || result.suggestions.length === 0) {
         toast({ title: "No Suggestions", description: "Aura AI couldn't generate specific bundles at this time. Try broadening your inputs or describe your ideal trip in the 'Travel Interests' field." });
@@ -57,8 +85,6 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
     }
   };
 
-  const glassCardClasses = "glass-card";
-
   return (
     <Card className={cn(glassCardClasses, "w-full border-primary/20")}>
       <CardHeader>
@@ -67,7 +93,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
           Aura AI: Predictive Preference Fusion
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-        Describe your ideal trip, or leave the fields blank and let Aura AI suggest ideas based on your travel persona and past searches! It intelligently fuses these to predict your perfect getaway.
+        Describe your ideal trip, or leave the fields blank and let Aura AI suggest ideas based on your travel persona and past searches! It intelligently fuses these with real-time data checks to predict your perfect getaway.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -104,7 +130,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
         {isLoading && !suggestions && (
           <div className="text-center py-4 text-muted-foreground">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
-            <p>Aura AI is fusing preferences and crafting ideas...</p>
+            <p>Aura AI is fusing preferences, checking real-time data, and crafting ideas...</p>
           </div>
         )}
 
@@ -124,12 +150,34 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
                     <Info className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-primary" />
                     <span className="font-semibold mr-1 text-card-foreground/90">Aura's Reasoning:</span> {suggestion.reasoning}
                   </p>
-                  <div className={cn(glassCardClasses, "p-3 rounded-md border-border/40 bg-card/30 dark:bg-card/50")}>
-                    <p className="font-semibold text-card-foreground/90">Trip Idea:</p>
+                  <div className={cn(innerGlassEffectClasses, "p-3 rounded-md border-border/40")}>
+                    <p className="font-semibold text-card-foreground/90 text-xs">Conceptual Trip Idea:</p>
                     <p><span className="font-medium">Destination:</span> {suggestion.tripIdea.destination}</p>
                     <p><span className="font-medium">Dates:</span> {suggestion.tripIdea.travelDates}</p>
-                    <p><span className="font-medium">Budget:</span> ${suggestion.tripIdea.budget.toLocaleString()}</p>
+                    <p><span className="font-medium">AI Budget:</span> ${suggestion.tripIdea.budget.toLocaleString()}</p>
                   </div>
+
+                  {(suggestion.realFlightExample || suggestion.realHotelExample) && (
+                    <RealDataSnippet flight={suggestion.realFlightExample} hotel={suggestion.realHotelExample} />
+                  )}
+                  
+                  {suggestion.estimatedRealPriceRange && (
+                     <p className="text-sm font-semibold text-primary mt-2 flex items-center">
+                        <DollarSign className="w-4 h-4 mr-1" /> Estimated Real Price: {suggestion.estimatedRealPriceRange}
+                    </p>
+                  )}
+
+                  {suggestion.priceFeasibilityNote && (
+                    <div className={cn("p-2 mt-2 text-xs italic rounded-md", 
+                        suggestion.priceFeasibilityNote.includes("Good news!") ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" :
+                        suggestion.priceFeasibilityNote.includes("closer to") ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20" :
+                        "bg-muted/50 border-border/30"
+                    )}>
+                         <Info className="w-3.5 h-3.5 mr-1.5 float-left mt-0.5" />
+                        {suggestion.priceFeasibilityNote}
+                    </div>
+                  )}
+
                 </CardContent>
                 <CardFooter>
                   <Button

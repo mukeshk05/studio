@@ -20,18 +20,16 @@ import {
 import type {
     AiFlightMapDealInput,
     AiFlightMapDealOutput,
+    AiFlightMapDealSuggestion,
 } from '@/ai/types/ai-flight-map-deals-types';
 import { getJson as getSerpApiJson } from 'serpapi';
 import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types';
+import type { SerpApiHotelSearchInput, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types';
 
-import { aiHotelSearchFlow } from '@/ai/flows/ai-hotel-search-flow'; 
-import type { AiHotelSearchInput, AiHotelSearchOutput } from '@/ai/types/ai-hotel-search-types';
-import { thingsToDoFlow } from '@/ai/flows/things-to-do-flow';
-import type { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-to-do-types';
 
 // Import original functions with aliases and their types
-import { getPriceAdvice as getPriceAdviceFlow } from '@/ai/flows/price-advisor-flow'; // Corrected to import from the flow file
-import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types'; // Assuming types are in a separate file now or directly in flow if not exported before
+import { getPriceAdvice as getPriceAdviceFlow } from '@/ai/flows/price-advisor-flow';
+import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types';
 
 import { conceptualDateGridFlow as conceptualDateGridFlowOriginal } from '@/ai/flows/conceptual-date-grid-flow';
 import type { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/types/ai-conceptual-date-grid-types';
@@ -39,17 +37,21 @@ import type { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/typ
 import { conceptualPriceGraphFlow as conceptualPriceGraphFlowOriginal } from '@/ai/flows/conceptual-price-graph-flow';
 import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
 
-// For getCoTravelAgentResponse
 import { getCoTravelAgentResponse as getCoTravelAgentResponseOriginal } from '@/ai/flows/co-travel-agent-flow';
 import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
 
-// For getItineraryAssistance
 import { getItineraryAssistance as getItineraryAssistanceOriginal } from '@/ai/flows/itinerary-assistance-flow';
 import type { ItineraryAssistanceInput, ItineraryAssistanceOutput } from '@/ai/types/itinerary-assistance-types';
 
-// For generateTripSummary
 import { generateTripSummary as generateTripSummaryOriginal } from '@/ai/flows/trip-summary-flow';
 import type { TripSummaryInput, TripSummaryOutput } from '@/ai/types/trip-summary-types';
+
+import { smartBundleFlow as smartBundleFlowOriginal } from '@/ai/flows/smart-bundle-flow';
+import type { SmartBundleInput, SmartBundleOutput, BundleSuggestion } from '@/ai/types/smart-bundle-types';
+import { thingsToDoFlow as thingsToDoFlowOriginal } from '@/ai/flows/things-to-do-flow';
+import type { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-to-do-types';
+
+import { format, addDays, parse, differenceInDays, addMonths } from 'date-fns';
 
 
 export interface ImageRequest {
@@ -233,7 +235,38 @@ export async function getAiFlightMapDealsAction(
 ): Promise<AiFlightMapDealOutput> {
   console.log(`[Server Action - getAiFlightMapDealsAction] Input:`, input);
   try {
-    const result = await aiFlightMapDealsFlow(input);
+    let realPriceContextString: string | undefined;
+
+    // 1. Get Real Flight Data for context
+    // Use a default future date for the context search, e.g., next month for 7 days
+    const now = new Date();
+    const startDate = addMonths(now, 1);
+    const endDate = addDays(startDate, 7);
+
+    const flightSearchInput: SerpApiFlightSearchInput = {
+      origin: input.originDescription, // Assuming this might be "User's current location (lat, lon)" or a city
+      destination: input.targetDestinationCity,
+      departureDate: format(startDate, "yyyy-MM-dd"),
+      returnDate: format(endDate, "yyyy-MM-dd"),
+      tripType: "round-trip",
+    };
+    console.log('[Server Action - getAiFlightMapDealsAction] Fetching real flight context with input:', flightSearchInput);
+    const flightResults = await getRealFlightsAction(flightSearchInput);
+
+    if (flightResults.best_flights && flightResults.best_flights.length > 0 && flightResults.best_flights[0].price) {
+      realPriceContextString = `around $${flightResults.best_flights[0].price.toLocaleString()}`;
+    } else if (flightResults.other_flights && flightResults.other_flights.length > 0 && flightResults.other_flights[0].price) {
+      realPriceContextString = `around $${flightResults.other_flights[0].price.toLocaleString()}`;
+    }
+    console.log('[Server Action - getAiFlightMapDealsAction] Real price context found:', realPriceContextString);
+
+    const flowInput: AiFlightMapDealInput & { realPriceContext?: string } = {
+      ...input,
+      realPriceContext: realPriceContextString,
+    };
+
+    // 2. Call the AI flow with the context
+    const result = await aiFlightMapDealsFlow(flowInput);
     console.log(`[Server Action - getAiFlightMapDealsAction] AI Flow Result (suggestions count): ${result.suggestions.length}`);
     return result;
   } catch (error: any) {
@@ -273,17 +306,25 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
   const params: any = {
     engine: "google_flights",
-    departure_id: input.origin,
-    arrival_id: input.destination,
+    departure_id: input.origin, // This should be IATA code if possible
+    arrival_id: input.destination, // This should be IATA code if possible
     outbound_date: input.departureDate,
     currency: input.currency || "USD",
     hl: input.hl || "en",
     api_key: apiKey,
   };
+   // For SerpApi, origin and destination should ideally be IATA codes.
+   // If they are city names, SerpApi *might* handle it, but it's less reliable.
+   // The `departure_id` and `arrival_id` parameters often expect these codes.
+   // A robust solution would involve an airport code lookup if city names are provided.
+   // For simplicity, we'll assume the input `origin` and `destination` are either codes
+   // or names SerpApi can resolve.
 
   if (input.tripType === "round-trip" && input.returnDate) {
     params.return_date = input.returnDate;
   }
+  // For other parameters like passengers, cabinClass, SerpApi may require different param names (e.g., `adults`, `children`, `travel_class`).
+  // This basic version focuses on core functionality.
 
   try {
     const response = await getSerpApiJson(params);
@@ -302,9 +343,11 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
             const legsArray = flight.flights || flight.segments || []; 
             if (legsArray.length === 0 && !flight.price) { 
                 console.warn(`[Server Action - getRealFlightsAction - processFlights] Flight option at index ${index} has no legs/segments AND no price. Skipping. Raw:`, JSON.stringify(flight, null, 2));
-                return { price: undefined } as unknown as SerpApiFlightOption; 
+                // Return a minimal object or filter out later. For strict typing, ensure all required fields for SerpApiFlightOption are optional or provide defaults.
+                return { price: undefined } as unknown as SerpApiFlightOption; // Or a more complete empty structure
             }
              if (legsArray.length === 0 && flight.price) {
+                // This might happen if SerpApi summarizes a direct flight at the top level.
                 console.warn(`[Server Action - getRealFlightsAction - processFlights] Flight option at index ${index} has a price but no legs/segments array. This might be a direct flight summarized at top level. Raw:`, JSON.stringify(flight, null, 2));
             }
 
@@ -323,26 +366,28 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
                 extensions: leg.extensions,
             }));
 
+            // Constructing the SerpApiFlightOption object
             const flightOptionData: SerpApiFlightOption = {
                 flights: processedLegs.length > 0 ? processedLegs : undefined,
                 layovers: flight.layovers,
                 total_duration: flight.total_duration,
                 price: flight.price,
                 type: flight.type,
-                airline: flight.airline || firstLeg?.airline,
-                airline_logo: flight.airline_logo || firstLeg?.airline_logo,
+                airline: flight.airline || firstLeg?.airline, // Fallback to first leg airline
+                airline_logo: flight.airline_logo || firstLeg?.airline_logo, // Fallback to first leg logo
                 link: flight.link,
                 carbon_emissions: flight.carbon_emissions,
                 
+                // Derived properties for easier display
                 derived_departure_time: firstLeg?.departure_airport?.time,
                 derived_arrival_time: lastLeg?.arrival_airport?.time,
                 derived_departure_airport_name: firstLeg?.departure_airport?.name,
                 derived_arrival_airport_name: lastLeg?.arrival_airport?.name,
                 derived_flight_numbers: legsArray.map((f: any) => f.flight_number).filter(Boolean).join(', '),
-                derived_stops_description: deriveStopsDescription({ ...flight, flights: legsArray }),
+                derived_stops_description: deriveStopsDescription({ ...flight, flights: legsArray }), // Pass the raw flight object to helper
             };
             return flightOptionData;
-        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0)));
+        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0) ) ); // Ensure some identifying info is present
     }
 
     let bestFlightsProcessed: SerpApiFlightOption[] = [];
@@ -356,7 +401,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
         console.log(`[Server Action - getRealFlightsAction] Processed ${bestFlightsProcessed.length} best flights and ${otherFlightsProcessed.length} other flights from dedicated keys.`);
     } else if (response.flights?.length > 0) { 
         console.log('[Server Action - getRealFlightsAction] No best_flights or other_flights, but found a general "flights" array. Processing that.');
-        otherFlightsProcessed = processFlights(response.flights); 
+        otherFlightsProcessed = processFlights(response.flights); // Process general flights into other_flights
         searchSummaryText = `Found ${otherFlightsProcessed.length} flight options from general list.`;
         console.log(`[Server Action - getRealFlightsAction] Processed ${otherFlightsProcessed.length} flights from general "flights" key.`);
     } else {
@@ -385,75 +430,225 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   }
 }
 
-export async function getAiHotelSuggestionsAction(input: AiHotelSearchInput): Promise<AiHotelSearchOutput> {
-  console.log('[Server Action - getAiHotelSuggestionsAction] Input:', JSON.stringify(input, null, 2));
-  try {
-    const result = await aiHotelSearchFlow(input);
-    console.log(`[Server Action - getAiHotelSuggestionsAction] AI Flow Result (hotels count): ${result.hotels?.length || 0}`);
-    return result;
-  } catch (error:any) {
-     console.error('[Server Action - getAiHotelSuggestionsAction] ERROR fetching AI hotel suggestions:', error);
-    return { 
-        hotels: [], 
-        searchSummary: `Sorry, we encountered an error finding hotel ideas: ${error.message}` 
-    };
-  }
-}
 
-export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise<ThingsToDoOutput> {
-  console.log('[Server Action - getThingsToDoAction] Input:', input);
+export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promise<SerpApiHotelSearchOutput> {
+  console.log('[Server Action - getRealHotelsAction] Input:', input);
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey) {
+    console.error('[Server Action - getRealHotelsAction] SerpApi API key is not configured.');
+    return { error: "Hotel search service is not configured." };
+  }
+
+  const params: any = {
+    engine: "google_hotels",
+    q: input.destination, // Query term, e.g., "Hotels in Paris"
+    check_in_date: input.checkInDate,
+    check_out_date: input.checkOutDate,
+    adults: input.guests, // Assuming input.guests is something like "2" for adults. Google Hotels has specific 'adults' param.
+    currency: input.currency || "USD",
+    hl: input.hl || "en",
+    api_key: apiKey,
+  };
+
   try {
-    const result = await thingsToDoFlow(input);
-    console.log(`[Server Action - getThingsToDoAction] AI Flow Result (activities count): ${result.activities?.length || 0}`);
-    return result;
-  } catch (error: any) {
-    console.error('[Server Action - getThingsToDoAction] ERROR fetching things to do:', error);
+    const response = await getSerpApiJson(params);
+    console.log('[Server Action - getRealHotelsAction] RAW SerpApi Response:', JSON.stringify(response, null, 2));
+
+    if (response.error) {
+      console.error('[Server Action - getRealHotelsAction] SerpApi returned an error:', response.error);
+      return { error: `SerpApi error: ${response.error}` };
+    }
+
+    const hotels: SerpApiHotelSuggestion[] = (response.properties || []).map((hotel: any): SerpApiHotelSuggestion => ({
+      name: hotel.name,
+      type: hotel.type,
+      description: hotel.overall_info || hotel.description, // Take first available
+      price_per_night: hotel.rate_per_night?.lowest || hotel.price, // SerpApi structure varies
+      total_price: hotel.total_price?.extracted_lowest,
+      price_details: typeof hotel.rate_per_night === 'string' ? hotel.rate_per_night : hotel.price,
+      rating: hotel.overall_rating || hotel.rating,
+      reviews: hotel.reviews,
+      amenities: hotel.amenities_objects?.map((am: any) => am.name) || hotel.amenities,
+      link: hotel.link,
+      thumbnail: hotel.images?.[0]?.thumbnail || hotel.thumbnail,
+      images: hotel.images?.map((img: any) => ({ thumbnail: img.thumbnail, original_image: img.original_image })),
+      coordinates: hotel.gps_coordinates ? { latitude: hotel.gps_coordinates.latitude, longitude: hotel.gps_coordinates.longitude } : undefined,
+      check_in_time: hotel.check_in_time,
+      check_out_time: hotel.check_out_time,
+    })).filter((h: SerpApiHotelSuggestion) => h.name && (h.price_per_night || h.total_price || h.price_details)); // Ensure some essential data
+
+    const searchSummary = response.search_information?.displayed_query || `Found ${hotels.length} hotel options.`;
+
     return {
-      activities: [],
-      searchSummary: `Sorry, an error occurred while finding things to do in ${input.location}: ${error.message}`
+      hotels: hotels.length > 0 ? hotels : undefined,
+      search_summary: searchSummary,
+      error: hotels.length === 0 && !response.error ? "No hotels found by SerpApi for this query." : undefined,
     };
+
+  } catch (error: any) {
+    console.error('[Server Action - getRealHotelsAction] Error calling SerpApi or processing response:', error);
+    return { error: `Failed to fetch hotels from SerpApi: ${error.message || 'Unknown error'}` };
   }
 }
 
-export async function getPriceAdviceAction(input: PriceAdvisorInput): Promise<PriceAdvisorOutput> {
-  console.log('[Server Action - getPriceAdviceAction] Input:', input);
-  try {
-    const result = await getPriceAdviceFlow(input);
-    console.log('[Server Action - getPriceAdviceAction] AI Flow Result:', result);
-    return result;
-  } catch (error: any) {
-    console.error('[Server Action - getPriceAdviceAction] ERROR fetching price advice:', error);
-    return { advice: `Sorry, could not fetch AI price advice: ${error.message}` };
-  }
+
+// Helper for SmartBundle to parse dates (simplified)
+function parseTravelDatesForSerpApi(travelDates: string): { departureDate: string; returnDate?: string; durationDays: number } {
+    const now = new Date();
+    let fromDate = addMonths(now, 1); // Default to next month
+    let toDate = addDays(fromDate, 7); // Default 7 days duration
+    let durationDays = 7;
+
+    const daysMatch = travelDates.match(/(\d+)\s*days/i);
+    const weekMatch = travelDates.match(/(\d+)\s*week/i);
+
+    if (daysMatch) {
+        durationDays = parseInt(daysMatch[1], 10);
+        toDate = addDays(fromDate, durationDays -1);
+    } else if (weekMatch) {
+        durationDays = parseInt(weekMatch[1], 10) * 7;
+        toDate = addDays(fromDate, durationDays -1);
+    } else if (travelDates.toLowerCase().includes("next month")) {
+        // Handled by default
+    } else if (travelDates.toLowerCase().includes("weekend")) {
+        // Find next Friday
+        let nextFriday = new Date(now);
+        nextFriday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
+        if (nextFriday <= now) nextFriday.setDate(nextFriday.getDate() + 7);
+        fromDate = nextFriday;
+        toDate = addDays(fromDate, 2);
+        durationDays = 3;
+    } else {
+        // Very basic M/D/YYYY - M/D/YYYY or M/D/YYYY parsing
+        const parts = travelDates.split(/\s*-\s*/);
+        if (parts.length > 0) {
+            const d1 = parse(parts[0], 'MM/dd/yyyy', new Date());
+            if (!isNaN(d1.getTime()) && d1 > now) {
+                fromDate = d1;
+                if (parts.length === 2) {
+                    const d2 = parse(parts[1], 'MM/dd/yyyy', new Date());
+                    if (!isNaN(d2.getTime()) && d2 >= fromDate) {
+                        toDate = d2;
+                        durationDays = differenceInDays(toDate, fromDate) + 1;
+                    } else { // Only start date provided, assume default duration
+                        toDate = addDays(fromDate, durationDays -1);
+                    }
+                } else { // Only start date provided
+                     toDate = addDays(fromDate, durationDays -1);
+                }
+            }
+        }
+    }
+    return {
+        departureDate: format(fromDate, "yyyy-MM-dd"),
+        returnDate: format(toDate, "yyyy-MM-dd"),
+        durationDays,
+    };
 }
 
-export async function getConceptualDateGridAction(input: ConceptualDateGridInput): Promise<ConceptualDateGridOutput> {
-  console.log('[Server Action - getConceptualDateGridAction] Input:', input);
-  try {
-    const result = await conceptualDateGridFlowOriginal(input);
-    return result;
-  } catch (error: any) {
-    console.error('[Server Action - getConceptualDateGridAction] ERROR fetching conceptual date grid:', error);
-    return { 
-      gridSummary: `Error fetching date insights: ${error.message}`,
-      datePricePoints: []
-    };
+
+export async function generateSmartBundles(input: SmartBundleInput): Promise<SmartBundleOutput> {
+  console.log('[Server Action - generateSmartBundles] Input:', input);
+  const conceptualBundles = await smartBundleFlowOriginal(input);
+
+  if (!conceptualBundles.suggestions || conceptualBundles.suggestions.length === 0) {
+    return { suggestions: [] };
   }
+
+  const augmentedSuggestions: BundleSuggestion[] = [];
+
+  for (const conceptualSuggestion of conceptualBundles.suggestions) {
+    let augmentedSugg: BundleSuggestion = { ...conceptualSuggestion };
+    const { destination, travelDates, budget: conceptualBudget } = conceptualSuggestion.tripIdea;
+
+    try {
+      const parsedDates = parseTravelDatesForSerpApi(travelDates);
+      
+      // Fetch real flights
+      const flightSearchInput: SerpApiFlightSearchInput = {
+        origin: "NYC", // Default origin for bundles, ideally make this configurable or profile-based
+        destination: destination,
+        departureDate: parsedDates.departureDate,
+        returnDate: parsedDates.returnDate,
+        tripType: "round-trip",
+      };
+      const flightResults = await getRealFlightsAction(flightSearchInput);
+      const bestFlight = flightResults.best_flights?.[0] || flightResults.other_flights?.[0];
+      if (bestFlight) {
+        augmentedSugg.realFlightExample = bestFlight;
+      }
+
+      // Fetch real hotels
+      const hotelSearchInput: SerpApiHotelSearchInput = {
+        destination: destination,
+        checkInDate: parsedDates.departureDate,
+        checkOutDate: parsedDates.returnDate,
+        guests: "2", // Default guests
+      };
+      const hotelResults = await getRealHotelsAction(hotelSearchInput);
+      const bestHotel = hotelResults.hotels?.[0];
+      if (bestHotel) {
+        augmentedSugg.realHotelExample = bestHotel;
+      }
+      
+      // Calculate estimated real price
+      let realPriceMin = 0;
+      let realPriceMax = 0;
+      let priceNoteParts: string[] = [];
+
+      if (bestFlight?.price) {
+        realPriceMin += bestFlight.price;
+        realPriceMax += bestFlight.price;
+        priceNoteParts.push(`Flight ~\$${bestFlight.price.toLocaleString()}`);
+      } else {
+        priceNoteParts.push("No specific flight price found.");
+      }
+
+      if (bestHotel?.price_per_night) {
+        const hotelTotal = bestHotel.price_per_night * parsedDates.durationDays;
+        realPriceMin += hotelTotal;
+        realPriceMax += hotelTotal;
+         priceNoteParts.push(`Hotel ~\$${hotelTotal.toLocaleString()} for ${parsedDates.durationDays} nights`);
+      } else if (bestHotel?.total_price) {
+         realPriceMin += bestHotel.total_price;
+         realPriceMax += bestHotel.total_price;
+         priceNoteParts.push(`Hotel ~\$${bestHotel.total_price.toLocaleString()}`);
+      } else {
+         priceNoteParts.push("No specific hotel price found.");
+      }
+
+      if (realPriceMin > 0) {
+        augmentedSugg.estimatedRealPriceRange = `Around \$${realPriceMin.toLocaleString()}`;
+        if (realPriceMax > realPriceMin) { // Should only happen if we introduce ranges from SerpApi
+             augmentedSugg.estimatedRealPriceRange = `\$${realPriceMin.toLocaleString()} - \$${realPriceMax.toLocaleString()}`;
+        }
+        
+        if (conceptualBudget) {
+            if (realPriceMin > conceptualBudget * 1.2) {
+                 augmentedSugg.priceFeasibilityNote = `AI's budget was \$${conceptualBudget.toLocaleString()}. Current checks suggest total is closer to ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+            } else if (realPriceMin < conceptualBudget * 0.8) {
+                augmentedSugg.priceFeasibilityNote = `AI's budget was \$${conceptualBudget.toLocaleString()}. Good news! Current checks suggest total could be around ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+            } else {
+                 augmentedSugg.priceFeasibilityNote = `AI's budget of \$${conceptualBudget.toLocaleString()} seems reasonable. Current checks estimate around ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+            }
+        } else {
+            augmentedSugg.priceFeasibilityNote = `Estimated real price: ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+        }
+
+      } else {
+         augmentedSugg.priceFeasibilityNote = "Could not determine real-time pricing for this conceptual bundle.";
+      }
+
+    } catch (error) {
+      console.error(`Error augmenting bundle for ${destination}:`, error);
+      augmentedSugg.priceFeasibilityNote = "Error fetching real-time price context for this bundle.";
+    }
+    augmentedSuggestions.push(augmentedSugg);
+  }
+
+  return { suggestions: augmentedSuggestions };
 }
 
-export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphInput): Promise<ConceptualPriceGraphOutput> {
-  console.log('[Server Action - getConceptualPriceGraphAction] Input:', input);
-  try {
-    const result = await conceptualPriceGraphFlowOriginal(input);
-    return result;
-  } catch (error: any) {
-    console.error('[Server Action - getConceptualPriceGraphAction] ERROR fetching conceptual price graph:', error);
-    return { 
-      trendDescription: `Error fetching price trend insights: ${error.message}`,
-      conceptualDataPoints: []
-    };
-  }
-}
 
 // Wrapped Server Actions
 export async function getCoTravelAgentResponse(input: CoTravelAgentInput): Promise<CoTravelAgentOutput> {
@@ -466,4 +661,20 @@ export async function getItineraryAssistance(input: ItineraryAssistanceInput): P
 
 export async function generateTripSummary(input: TripSummaryInput): Promise<TripSummaryOutput> {
   return generateTripSummaryOriginal(input);
+}
+
+export async function getPriceAdviceAction(input: PriceAdvisorInput): Promise<PriceAdvisorOutput> {
+  return getPriceAdviceFlow(input);
+}
+
+export async function getConceptualDateGridAction(input: ConceptualDateGridInput): Promise<ConceptualDateGridOutput> {
+  return conceptualDateGridFlowOriginal(input);
+}
+
+export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphInput): Promise<ConceptualPriceGraphOutput> {
+  return conceptualPriceGraphFlowOriginal(input);
+}
+
+export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise<ThingsToDoOutput> {
+  return thingsToDoFlowOriginal(input);
 }

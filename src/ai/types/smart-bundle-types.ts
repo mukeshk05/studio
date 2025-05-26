@@ -4,6 +4,8 @@
  */
 import { z } from 'genkit';
 import { AITripPlannerInputSchema } from '@/ai/types/trip-planner-types';
+// Import the updated FlightOption and HotelOption types that reflect SerpApi structure
+import type { FlightOption, HotelOption } from '@/lib/types'; 
 
 // Input Schema
 export const SmartBundleInputSchema = z.object({
@@ -18,10 +20,16 @@ export const BundleSuggestionSchema = z.object({
   bundleName: z.string().describe("A creative and descriptive name for the suggested trip bundle (e.g., 'Historical European Capitals Tour', 'Relaxing Beach Getaway for July')."),
   reasoning: z.string().describe("A brief explanation of why this bundle is suggested, based on the user's history, availability, and interests."),
   tripIdea: AITripPlannerInputSchema.describe("A concrete trip idea that can be directly used as input for the AI Trip Planner, including destination, travelDates, and budget."),
+  // New fields for real data augmentation
+  realFlightExample: z.custom<FlightOption>().optional().describe("A sample real flight option based on SerpApi search for the trip idea."),
+  realHotelExample: z.custom<HotelOption>().optional().describe("A sample real hotel option based on SerpApi search for the trip idea."),
+  estimatedRealPriceRange: z.string().optional().describe("A price range string based on the sum of the real flight and hotel examples (e.g., '$1800 - $2500')."),
+  priceFeasibilityNote: z.string().optional().describe("A note comparing AI's conceptual budget with findings from real-time checks."),
 });
 export type BundleSuggestion = z.infer<typeof BundleSuggestionSchema>;
 
 export const SmartBundleOutputSchema = z.object({
-  suggestions: z.array(BundleSuggestionSchema).min(1).max(2).describe("An array of 1 to 2 suggested trip bundles."),
+  suggestions: z.array(BundleSuggestionSchema).min(0).max(2).describe("An array of 0 to 2 suggested trip bundles, potentially augmented with real data."),
 });
 export type SmartBundleOutput = z.infer<typeof SmartBundleOutputSchema>;
+
