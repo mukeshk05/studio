@@ -106,10 +106,16 @@ interface RealFlightResultCardProps {
 }
 
 function RealFlightResultCard({ flightOption, onViewDetails }: RealFlightResultCardProps) {
-  const airlineLogo = flightOption.airline_logo || flightOption.flights?.[0]?.airline_logo;
+  const [logoError, setLogoError] = useState(false);
+
+  const airlineLogoSrc = flightOption.airline_logo || flightOption.flights?.[0]?.airline_logo;
   const airlineName = flightOption.airline || flightOption.flights?.[0]?.airline || "Multiple Airlines";
   const airlinePlaceholderText = airlineName.split(' ')[0];
   
+  useEffect(() => {
+    setLogoError(false); // Reset error if the flightOption (and thus airlineLogoSrc) changes
+  }, [airlineLogoSrc]);
+
   const formatDuration = (minutes?: number) => {
     if (minutes === undefined || minutes === null) return "N/A";
     const h = Math.floor(minutes / 60);
@@ -122,15 +128,7 @@ function RealFlightResultCard({ flightOption, onViewDetails }: RealFlightResultC
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {airlineLogo ? (
-              <Image
-                src={airlineLogo}
-                alt={`${airlineName} logo`}
-                width={80}
-                height={30}
-                className="h-auto object-contain rounded-sm bg-muted/20 p-0.5"
-              />
-            ) : (
+            {logoError || !airlineLogoSrc ? (
               <Image
                 src={`https://placehold.co/80x30.png?text=${encodeURIComponent(airlinePlaceholderText)}`}
                 alt={`${airlineName} logo placeholder`}
@@ -138,6 +136,18 @@ function RealFlightResultCard({ flightOption, onViewDetails }: RealFlightResultC
                 width={80}
                 height={30}
                 className="h-auto object-contain rounded-sm bg-muted/20 p-0.5"
+              />
+            ) : (
+              <Image
+                src={airlineLogoSrc}
+                alt={`${airlineName} logo`}
+                width={80}
+                height={30}
+                className="h-auto object-contain rounded-sm bg-muted/20 p-0.5"
+                onError={() => {
+                  console.warn(`Error loading image from ${airlineLogoSrc} for ${airlineName}. Falling back to placeholder.`);
+                  setLogoError(true);
+                }}
               />
             )}
             <div>
@@ -1451,3 +1461,6 @@ export default function FlightsPage() {
     </div>
   );
 }
+
+
+    
