@@ -87,13 +87,13 @@ interface AiHotelCardProps {
 
 function AiHotelCard({ hotel, onClick }: AiHotelCardProps) {
   const [imageLoadError, setImageLoadError] = useState(false);
-  
+
   const imageHint = hotel.imageUri?.startsWith('https://placehold.co')
     ? (hotel.imagePrompt || hotel.name.toLowerCase().split(" ").slice(0, 2).join(" "))
     : undefined;
 
   const handleImageError = useCallback(() => {
-    if(hotel.imageUri) { 
+    if(hotel.imageUri) {
         console.warn(`[AiHotelCard] Image load ERROR for: ${hotel.name}, src: ${hotel.imageUri}`);
     }
     setImageLoadError(true);
@@ -102,7 +102,7 @@ function AiHotelCard({ hotel, onClick }: AiHotelCardProps) {
   const canDisplayImage = !imageLoadError && hotel.imageUri;
 
   return (
-    <Card 
+    <Card
         className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.02] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col cursor-pointer")}
         onClick={onClick}
         role="button"
@@ -144,7 +144,7 @@ function AiHotelCard({ hotel, onClick }: AiHotelCardProps) {
           <div className="pt-1">
             <h4 className="text-xs font-semibold text-card-foreground mb-0.5">Key Amenities:</h4>
             <div className="flex flex-wrap gap-1">
-              {hotel.amenities.slice(0, 3).map(amenity => ( 
+              {hotel.amenities.slice(0, 3).map(amenity => (
                 <Badge key={amenity} variant="secondary" className="text-[0.65rem] px-1.5 py-0.5 bg-primary/10 text-primary border-primary/20">
                   {amenity}
                 </Badge>
@@ -158,7 +158,7 @@ function AiHotelCard({ hotel, onClick }: AiHotelCardProps) {
         <Button
           size="sm"
           variant="outline"
-          className={cn("w-full text-sm py-2 glass-interactive text-primary hover:bg-primary/10")}
+          className="w-full text-sm py-2 glass-interactive text-primary hover:bg-primary/10"
           onClick={onClick}
         >
           <Eye className="mr-2 h-4 w-4" /> View Details
@@ -172,7 +172,7 @@ interface HotelDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
   hotel: AiHotelSuggestion | null;
-  searchDestination: string; 
+  searchDestination: string;
 }
 
 function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestination }: HotelDetailDialogProps) {
@@ -180,21 +180,21 @@ function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestinatio
   const [imageLoadError, setImageLoadError] = useState(false);
 
   useEffect(() => {
-    setHotel(hotelProp); 
+    setHotel(hotelProp);
     if (isOpen && hotelProp) {
-        setImageLoadError(false); 
+        setImageLoadError(false);
     }
   }, [isOpen, hotelProp]);
-  
+
   const handleImageError = useCallback(() => {
-    if (hotel) { 
+    if (hotel) {
       console.warn(`[HotelDetailDialog] Image load ERROR for: ${hotel.name}, src: ${hotel.imageUri}`);
       setImageLoadError(true);
     }
-  }, [hotel]); 
+  }, [hotel]);
 
-  if (!hotel) { 
-    return null; 
+  if (!hotel) {
+    return null;
   }
 
   const imageHint = hotel.imageUri?.startsWith('https://placehold.co')
@@ -204,15 +204,15 @@ function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestinatio
   const canDisplayImage = !imageLoadError && hotel.imageUri;
 
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  
-  const mapQuery = hotel.latitude && hotel.longitude 
-    ? `${hotel.latitude},${hotel.longitude}` 
+
+  const mapQuery = hotel.latitude && hotel.longitude
+    ? `${hotel.latitude},${hotel.longitude}`
     : encodeURIComponent(`${hotel.name}, ${searchDestination}`);
-  
+
   const mapEmbedUrl = mapsApiKey
     ? `https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${mapQuery}`
     : "";
-  
+
   const googleSearchUrl = `https://www.google.com/search?q=hotel+${encodeURIComponent(hotel.name)}+in+${encodeURIComponent(searchDestination)}`;
 
   return (
@@ -412,17 +412,17 @@ export default function HotelsPage() {
       dates: { from: new Date(), to: addDays(new Date(), 3) },
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, []);
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false); 
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
 
   const [initialHotelSuggestions, setInitialHotelSuggestions] = useState<AiHotelSuggestion[]>([]);
   const [isLoadingInitialHotels, setIsLoadingInitialHotels] = useState(false);
   const [initialHotelsError, setInitialHotelsError] = useState<string | null>(null);
   const [initialHotelsContextualNote, setInitialHotelsContextualNote] = useState<string | null>(null);
-  
+
   const [searchedHotelSuggestions, setSearchedHotelSuggestions] = useState<AiHotelSuggestion[]>([]);
   const [isLoadingSearchedHotels, setIsLoadingSearchedHotels] = useState(false);
   const [searchedHotelsError, setSearchedHotelsError] = useState<string | null>(null);
@@ -430,14 +430,14 @@ export default function HotelsPage() {
 
   const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<AiHotelSuggestion | null>(null);
   const [isHotelDetailDialogOpen, setIsHotelDetailDialogOpen] = useState(false);
-  
+
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapMarkersRef = useRef<google.maps.Marker[]>([]);
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
   const [mapsApiError, setMapsApiError] = useState<string | null>(null);
-  const [isMapInitializing, setIsMapInitializing] = useState(true); 
-  
+  const [isMapInitializing, setIsMapInitializing] = useState(true);
+
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const initGoogleMapsApiHotelsPage = useCallback(() => {
@@ -474,7 +474,7 @@ export default function HotelsPage() {
     document.head.appendChild(script);
     return () => { if ((window as any).initGoogleMapsApiHotelsPage) delete (window as any).initGoogleMapsApiHotelsPage; };
   }, [apiKey, isMapsScriptLoaded, initGoogleMapsApiHotelsPage]);
-  
+
   // Initialize Google Places Autocomplete for destination input
   useEffect(() => {
     if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && destinationInputRef.current) {
@@ -524,7 +524,7 @@ export default function HotelsPage() {
         console.log("[HotelsPage] No hotels to plot. Resetting map view.");
         if (userLocation) {
           map.setCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
-          map.setZoom(10); 
+          map.setZoom(10);
         } else {
           map.setCenter({ lat: 20, lng: 0 }); map.setZoom(2);
         }
@@ -550,7 +550,7 @@ export default function HotelsPage() {
             strokeWeight: 1.5,
           }
         });
-        marker.set('hotelData', hotel); 
+        marker.set('hotelData', hotel);
         marker.addListener('click', () => handleOpenHotelDetails(hotel));
         mapMarkersRef.current.push(marker);
         bounds.extend(position);
@@ -562,7 +562,7 @@ export default function HotelsPage() {
 
     console.log(`[HotelsPage] Plotted ${validMarkersPlotted} valid markers out of ${hotelsToDisplay.length} suggestions.`);
     if (validMarkersPlotted > 0 && !bounds.isEmpty()) {
-      map.fitBounds(bounds, 100); 
+      map.fitBounds(bounds, 100);
       if (validMarkersPlotted === 1 && map.getZoom() && map.getZoom()! > 15) map.setZoom(15);
     } else if (userLocation) {
       map.setCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
@@ -570,14 +570,14 @@ export default function HotelsPage() {
     } else {
       map.setCenter({ lat: 20, lng: 0 }); map.setZoom(2);
     }
-  }, [map, userLocation]); 
+  }, [map, userLocation]); // handleOpenHotelDetails removed, will define later
 
   const fetchInitialOrNearbyHotels = useCallback(async (location?: UserLocation) => {
     console.log(`[HotelsPage] fetchInitialOrNearbyHotels called. Location:`, location);
     setIsLoadingInitialHotels(true);
     setInitialHotelsError(null);
-    setInitialHotelSuggestions([]); 
-    
+    setInitialHotelSuggestions([]);
+
     let searchInput: AiHotelSearchInput;
     if (location) {
       searchInput = {
@@ -596,7 +596,7 @@ export default function HotelsPage() {
       };
        setInitialHotelsContextualNote("Finding popular hotel ideas...");
     }
-    
+
     console.log("[HotelsPage] Initial/Nearby hotels searchInput to AI:", JSON.stringify(searchInput, null, 2));
     try {
       const result = await getAiHotelSuggestionsAction(searchInput);
@@ -620,7 +620,7 @@ export default function HotelsPage() {
 
   useEffect(() => {
     console.log(`[HotelsPage] Initial Data Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, map initialized=${!!map}, isMapInitializing=${isMapInitializing}`);
-    if (isMapsScriptLoaded && !map && !isMapInitializing) {
+    if (isMapsScriptLoaded && !map && !isMapInitializing) { // Check !isMapInitializing
         setIsMapInitializing(true);
         setIsFetchingLocation(true);
         console.log("[HotelsPage] Attempting geolocation for map and initial hotel fetch...");
@@ -638,8 +638,8 @@ export default function HotelsPage() {
                 console.warn("[HotelsPage] Geolocation error:", error);
                 setGeolocationError(`Geolocation Error: ${error.message}. Showing popular ideas.`);
                 setUserLocation(null);
-                initializeMap({ lat: 20, lng: 0 }, 2); 
-                fetchInitialOrNearbyHotels(); 
+                initializeMap({ lat: 20, lng: 0 }, 2);
+                fetchInitialOrNearbyHotels();
                 setIsFetchingLocation(false);
             },
             { timeout: 8000, enableHighAccuracy: true, maximumAge: 0 }
@@ -663,7 +663,7 @@ export default function HotelsPage() {
       checkOutDate: format(values.dates.to!, "yyyy-MM-dd"),
       guests: values.guests,
     };
-    
+
     console.log("[HotelsPage] Specific hotel searchInput to AI:", JSON.stringify(searchInput, null, 2));
     try {
       const result = await getAiHotelSuggestionsAction(searchInput);
@@ -702,7 +702,7 @@ export default function HotelsPage() {
         }
       });
     }
-  }, [map, form]); 
+  }, [map, form]);
 
   const currentDestinationForDialog = form.getValues("destination") || (userLocation ? "your current area" : "selected area");
 
@@ -729,10 +729,10 @@ export default function HotelsPage() {
                   <FormItem>
                     <FormLabel className="text-card-foreground/90">Where to?</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         ref={destinationInputRef}
-                        placeholder="e.g., Paris, France or Tokyo, Japan" 
-                        {...field} 
+                        placeholder="e.g., Paris, France or Tokyo, Japan"
+                        {...field}
                         className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-11 text-base" />
                     </FormControl>
                     <FormMessage />
@@ -779,7 +779,7 @@ export default function HotelsPage() {
                             selected={field.value}
                             onSelect={field.onChange}
                             numberOfMonths={2}
-                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))} 
+                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
                           />
                         </PopoverContent>
                       </Popover>
@@ -890,16 +890,16 @@ export default function HotelsPage() {
       </section>
 
       <Separator className="my-8 border-border/40" />
-      
+
       <section className="animate-fade-in-up" style={{animationDelay: '0.4s'}}>
          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center">
                 <LocateFixed className="w-7 h-7 mr-3 text-primary" />
                 {userLocation && !geolocationError ? "Hotel Ideas Near You (AI Suggested)" : "Popular Conceptual Hotel Ideas (AI)"}
             </h2>
-            <Button 
-                onClick={() => fetchInitialOrNearbyHotels(userLocation)} 
-                disabled={isLoadingInitialHotels || isFetchingLocation} 
+            <Button
+                onClick={() => fetchInitialOrNearbyHotels(userLocation)}
+                disabled={isLoadingInitialHotels || isFetchingLocation}
                 variant="outline"
                 className="glass-interactive"
             >
@@ -934,7 +934,7 @@ export default function HotelsPage() {
                 </CardContent>
             </Card>
         )}
-        
+
         {!isLoadingInitialHotels && initialHotelSuggestions.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {initialHotelSuggestions.map((hotel, index) => (
@@ -951,8 +951,8 @@ export default function HotelsPage() {
         )}
       </section>
     </div>
-    
-    <HotelDetailDialog 
+
+    <HotelDetailDialog
         isOpen={isHotelDetailDialogOpen}
         onClose={() => setIsHotelDetailDialogOpen(false)}
         hotel={selectedHotelForDetails}
@@ -961,3 +961,5 @@ export default function HotelsPage() {
     </>
   );
 }
+
+      
