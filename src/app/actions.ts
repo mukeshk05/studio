@@ -27,7 +27,7 @@ import type { SerpApiHotelSearchInput, SerpApiHotelSearchOutput, SerpApiHotelSug
 
 
 // Import original functions with aliases and their types
-import { getPriceAdvice as getPriceAdviceFlow } from '@/ai/flows/price-advisor-flow';
+import { getPriceAdvice as getPriceAdviceOriginal } from '@/ai/flows/price-advisor-flow';
 import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types';
 
 import { conceptualDateGridFlow as conceptualDateGridFlowOriginal } from '@/ai/flows/conceptual-date-grid-flow';
@@ -36,7 +36,7 @@ import type { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/typ
 import { conceptualPriceGraphFlow as conceptualPriceGraphFlowOriginal } from '@/ai/flows/conceptual-price-graph-flow';
 import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
 
-import { answerTravelQuestion as getCoTravelAgentResponseOriginal } from '@/ai/flows/co-travel-agent-flow';
+import { getCoTravelAgentResponse as getCoTravelAgentResponseOriginal } from '@/ai/flows/co-travel-agent-flow';
 import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
 
 import { getItineraryAssistance as getItineraryAssistanceOriginal } from '@/ai/flows/itinerary-assistance-flow';
@@ -242,9 +242,13 @@ export async function getAiFlightMapDealsAction(
     const startDate = addMonths(now, 1);
     const endDate = addDays(startDate, 7);
 
+    // Attempt to get IATA codes for flight search
+    const originIata = await getIataCodeAction(input.originDescription);
+    const destinationIata = await getIataCodeAction(input.targetDestinationCity);
+
     const flightSearchInput: SerpApiFlightSearchInput = {
-      origin: input.originDescription, 
-      destination: input.targetDestinationCity,
+      origin: originIata || input.originDescription, // Fallback to original description
+      destination: destinationIata || input.targetDestinationCity, // Fallback to original city name
       departureDate: format(startDate, "yyyy-MM-dd"),
       returnDate: format(endDate, "yyyy-MM-dd"),
       tripType: "round-trip",
@@ -295,9 +299,84 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
     return stopsDesc;
 }
 
+export async function getIataCodeAction(placeName: string): Promise<string | null> {
+  console.log(`[Server Action - getIataCodeAction] Looking up IATA code for: "${placeName}"`);
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey) {
+    console.error('[getIataCodeAction] SerpApi API key is not configured.');
+    return null;
+  }
+
+  const params = {
+    engine: "google",
+    q: `IATA code for ${placeName} airport`, // More specific query
+    api_key: apiKey,
+  };
+
+  try {
+    const response = await getSerpApiJson(params);
+    // console.log(`[getIataCodeAction] RAW SerpApi Search Response for "${placeName}":`, JSON.stringify(response, null, 2));
+
+    // Try to find IATA code in various common places in SerpApi Google Search results
+    // 1. Answer box
+    if (response.answer_box && response.answer_box.answer) {
+      const answerMatch = response.answer_box.answer.match(/\b([A-Z]{3})\b/);
+      if (answerMatch) {
+        console.log(`[getIataCodeAction] Found IATA code "${answerMatch[1]}" in answer_box for "${placeName}".`);
+        return answerMatch[1];
+      }
+    }
+    // 2. Knowledge graph
+    if (response.knowledge_graph && response.knowledge_graph.iata_code) {
+         console.log(`[getIataCodeAction] Found IATA code "${response.knowledge_graph.iata_code}" in knowledge_graph for "${placeName}".`);
+        return response.knowledge_graph.iata_code;
+    }
+    if (response.knowledge_graph && response.knowledge_graph.description) {
+        const descMatch = response.knowledge_graph.description.match(/IATA: ([A-Z]{3})/i);
+        if (descMatch && descMatch[1]) {
+            console.log(`[getIataCodeAction] Found IATA code "${descMatch[1]}" in knowledge_graph description for "${placeName}".`);
+            return descMatch[1];
+        }
+    }
+
+    // 3. Organic results snippets (less reliable, more parsing needed)
+    if (response.organic_results && response.organic_results.length > 0) {
+      for (const result of response.organic_results) {
+        if (result.snippet) {
+          const snippetMatch = result.snippet.match(/\b([A-Z]{3})\b is the IATA code/i) || result.snippet.match(/IATA code: ([A-Z]{3})/i) || result.snippet.match(/airport code ([A-Z]{3})/i);
+          if (snippetMatch && snippetMatch[1]) {
+            console.log(`[getIataCodeAction] Found potential IATA code "${snippetMatch[1]}" in organic result snippet for "${placeName}".`);
+            return snippetMatch[1];
+          }
+        }
+        if (result.title) {
+            const titleMatch = result.title.match(/\(([A-Z]{3})\)/i);
+             if (titleMatch && titleMatch[1]) {
+                console.log(`[getIataCodeAction] Found potential IATA code "${titleMatch[1]}" in organic result title for "${placeName}".`);
+                return titleMatch[1];
+            }
+        }
+      }
+    }
+    
+    // 4. Check if placeName itself is an IATA code
+    if (/^[A-Z]{3}$/.test(placeName)) {
+        console.log(`[getIataCodeAction] Place name "${placeName}" looks like an IATA code already.`);
+        return placeName;
+    }
+
+    console.warn(`[getIataCodeAction] Could not find IATA code for "${placeName}".`);
+    return null;
+  } catch (error: any) {
+    console.error(`[getIataCodeAction] Error fetching IATA code for "${placeName}":`, error);
+    return null;
+  }
+}
+
+
 export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Promise<SerpApiFlightSearchOutput> {
   console.log('[Server Action - getRealFlightsAction] Input:', input);
-  const apiKey ="6f6955d85e5df06f0fdd5464515ee96571d7a8eee0f6b400fa404ff5d739b3d4" ; 
+  const apiKey = process.env.SERPAPI_API_KEY;
   if (!apiKey) {
     console.error('[Server Action - getRealFlightsAction] SerpApi API key is not configured in .env file (SERPAPI_API_KEY).');
     return { error: "Flight search service is not configured. Please contact support." };
@@ -305,20 +384,20 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
   const params: any = {
     engine: "google_flights",
-    departure_id: input.origin,
-    arrival_id: input.destination,
-    outbound_date: input.departureDate,
+    departure_id: input.origin, // Expecting IATA code here
+    arrival_id: input.destination, // Expecting IATA code here
+    outbound_date: input.departureDate, // Expecting "YYYY-MM-DD"
     currency: input.currency || "USD",
     hl: input.hl || "en",
     api_key: apiKey,
   };
 
   if (input.tripType === "round-trip" && input.returnDate) {
-    params.return_date = input.returnDate;
+    params.return_date = input.returnDate; // Expecting "YYYY-MM-DD"
   }
+  console.log('[Server Action - getRealFlightsAction] Parameters sent to SerpApi:', params);
 
   try {
-    console.log('[Server Action - getRealFlightsAction] Attempting to call SerpApi with params:', params);
     const response = await getSerpApiJson(params);
     console.log('[Server Action - getRealFlightsAction] RAW SerpApi Response:', JSON.stringify(response, null, 2));
 
@@ -418,12 +497,34 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   }
 }
 
+const parsePrice = (priceValue: any): number | undefined => {
+    if (priceValue === null || priceValue === undefined) {
+        // console.log(`[actions.ts - parsePrice] Input is null/undefined, returning undefined.`);
+        return undefined;
+    }
+    if (typeof priceValue === 'number') {
+        // console.log(`[actions.ts - parsePrice] Input '${priceValue}' is already number, returning it.`);
+        return priceValue;
+    }
+    if (typeof priceValue === 'string') {
+        const cleanedString = priceValue.replace(/[^0-9.]/g, ''); 
+        if (cleanedString === '') {
+            // console.log(`[actions.ts - parsePrice] Input string '${priceValue}' cleaned to empty, returning undefined.`);
+            return undefined;
+        }
+        const num = parseFloat(cleanedString);
+        // console.log(`[actions.ts - parsePrice] Input string '${priceValue}' cleaned to '${cleanedString}', parsed to ${num}.`);
+        return isNaN(num) ? undefined : num;
+    }
+    // console.log(`[actions.ts - parsePrice] Input '${priceValue}' (type: ${typeof priceValue}) is not number or string, returning undefined.`);
+    return undefined;
+};
 
 export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promise<SerpApiHotelSearchOutput> {
-  console.log('[Server Action - getRealHotelsAction] Received input:', input);
-  const apiKey = "6f6955d85e5df06f0fdd5464515ee96571d7a8eee0f6b400fa404ff5d739b3d4";
-  if (!apiKey || apiKey === "YOUR_SERPAPI_API_KEY") {
-    console.error('[Server Action - getRealHotelsAction] SerpApi API key is not configured or is placeholder. Please set SERPAPI_API_KEY in your .env file.');
+  console.log('[Server Action - getRealHotelsAction] Received input:', JSON.stringify(input, null, 2));
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey || apiKey === "YOUR_SERPAPI_API_KEY_PLACEHOLDER") {
+    console.error('[Server Action - getRealHotelsAction] SerpApi API key is not configured or is placeholder.');
     return { hotels: [], error: "Hotel search service is not configured correctly (API key missing or invalid)." };
   }
   console.log('[Server Action - getRealHotelsAction] SerpApi API key found.');
@@ -433,7 +534,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     q: input.destination,
     check_in_date: input.checkInDate,
     check_out_date: input.checkOutDate,
-    adults: input.guests || "2",
+    adults: input.guests || "2", 
     currency: input.currency || "USD",
     hl: input.hl || "en",
     api_key: apiKey,
@@ -444,7 +545,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
   try {
     console.log('[Server Action - getRealHotelsAction] >>> ATTEMPTING SERPAPI CALL for hotels <<<');
     const response = await getSerpApiJson(params);
-    console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response:', JSON.stringify(response, null, 2));
+    console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response:', JSON.stringify(response, null, 2).substring(0, 2000) + '...'); // Log snippet
 
     if (response.error) {
       console.error('[Server Action - getRealHotelsAction] SerpApi returned an error:', response.error);
@@ -454,30 +555,46 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     const rawHotels = response.properties || [];
     console.log(`[Server Action - getRealHotelsAction] Found ${rawHotels.length} raw hotel properties from SerpApi.`);
 
-    const hotels: SerpApiHotelSuggestion[] = rawHotels.map((hotel: any): SerpApiHotelSuggestion => ({
-      name: hotel.name,
-      type: hotel.type,
-      description: hotel.overall_info || hotel.description,
-      price_per_night: hotel.rate_per_night?.lowest || hotel.price,
-      total_price: hotel.total_price?.extracted_lowest,
-      price_details: typeof hotel.rate_per_night === 'string' ? hotel.rate_per_night : hotel.price,
-      rating: hotel.overall_rating || hotel.rating,
-      reviews: hotel.reviews,
-      amenities: hotel.amenities_objects?.map((am: any) => am.name) || hotel.amenities,
-      link: hotel.link,
-      thumbnail: hotel.images?.[0]?.thumbnail || hotel.thumbnail,
-      images: hotel.images?.map((img: any) => ({ thumbnail: img.thumbnail, original_image: img.original_image })),
-      coordinates: hotel.gps_coordinates ? { latitude: hotel.gps_coordinates.latitude, longitude: hotel.gps_coordinates.longitude } : undefined,
-      check_in_time: hotel.check_in_time,
-      check_out_time: hotel.check_out_time,
-    })).filter((h: SerpApiHotelSuggestion) => h.name && (h.price_per_night || h.total_price || h.price_details));
+    const hotels: SerpApiHotelSuggestion[] = rawHotels.map((hotel: any): SerpApiHotelSuggestion => {
+      const priceSourceForPpn = hotel.rate_per_night?.lowest ?? hotel.price_per_night ?? hotel.price ?? hotel.extracted_price;
+      const parsedPricePerNight = parsePrice(priceSourceForPpn);
+      
+      const priceSourceForTotal = hotel.total_price?.extracted_lowest ?? hotel.total_price;
+      const parsedTotalPrice = parsePrice(priceSourceForTotal);
+
+      const finalHotelObject: SerpApiHotelSuggestion = {
+        name: hotel.name,
+        type: hotel.type,
+        description: hotel.overall_info || hotel.description,
+        price_per_night: parsedPricePerNight, // This is now a number or undefined
+        total_price: parsedTotalPrice, // This is now a number or undefined
+        price_details: typeof priceSourceForPpn === 'string' ? priceSourceForPpn : (parsedPricePerNight !== undefined ? `$${parsedPricePerNight}` : undefined),
+        rating: hotel.overall_rating || hotel.rating,
+        reviews: hotel.reviews,
+        amenities: hotel.amenities_objects?.map((am: any) => am.name) || hotel.amenities,
+        link: hotel.link,
+        thumbnail: hotel.images?.[0]?.thumbnail || hotel.thumbnail,
+        images: hotel.images?.map((img: any) => ({ thumbnail: img.thumbnail, original_image: img.original_image })),
+        coordinates: hotel.gps_coordinates ? { latitude: hotel.gps_coordinates.latitude, longitude: hotel.gps_coordinates.longitude } : undefined,
+        check_in_time: hotel.check_in_time,
+        check_out_time: hotel.check_out_time,
+      };
+      console.log(`[Server Action - getRealHotelsAction] FINAL MAPPING for ${finalHotelObject.name} - Raw Price Source for PPN: '${priceSourceForPpn}', Parsed PPN: ${finalHotelObject.price_per_night} (type: ${typeof finalHotelObject.price_per_night})`);
+      return finalHotelObject;
+    }).filter((h: SerpApiHotelSuggestion) => h.name && (h.price_per_night !== undefined || h.total_price !== undefined || h.price_details));
 
     console.log(`[Server Action - getRealHotelsAction] Processed ${hotels.length} valid hotel suggestions.`);
-
+    
     const searchSummary = response.search_information?.displayed_query || `Found ${hotels.length} hotel options.`;
+    
+    if (hotels.length > 0) {
+        console.log(`[Server Action - getRealHotelsAction] Returning ${hotels.length} hotels. First hotel PPN: ${hotels[0]?.price_per_night}`);
+    } else {
+        console.log(`[Server Action - getRealHotelsAction] Returning 0 hotels.`);
+    }
 
     return {
-      hotels: hotels.length > 0 ? hotels : [], // Return empty array instead of undefined
+      hotels: hotels.length > 0 ? hotels : [],
       search_summary: searchSummary,
       error: hotels.length === 0 && !response.error ? "No hotels found by SerpApi for this query." : undefined,
     };
@@ -559,9 +676,13 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
     try {
       const parsedDates = parseTravelDatesForSerpApi(travelDates);
       
+      // Resolve IATA codes
+      const originIata = await getIataCodeAction(input.origin || "NYC"); // Default origin if not in SmartBundleInput
+      const destinationIata = await getIataCodeAction(destination);
+
       const flightSearchInput: SerpApiFlightSearchInput = {
-        origin: "NYC", 
-        destination: destination,
+        origin: originIata || input.origin || "NYC", 
+        destination: destinationIata || destination,
         departureDate: parsedDates.departureDate,
         returnDate: parsedDates.returnDate,
         tripType: "round-trip",
@@ -596,12 +717,12 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
         priceNoteParts.push("No specific flight price found.");
       }
 
-      if (bestHotel?.price_per_night) {
+      if (bestHotel?.price_per_night) { // Use parsed price_per_night which is a number
         const hotelTotal = bestHotel.price_per_night * parsedDates.durationDays;
         realPriceMin += hotelTotal;
         realPriceMax += hotelTotal;
          priceNoteParts.push(`Hotel ~\$${hotelTotal.toLocaleString()} for ${parsedDates.durationDays} nights`);
-      } else if (bestHotel?.total_price) {
+      } else if (bestHotel?.total_price) { // Use parsed total_price which is a number
          realPriceMin += bestHotel.total_price;
          realPriceMax += bestHotel.total_price;
          priceNoteParts.push(`Hotel ~\$${bestHotel.total_price.toLocaleString()}`);
@@ -611,7 +732,7 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
 
       if (realPriceMin > 0) {
         augmentedSugg.estimatedRealPriceRange = `Around \$${realPriceMin.toLocaleString()}`;
-        if (realPriceMax > realPriceMin) { 
+        if (realPriceMax > realPriceMin && realPriceMax !== realPriceMin) { // ensure they are different
              augmentedSugg.estimatedRealPriceRange = `\$${realPriceMin.toLocaleString()} - \$${realPriceMax.toLocaleString()}`;
         }
         
@@ -656,7 +777,7 @@ export async function generateTripSummary(input: TripSummaryInput): Promise<Trip
 }
 
 export async function getPriceAdviceAction(input: PriceAdvisorInput): Promise<PriceAdvisorOutput> {
-  return getPriceAdviceFlow(input);
+  return getPriceAdviceOriginal(input);
 }
 
 export async function getConceptualDateGridAction(input: ConceptualDateGridInput): Promise<ConceptualDateGridOutput> {
@@ -670,5 +791,3 @@ export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphI
 export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise<ThingsToDoOutput> {
   return thingsToDoFlowOriginal(input);
 }
-
-

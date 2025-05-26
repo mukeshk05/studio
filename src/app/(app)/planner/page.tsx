@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/types/trip-planner-types";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { CoTravelAgentInput, CoTravelAgentOutput } from "@/ai/types/co-travel-agent-types"; 
-import { getCoTravelAgentResponse } from "@/app/actions"; 
+import { getCoTravelAgentResponse, getIataCodeAction } from "@/app/actions"; 
 import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
@@ -21,7 +21,7 @@ import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet"; 
 import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions";
 import type { SerpApiFlightSearchInput, SerpApiHotelSearchInput, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types";
-import { format, addDays, parse, differenceInDays, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, addDays, parse, differenceInDays, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isValid } from 'date-fns';
 
 
 export interface ChatMessage {
@@ -32,7 +32,7 @@ export interface ChatMessage {
   title?: string;
 }
 
-// Helper function to parse flexible date strings (simplified for demo)
+// Helper function to parse flexible date strings
 function parseFlexibleDates(dateString: string): { from: Date, to: Date, durationDays: number } {
   const now = new Date();
   let fromDate = addMonths(now, 1); // Default to next month
@@ -40,67 +40,75 @@ function parseFlexibleDates(dateString: string): { from: Date, to: Date, duratio
 
   const lowerDateString = dateString.toLowerCase();
 
+  // Try to parse specific date patterns first (e.g., MM/DD/YYYY - MM/DD/YYYY)
+  const specificDateRangeMatch = lowerDateString.match(/(\d{1,2}\/\d{1,2}\/\d{4})\s*(?:-|to)\s*(\d{1,2}\/\d{1,2}\/\d{4})/);
+  if (specificDateRangeMatch) {
+    const d1 = parse(specificDateRangeMatch[1], 'MM/dd/yyyy', new Date());
+    const d2 = parse(specificDateRangeMatch[2], 'MM/dd/yyyy', new Date());
+    if (isValid(d1) && isValid(d2) && d2 >= d1) {
+      fromDate = d1 >= now ? d1 : now; // Ensure fromDate is not in the past
+      toDate = d2;
+      const duration = differenceInDays(toDate, fromDate) + 1;
+      return { from: fromDate, to: toDate, durationDays: Math.max(1, duration) };
+    }
+  }
+  
+  const singleDateMatch = lowerDateString.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+  if (singleDateMatch && !specificDateRangeMatch) { // Ensure it's not part of a range already matched
+      const d1 = parse(singleDateMatch[1], 'MM/dd/yyyy', new Date());
+      if (isValid(d1) && d1 >= now) {
+          fromDate = d1;
+          // If only one specific date, assume default duration or user needs to specify
+          const durationMatch = lowerDateString.match(/for\s+(\d+)\s*(days|weeks?)/i);
+          if (durationMatch) {
+              const num = parseInt(durationMatch[1], 10);
+              const unit = durationMatch[2].startsWith('week') ? 'weeks' : 'days';
+              toDate = unit === 'weeks' ? addDays(fromDate, num * 7 -1) : addDays(fromDate, num - 1);
+          } else {
+              toDate = addDays(fromDate, 6); // Default 7-day trip
+          }
+          const duration = differenceInDays(toDate, fromDate) + 1;
+          return { from: fromDate, to: toDate, durationDays: Math.max(1, duration) };
+      }
+  }
+
+
   if (lowerDateString.includes("next week")) {
-    fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 1 }); // Next Monday
-    toDate = endOfWeek(fromDate, { weekStartsOn: 1 }); // Next Sunday
+    fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 1 }); 
+    toDate = endOfWeek(fromDate, { weekStartsOn: 1 }); 
   } else if (lowerDateString.includes("this weekend")) {
-    fromDate = startOfWeek(now, { weekStartsOn: 5 }); // This Friday
-     if (fromDate < now) fromDate = addDays(fromDate, 7); // If this Friday already passed, go to next Friday
-    toDate = addDays(fromDate, 2); // Sunday
+    fromDate = startOfWeek(now, { weekStartsOn: 5 }); 
+     if (fromDate < now) fromDate = addDays(fromDate, 7); 
+    toDate = addDays(fromDate, 2); 
   } else if (lowerDateString.includes("next weekend")) {
-    fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 5 }); // Next Friday
-    toDate = addDays(fromDate, 2); // Next Sunday
+    fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 5 }); 
+    toDate = addDays(fromDate, 2); 
   } else if (lowerDateString.includes("next month")) {
     fromDate = startOfMonth(addMonths(now, 1));
-    // Default duration for "next month" if not specified further
-    toDate = addDays(fromDate, 6); 
-    const durationMatch = lowerDateString.match(/(\d+)\s*(days|week)/);
+    const durationMatch = lowerDateString.match(/for\s+(\d+)\s*(days|weeks?)/i);
     if (durationMatch) {
         const num = parseInt(durationMatch[1], 10);
-        const unit = durationMatch[2];
-        if (unit === 'week') {
-            toDate = addDays(fromDate, num * 7 - 1);
-        } else {
-            toDate = addDays(fromDate, num - 1);
-        }
+        const unit = durationMatch[2].startsWith('week') ? 'weeks' : 'days';
+        toDate = unit === 'weeks' ? addDays(fromDate, num * 7 - 1) : addDays(fromDate, num - 1);
+    } else {
+        toDate = addDays(fromDate, 6); 
     }
-  } else if (lowerDateString.includes("for")) {
-    const durationMatch = lowerDateString.match(/for\s+(\d+)\s*(days|week)/i);
+  } else { // General "for X days/weeks" from a default start
+    const durationMatch = lowerDateString.match(/for\s+(\d+)\s*(days|weeks?)/i);
     if (durationMatch) {
         const num = parseInt(durationMatch[1], 10);
-        const unit = durationMatch[2];
-        if (unit === 'week') {
-            toDate = addDays(fromDate, num * 7 - 1);
-        } else {
-            toDate = addDays(fromDate, num - 1);
+        const unit = durationMatch[2].startsWith('week') ? 'weeks' : 'days';
+        // If "for X days/weeks" without "next month" etc., assume starting soon (e.g. next Monday or few days from now)
+        if (lowerDateString.indexOf("next month") === -1 && lowerDateString.indexOf("next week") === -1) {
+            fromDate = startOfWeek(addDays(now, 2), { weekStartsOn: 1}); // e.g. start next available Monday if not specified
+            if(fromDate < now) fromDate = addDays(fromDate, 7);
         }
-    }
-  } else {
-    // Attempt to parse MM/DD/YYYY - MM/DD/YYYY or similar
-    const parts = dateString.split(/\s*-\s*|\s+to\s+/i);
-    if (parts.length === 2) {
-      const d1 = parse(parts[0], 'MM/dd/yyyy', new Date());
-      const d2 = parse(parts[1], 'MM/dd/yyyy', new Date());
-      if (!isNaN(d1.getTime()) && d1 >= now) { // Ensure fromDate is not in the past
-        fromDate = d1;
-        if (!isNaN(d2.getTime()) && d2 >= fromDate) {
-          toDate = d2;
-        } else {
-          // If d2 is invalid or before d1, assume a default duration from d1
-          toDate = addDays(fromDate, 6);
-        }
-      }
-    } else if (parts.length === 1) {
-        const d1 = parse(parts[0], 'MM/dd/yyyy', new Date());
-        if (!isNaN(d1.getTime()) && d1 >= now) {
-            fromDate = d1;
-            toDate = addDays(fromDate, 6); // Default 7-day trip if only one date given
-        }
+        toDate = unit === 'weeks' ? addDays(fromDate, num * 7 - 1) : addDays(fromDate, num - 1);
     }
   }
   
   const duration = differenceInDays(toDate, fromDate) + 1;
-  return { from: fromDate, to: toDate, durationDays: Math.max(1, duration) }; // Ensure duration is at least 1
+  return { from: fromDate, to: toDate, durationDays: Math.max(1, duration) }; 
 }
 
 
@@ -135,7 +143,7 @@ export default function TripPlannerPage() {
   useEffect(() => {
     if (!apiKey) {
       console.error("[PlannerPage] Google Maps API key is missing. Autocomplete in form will not work.");
-      setIsMapsScriptLoaded(false); // Indicate that maps features depending on this won't work
+      setIsMapsScriptLoaded(false); 
       return;
     }
     if (typeof window !== 'undefined' && (window as any).google && (window as any).google.maps && (window as any).google.maps.places) {
@@ -247,19 +255,31 @@ export default function TripPlannerPage() {
     setChatHistory((prev) => [...prev, userMessage, loadingMessage]);
     
     const parsedDates = parseFlexibleDates(input.travelDates);
+    const formattedDepartureDate = format(parsedDates.from, "yyyy-MM-dd");
+    const formattedReturnDate = format(parsedDates.to, "yyyy-MM-dd");
 
     let realFlights: SerpApiFlightOption[] = [];
     let realHotels: SerpApiHotelSuggestion[] = [];
 
+    // Fetch IATA codes
+    let originIata: string | null = null;
+    if (input.origin) {
+        originIata = await getIataCodeAction(input.origin);
+        if (!originIata) console.warn(`Could not find IATA for origin: ${input.origin}, using original string.`);
+    }
+    const destinationIata = await getIataCodeAction(input.destination);
+    if (!destinationIata) console.warn(`Could not find IATA for destination: ${input.destination}, using original string.`);
+
     try {
       console.log("Fetching real flights for planner...");
       const flightSearchInput: SerpApiFlightSearchInput = {
-        origin: input.origin || "NYC", // Use provided origin or default
-        destination: input.destination,
-        departureDate: format(parsedDates.from, "yyyy-MM-dd"),
-        returnDate: format(parsedDates.to, "yyyy-MM-dd"), 
+        origin: originIata || input.origin || "NYC", 
+        destination: destinationIata || input.destination,
+        departureDate: formattedDepartureDate,
+        returnDate: formattedReturnDate, 
         tripType: "round-trip",
       };
+      console.log("[PlannerPage] Flight Search Input to SerpApi:", flightSearchInput);
       const flightResults = await getRealFlightsAction(flightSearchInput);
       if (flightResults.best_flights) realFlights.push(...flightResults.best_flights);
       if (flightResults.other_flights) realFlights.push(...flightResults.other_flights);
@@ -271,11 +291,12 @@ export default function TripPlannerPage() {
     try {
       console.log("Fetching real hotels for planner...");
       const hotelSearchInput: SerpApiHotelSearchInput = {
-        destination: input.destination,
-        checkInDate: format(parsedDates.from, "yyyy-MM-dd"),
-        checkOutDate: format(parsedDates.to, "yyyy-MM-dd"),
-        guests: "2", // Default guest count, can be updated
+        destination: input.destination, // Hotels API generally handles city names well
+        checkInDate: formattedDepartureDate,
+        checkOutDate: formattedReturnDate,
+        guests: "2", // Default guest count, can be updated from form if added
       };
+      console.log("[PlannerPage] Hotel Search Input to SerpApi:", hotelSearchInput);
       const hotelResults = await getRealHotelsAction(hotelSearchInput);
       if (hotelResults.hotels) realHotels = hotelResults.hotels;
       console.log(`Fetched ${realHotels.length} real hotel options for planner.`);
@@ -351,7 +372,7 @@ export default function TripPlannerPage() {
          const noResultsMessage: ChatMessage = {
             id: crypto.randomUUID(),
             type: "system",
-            payload: "I couldn't find any itineraries based on your request. Please try different criteria or check if real-time data was available.",
+            payload: "I couldn't find any itineraries based on your request. This could be due to limited real-time flight/hotel availability for your specific query, or the AI couldn't form a plan with the options found. Please try different criteria.",
             timestamp: new Date(),
           };
           setChatHistory((prev) => [...prev, noResultsMessage]);
