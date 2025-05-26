@@ -11,6 +11,7 @@ export const UserPersonaSchema = z.object({
 }).optional();
 
 export const AITripPlannerInputSchema = z.object({
+  origin: z.string().optional().describe("The origin of the trip (e.g., city or airport)."),
   travelDates: z.string().describe('The desired travel dates (e.g., MM/DD/YYYY-MM/DD/YYYY, or descriptive like "next summer for 2 weeks").'),
   destination: z.string().describe('The destination for the trip.'),
   budget: z.number().describe('The budget for the trip in USD.'),
@@ -83,6 +84,7 @@ export const ItineraryItemSchema = z.object({
   alternativeReason: z.string().optional().describe("Reason why this alternative is suggested (e.g., 'Due to hurricane warning for original destination...')."),
   destinationLatitude: z.number().optional().describe("Approximate latitude of the destination for map display, if available."),
   destinationLongitude: z.number().optional().describe("Approximate longitude of the destination for map display, if available."),
+  origin: z.string().optional().describe("The origin of the trip."), // Added origin
 });
 export type ItineraryItem = z.infer<typeof ItineraryItemSchema>;
 

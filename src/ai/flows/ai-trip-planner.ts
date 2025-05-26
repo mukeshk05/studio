@@ -33,6 +33,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
 **Your Task:**
 
 1.  **Analyze User Input:**
+    *   Origin: {{{origin}}}
     *   Destination: {{{destination}}}
     *   Travel Dates: {{{travelDates}}} (Interpret this flexibly, e.g., "next month for 7 days")
     *   Budget (USD): {{{budget}}}
@@ -91,6 +92,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   Include conceptual sustainable travel considerations.
 
 5.  **Itinerary Construction (For each of 1-2 itineraries):**
+    *   \`origin\`: User's trip origin.
     *   \`destination\`, \`travelDates\`: From user input.
     *   \`estimatedCost\`: Sum of your selected flight and hotel prices.
     *   \`tripSummary\`: Engaging summary, including any necessary risk/visa/accessibility reminders, sustainability notes, and clear indication if using real vs. conceptual options.
@@ -116,6 +118,7 @@ Focus on common attractions and adaptable activities. Keep suggestions somewhat 
 Briefly remind the user in the trip summary to check visa and current travel advisories for {{{destination}}}, and that sustainable travel choices are encouraged.
 Also, provide one general cultural tip for {{{destination}}} in the 'culturalTip' field.
 
+Origin: {{{origin}}}
 Travel Dates: {{{travelDates}}}
 Destination: {{{destination}}}
 Budget: {{{budget}}}
@@ -147,6 +150,7 @@ For each itinerary:
 3.  Detail 1-2 flight options (name, description, price, airline_logo, total_duration, derived_stops_description, link - try to use real data if available).
 4.  Detail 1-2 hotel options (name, description, price, rating, amenities, link, 1-2 rooms with name, features, roomImagePrompt - try to use real data if available for main hotel details, generate description/rooms).
 5.  Provide an 'estimatedCost'.
+6.  Include the 'origin' field.
 
 Return in the specified JSON format, including the 'culturalTip'.
 `,
@@ -271,6 +275,7 @@ const aiTripPlannerFlow = ai.defineFlow(
           alternativeReason: itinerary.alternativeReason,
           destinationLatitude: itinerary.destinationLatitude,
           destinationLongitude: itinerary.destinationLongitude,
+          origin: itinerary.origin || input.origin, // Ensure origin is carried through
         };
       })
     );
@@ -309,9 +314,9 @@ const aiTripPlannerFlow = ai.defineFlow(
     }
 
     if (fusionMessages.length > 0) {
-        personalizationNoteParts.push(`Plans were crafted by fusing ${fusionMessages.join(', ')} with your core request for ${input.destination}.`);
+        personalizationNoteParts.push(`Plans for ${input.destination} ${input.origin ? `from ${input.origin}` : ''} were crafted by fusing ${fusionMessages.join(', ')} with your core request.`);
     } else {
-        personalizationNoteParts.push(`Plans for ${input.destination} were generated based on your core request, including conceptual sustainability considerations.`);
+        personalizationNoteParts.push(`Plans for ${input.destination} ${input.origin ? `from ${input.origin}` : ''} were generated based on your core request, including conceptual sustainability considerations.`);
     }
     
     if (itinerariesWithImages.some(it => it.tripSummary && it.tripSummary.toLowerCase().includes("alternative suggestion:"))) {
@@ -326,4 +331,3 @@ const aiTripPlannerFlow = ai.defineFlow(
     };
   }
 );
-

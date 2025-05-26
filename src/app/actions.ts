@@ -297,7 +297,7 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
 
 export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Promise<SerpApiFlightSearchOutput> {
   console.log('[Server Action - getRealFlightsAction] Input:', input);
-  const apiKey = process.env.SERPAPI_API_KEY; 
+  const apiKey ="6f6955d85e5df06f0fdd5464515ee96571d7a8eee0f6b400fa404ff5d739b3d4" ; 
   if (!apiKey) {
     console.error('[Server Action - getRealFlightsAction] SerpApi API key is not configured in .env file (SERPAPI_API_KEY).');
     return { error: "Flight search service is not configured. Please contact support." };

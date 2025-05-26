@@ -15,11 +15,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { AITripPlannerInput as AITripPlannerInputTypeFromFlow, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
-import React, { useEffect, useRef } from "react";
-import { Loader2, MapPin, CalendarDays, DollarSign, Sparkles, Lightbulb, AlertTriangle, CloudSun } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Loader2, MapPin, CalendarDays, DollarSign, Sparkles, Lightbulb, AlertTriangle, CloudSun, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
+  origin: z.string().min(2, {
+    message: "Origin must be at least 2 characters.",
+  }).optional(),
   destination: z.string().min(2, {
     message: "Destination must be at least 2 characters.",
   }),
@@ -39,7 +42,7 @@ type TripInputFormProps = {
   setIsLoading: (isLoading: boolean) => void;
   onSubmitProp?: (values: AITripPlannerInputTypeFromFlow) => Promise<void>;
   initialValues?: Partial<AITripPlannerInputTypeFromFlow> | null;
-  isMapsScriptLoaded?: boolean; // New prop
+  isMapsScriptLoaded?: boolean; 
 };
 
 const suggestedPrompts = [
@@ -50,11 +53,14 @@ const suggestedPrompts = [
 ];
 
 export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMapsScriptLoaded }: TripInputFormProps) {
+  const originInputRef = useRef<HTMLInputElement>(null);
   const destinationInputRef = useRef<HTMLInputElement>(null);
+  const [isFetchingGeo, setIsFetchingGeo] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      origin: initialValues?.origin || "",
       destination: initialValues?.destination || "",
       travelDates: initialValues?.travelDates || "",
       budget: initialValues?.budget || 1000,
@@ -66,6 +72,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMap
 
   useEffect(() => {
     form.reset({
+      origin: initialValues?.origin || form.getValues("origin") || "", // Preserve current form value if initial is undefined
       destination: initialValues?.destination || "",
       travelDates: initialValues?.travelDates || "",
       budget: initialValues?.budget || 1000,
@@ -75,26 +82,76 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMap
     });
   }, [initialValues, form]);
 
-  useEffect(() => {
-    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && destinationInputRef.current) {
+  const initializeAutocomplete = (inputRef: React.RefObject<HTMLInputElement>, fieldName: 'origin' | 'destination') => {
+    if (isMapsScriptLoaded && window.google && window.google.maps && window.google.maps.places && inputRef.current) {
       const autocomplete = new window.google.maps.places.Autocomplete(
-        destinationInputRef.current,
-        { types: ['(cities)', 'airport'] } // Suggest cities and airports
+        inputRef.current,
+        { types: ['geocode', 'establishment'] } // Suggest cities, airports, points of interest
       );
-      autocomplete.setFields(['formatted_address', 'name']); // Get formatted address and name
+      autocomplete.setFields(['formatted_address', 'name']);
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
         const address = place.formatted_address || place.name || "";
-        form.setValue('destination', address, { shouldValidate: true });
+        form.setValue(fieldName, address, { shouldValidate: true });
       });
     }
+  };
+
+  useEffect(() => {
+    initializeAutocomplete(originInputRef, 'origin');
+    initializeAutocomplete(destinationInputRef, 'destination');
   }, [isMapsScriptLoaded, form]);
+
+  const setDefaultOriginToCurrentLocation = () => {
+    if (navigator.geolocation && isMapsScriptLoaded && window.google && window.google.maps.Geocoder) {
+      setIsFetchingGeo(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const geocoder = new window.google.maps.Geocoder();
+          const latlng = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          geocoder.geocode({ location: latlng }, (results, status) => {
+            setIsFetchingGeo(false);
+            if (status === "OK") {
+              if (results && results[0]) {
+                // Find a result that is a locality or administrative area for a good default
+                const cityResult = results.find(r => r.types.includes('locality') || r.types.includes('administrative_area_level_1'));
+                form.setValue("origin", cityResult?.formatted_address || results[0].formatted_address || "", { shouldValidate: true });
+              } else {
+                form.setValue("origin", `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`, { shouldValidate: true }); // Fallback to coords
+              }
+            } else {
+              console.warn("Geocoder failed due to: " + status);
+              // Keep field empty or allow manual input
+            }
+          });
+        },
+        (error) => {
+          setIsFetchingGeo(false);
+          console.warn("Error getting current location:", error.message);
+          // User might have denied permission or location service failed
+        },
+        { timeout: 5000 }
+      );
+    }
+  };
+  
+  // Attempt to set default origin on mount if maps are ready and no origin is set
+  useEffect(() => {
+    if (isMapsScriptLoaded && !form.getValues("origin") && !initialValues?.origin) {
+        setDefaultOriginToCurrentLocation();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMapsScriptLoaded, initialValues?.origin, form.getValues("origin")]);
 
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
     if (onSubmitProp) {
       setIsLoading(true);
       const plannerInput: AITripPlannerInputTypeFromFlow = {
+        origin: values.origin || undefined, // Ensure it's undefined if empty, not null
         destination: values.destination,
         travelDates: values.travelDates,
         budget: values.budget,
@@ -109,6 +166,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMap
   }
 
   const handleSuggestionClick = (promptText: string) => {
+    let origin = form.getValues("origin") || ""; // Preserve current origin if user set one
     let destination = "";
     let travelDates = "";
     let budget = 1000;
@@ -141,13 +199,15 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMap
         desiredMood = "cultural exploration, quiet temples, traditional tea ceremonies, vibrant local markets";
     }
 
-
-    form.setValue("destination", destination);
-    form.setValue("travelDates", travelDates);
-    form.setValue("budget", budget);
-    form.setValue("desiredMood", desiredMood);
-    form.setValue("riskContext", riskContext);
-    form.setValue("weatherContext", weatherContext);
+    form.reset({
+        origin: origin,
+        destination: destination,
+        travelDates: travelDates,
+        budget: budget,
+        desiredMood: desiredMood,
+        riskContext: riskContext,
+        weatherContext: weatherContext,
+    });
   };
 
   const primaryButtonClasses = "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
@@ -158,10 +218,43 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMap
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 py-4">
             <FormField
               control={form.control}
+              name="origin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center text-foreground/90">
+                    <Navigation className="w-4 h-4 mr-2" />Origin (City or Airport)
+                  </FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input 
+                        ref={originInputRef}
+                        placeholder="e.g., Your Current Location, NYC" 
+                        {...field} 
+                        className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 flex-grow" 
+                      />
+                    </FormControl>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={setDefaultOriginToCurrentLocation} 
+                      disabled={isFetchingGeo || !isMapsScriptLoaded}
+                      className="shrink-0 glass-interactive"
+                      title="Use current location"
+                    >
+                      {isFetchingGeo ? <Loader2 className="w-4 h-4 animate-spin"/> : <MapPin className="w-4 h-4"/>}
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="destination"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><MapPin className="w-4 h-4 mr-2" />Destination</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><MapPin className="w-4 h-4 mr-2" />Destination *</FormLabel>
                   <FormControl>
                     <Input 
                       ref={destinationInputRef}
@@ -179,9 +272,9 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMap
               name="travelDates"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><CalendarDays className="w-4 h-4 mr-2" />Travel Dates</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><CalendarDays className="w-4 h-4 mr-2" />Travel Dates *</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
+                    <Input placeholder="e.g., 12/25/2024 - 01/02/2025 or Next month for 7 days" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -192,7 +285,7 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMap
               name="budget"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center text-foreground/90"><DollarSign className="w-4 h-4 mr-2" />Budget (USD)</FormLabel>
+                  <FormLabel className="flex items-center text-foreground/90"><DollarSign className="w-4 h-4 mr-2" />Budget (USD) *</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="e.g., 1500" {...field} className="bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50" />
                   </FormControl>
@@ -239,16 +332,19 @@ export function TripInputForm({ setIsLoading, onSubmitProp, initialValues, isMap
                 </FormItem>
               )}
             />
-            <Button type="submit" className={cn(primaryButtonClasses)} size="lg" disabled={form.formState.isSubmitting || !isMapsScriptLoaded}>
+            <Button type="submit" className={cn(primaryButtonClasses)} size="lg" disabled={form.formState.isSubmitting || !isMapsScriptLoaded || isFetchingGeo}>
               {form.formState.isSubmitting ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ) : (
                 <Sparkles className="mr-2 h-5 w-5" />
               )}
-              {initialValues ? "Update Plan" : "Get AI Trip Plan"}
+              {initialValues?.destination || initialValues?.origin ? "Update Plan" : "Get AI Trip Plan"}
             </Button>
-             {!isMapsScriptLoaded && (
-                <p className="text-xs text-center text-muted-foreground">Loading location services...</p>
+             {(!isMapsScriptLoaded || isFetchingGeo) && (
+                <p className="text-xs text-center text-muted-foreground">
+                    {isFetchingGeo ? <Loader2 className="inline w-3 h-3 mr-1 animate-spin"/> : ""}
+                    {isFetchingGeo ? "Getting current location..." : "Loading location services..."}
+                </p>
             )}
           </form>
         </Form>

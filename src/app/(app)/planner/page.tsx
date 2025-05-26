@@ -21,7 +21,7 @@ import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet"; 
 import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions";
 import type { SerpApiFlightSearchInput, SerpApiHotelSearchInput, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types";
-import { format, addDays, parse, differenceInDays } from 'date-fns';
+import { format, addDays, parse, differenceInDays, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 
 export interface ChatMessage {
@@ -35,34 +35,72 @@ export interface ChatMessage {
 // Helper function to parse flexible date strings (simplified for demo)
 function parseFlexibleDates(dateString: string): { from: Date, to: Date, durationDays: number } {
   const now = new Date();
-  let fromDate = addDays(now, 30); // Default to next month
-  let toDate = addDays(fromDate, 7); // Default 7 days duration
+  let fromDate = addMonths(now, 1); // Default to next month
+  let toDate = addDays(fromDate, 6); // Default 7 days duration (6 more days)
 
-  if (dateString.toLowerCase().includes("next week")) {
-    fromDate = addDays(now, 7);
-    toDate = addDays(fromDate, 7);
-  } else if (dateString.toLowerCase().includes("next month")) {
-    fromDate = addDays(now, 30);
-    toDate = addDays(fromDate, 7);
-  } else if (dateString.match(/(\d+)\s*days/i)) {
-    const daysMatch = dateString.match(/(\d+)\s*days/i);
-    if (daysMatch) {
-      const numDays = parseInt(daysMatch[1], 10);
-      toDate = addDays(fromDate, numDays -1); 
+  const lowerDateString = dateString.toLowerCase();
+
+  if (lowerDateString.includes("next week")) {
+    fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 1 }); // Next Monday
+    toDate = endOfWeek(fromDate, { weekStartsOn: 1 }); // Next Sunday
+  } else if (lowerDateString.includes("this weekend")) {
+    fromDate = startOfWeek(now, { weekStartsOn: 5 }); // This Friday
+     if (fromDate < now) fromDate = addDays(fromDate, 7); // If this Friday already passed, go to next Friday
+    toDate = addDays(fromDate, 2); // Sunday
+  } else if (lowerDateString.includes("next weekend")) {
+    fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 5 }); // Next Friday
+    toDate = addDays(fromDate, 2); // Next Sunday
+  } else if (lowerDateString.includes("next month")) {
+    fromDate = startOfMonth(addMonths(now, 1));
+    // Default duration for "next month" if not specified further
+    toDate = addDays(fromDate, 6); 
+    const durationMatch = lowerDateString.match(/(\d+)\s*(days|week)/);
+    if (durationMatch) {
+        const num = parseInt(durationMatch[1], 10);
+        const unit = durationMatch[2];
+        if (unit === 'week') {
+            toDate = addDays(fromDate, num * 7 - 1);
+        } else {
+            toDate = addDays(fromDate, num - 1);
+        }
+    }
+  } else if (lowerDateString.includes("for")) {
+    const durationMatch = lowerDateString.match(/for\s+(\d+)\s*(days|week)/i);
+    if (durationMatch) {
+        const num = parseInt(durationMatch[1], 10);
+        const unit = durationMatch[2];
+        if (unit === 'week') {
+            toDate = addDays(fromDate, num * 7 - 1);
+        } else {
+            toDate = addDays(fromDate, num - 1);
+        }
     }
   } else {
-    const parts = dateString.split(/\s*-\s*/);
+    // Attempt to parse MM/DD/YYYY - MM/DD/YYYY or similar
+    const parts = dateString.split(/\s*-\s*|\s+to\s+/i);
     if (parts.length === 2) {
       const d1 = parse(parts[0], 'MM/dd/yyyy', new Date());
       const d2 = parse(parts[1], 'MM/dd/yyyy', new Date());
-      if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
+      if (!isNaN(d1.getTime()) && d1 >= now) { // Ensure fromDate is not in the past
         fromDate = d1;
-        toDate = d2;
+        if (!isNaN(d2.getTime()) && d2 >= fromDate) {
+          toDate = d2;
+        } else {
+          // If d2 is invalid or before d1, assume a default duration from d1
+          toDate = addDays(fromDate, 6);
+        }
       }
+    } else if (parts.length === 1) {
+        const d1 = parse(parts[0], 'MM/dd/yyyy', new Date());
+        if (!isNaN(d1.getTime()) && d1 >= now) {
+            fromDate = d1;
+            toDate = addDays(fromDate, 6); // Default 7-day trip if only one date given
+        }
     }
   }
+  
   const duration = differenceInDays(toDate, fromDate) + 1;
-  return { from: fromDate, to: toDate, durationDays: duration };
+  return { from: fromDate, to: toDate, durationDays: Math.max(1, duration) }; // Ensure duration is at least 1
 }
 
 
@@ -97,15 +135,16 @@ export default function TripPlannerPage() {
   useEffect(() => {
     if (!apiKey) {
       console.error("[PlannerPage] Google Maps API key is missing. Autocomplete in form will not work.");
+      setIsMapsScriptLoaded(false); // Indicate that maps features depending on this won't work
       return;
     }
-    if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
+    if (typeof window !== 'undefined' && (window as any).google && (window as any).google.maps && (window as any).google.maps.places) {
       if(!isMapsScriptLoaded) setIsMapsScriptLoaded(true);
       return;
     }
     const scriptId = 'google-maps-planner-page-script';
     if (document.getElementById(scriptId)) {
-      if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places && !isMapsScriptLoaded) {
+      if (typeof window !== 'undefined' && (window as any).google && (window as any).google.maps && (window as any).google.maps.places && !isMapsScriptLoaded) {
         setIsMapsScriptLoaded(true);
       }
       return;
@@ -213,9 +252,9 @@ export default function TripPlannerPage() {
     let realHotels: SerpApiHotelSuggestion[] = [];
 
     try {
-      console.log("Fetching real flights...");
+      console.log("Fetching real flights for planner...");
       const flightSearchInput: SerpApiFlightSearchInput = {
-        origin: "NYC", 
+        origin: input.origin || "NYC", // Use provided origin or default
         destination: input.destination,
         departureDate: format(parsedDates.from, "yyyy-MM-dd"),
         returnDate: format(parsedDates.to, "yyyy-MM-dd"), 
@@ -224,24 +263,24 @@ export default function TripPlannerPage() {
       const flightResults = await getRealFlightsAction(flightSearchInput);
       if (flightResults.best_flights) realFlights.push(...flightResults.best_flights);
       if (flightResults.other_flights) realFlights.push(...flightResults.other_flights);
-      console.log(`Fetched ${realFlights.length} real flight options.`);
+      console.log(`Fetched ${realFlights.length} real flight options for planner.`);
     } catch (e) {
-      console.error("Error fetching real flights:", e);
+      console.error("Error fetching real flights for planner:", e);
     }
 
     try {
-      console.log("Fetching real hotels...");
+      console.log("Fetching real hotels for planner...");
       const hotelSearchInput: SerpApiHotelSearchInput = {
         destination: input.destination,
         checkInDate: format(parsedDates.from, "yyyy-MM-dd"),
         checkOutDate: format(parsedDates.to, "yyyy-MM-dd"),
-        guests: "2", 
+        guests: "2", // Default guest count, can be updated
       };
       const hotelResults = await getRealHotelsAction(hotelSearchInput);
       if (hotelResults.hotels) realHotels = hotelResults.hotels;
-      console.log(`Fetched ${realHotels.length} real hotel options.`);
+      console.log(`Fetched ${realHotels.length} real hotel options for planner.`);
     } catch (e) {
-      console.error("Error fetching real hotels:", e);
+      console.error("Error fetching real hotels for planner:", e);
     }
 
     const plannerInputForAI: AITripPlannerInput = {
@@ -296,6 +335,7 @@ export default function TripPlannerPage() {
         alternativeReason: it.alternativeReason,
         destinationLatitude: it.destinationLatitude,
         destinationLongitude: it.destinationLongitude,
+        origin: it.origin,
       }));
 
 
@@ -361,7 +401,17 @@ export default function TripPlannerPage() {
 
     if (questionKeywords.some(kw => lowerText.includes(kw))) {
       const forMatch = lowerText.match(/(?:for|in|about|of)\s+([\w\s,]+)/i);
-      const destination = forMatch?.[1]?.trim().replace(/\?$/, '').trim();
+      let destination = forMatch?.[1]?.trim().replace(/\?$/, '').trim();
+      if (!destination) {
+        // Attempt to extract destination from the end of the question if no preposition found
+        const questionWords = lowerText.split(" ");
+        const lastFewWords = questionWords.slice(Math.max(questionWords.length - 3, 0)).join(" ");
+        const commonLocationHints = ["paris", "london", "tokyo", "new york", "rome", "berlin", "amsterdam", "bali", "kyoto", "denver", "new orleans"]; // Add more as needed
+        if (commonLocationHints.some(hint => lastFewWords.includes(hint))) {
+          destination = lastFewWords.replace(/\?$/, '').trim(); 
+        }
+      }
+
 
       if (destination) {
         try {
@@ -449,7 +499,7 @@ export default function TripPlannerPage() {
   };
 
   const handleInitiateBookingGuidance = (itinerary: Itinerary) => {
-    const flightSearchUrl = `https://www.google.com/travel/flights?q=flights+to+${encodeURIComponent(itinerary.destination)}`;
+    const flightSearchUrl = `https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(itinerary.origin || 'your location')}+to+${encodeURIComponent(itinerary.destination)}`;
     const hotelSearchUrl = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(itinerary.destination)}`;
     const guidanceMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -552,7 +602,7 @@ Remember to compare prices and check cancellation policies before booking. Happy
               onClick={handleOpenInputSheetForNewPlan}
               className={cn(prominentButtonClasses, "w-full")}
               size="lg"
-              disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessingMainPlan || isAiRespondingToChat || addSearchHistoryMutation.isPending}
+              disabled={!currentUser || addSavedTripMutation.isPending || isAiProcessingMainPlan || isAiRespondingToChat || addSearchHistoryMutation.isPending || !isMapsScriptLoaded}
             >
               {isAiProcessingMainPlan ? <Loader2 className="w-6 h-6 mr-2 animate-spin" /> : <Send className="w-6 h-6 mr-2" />} 
               {isAiProcessingMainPlan ? "AI is generating full plan..." : "Compose Detailed Trip Request"}
