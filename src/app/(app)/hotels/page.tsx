@@ -50,8 +50,8 @@ import {
 import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { getAiHotelSuggestionsAction } from '@/app/actions';
-import type { AiHotelSearchInput, AiHotelSuggestion } from '@/ai/types/ai-hotel-search-types';
+import { getRealHotelsAction } from '@/app/actions'; // Corrected import
+import type { AiHotelSearchInput, AiHotelSuggestion } from '@/ai/types/ai-hotel-search-types'; // This type might be from SerpApi types now
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -172,7 +172,7 @@ interface HotelDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
   hotel: AiHotelSuggestion | null;
-  searchDestination: string;
+  searchDestination: string; 
 }
 
 function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestination }: HotelDetailDialogProps) {
@@ -185,13 +185,13 @@ function HotelDetailDialog({ isOpen, onClose, hotel: hotelProp, searchDestinatio
         setImageLoadError(false);
     }
   }, [isOpen, hotelProp]);
-
+  
   const handleImageError = useCallback(() => {
     if (hotel) {
       console.warn(`[HotelDetailDialog] Image load ERROR for: ${hotel.name}, src: ${hotel.imageUri}`);
       setImageLoadError(true);
     }
-  }, [hotel]);
+  }, [hotel]); 
 
   if (!hotel) {
     return null;
@@ -570,7 +570,7 @@ export default function HotelsPage() {
     } else {
       map.setCenter({ lat: 20, lng: 0 }); map.setZoom(2);
     }
-  }, [map, userLocation]); // handleOpenHotelDetails removed, will define later
+  }, [map, userLocation]); // handleOpenHotelDetails removed from deps, will be added later
 
   const fetchInitialOrNearbyHotels = useCallback(async (location?: UserLocation) => {
     console.log(`[HotelsPage] fetchInitialOrNearbyHotels called. Location:`, location);
@@ -599,12 +599,25 @@ export default function HotelsPage() {
 
     console.log("[HotelsPage] Initial/Nearby hotels searchInput to AI:", JSON.stringify(searchInput, null, 2));
     try {
-      const result = await getAiHotelSuggestionsAction(searchInput);
+      const result = await getRealHotelsAction(searchInput); // Corrected: Use getRealHotelsAction
       console.log("[HotelsPage] Initial/Nearby AI hotels result:", result);
-      const validHotels = (result.hotels || []).filter(h => h.name && h.conceptualPriceRange && h.description && h.amenities);
-      setInitialHotelSuggestions(validHotels);
+      const validHotels = (result.hotels || []).filter(h => h.name && (h.price_details || h.price_per_night || h.total_price)); // Adjusted filter for SerpApi
+      setInitialHotelSuggestions(validHotels.map(h => ({ // Map to AiHotelSuggestion type
+          name: h.name,
+          conceptualPriceRange: h.price_details || (h.price_per_night ? `$${h.price_per_night}/night` : (h.total_price ? `$${h.total_price} total` : "N/A")),
+          rating: h.rating,
+          description: h.description || "No description available.",
+          amenities: h.amenities || [],
+          imagePrompt: `hotel exterior ${h.name} ${h.type || ''}`, // Conceptual prompt
+          imageUri: h.thumbnail || h.images?.[0]?.thumbnail, // Use real image if available
+          latitude: h.coordinates?.latitude,
+          longitude: h.coordinates?.longitude,
+          link: h.link,
+          // @ts-ignore - rooms will be AI generated if needed, or not present
+          rooms: [], //Conceptual rooms are not from SerpApi here. Could be added by AI later if needed.
+      })));
       setInitialHotelsContextualNote(result.searchSummary || (validHotels.length === 0 ? (location ? "No specific AI hotel ideas found near you." : "No popular AI hotel ideas found.") : (location ? "Here are some AI-conceptualized hotel ideas near you!" : "Here are some popular AI-conceptualized hotel ideas!")));
-      if (map) plotHotelMarkers(validHotels);
+      if (map) plotHotelMarkers(initialHotelSuggestions); // Plot the mapped suggestions
     } catch (error: any) {
       const errorMsg = `Failed to get initial AI hotel ideas: ${error.message || 'Unknown error'}`;
       console.error("[HotelsPage] Error in fetchInitialOrNearbyHotels:", errorMsg);
@@ -615,12 +628,12 @@ export default function HotelsPage() {
     } finally {
       setIsLoadingInitialHotels(false);
     }
-  }, [map, plotHotelMarkers, toast]);
+  }, [map, plotHotelMarkers, toast, initialHotelSuggestions]);
 
 
   useEffect(() => {
     console.log(`[HotelsPage] Initial Data Effect: isMapsScriptLoaded=${isMapsScriptLoaded}, map initialized=${!!map}, isMapInitializing=${isMapInitializing}`);
-    if (isMapsScriptLoaded && !map && !isMapInitializing) { // Check !isMapInitializing
+    if (isMapsScriptLoaded && !map && !isMapInitializing) { 
         setIsMapInitializing(true);
         setIsFetchingLocation(true);
         console.log("[HotelsPage] Attempting geolocation for map and initial hotel fetch...");
@@ -652,7 +665,7 @@ export default function HotelsPage() {
     console.log("[HotelsPage] Form submitted with values:", values);
     setIsLoadingSearchedHotels(true);
     setSearchedHotelSuggestions([]);
-    setInitialHotelSuggestions([]); // Clear initial suggestions to focus on search results
+    setInitialHotelSuggestions([]); 
     setInitialHotelsContextualNote(null);
     setSearchedHotelsError(null);
     setAiSearchSummary(`Searching for hotels in ${values.destination}...`);
@@ -666,12 +679,25 @@ export default function HotelsPage() {
 
     console.log("[HotelsPage] Specific hotel searchInput to AI:", JSON.stringify(searchInput, null, 2));
     try {
-      const result = await getAiHotelSuggestionsAction(searchInput);
+      const result = await getRealHotelsAction(searchInput); // Corrected: Use getRealHotelsAction
       console.log("[HotelsPage] Searched AI hotels result:", result);
-      const validHotels = (result.hotels || []).filter(h => h.name && h.conceptualPriceRange && h.description && h.amenities);
-      setSearchedHotelSuggestions(validHotels);
+      const validHotels = (result.hotels || []).filter(h => h.name && (h.price_details || h.price_per_night || h.total_price));
+      setSearchedHotelSuggestions(validHotels.map(h => ({
+          name: h.name,
+          conceptualPriceRange: h.price_details || (h.price_per_night ? `$${h.price_per_night}/night` : (h.total_price ? `$${h.total_price} total` : "N/A")),
+          rating: h.rating,
+          description: h.description || "No description available.",
+          amenities: h.amenities || [],
+          imagePrompt: `hotel exterior ${h.name} ${h.type || ''}`,
+          imageUri: h.thumbnail || h.images?.[0]?.thumbnail,
+          latitude: h.coordinates?.latitude,
+          longitude: h.coordinates?.longitude,
+          link: h.link,
+           // @ts-ignore
+          rooms: [], 
+      })));
       setAiSearchSummary(result.searchSummary || (validHotels.length === 0 ? `No specific conceptual hotel ideas found by AI for ${values.destination}.` : `Here are some AI-conceptualized hotel ideas for ${values.destination}!`));
-      if (map) plotHotelMarkers(validHotels);
+      if (map) plotHotelMarkers(searchedHotelSuggestions); // Plot the mapped suggestions
     } catch (error: any) {
       const errorMsg = `Failed to get AI hotel ideas for ${values.destination}: ${error.message || 'Unknown error'}`;
       console.error("[HotelsPage] Error in handleHotelSearchSubmit:", errorMsg);
@@ -691,9 +717,8 @@ export default function HotelsPage() {
     if (map && hotel.latitude != null && hotel.longitude != null && typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number') {
       map.panTo({ lat: hotel.latitude, lng: hotel.longitude });
       map.setZoom(15);
-    } else if (map) {
+    } else if (map && window.google && window.google.maps) { // Added window.google check
       console.warn("[HotelsPage] Hotel coordinates missing or invalid for map pan/zoom. Hotel:", hotel.name);
-      // Optionally pan to general destination area if coords are missing
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode({ address: form.getValues("destination") || hotel.name }, (results, status) => {
         if (status === 'OK' && results && results[0]) {
@@ -961,5 +986,4 @@ export default function HotelsPage() {
     </>
   );
 }
-
       
