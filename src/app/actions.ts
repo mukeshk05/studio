@@ -12,8 +12,8 @@ import {
 import { collection, doc, getDocs, query, where, writeBatch, documentId, setDoc, serverTimestamp, getDoc, Timestamp, addDoc, orderBy, limit, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { PopularDestinationsOutput, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import { popularDestinationsFlow } from '@/ai/flows/popular-destinations-flow';
-import { getExploreIdeasFromHistory, type ExploreIdeasOutput } from '@/ai/flows/explore-ideas-from-history-flow';
-import type { ExploreIdeasFromHistoryInput } from '@/ai/types/explore-ideas-types';
+import { getExploreIdeasFromHistory as getExploreIdeasFromHistoryFlow } from '@/ai/flows/explore-ideas-from-history-flow';
+import type { ExploreIdeasFromHistoryInput, ExploreIdeasOutput } from '@/ai/types/explore-ideas-types';
 import {
   aiFlightMapDealsFlow,
 } from '@/ai/flows/ai-flight-map-deals-flow';
@@ -28,11 +28,28 @@ import { aiHotelSearchFlow } from '@/ai/flows/ai-hotel-search-flow';
 import type { AiHotelSearchInput, AiHotelSearchOutput } from '@/ai/types/ai-hotel-search-types';
 import { thingsToDoFlow } from '@/ai/flows/things-to-do-flow';
 import type { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-to-do-types';
-import { getPriceAdvice, type PriceAdvisorInput, type PriceAdvisorOutput } from '@/ai/flows/price-advisor-flow';
-import { conceptualDateGridFlow } from '@/ai/flows/conceptual-date-grid-flow';
+
+// Import original functions with aliases and their types
+import { getPriceAdvice as getPriceAdviceFlow } from '@/ai/flows/price-advisor-flow'; // Corrected to import from the flow file
+import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types'; // Assuming types are in a separate file now or directly in flow if not exported before
+
+import { conceptualDateGridFlow as conceptualDateGridFlowOriginal } from '@/ai/flows/conceptual-date-grid-flow';
 import type { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/types/ai-conceptual-date-grid-types';
-import { conceptualPriceGraphFlow } from '@/ai/flows/conceptual-price-graph-flow';
+
+import { conceptualPriceGraphFlow as conceptualPriceGraphFlowOriginal } from '@/ai/flows/conceptual-price-graph-flow';
 import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
+
+// For getCoTravelAgentResponse
+import { getCoTravelAgentResponse as getCoTravelAgentResponseOriginal } from '@/ai/flows/co-travel-agent-flow';
+import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
+
+// For getItineraryAssistance
+import { getItineraryAssistance as getItineraryAssistanceOriginal } from '@/ai/flows/itinerary-assistance-flow';
+import type { ItineraryAssistanceInput, ItineraryAssistanceOutput } from '@/ai/types/itinerary-assistance-types';
+
+// For generateTripSummary
+import { generateTripSummary as generateTripSummaryOriginal } from '@/ai/flows/trip-summary-flow';
+import type { TripSummaryInput, TripSummaryOutput } from '@/ai/types/trip-summary-types';
 
 
 export interface ImageRequest {
@@ -199,7 +216,7 @@ export async function getPopularDestinations(
 export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput): Promise<ExploreIdeasOutput> {
   console.log(`[Server Action - getExploreIdeasAction] Input userId: ${input.userId}`);
   try {
-    const result = await getExploreIdeasFromHistory(input);
+    const result = await getExploreIdeasFromHistoryFlow(input);
     console.log(`[Server Action - getExploreIdeasAction] AI Flow Result (suggestions count): ${result.suggestions?.length || 0}. ContextualNote: ${result.contextualNote}`);
     return result;
   } catch (error: any) {
@@ -234,7 +251,7 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
     if (legs.length === 1) return "Non-stop";
     
     const numStops = (flightOption.layovers?.length || legs.length - 1);
-    if (numStops <= 0) return "Non-stop"; // Should be caught by legs.length === 1 but good fallback
+    if (numStops <= 0) return "Non-stop"; 
     
     let stopsDesc = `${numStops} stop${numStops > 1 ? 's' : ''}`;
     if (flightOption.layovers && flightOption.layovers.length > 0) {
@@ -248,7 +265,7 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
 
 export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Promise<SerpApiFlightSearchOutput> {
   console.log('[Server Action - getRealFlightsAction] Input:', input);
-  const apiKey = process.env.SERPAPI_API_KEY; // Ensure this is how you store your key
+  const apiKey = process.env.SERPAPI_API_KEY; 
   if (!apiKey) {
     console.error('[Server Action - getRealFlightsAction] SerpApi API key is not configured in .env file (SERPAPI_API_KEY).');
     return { error: "Flight search service is not configured. Please contact support." };
@@ -270,7 +287,6 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
   try {
     const response = await getSerpApiJson(params);
-    // Log the entire raw response for thorough debugging
     console.log('[Server Action - getRealFlightsAction] RAW SerpApi Response:', JSON.stringify(response, null, 2));
 
     if (response.error) {
@@ -284,16 +300,13 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
         return flightArray.map((flight: any, index: number): SerpApiFlightOption => {
             const legsArray = flight.flights || flight.segments || []; 
-            if (legsArray.length === 0 && !flight.price) { // If no legs and no price, it's likely an unusable entry
+            if (legsArray.length === 0 && !flight.price) { 
                 console.warn(`[Server Action - getRealFlightsAction - processFlights] Flight option at index ${index} has no legs/segments AND no price. Skipping. Raw:`, JSON.stringify(flight, null, 2));
-                // Return a structure that will be filtered out or handled as invalid by the caller
                 return { price: undefined } as unknown as SerpApiFlightOption; 
             }
              if (legsArray.length === 0 && flight.price) {
                 console.warn(`[Server Action - getRealFlightsAction - processFlights] Flight option at index ${index} has a price but no legs/segments array. This might be a direct flight summarized at top level. Raw:`, JSON.stringify(flight, null, 2));
-                // Attempt to construct a single leg from top-level info if possible, or handle as summary-only
             }
-
 
             const firstLeg = legsArray[0];
             const lastLeg = legsArray[legsArray.length - 1];
@@ -329,7 +342,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
                 derived_stops_description: deriveStopsDescription({ ...flight, flights: legsArray }),
             };
             return flightOptionData;
-        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0))); // Ensure basic data exists
+        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0)));
     }
 
     let bestFlightsProcessed: SerpApiFlightOption[] = [];
@@ -405,7 +418,7 @@ export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise
 export async function getPriceAdviceAction(input: PriceAdvisorInput): Promise<PriceAdvisorOutput> {
   console.log('[Server Action - getPriceAdviceAction] Input:', input);
   try {
-    const result = await getPriceAdvice(input);
+    const result = await getPriceAdviceFlow(input);
     console.log('[Server Action - getPriceAdviceAction] AI Flow Result:', result);
     return result;
   } catch (error: any) {
@@ -417,7 +430,7 @@ export async function getPriceAdviceAction(input: PriceAdvisorInput): Promise<Pr
 export async function getConceptualDateGridAction(input: ConceptualDateGridInput): Promise<ConceptualDateGridOutput> {
   console.log('[Server Action - getConceptualDateGridAction] Input:', input);
   try {
-    const result = await conceptualDateGridFlow(input);
+    const result = await conceptualDateGridFlowOriginal(input);
     return result;
   } catch (error: any) {
     console.error('[Server Action - getConceptualDateGridAction] ERROR fetching conceptual date grid:', error);
@@ -431,7 +444,7 @@ export async function getConceptualDateGridAction(input: ConceptualDateGridInput
 export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphInput): Promise<ConceptualPriceGraphOutput> {
   console.log('[Server Action - getConceptualPriceGraphAction] Input:', input);
   try {
-    const result = await conceptualPriceGraphFlow(input);
+    const result = await conceptualPriceGraphFlowOriginal(input);
     return result;
   } catch (error: any) {
     console.error('[Server Action - getConceptualPriceGraphAction] ERROR fetching conceptual price graph:', error);
@@ -442,11 +455,15 @@ export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphI
   }
 }
 
-// For getCoTravelAgentResponse (used in planner page)
-export { getCoTravelAgentResponse } from '@/ai/flows/co-travel-agent-flow';
+// Wrapped Server Actions
+export async function getCoTravelAgentResponse(input: CoTravelAgentInput): Promise<CoTravelAgentOutput> {
+  return getCoTravelAgentResponseOriginal(input);
+}
 
-// For getItineraryAssistance (used in dashboard)
-export { getItineraryAssistance } from '@/ai/flows/itinerary-assistance-flow';
+export async function getItineraryAssistance(input: ItineraryAssistanceInput): Promise<ItineraryAssistanceOutput> {
+  return getItineraryAssistanceOriginal(input);
+}
 
-// For generateTripSummary (used in dashboard)
-export { generateTripSummary } from '@/ai/flows/trip-summary-flow';
+export async function generateTripSummary(input: TripSummaryInput): Promise<TripSummaryOutput> {
+  return generateTripSummaryOriginal(input);
+}

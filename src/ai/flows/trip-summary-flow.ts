@@ -9,11 +9,14 @@
 import { ai } from '@/ai/genkit';
 // Import schemas and types from the new types file
 import {
-  TripSummaryInputSchema,
-  type TripSummaryInput,
-  TripSummaryOutputSchema,
-  type TripSummaryOutput,
-} from '@/ai/types/trip-summary-types';
+  TripSummaryInputSchema, // Imported for use in ai.definePrompt
+  type TripSummaryInput,   // Imported for type signature
+  TripSummaryOutputSchema, // Imported for use in ai.definePrompt
+  type TripSummaryOutput,  // Imported for type signature
+} from '@/ai/types/trip-summary-types'; // Ensure this path is correct
+
+// The actual Zod schema objects (TripSummaryInputSchema, TripSummaryOutputSchema)
+// are NOT exported from this file. Only the function and types are.
 
 export async function generateTripSummary(input: TripSummaryInput): Promise<TripSummaryOutput> {
   return tripSummaryFlow(input);
@@ -21,8 +24,8 @@ export async function generateTripSummary(input: TripSummaryInput): Promise<Trip
 
 const tripSummaryPrompt = ai.definePrompt({
   name: 'tripSummaryPrompt',
-  input: { schema: TripSummaryInputSchema },
-  output: { schema: TripSummaryOutputSchema },
+  input: { schema: TripSummaryInputSchema }, // Uses the imported schema
+  output: { schema: TripSummaryOutputSchema }, // Uses the imported schema
   prompt: `You are an expert travel summarizer. Based on the following trip details:
 - Destination: {{{destination}}}
 - Travel Dates: {{{travelDates}}} (Use this to infer approximate duration)
@@ -43,8 +46,8 @@ Ensure the summary is natural and enticing.
 const tripSummaryFlow = ai.defineFlow(
   {
     name: 'tripSummaryFlow',
-    inputSchema: TripSummaryInputSchema,
-    outputSchema: TripSummaryOutputSchema,
+    inputSchema: TripSummaryInputSchema, // Uses the imported schema
+    outputSchema: TripSummaryOutputSchema, // Uses the imported schema
   },
   async (input) => {
     const { output } = await tripSummaryPrompt(input);
