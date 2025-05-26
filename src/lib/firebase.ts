@@ -5,12 +5,13 @@ import { getFirestore } from "firebase/firestore";
 import { getMessaging } from "firebase/messaging"; // Import getMessaging
 
 const firebaseConfig: FirebaseOptions = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCroJnTi7x8JloktcyTU0OXUe2hA8V_hkc",
+  authDomain: "smarttravel-e2cc9.firebaseapp.com",
+  projectId: "smarttravel-e2cc9",
+  storageBucket: "smarttravel-e2cc9.firebasestorage.app",
+  messagingSenderId: "564263411903",
+  appId: "1:564263411903:web:bd74c537549cd7b356260a",
+  measurementId: "G-JLZ9414818"
 };
 
 // Initialize Firebase

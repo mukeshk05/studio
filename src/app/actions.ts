@@ -21,7 +21,6 @@ import type {
     AiFlightMapDealInput,
     AiFlightMapDealOutput,
 } from '@/ai/types/ai-flight-map-deals-types';
-// Removed conceptualFlightSearchFlow import
 import { getJson as getSerpApiJson } from 'serpapi';
 import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types';
 
@@ -190,7 +189,6 @@ export async function getPopularDestinations(
   try {
     const result = await popularDestinationsFlow(input);
     console.log(`[Server Action - getPopularDestinations] AI Flow Result (destinations count): ${result.destinations?.length || 0}. Contextual Note: ${result.contextualNote}`);
-    // console.log(`[Server Action - getPopularDestinations] AI Flow Result (destinations with images):`, result.destinations?.map(d => ({name: d.name, imageUriProvided: !!d.imageUri, coords: {lat:d.latitude, lng:d.longitude}})));
     return result;
   } catch (error: any) {
     console.error('[Server Action - getPopularDestinations] ERROR fetching popular destinations:', error);
@@ -230,18 +228,13 @@ export async function getAiFlightMapDealsAction(
   }
 }
 
-function formatSerpApiDuration(minutes?: number): string {
-  if (minutes === undefined || minutes === null) return "N/A";
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${h}h ${m}m`;
-}
-
 function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
-    if (!flightOption.flights || flightOption.flights.length === 0) return "Unknown stops";
-    if (flightOption.flights.length === 1) return "Non-stop";
-    const numStops = (flightOption.layovers?.length || flightOption.flights.length - 1);
-    if (numStops === 0) return "Non-stop"; // Should be caught by flights.length === 1 but good fallback
+    const legs = flightOption.flights || [];
+    if (legs.length === 0) return "Unknown stops";
+    if (legs.length === 1) return "Non-stop";
+    
+    const numStops = (flightOption.layovers?.length || legs.length - 1);
+    if (numStops <= 0) return "Non-stop"; // Should be caught by legs.length === 1 but good fallback
     
     let stopsDesc = `${numStops} stop${numStops > 1 ? 's' : ''}`;
     if (flightOption.layovers && flightOption.layovers.length > 0) {
@@ -255,16 +248,16 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
 
 export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Promise<SerpApiFlightSearchOutput> {
   console.log('[Server Action - getRealFlightsAction] Input:', input);
-  const apiKey = process.env.SERPAPI_API_KEY;
+  const apiKey = process.env.SERPAPI_API_KEY; // Ensure this is how you store your key
   if (!apiKey) {
-    console.error('[Server Action - getRealFlightsAction] SerpApi API key is not configured.');
-    return { error: "SerpApi API key is not configured." };
+    console.error('[Server Action - getRealFlightsAction] SerpApi API key is not configured in .env file (SERPAPI_API_KEY).');
+    return { error: "Flight search service is not configured. Please contact support." };
   }
 
   const params: any = {
     engine: "google_flights",
-    departure_id: input.origin, // SerpApi uses departure_id for origin
-    arrival_id: input.destination, // and arrival_id for destination
+    departure_id: input.origin,
+    arrival_id: input.destination,
     outbound_date: input.departureDate,
     currency: input.currency || "USD",
     hl: input.hl || "en",
@@ -274,123 +267,124 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   if (input.tripType === "round-trip" && input.returnDate) {
     params.return_date = input.returnDate;
   }
-  // TODO: Add passengers and travel_class later if needed, SerpApi format is like:
-  // adults: 1, children: 0, infants_in_seat: 0, infants_on_lap: 0
-  // travel_class: 1 (Economy), 2 (Premium Economy), 3 (Business), 4 (First)
 
   try {
     const response = await getSerpApiJson(params);
-    console.log('[Server Action - getRealFlightsAction] SerpApi Response received (first few best_flights):', JSON.stringify((response.best_flights || []).slice(0,2), null, 2));
+    // Log the entire raw response for thorough debugging
+    console.log('[Server Action - getRealFlightsAction] RAW SerpApi Response:', JSON.stringify(response, null, 2));
+
+    if (response.error) {
+      console.error('[Server Action - getRealFlightsAction] SerpApi returned an error:', response.error);
+      return { error: `SerpApi error: ${response.error}` };
+    }
     
-    const processFlights = (flights: any[] | undefined): SerpApiFlightOption[] => {
-        if (!flights) return [];
-        return flights.map((flight: any): SerpApiFlightOption => {
-            const firstLeg = flight.flights?.[0];
-            const lastLeg = flight.flights?.[flight.flights.length - 1];
-            return {
-                flights: flight.flights?.map((leg: any): SerpApiFlightLeg => ({
-                    departure_airport: leg.departure_airport,
-                    arrival_airport: leg.arrival_airport,
-                    duration: leg.duration,
-                    airline: leg.airline,
-                    airline_logo: leg.airline_logo,
-                    flight_number: leg.flight_number,
-                    airplane: leg.airplane,
-                    travel_class: leg.travel_class,
-                    extensions: leg.extensions,
-                })),
+    const processFlights = (flightArray: any[] | undefined): SerpApiFlightOption[] => {
+        if (!flightArray || flightArray.length === 0) return [];
+        console.log(`[Server Action - getRealFlightsAction - processFlights] Processing ${flightArray.length} raw flight options.`);
+
+        return flightArray.map((flight: any, index: number): SerpApiFlightOption => {
+            const legsArray = flight.flights || flight.segments || []; 
+            if (legsArray.length === 0 && !flight.price) { // If no legs and no price, it's likely an unusable entry
+                console.warn(`[Server Action - getRealFlightsAction - processFlights] Flight option at index ${index} has no legs/segments AND no price. Skipping. Raw:`, JSON.stringify(flight, null, 2));
+                // Return a structure that will be filtered out or handled as invalid by the caller
+                return { price: undefined } as unknown as SerpApiFlightOption; 
+            }
+             if (legsArray.length === 0 && flight.price) {
+                console.warn(`[Server Action - getRealFlightsAction - processFlights] Flight option at index ${index} has a price but no legs/segments array. This might be a direct flight summarized at top level. Raw:`, JSON.stringify(flight, null, 2));
+                // Attempt to construct a single leg from top-level info if possible, or handle as summary-only
+            }
+
+
+            const firstLeg = legsArray[0];
+            const lastLeg = legsArray[legsArray.length - 1];
+
+            const processedLegs: SerpApiFlightLeg[] = legsArray.map((leg: any): SerpApiFlightLeg => ({
+                departure_airport: leg.departure_airport,
+                arrival_airport: leg.arrival_airport,
+                duration: leg.duration,
+                airline: leg.airline,
+                airline_logo: leg.airline_logo,
+                flight_number: leg.flight_number,
+                airplane: leg.airplane,
+                travel_class: leg.travel_class,
+                extensions: leg.extensions,
+            }));
+
+            const flightOptionData: SerpApiFlightOption = {
+                flights: processedLegs.length > 0 ? processedLegs : undefined,
                 layovers: flight.layovers,
                 total_duration: flight.total_duration,
                 price: flight.price,
                 type: flight.type,
-                airline: flight.airline || firstLeg?.airline, // Best guess for overall airline
+                airline: flight.airline || firstLeg?.airline,
                 airline_logo: flight.airline_logo || firstLeg?.airline_logo,
                 link: flight.link,
                 carbon_emissions: flight.carbon_emissions,
-                // Derived fields
+                
                 derived_departure_time: firstLeg?.departure_airport?.time,
                 derived_arrival_time: lastLeg?.arrival_airport?.time,
                 derived_departure_airport_name: firstLeg?.departure_airport?.name,
                 derived_arrival_airport_name: lastLeg?.arrival_airport?.name,
-                derived_flight_numbers: flight.flights?.map((f:any) => f.flight_number).filter(Boolean).join(', '),
-                derived_stops_description: deriveStopsDescription(flight),
+                derived_flight_numbers: legsArray.map((f: any) => f.flight_number).filter(Boolean).join(', '),
+                derived_stops_description: deriveStopsDescription({ ...flight, flights: legsArray }),
             };
-        });
+            return flightOptionData;
+        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0))); // Ensure basic data exists
     }
 
+    let bestFlightsProcessed: SerpApiFlightOption[] = [];
+    let otherFlightsProcessed: SerpApiFlightOption[] = [];
+    let searchSummaryText: string;
+
+    if (response.best_flights?.length > 0 || response.other_flights?.length > 0) {
+        bestFlightsProcessed = processFlights(response.best_flights);
+        otherFlightsProcessed = processFlights(response.other_flights);
+        searchSummaryText = `Found ${bestFlightsProcessed.length + otherFlightsProcessed.length} flight options.`;
+        console.log(`[Server Action - getRealFlightsAction] Processed ${bestFlightsProcessed.length} best flights and ${otherFlightsProcessed.length} other flights from dedicated keys.`);
+    } else if (response.flights?.length > 0) { 
+        console.log('[Server Action - getRealFlightsAction] No best_flights or other_flights, but found a general "flights" array. Processing that.');
+        otherFlightsProcessed = processFlights(response.flights); 
+        searchSummaryText = `Found ${otherFlightsProcessed.length} flight options from general list.`;
+        console.log(`[Server Action - getRealFlightsAction] Processed ${otherFlightsProcessed.length} flights from general "flights" key.`);
+    } else {
+        searchSummaryText = "SerpApi found 0 flight options for this search.";
+        console.log('[Server Action - getRealFlightsAction] SerpApi returned no flight options (best_flights, other_flights, or general flights arrays are empty/missing).');
+    }
+    
     const output: SerpApiFlightSearchOutput = {
-      search_summary: `Found ${ (response.best_flights?.length || 0) + (response.other_flights?.length || 0)} flight options.`,
-      best_flights: processFlights(response.best_flights),
-      other_flights: processFlights(response.other_flights),
+      search_summary: searchSummaryText,
+      best_flights: bestFlightsProcessed.length > 0 ? bestFlightsProcessed : undefined,
+      other_flights: otherFlightsProcessed.length > 0 ? otherFlightsProcessed : undefined,
       price_insights: response.price_insights,
     };
 
-    console.log('[Server Action - getRealFlightsAction] Processed Output (first 2 best flights):', JSON.stringify((output.best_flights || []).slice(0,2), null, 2));
+    if ((!output.best_flights || output.best_flights.length === 0) && (!output.other_flights || output.other_flights.length === 0)) {
+        console.warn("[Server Action - getRealFlightsAction] No valid flights were processed into output despite potential raw data. Check processing logic against raw response.");
+    }
+
+    console.log('[Server Action - getRealFlightsAction] Final Processed Output (first 2 best_flights):', JSON.stringify((output.best_flights || []).slice(0,2), null, 2));
+    console.log('[Server Action - getRealFlightsAction] Final Processed Output (first 2 other_flights):', JSON.stringify((output.other_flights || []).slice(0,2), null, 2));
     return output;
 
   } catch (error: any) {
-    console.error('[Server Action - getRealFlightsAction] Error calling SerpApi:', error);
+    console.error('[Server Action - getRealFlightsAction] Error calling SerpApi or processing response:', error);
     return { error: `Failed to fetch flights from SerpApi: ${error.message || 'Unknown error'}` };
   }
 }
 
-// Removed getConceptualFlightsAction as it's replaced by getRealFlightsAction
-
-
 export async function getAiHotelSuggestionsAction(input: AiHotelSearchInput): Promise<AiHotelSearchOutput> {
-  console.log('[Server Action - getAiHotelSuggestionsAction] Simulating API hotel data fetch & AI image generation. Input:', JSON.stringify(input, null, 2));
-  
-  const mockHotels = [ // A more diverse set of mock hotels
-      { id: 'hotel_nyc_grand', name: `The Grand Plaza - ${input.destination.split(',')[0]}`, priceMin: 250, priceMax: 450, rating: 4.7, description: "Iconic luxury hotel offering breathtaking city views, opulent suites, and world-class dining. Steps from major attractions.", amenities: ["Indoor Pool", "Full Spa", "Michelin Star Restaurant", "Concierge", "Fitness Center", "Valet Parking"], lat: 40.7580, lon: -73.9855, imageHint: "grand hotel lobby new york city elegant" },
-      { id: 'hotel_bali_serene', name: `Serene Jungle Villa - ${input.destination.split(',')[0]}`, priceMin: 180, priceMax: 320, rating: 4.9, description: "Secluded villas nestled in lush jungle, featuring private pools, yoga pavilions, and organic cuisine. Perfect for a tranquil escape.", amenities: ["Private Pool", "Yoga Classes", "Organic Restaurant", "Spa Services", "Jungle Treks"], lat: -8.3405, lon: 115.0919, imageHint: "bali jungle villa private pool serene" },
-      { id: 'hotel_rome_boutique', name: `Artisan Boutique Hotel - ${input.destination.split(',')[0]}`, priceMin: 150, priceMax: 280, rating: 4.5, description: "Charming hotel in a historic building, adorned with local art and offering uniquely decorated rooms. Known for its personalized service.", amenities: ["Art Gallery", "Courtyard Garden", "Complimentary Breakfast", "Wine Bar", "City Tours"], lat: 41.9028, lon: 12.4964, imageHint: "rome boutique hotel art cozy" },
-      { id: 'hotel_tokyo_capsule', name: `Modern Capsule Pod - ${input.destination.split(',')[0]}`, priceMin: 40, priceMax: 80, rating: 4.2, description: "Futuristic and efficient capsule hotel providing all essentials for a comfortable stay. Great for solo travelers on a budget.", amenities: ["High-Speed WiFi", "Shared Lounge", "Secure Lockers", "24-Hour Reception", "Vending Machines"], lat: 35.6895, lon: 139.6917, imageHint: "tokyo capsule hotel futuristic clean" },
-      { id: 'hotel_paris_chic', name: `Chic Design Loft - ${input.destination.split(',')[0]}`, priceMin: 200, priceMax: 350, rating: 4.6, description: "Stylish loft apartments with contemporary design, full kitchens, and stunning city views. Located in a trendy neighborhood.", amenities: ["Full Kitchen", "City Views", "Designer Furniture", "Weekly Housekeeping", "Nespresso Machine"], lat: 48.8566, lon: 2.3522, imageHint: "paris design loft modern bright" }
-  ];
-
-  // Select 3-4 random hotels from the mock list to simulate variety
-  const shuffled = mockHotels.sort(() => 0.5 - Math.random());
-  const selectedMockHotels = shuffled.slice(0, Math.floor(Math.random() * 2) + 3); // 3 to 4 hotels
-
-  console.log(`[Server Action - getAiHotelSuggestionsAction] Using ${selectedMockHotels.length} mock hotels for destination: ${input.destination}`);
-
-  const imagePromptsForHotels: ImagePromptItem[] = selectedMockHotels.map((hotel) => ({
-    id: hotel.id, 
-    prompt: hotel.imageHint || `attractive photo of ${hotel.name}, ${hotel.description.substring(0, 50)}`,
-    styleHint: 'hotel',
-  }));
-
-  let hotelImageUris: Record<string, string | null> = {};
-  if (imagePromptsForHotels.length > 0) {
-    try {
-      console.log(`[Server Action - getAiHotelSuggestionsAction] Generating ${imagePromptsForHotels.length} hotel images with AI...`);
-      const imageResults = await generateMultipleImagesFlow({ prompts: imagePromptsForHotels });
-      imageResults.results.forEach(res => {
-        hotelImageUris[res.id] = res.imageUri;
-      });
-      console.log("[Server Action - getAiHotelSuggestionsAction] Hotel images generated/fetched.");
-    } catch (imgError: any) {
-      console.error("[Server Action - getAiHotelSuggestionsAction] Error generating hotel images:", imgError.message);
-    }
+  console.log('[Server Action - getAiHotelSuggestionsAction] Input:', JSON.stringify(input, null, 2));
+  try {
+    const result = await aiHotelSearchFlow(input);
+    console.log(`[Server Action - getAiHotelSuggestionsAction] AI Flow Result (hotels count): ${result.hotels?.length || 0}`);
+    return result;
+  } catch (error:any) {
+     console.error('[Server Action - getAiHotelSuggestionsAction] ERROR fetching AI hotel suggestions:', error);
+    return { 
+        hotels: [], 
+        searchSummary: `Sorry, we encountered an error finding hotel ideas: ${error.message}` 
+    };
   }
-
-  const finalHotelSuggestions: AiHotelSuggestion[] = selectedMockHotels.map(hotel => ({
-    name: hotel.name,
-    conceptualPriceRange: `$${hotel.priceMin} - $${hotel.priceMax} / night`,
-    rating: hotel.rating,
-    description: hotel.description,
-    amenities: hotel.amenities,
-    imagePrompt: imagePromptsForHotels.find(p => p.id === hotel.id)?.prompt || `photo of ${hotel.name}`,
-    imageUri: hotelImageUris[hotel.id] || `https://placehold.co/600x400.png?text=${encodeURIComponent(hotel.name.substring(0,15))}`,
-    latitude: hotel.lat,
-    longitude: hotel.lon,
-  }));
-  
-  console.log(`[Server Action - getAiHotelSuggestionsAction] Returning ${finalHotelSuggestions.length} conceptual hotels.`);
-  return {
-    hotels: finalHotelSuggestions,
-    searchSummary: `Aura AI found ${finalHotelSuggestions.length} conceptual hotel ideas for ${input.destination}. These are simulated API results combined with AI-generated images.`
-  };
 }
 
 export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise<ThingsToDoOutput> {
@@ -447,3 +441,12 @@ export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphI
     };
   }
 }
+
+// For getCoTravelAgentResponse (used in planner page)
+export { getCoTravelAgentResponse } from '@/ai/flows/co-travel-agent-flow';
+
+// For getItineraryAssistance (used in dashboard)
+export { getItineraryAssistance } from '@/ai/flows/itinerary-assistance-flow';
+
+// For generateTripSummary (used in dashboard)
+export { generateTripSummary } from '@/ai/flows/trip-summary-flow';
