@@ -25,28 +25,22 @@ import { getJson as getSerpApiJson } from 'serpapi';
 import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types';
 import type { SerpApiHotelSearchInput, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types';
 
-import { getPriceAdvice as getPriceAdviceOriginal } from '@/ai/flows/price-advisor-flow';
-import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types';
+import { getPriceAdvice as getPriceAdviceOriginal, PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/flows/price-advisor-flow'; // Import types directly
 
-import { conceptualDateGridFlow as conceptualDateGridFlowOriginal } from '@/ai/flows/conceptual-date-grid-flow';
-import type { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/types/ai-conceptual-date-grid-types';
+import { conceptualDateGridFlow as conceptualDateGridFlowOriginal, ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/flows/conceptual-date-grid-flow'; // Import types directly
 
-import { conceptualPriceGraphFlow as conceptualPriceGraphFlowOriginal } from '@/ai/flows/conceptual-price-graph-flow';
-import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
+import { conceptualPriceGraphFlow as conceptualPriceGraphFlowOriginal, ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/flows/conceptual-price-graph-flow'; // Import types directly
 
-import { getCoTravelAgentResponse as getCoTravelAgentResponseOriginal } from '@/ai/flows/co-travel-agent-flow';
-import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
+import { getCoTravelAgentResponse as getCoTravelAgentResponseOriginal, CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/flows/co-travel-agent-flow'; // Import types directly
 
-import { getItineraryAssistance as getItineraryAssistanceOriginal } from '@/ai/flows/itinerary-assistance-flow';
-import type { ItineraryAssistanceInput, ItineraryAssistanceOutput } from '@/ai/types/itinerary-assistance-types';
+import { getItineraryAssistance as getItineraryAssistanceOriginal, ItineraryAssistanceInput, ItineraryAssistanceOutput } from '@/ai/flows/itinerary-assistance-flow'; // Import types directly
 
-import { generateTripSummary as generateTripSummaryOriginal } from '@/ai/flows/trip-summary-flow';
-import type { TripSummaryInput, TripSummaryOutput } from '@/ai/types/trip-summary-types';
+import { generateTripSummary as generateTripSummaryOriginal, TripSummaryInput, TripSummaryOutput } from '@/ai/flows/trip-summary-flow'; // Import types directly
 
-import { smartBundleFlow as smartBundleFlowOriginal } from '@/ai/flows/smart-bundle-flow';
-import type { SmartBundleInput, SmartBundleOutput, BundleSuggestion } from '@/ai/types/smart-bundle-types';
-import { thingsToDoFlow as thingsToDoFlowOriginal } from '@/ai/flows/things-to-do-flow';
-import type { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-to-do-types';
+import { smartBundleFlow as smartBundleFlowOriginal, SmartBundleInput, SmartBundleOutput } from '@/ai/flows/smart-bundle-flow'; // Import types directly
+import type { BundleSuggestion } from '@/ai/types/smart-bundle-types';
+
+import { thingsToDoFlow as thingsToDoFlowOriginal, ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/flows/things-to-do-flow'; // Import types directly
 import type { FlightOption, HotelOption } from '@/lib/types';
 
 import { format, addDays, parse, differenceInDays, addMonths } from 'date-fns';
@@ -78,14 +72,15 @@ async function saveImageUriToDbInternal({
     return;
   }
   try {
-    const imageDocRef = doc(firestore, 'landingPageImages', id); // Using 'landingPageImages' for hero, but we'll use a different collection for destination images
+    // Corrected path: 'imageCache' is collection, 'id' is documentId
+    const imageDocRef = doc(firestore, 'imageCache', id); 
     await setDoc(imageDocRef, {
       imageUri: imageUri,
       promptUsed: promptText,
       styleHint: styleHint,
       lastUpdated: serverTimestamp(),
     }, { merge: true });
-    console.log(`[DB Save Internal] Image for ID ${id} SAVED/UPDATED successfully in Firestore (landingPageImages).`);
+    console.log(`[DB Save Internal] Image for ID ${id} SAVED/UPDATED successfully in Firestore (imageCache).`);
   } catch (error: any) {
     console.error(`[DB Save Internal Error] Failed to save image for ID ${id} to Firestore. Error: ${error.message}`, error.stack);
   }
@@ -109,20 +104,40 @@ export async function getLandingPageImagesWithFallback(
         const chunkOfIds = requestIds.slice(i, i + MAX_FIRESTORE_IN_QUERY);
         if (chunkOfIds.length === 0) continue;
         try {
-          const imageDocsQuery = query(collection(firestore, 'landingPageImages'), where(documentId(), 'in', chunkOfIds));
+          // Corrected path: 'imageCache' is collection
+          const imageDocsQuery = query(collection(firestore, 'imageCache'), where(documentId(), 'in', chunkOfIds));
           const imageDocsSnap = await getDocs(imageDocsQuery);
           imageDocsSnap.forEach(docSnap => {
             if (docSnap.exists()) {
               const data = docSnap.data();
-              if (data.imageUri) imageUris[docSnap.id] = data.imageUri;
-              else {
-                const originalRequest = requests.find(r => r.id === docSnap.id);
+              const originalRequest = requests.find(r => r.id === docSnap.id);
+              if (data.imageUri && originalRequest?.styleHint === data.styleHint) { // Check styleHint consistency if needed
+                 imageUris[docSnap.id] = data.imageUri;
+              } else {
                 if (originalRequest && !aiGenerationQueue.find(q => q.id === docSnap.id)) {
                      aiGenerationQueue.push({ id: originalRequest.id, prompt: originalRequest.promptText, styleHint: originalRequest.styleHint });
                 }
               }
+            } else { // If doc doesn't exist, it needs generation
+                const originalRequest = requests.find(r => r.id === docSnap.id); // docSnap.id is not right here if doc doesn't exist. Iterate chunkOfIds
+                 chunkOfIds.forEach(idInChunk => {
+                    if (docSnap.id === idInChunk && imageUris[idInChunk] === null) { // This logic is a bit off, fixed below
+                        // This block might be redundant due to the fallback logic later
+                    }
+                });
             }
           });
+           // Ensure all IDs not found in DB are queued for AI
+          chunkOfIds.forEach(idInChunk => {
+            if (imageUris[idInChunk] === null) { // If still null after DB check
+                const originalRequest = requests.find(r => r.id === idInChunk);
+                if (originalRequest && !aiGenerationQueue.find(q => q.id === idInChunk)) {
+                    aiGenerationQueue.push({ id: originalRequest.id, prompt: originalRequest.promptText, styleHint: originalRequest.styleHint });
+                }
+            }
+          });
+
+
         } catch (dbError: any) {
           console.error(`[DB Check Error - Landing] Firestore query failed for chunk. Error: ${dbError.message}`);
           chunkOfIds.forEach(idInChunk => {
@@ -139,6 +154,7 @@ export async function getLandingPageImagesWithFallback(
       requests.forEach(req => aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint }));
     }
 
+    // Fallback: ensure any request not satisfied by cache is added to AI queue
     requests.forEach(req => {
       if (imageUris[req.id] === null && !aiGenerationQueue.find(q => q.id === req.id)) {
         aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint });
@@ -147,7 +163,8 @@ export async function getLandingPageImagesWithFallback(
 
     if (aiGenerationQueue.length > 0) {
       try {
-        const aiResultsOutput: MultipleImagesOutput = await generateMultipleImagesAction({ prompts: aiGenerationQueue }); // Call the wrapped action
+        console.log(`[LandingPageImages] Calling generateMultipleImagesAction for ${aiGenerationQueue.length} images.`);
+        const aiResultsOutput: MultipleImagesOutput = await generateMultipleImagesAction({ prompts: aiGenerationQueue }); 
         const aiResults = aiResultsOutput.results || [];
         aiResults.forEach(aiResult => {
           if (aiResult.imageUri) {
@@ -169,7 +186,7 @@ export async function getLandingPageImagesWithFallback(
   } catch (topLevelError: any) {
     console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', topLevelError.message);
     const fallbackUris: Record<string, string | null> = {};
-    requests.forEach(req => fallbackUris[req.id] = null);
+    requests.forEach(req => fallbackUris[req.id] = null); // Return nulls so UI can use static fallbacks
     return fallbackUris;
   }
 }
@@ -262,7 +279,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   }
 
   const cacheKey = `flights_${input.origin}_${input.destination}_${input.departureDate}_${input.returnDate || 'ow'}_${input.tripType || 'rt'}`;
-  const cacheDocRef = doc(firestore, 'serpApiCache/flights', cacheKey);
+  const cacheDocRef = doc(firestore, 'serpApiFlightsCache', cacheKey); // Corrected collection name
 
   try {
     const docSnap = await getDoc(cacheDocRef);
@@ -292,7 +309,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   console.log('[Server Action - getRealFlightsAction] Parameters sent to SerpApi:', params);
   try {
     const response = await getSerpApiJson(params);
-    console.log('[Server Action - getRealFlightsAction] RAW SerpApi Response received.');
+    console.log('[Server Action - getRealFlightsAction] RAW SerpApi Response received:', JSON.stringify(response, null, 2));
 
     if (response.error) {
       console.error('[Server Action - getRealFlightsAction] SerpApi returned an error:', response.error);
@@ -334,7 +351,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
     if (firestore && (output.best_flights || output.other_flights)) {
       try {
-        await setDoc(cacheDocRef, { data: output, cachedAt: serverTimestamp(), queryKey }, { merge: true });
+        await setDoc(cacheDocRef, { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey }, { merge: true });
         console.log(`[Server Action - getRealFlightsAction] Saved to cache for key: ${cacheKey}`);
       } catch (cacheWriteError) {
         console.error(`[Server Action - getRealFlightsAction] Error writing to cache for key ${cacheKey}:`, cacheWriteError);
@@ -357,7 +374,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
   }
 
   const cacheKey = `hotels_${input.destination}_${input.checkInDate}_${input.checkOutDate}_${input.guests || '2'}`;
-  const cacheDocRef = doc(firestore, 'serpApiCache/hotels', cacheKey);
+  const cacheDocRef = doc(firestore, 'serpApiHotelsCache', cacheKey); // Corrected collection name
 
   try {
     const docSnap = await getDoc(cacheDocRef);
@@ -386,7 +403,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
 
   try {
     const response = await getSerpApiJson(params);
-    console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response received.');
+    console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response:', JSON.stringify(response, null, 2));
 
     if (response.error) {
       console.error('[Server Action - getRealHotelsAction] SerpApi returned an error:', response.error);
@@ -394,6 +411,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     }
     
     const rawHotels = response.properties || [];
+    console.log(`[Server Action - getRealHotelsAction] Found ${rawHotels.length} raw hotel properties from SerpApi.`);
     const hotels: SerpApiHotelSuggestion[] = rawHotels.map((hotel: any): SerpApiHotelSuggestion => {
       const priceSourceForPpn = hotel.rate_per_night?.lowest ?? hotel.price_per_night ?? hotel.price ?? hotel.extracted_price;
       const parsedPricePerNight = parsePrice(priceSourceForPpn);
@@ -402,7 +420,8 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
 
       const finalHotelObject: SerpApiHotelSuggestion = {
         name: hotel.name, type: hotel.type, description: hotel.overall_info || hotel.description,
-        price_per_night: parsedPricePerNight, total_price: parsedTotalPrice,
+        price_per_night: parsedPricePerNight, 
+        total_price: parsedTotalPrice,
         price_details: typeof priceSourceForPpn === 'string' ? priceSourceForPpn : (parsedPricePerNight !== undefined ? `$${parsedPricePerNight}` : undefined),
         rating: hotel.overall_rating || hotel.rating, reviews: hotel.reviews,
         amenities: hotel.amenities_objects?.map((am: any) => am.name) || hotel.amenities,
@@ -414,7 +433,8 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
       console.log(`[Server Action - getRealHotelsAction] FINAL MAPPING for ${finalHotelObject.name} - Raw PPN Source: '${priceSourceForPpn}', Parsed PPN: ${finalHotelObject.price_per_night} (Type: ${typeof finalHotelObject.price_per_night})`);
       return finalHotelObject;
     }).filter((h: SerpApiHotelSuggestion) => h.name && (h.price_per_night !== undefined || h.total_price !== undefined || h.price_details));
-
+    
+    console.log(`[Server Action - getRealHotelsAction] Processed ${hotels.length} valid hotel suggestions.`);
     const output: SerpApiHotelSearchOutput = {
       hotels: hotels.length > 0 ? hotels : [],
       search_summary: response.search_information?.displayed_query || `Found ${hotels.length} hotel options.`,
@@ -423,7 +443,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
 
     if (firestore && output.hotels && output.hotels.length > 0) {
       try {
-        await setDoc(cacheDocRef, { data: output, cachedAt: serverTimestamp(), queryKey }, { merge: true });
+        await setDoc(cacheDocRef, { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey }, { merge: true });
         console.log(`[Server Action - getRealHotelsAction] Saved to cache for key: ${cacheKey}`);
       } catch (cacheWriteError) {
         console.error(`[Server Action - getRealHotelsAction] Error writing to cache for key ${cacheKey}:`, cacheWriteError);
@@ -440,66 +460,90 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
 export async function generateMultipleImagesAction(input: MultipleImagesInput): Promise<MultipleImagesOutput> {
   console.log(`[Server Action - generateMultipleImagesAction] Starting generation for ${input.prompts.length} images.`);
   const results: ImageResultItem[] = [];
-  const batchSize = 5;
+  const batchSize = 5; // Process in batches to avoid overwhelming the API or local resources
 
   for (let i = 0; i < input.prompts.length; i += batchSize) {
-    const batch = input.prompts.slice(i, i + batchSize);
-    const batchPromises = batch.map(async (item): Promise<ImageResultItem> => {
-      let imageCacheKey = item.id; // Use provided ID as cache key (e.g., 'destination_image_paris_france')
+      const batch = input.prompts.slice(i, i + batchSize);
+      console.log(`[Server Action - generateMultipleImagesAction] Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(input.prompts.length / batchSize)} (size: ${batch.length})`);
 
-      if (imageCacheKey && firestore) {
-        const cacheDocRef = doc(firestore, 'imageCache/destinations', imageCacheKey);
-        try {
-          const docSnap = await getDoc(cacheDocRef);
-          if (docSnap.exists()) {
-            const cacheData = docSnap.data();
-            const cachedAt = (cacheData.cachedAt as Timestamp).toDate();
-            const now = new Date();
-            const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
-            if (daysDiff < CACHE_EXPIRY_DAYS_IMAGE && cacheData.imageUri) {
-              console.log(`[Server Action - generateMultipleImagesAction] Image Cache HIT for key: ${imageCacheKey}`);
-              return { id: item.id, imageUri: cacheData.imageUri };
-            }
-            console.log(`[Server Action - generateMultipleImagesAction] Image Cache STALE for key: ${imageCacheKey}`);
-          } else {
-            console.log(`[Server Action - generateMultipleImagesAction] Image Cache MISS for key: ${imageCacheKey}`);
-          }
-        } catch (cacheError) {
-          console.error(`[Server Action - generateMultipleImagesAction] Error reading image cache for key ${imageCacheKey}:`, cacheError);
-        }
-      }
+      const batchPromises = batch.map(async (item): Promise<ImageResultItem> => {
+          const imageCacheKey = item.id; // Use provided ID as cache key (e.g., 'destination_image_paris_france')
 
-      // If not cached or cache is stale, proceed with AI generation
-      let fullPrompt = item.prompt;
-      if (item.styleHint === 'hero') fullPrompt = `Generate a captivating, high-resolution hero image for a travel website, representing: "${item.prompt}". Style: cinematic, inspiring, travel-focused. Aspect ratio 1:1 for carousel.`;
-      else if (item.styleHint === 'featureCard') fullPrompt = `Generate a high-quality, visually appealing image suitable for a website feature card, representing the concept: "${item.prompt}". Style: modern, tech-forward, travel-related, slightly abstract or conceptual. Aspect ratio 16:9.`;
-      else if (item.styleHint === 'destination') fullPrompt = `Generate an iconic, vibrant, and high-quality travel photograph representing: ${item.prompt}. Aspect ratio 16:9. Focus on its most recognizable visual elements or overall atmosphere.`;
-      else if (item.styleHint === 'activity') fullPrompt = `Generate an attractive, high-quality photograph of a travel activity: ${item.prompt}. Focus on appealing visuals, good lighting, and a sense of action or place. Aspect ratio 16:9.`;
-      else if (item.styleHint === 'hotel') fullPrompt = `Generate an attractive, high-quality photograph of a hotel exterior or lobby based on: ${item.prompt}. Style: inviting, well-lit. Aspect ratio 16:9.`;
-      else if (item.styleHint === 'hotelRoom') fullPrompt = `Generate an attractive, high-quality photograph of a hotel room interior based on: ${item.prompt}. Style: clean, well-lit, inviting. Aspect ratio 16:9.`;
-
-      try {
-        const { media } = await generateMultipleImagesFlowOriginal({ prompts: [{...item, prompt: fullPrompt }] }).then(res => res.results[0] ? { media: { url: res.results[0].imageUri }} : { media: null });
-        if (media?.url) {
           if (imageCacheKey && firestore) {
-            const cacheDocRef = doc(firestore, 'imageCache/destinations', imageCacheKey);
-            try {
-              await setDoc(cacheDocRef, { imageUri: media.url, promptUsed: fullPrompt, cachedAt: serverTimestamp() }, { merge: true });
-              console.log(`[Server Action - generateMultipleImagesAction] Saved image to cache for key: ${imageCacheKey}`);
-            } catch (cacheWriteError) {
-              console.error(`[Server Action - generateMultipleImagesAction] Error writing image to cache for key ${imageCacheKey}:`, cacheWriteError);
-            }
+              const cacheDocRef = doc(firestore, 'imageCache', imageCacheKey); // Corrected path
+              try {
+                  const docSnap = await getDoc(cacheDocRef);
+                  if (docSnap.exists()) {
+                      const cacheData = docSnap.data();
+                      const cachedAt = (cacheData.cachedAt as Timestamp).toDate();
+                      const now = new Date();
+                      const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+                      
+                      // Also check if the prompt/styleHint matches what's cached if necessary
+                      if (daysDiff < CACHE_EXPIRY_DAYS_IMAGE && cacheData.imageUri && cacheData.promptUsed === item.prompt && cacheData.styleHint === item.styleHint) {
+                          console.log(`[Server Action - generateMultipleImagesAction] Image Cache HIT for key: ${imageCacheKey}`);
+                          return { id: item.id, imageUri: cacheData.imageUri };
+                      }
+                      console.log(`[Server Action - generateMultipleImagesAction] Image Cache STALE or mismatched for key: ${imageCacheKey}. Will regenerate.`);
+                  } else {
+                      console.log(`[Server Action - generateMultipleImagesAction] Image Cache MISS for key: ${imageCacheKey}`);
+                  }
+              } catch (cacheError) {
+                  console.error(`[Server Action - generateMultipleImagesAction] Error reading image cache for key ${imageCacheKey}:`, cacheError);
+              }
           }
-          return { id: item.id, imageUri: media.url };
-        } else {
-          return { id: item.id, imageUri: null, error: 'No media URL returned by AI.' };
-        }
-      } catch (error: any) {
-        return { id: item.id, imageUri: null, error: error.message || 'Unknown error during image generation.' };
-      }
-    });
-    results.push(...await Promise.all(batchPromises));
+
+          // If not cached or cache is stale, proceed with AI generation
+          let fullPrompt = item.prompt; // Default to original prompt
+            if (item.styleHint === 'hero') {
+                fullPrompt = `Generate a captivating, high-resolution hero image for a travel website, representing: "${item.prompt}". Style: cinematic, inspiring, travel-focused. Aspect ratio 1:1 for carousel.`;
+            } else if (item.styleHint === 'featureCard') {
+                fullPrompt = `Generate a high-quality, visually appealing image suitable for a website feature card, representing the concept: "${item.prompt}". Style: modern, tech-forward, travel-related, slightly abstract or conceptual. Aspect ratio 16:9.`;
+            } else if (item.styleHint === 'destination') {
+                 fullPrompt = `Generate an iconic, vibrant, and high-quality travel photograph representing: ${item.prompt}. Aspect ratio 16:9. Focus on its most recognizable visual elements or overall atmosphere.`;
+            } else if (item.styleHint === 'activity') {
+                 fullPrompt = `Generate an attractive, high-quality photograph of a travel activity: ${item.prompt}. Focus on appealing visuals, good lighting, and a sense of action or place. Aspect ratio 16:9.`;
+            } else if (item.styleHint === 'hotel') {
+                 fullPrompt = `Generate an attractive, high-quality photograph of a hotel exterior or lobby based on: ${item.prompt}. Style: inviting, well-lit. Aspect ratio 16:9.`;
+            } else if (item.styleHint === 'hotelRoom') {
+                 fullPrompt = `Generate an attractive, high-quality photograph of a hotel room interior based on: ${item.prompt}. Style: clean, well-lit, inviting. Aspect ratio 16:9.`;
+            }
+
+
+          try {
+              console.log(`[AI Flow - generateMultipleImagesFlow] Generating image for ID: ${item.id}, Full Prompt: "${fullPrompt}"`);
+              // The original flow is called here with an array containing a single item
+              const singleItemInput: MultipleImagesInput = { prompts: [{...item, prompt: fullPrompt }] }; 
+              const aiFlowResult = await generateMultipleImagesFlowOriginal(singleItemInput);
+              const mediaUrl = aiFlowResult.results[0]?.imageUri; // Assuming flow returns results for the single item
+
+              if (mediaUrl) {
+                  console.log(`[AI Flow - generateMultipleImagesFlow] Success for ID: ${item.id}. Image URI starts with: ${mediaUrl.substring(0, 50)}...`);
+                  if (imageCacheKey && firestore) {
+                      const cacheDocRef = doc(firestore, 'imageCache', imageCacheKey); // Corrected path
+                      try {
+                          await setDoc(cacheDocRef, { imageUri: mediaUrl, promptUsed: item.prompt, styleHint: item.styleHint, cachedAt: serverTimestamp() }, { merge: true });
+                          console.log(`[Server Action - generateMultipleImagesAction] Saved image to cache for key: ${imageCacheKey}`);
+                      } catch (cacheWriteError) {
+                          console.error(`[Server Action - generateMultipleImagesAction] Error writing image to cache for key ${imageCacheKey}:`, cacheWriteError);
+                      }
+                  }
+                  return { id: item.id, imageUri: mediaUrl };
+              } else {
+                  console.warn(`[AI Flow - generateMultipleImagesFlow] Image generation for ID: ${item.id}, prompt "${item.prompt}" did NOT return a media URL.`);
+                  return { id: item.id, imageUri: null, error: 'No media URL returned by AI.' };
+              }
+          } catch (error: any) {
+              console.error(`[AI Flow - generateMultipleImagesFlow] FAILED to generate image for ID: ${item.id}, prompt "${item.prompt}":`, error.message || error);
+              return { id: item.id, imageUri: null, error: error.message || 'Unknown error during image generation.' };
+          }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
   }
+  
+  console.log(`[Server Action - generateMultipleImagesAction] Finished generation. Total results: ${results.length}`);
   return { results };
 }
 
@@ -574,9 +618,15 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
       
       let realPriceMin = 0; let priceNoteParts: string[] = [];
       if (bestFlight?.price) { realPriceMin += bestFlight.price; priceNoteParts.push(`Flight ~\$${bestFlight.price.toLocaleString()}`); } else { priceNoteParts.push("No specific flight price found."); }
-      if (bestHotel?.price_per_night) { const hotelTotal = bestHotel.price_per_night * parsedDates.durationDays; realPriceMin += hotelTotal; priceNoteParts.push(`Hotel ~\$${hotelTotal.toLocaleString()} for ${parsedDates.durationDays} nights`); }
-      else if (bestHotel?.total_price) { realPriceMin += bestHotel.total_price; priceNoteParts.push(`Hotel ~\$${bestHotel.total_price.toLocaleString()}`);}
-      else { priceNoteParts.push("No specific hotel price found."); }
+      
+      const hotelCostForStay = bestHotel?.total_price ?? (bestHotel?.price_per_night ? bestHotel.price_per_night * parsedDates.durationDays : 0);
+      if (hotelCostForStay > 0) {
+          realPriceMin += hotelCostForStay;
+          priceNoteParts.push(`Hotel ~\$${hotelCostForStay.toLocaleString()}${bestHotel?.price_per_night ? ` for ${parsedDates.durationDays} nights` : ' total'}`);
+      } else {
+          priceNoteParts.push("No specific hotel price found.");
+      }
+
 
       if (realPriceMin > 0) {
         augmentedSugg.estimatedRealPriceRange = `Around \$${realPriceMin.toLocaleString()}`;
@@ -592,7 +642,8 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
   return { suggestions: augmentedSuggestions };
 }
 
-// Wrapped AI Flows (Server Actions)
+// Wrapped AI Flows (Server Actions) - Ensure types are imported if not inferred
+
 export async function getCoTravelAgentResponse(input: CoTravelAgentInput): Promise<CoTravelAgentOutput> { return getCoTravelAgentResponseOriginal(input); }
 export async function getItineraryAssistance(input: ItineraryAssistanceInput): Promise<ItineraryAssistanceOutput> { return getItineraryAssistanceOriginal(input); }
 export async function generateTripSummary(input: TripSummaryInput): Promise<TripSummaryOutput> { return generateTripSummaryOriginal(input); }
@@ -600,8 +651,7 @@ export async function getPriceAdviceAction(input: PriceAdvisorInput): Promise<Pr
 export async function getConceptualDateGridAction(input: ConceptualDateGridInput): Promise<ConceptualDateGridOutput> { return conceptualDateGridFlowOriginal(input); }
 export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphInput): Promise<ConceptualPriceGraphOutput> { return conceptualPriceGraphFlowOriginal(input); }
 export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise<ThingsToDoOutput> { return thingsToDoFlowOriginal(input); }
-// generateMultipleImagesAction is now defined above with caching
-// export async function generateMultipleImagesAction(input: MultipleImagesInput): Promise<MultipleImagesOutput> { return generateMultipleImagesFlowOriginal(input); }
+
 
 // Other flow wrappers
 import { getPackingList as getPackingListFlow } from '@/ai/flows/packing-list-flow';
