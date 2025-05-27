@@ -1,5 +1,7 @@
 
 import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal, FlightOptionSchema as AIFlightOptionSchema, HotelOptionSchema as AIHotelOptionSchema, RoomSchema as AIRoomSchema, DailyPlanItemSchema as AIDailyPlanItemSchema } from "@/ai/types/trip-planner-types";
+import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // Assuming hotel suggestions are also in flight search types for now, or create a new one. This should be SerpApiHotelSuggestion from its own file.
+import { z } from 'zod'; // Ensure z is imported if used here, though likely only in AI types
 
 // This effectively takes the type of a single itinerary object from the array
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
@@ -16,18 +18,17 @@ export type Itinerary = Omit<SingleItineraryFromAI, 'flightOptions' | 'hotelOpti
   flightOptions: FlightOption[];
   hotelOptions: HotelOption[];
   dailyPlan: DailyPlanItem[];
-  aiGeneratedMemory?: { 
+  aiGeneratedMemory?: {
     memoryText: string;
-    generatedAt: string; 
+    generatedAt: string;
   };
   aiTripSummary?: {
     text: string;
-    generatedAt: string; 
+    generatedAt: string;
   };
   culturalTip?: string | null;
-  weatherContext?: string | null; // Already in SingleItineraryFromAI if present in prompt, but good to ensure
-  riskContext?: string | null; // Already in SingleItineraryFromAI if present in prompt
-  // New fields for indicating if the suggestion is an alternative and why
+  weatherContext?: string | null;
+  riskContext?: string | null;
   isAlternative?: boolean;
   alternativeReason?: string;
   destinationLatitude?: number;
@@ -38,20 +39,20 @@ export type Itinerary = Omit<SingleItineraryFromAI, 'flightOptions' | 'hotelOpti
 export interface PriceForecast {
   forecast: string;
   confidence?: 'low' | 'medium' | 'high';
-  forecastedAt: string; 
+  forecastedAt: string;
 }
 
 export interface PriceTrackerEntry {
   id: string;
   itemType: "flight" | "hotel";
-  itemName: string; 
-  originCity?: string; 
-  destination?: string; 
+  itemName: string;
+  originCity?: string;
+  destination?: string;
   targetPrice: number;
-  currentPrice: number; 
+  currentPrice: number;
   travelDates?: string;
-  lastChecked: string; 
-  createdAt?: any; 
+  lastChecked: string;
+  createdAt?: any;
   alertStatus?: {
     shouldAlert: boolean;
     alertMessage: string;
@@ -61,23 +62,22 @@ export interface PriceTrackerEntry {
 }
 
 export interface SearchHistoryEntry {
-  id: string; 
+  id: string;
   destination: string;
   travelDates: string;
   budget: number;
-  searchedAt: any; 
+  searchedAt: any;
 }
 
 export interface UserTravelPersona {
   name: string;
   description: string;
-  lastUpdated: any; 
+  lastUpdated: any;
 }
 
 
 export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
-// Update AITripPlannerInput to allow null for optional fields
 export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' | 'desiredMood' | 'weatherContext' | 'riskContext' | 'realFlightOptions' | 'realHotelOptions'> & {
   userPersona?: {
     name: string;
@@ -86,7 +86,18 @@ export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' 
   desiredMood?: string | null;
   weatherContext?: string | null;
   riskContext?: string | null;
-  // These will be populated by the planner page before calling the AI flow
   realFlightOptions?: import('@/ai/types/serpapi-flight-search-types').SerpApiFlightOption[];
   realHotelOptions?: import('@/ai/types/serpapi-hotel-search-types').SerpApiHotelSuggestion[];
 };
+
+// New type for combined trip package suggestions
+export interface TripPackageSuggestion {
+  id: string;
+  flight: SerpApiFlightOption;
+  hotel: SerpApiHotelSuggestion; // Use the actual SerpApiHotelSuggestion type
+  totalEstimatedCost: number;
+  durationDays: number;
+  destinationQuery: string; // User's original destination query
+  travelDatesQuery: string; // User's original travel dates query
+  userInput: AITripPlannerInput; // Include the original user input for context
+}
