@@ -7,16 +7,16 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import type { TripPackageSuggestion } from "@/lib/types";
+import type { TripPackageSuggestion, DailyPlanItem as ConceptualDailyPlanItem } from "@/lib/types"; // Assuming ConceptualDailyPlanItem might be similar to DailyPlanItem
 import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const glassPaneClasses = "glass-pane";
 const glassCardClasses = "glass-card";
@@ -30,7 +30,6 @@ interface CombinedTripDetailDialogProps {
   onInitiateBooking: (destination: string, travelDates: string) => void;
 }
 
-
 function formatDuration(minutes?: number): string {
   if (minutes === undefined || minutes === null) return "N/A";
   const h = Math.floor(minutes / 60);
@@ -38,12 +37,29 @@ function formatDuration(minutes?: number): string {
   return `${h}h ${m}m`;
 }
 
+function ConceptualDailyPlanDisplay({ planItem, isLast }: { planItem: ConceptualDailyPlanItem, isLast: boolean }) {
+  return (
+    <div className="relative flex items-start pb-3">
+      <div className="absolute left-1.5 top-1.5 h-full w-0.5 bg-primary/20"></div>
+      <div className="relative z-10 flex h-3 w-3 items-center justify-center rounded-full bg-primary">
+        <div className="h-1.5 w-1.5 rounded-full bg-primary-foreground"></div>
+      </div>
+      <div className={cn("ml-4 pl-3 py-2 pr-2 rounded-md w-full", innerGlassEffectClasses)}>
+        <h5 className="font-semibold text-xs text-primary mb-0.5">{planItem.day}</h5>
+        <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
+          {planItem.activities}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onInitiateBooking }: CombinedTripDetailDialogProps) {
   const { toast } = useToast();
 
   if (!tripPackage) return null;
 
-  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput } = tripPackage;
+  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const mapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
@@ -63,11 +79,18 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   
   const flightImageHint = flight.airline_logo ? flight.airline?.toLowerCase() : "airline logo";
   const hotelMainImageHint = hotel.thumbnail ? hotel.name?.toLowerCase().split(" ").slice(0,2).join(" ") : "hotel exterior";
+  
+  const conceptualDailyPlan: ConceptualDailyPlanItem[] = Array.from({ length: durationDays || 3 }, (_, i) => {
+    if (i === 0) return { day: "Day 1", activities: `Arrive in ${destinationQuery}, check into ${hotel.name || 'your accommodation'}, and explore the immediate local area. Enjoy a welcome dinner.` };
+    if (i === (durationDays || 3) - 1) return { day: `Day ${durationDays || 3}`, activities: "Enjoy a final breakfast, any last-minute souvenir shopping or a quick visit to a favorite spot, then prepare for departure." };
+    return { day: `Day ${i + 1}`, activities: `Explore key attractions, cultural experiences, and culinary delights specific to ${destinationQuery}. (Detailed activities will be AI-generated upon full planning).` };
+  }).slice(0, Math.min(durationDays || 3, 5)); // Show up to 5 days for brevity in this placeholder
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className={cn(glassCardClasses, "sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[95vh] flex flex-col p-0 border-primary/30 overflow-hidden")}>
-        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-20 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
+        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
           <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
               <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center">
@@ -86,7 +109,8 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="flex-1 min-h-0"> 
+          <ScrollBar />
           <div className="p-4 sm:p-6 space-y-6"> 
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -187,7 +211,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                           </Button>
                           )}
                     </TabsContent>
-                    <TabsContent value="gallery">
+                    <TabsContent value="gallery" className={cn(glassCardClasses, "p-4 rounded-md")}>
                          {hotel.images && hotel.images.length > 0 ? (
                             <Carousel className="w-full max-w-full" opts={{ align: "start", loop: hotel.images.length > 1 }}>
                                 <CarouselContent className="-ml-2">
@@ -210,7 +234,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                             <p className="text-muted-foreground text-center py-4">No additional images available for this hotel.</p>
                         )}
                     </TabsContent>
-                    <TabsContent value="map">
+                    <TabsContent value="map" className={cn(glassCardClasses, "p-4 rounded-md")}>
                          {mapsApiKey && (hotel.coordinates?.latitude && hotel.coordinates?.longitude || hotel.name) ? (
                             <div className="aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg">
                             <iframe
@@ -243,13 +267,13 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-2">
-                <p className="text-xs text-muted-foreground italic">
-                  This is a basic outline. If you proceed to fully plan this package (by clicking "Plan This Package" on the chat card), Aura AI will generate a detailed, personalized day-by-day itinerary for your {durationDays}-day trip to {destinationQuery}, tailored to your interests and budget.
+                <p className="text-xs text-muted-foreground italic mb-3">
+                  This is a conceptual outline. A detailed, personalized day-by-day plan will be generated by Aura AI if you proceed to fully plan this package using the main AI Trip Planner.
                 </p>
-                <div className={cn("p-3 rounded-md border-border/40 bg-card/30 dark:bg-card/50 text-xs space-y-1.5")}>
-                    <p><strong className="text-card-foreground/90">Day 1:</strong> Arrival in {destinationQuery}, check into {hotel.name}, and explore the immediate local area, perhaps finding a nice spot for dinner.</p>
-                    <p><strong className="text-card-foreground/90">Day 2 - Day {Math.max(2, durationDays - 1)}:</strong> Focus on key attractions, cultural experiences, culinary delights, and activities matching your Travel DNA (e.g., history, adventure, relaxation) in and around {destinationQuery}. (AI will elaborate here).</p>
-                    <p><strong className="text-card-foreground/90">Day {durationDays}:</strong> Enjoy a final breakfast, any last-minute souvenir shopping or a quick visit to a favorite spot, then depart.</p>
+                <div className="space-y-1 relative">
+                  {conceptualDailyPlan.map((item, index) => (
+                    <ConceptualDailyPlanDisplay key={`conceptual-day-${index}`} planItem={item} isLast={index === conceptualDailyPlan.length - 1} />
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -262,10 +286,12 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             <Sparkles className="mr-2" />Save Package (Future)
           </Button>
           <Button onClick={() => onInitiateBooking(destinationQuery, travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses, "sm:col-span-2")}>
-            <Ticket className="mr-2" /> Start Booking This Package
+            <Ticket className="mr-2" /> Plan This Package with AI
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+    
