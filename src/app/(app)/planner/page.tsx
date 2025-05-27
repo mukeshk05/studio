@@ -8,7 +8,7 @@ import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { CoTravelAgentInput, CoTravelAgentOutput } from "@/ai/types/co-travel-agent-types"; 
 import { getCoTravelAgentResponse, getIataCodeAction } from "@/app/actions"; 
-import type { Itinerary, SearchHistoryEntry } from "@/lib/types";
+import type { Itinerary, SearchHistoryEntry, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; // Added SerpApi types
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { Input } from "@/components/ui/input"; 
@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { SearchHistoryDrawer } from "@/components/planner/SearchHistoryDrawer";
 import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailSheet"; 
 import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions";
-import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types";
+// Removed SerpApiFlightSearchInput, SerpApiFlightSearchOutput as they are specific to the action, not the page directly
 import { format, addDays, parse, differenceInDays, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isValid, parseISO } from 'date-fns';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
@@ -35,7 +35,7 @@ export interface ChatMessage {
   title?: string;
 }
 
-interface PreFilteredOptions {
+export interface PreFilteredOptions {
   flights: SerpApiFlightOption[];
   hotels: SerpApiHotelSuggestion[];
   note: string;
@@ -87,14 +87,12 @@ function parseFlexibleDates(dateString: string): { from: Date, to: Date, duratio
       fromDate = startOfMonth(addMonths(now, 1)); // Default to start of next month
       toDate = addDays(fromDate, durationDays - 1);
     }
-    // If both fromDate and toDate were parsed, durationMatch might refine durationDays
-    // For simplicity, we'll prioritize specific dates if both are found
   }
 
 
   if (!fromDate) fromDate = startOfMonth(addMonths(now, 1));
   if (!toDate) toDate = addDays(fromDate, durationDays - 1);
-  if (toDate < fromDate) toDate = fromDate; // Ensure toDate is not before fromDate
+  if (toDate < fromDate) toDate = fromDate; 
 
   const finalDuration = differenceInDays(toDate, fromDate) + 1;
   return { from: fromDate, to: toDate, durationDays: Math.max(1, finalDuration) };
@@ -111,7 +109,7 @@ export default function TripPlannerPage() {
   const [currentFormInitialValues, setCurrentFormInitialValues] = useState<Partial<AITripPlannerInput> | null>(null);
   const [isAiRespondingToChat, setIsAiRespondingToChat] = useState(false); 
   
-  const [preFilteredOptions, setPreFilteredOptions] = useState<PreFilteredOptions | null>(null); // For displaying pre-filtered results
+  const [preFilteredOptions, setPreFilteredOptions] = useState<PreFilteredOptions | null>(null);
 
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -245,7 +243,7 @@ export default function TripPlannerPage() {
     };
 
     setChatHistory((prev) => [...prev, userMessage, loadingMessage]);
-    setPreFilteredOptions(null); // Clear previous pre-filtered results
+    setPreFilteredOptions(null); 
     
     const parsedDates = parseFlexibleDates(input.travelDates);
     console.log(`[PlannerPage] Parsed dates for SerpApi: From ${format(parsedDates.from, 'yyyy-MM-dd')} To ${format(parsedDates.to, 'yyyy-MM-dd')}, Duration: ${parsedDates.durationDays} days`);
@@ -256,7 +254,6 @@ export default function TripPlannerPage() {
     let realFlights: SerpApiFlightOption[] = [];
     let realHotels: SerpApiHotelSuggestion[] = [];
 
-    // Fetch IATA codes
     let originIata: string | null = null;
     if (input.origin) {
         originIata = await getIataCodeAction(input.origin);
@@ -267,8 +264,8 @@ export default function TripPlannerPage() {
 
     try {
       console.log("Fetching real flights for planner...");
-      const flightSearchInput: SerpApiFlightSearchInput = {
-        origin: originIata || input.origin || "NYC", // Default origin if not provided
+      const flightSearchInput = { // Type directly here as it's specific to action
+        origin: originIata || input.origin || "NYC",
         destination: destinationIata || input.destination,
         departureDate: formattedDepartureDate,
         returnDate: formattedReturnDate, 
@@ -287,7 +284,7 @@ export default function TripPlannerPage() {
 
     try {
       console.log("Fetching real hotels for planner...");
-      const hotelSearchInput: SerpApiHotelSearchInput = {
+      const hotelSearchInput = { // Type directly here
         destination: input.destination, 
         checkInDate: formattedDepartureDate,
         checkOutDate: formattedReturnDate,
@@ -303,11 +300,10 @@ export default function TripPlannerPage() {
       toast({ title: "Hotel Fetch Error", description: "Could not retrieve hotel options from SerpApi.", variant: "destructive"});
     }
     
-    // --- Pre-filtering Logic ---
     setChatHistory((prev) => prev.map(msg => msg.id === loadingMessage.id ? {...msg, payload: "Pre-filtering options based on your budget..."} : msg));
     
-    const flightBudgetPercentage = 0.40; // Allocate 40% of total budget to flights
-    const hotelBudgetPercentage = 0.60;  // Allocate 60% to hotels
+    const flightBudgetPercentage = 0.40; 
+    const hotelBudgetPercentage = 0.60;  
 
     const allocatedFlightBudget = input.budget * flightBudgetPercentage;
     const allocatedHotelBudgetTotal = input.budget * hotelBudgetPercentage;
@@ -317,9 +313,9 @@ export default function TripPlannerPage() {
     const filteredFlights = realFlights
       .filter(flight => flight.price != null && flight.price <= allocatedFlightBudget)
       .sort((a, b) => (a.price || Infinity) - (b.price || Infinity))
-      .slice(0, 10); // Take top 10 cheapest within budget
+      .slice(0, 10); 
 
-    console.log(`[PlannerPage] Flights: ${realFlights.length} initially, ${filteredFlights.length} after budget filter ($${allocatedFlightBudget}).`);
+    console.log(`[PlannerPage] Flights: ${realFlights.length} initially, ${filteredFlights.length} after budget filter ($${allocatedFlightBudget.toFixed(0)}).`);
 
     const filteredHotels = realHotels
       .filter(hotel => {
@@ -328,20 +324,19 @@ export default function TripPlannerPage() {
         return totalStayCost <= allocatedHotelBudgetTotal;
       })
       .sort((a, b) => (a.price_per_night || Infinity) - (b.price_per_night || Infinity))
-      .slice(0, 10); // Take top 10 cheapest per night within budget
+      .slice(0, 10); 
 
-    console.log(`[PlannerPage] Hotels: ${realHotels.length} initially, ${filteredHotels.length} after budget filter ($${allocatedHotelBudgetTotal} total / ${parsedDates.durationDays} days).`);
+    console.log(`[PlannerPage] Hotels: ${realHotels.length} initially, ${filteredHotels.length} after budget filter ($${allocatedHotelBudgetTotal.toFixed(0)} total / ${parsedDates.durationDays} days).`);
 
-    let filterNote = `Pre-filtered ${filteredFlights.length} flights (budget < $${allocatedFlightBudget.toFixed(0)}) and ${filteredHotels.length} hotels (total stay < $${allocatedHotelBudgetTotal.toFixed(0)} for ${parsedDates.durationDays} days). These options would now be sent to the AI for detailed itinerary creation.`;
+    let filterNote = `Pre-filtered ${filteredFlights.length} flights (budget < $${allocatedFlightBudget.toFixed(0)}) and ${filteredHotels.length} hotels (total stay < $${allocatedHotelBudgetTotal.toFixed(0)} for ${parsedDates.durationDays} days). These are the options considered.`;
     if(filteredFlights.length === 0 && filteredHotels.length === 0) {
-        filterNote = "No flights or hotels found within the allocated budget portions after pre-filtering. The AI would likely resort to conceptual planning or suggest budget adjustments.";
+        filterNote = "No flights or hotels found within the allocated budget portions after pre-filtering. The AI would likely resort to conceptual planning or suggest budget adjustments if it were called.";
     } else if (filteredFlights.length === 0) {
         filterNote = `No flights found within the allocated budget (< $${allocatedFlightBudget.toFixed(0)}). The AI would likely use conceptual flights alongside the ${filteredHotels.length} filtered hotels.`;
     } else if (filteredHotels.length === 0) {
         filterNote = `No hotels found within the allocated budget (total stay < $${allocatedHotelBudgetTotal.toFixed(0)}). The AI would likely use conceptual hotels alongside the ${filteredFlights.length} filtered flights.`;
     }
     
-    // Display pre-filtered results
     const preFilterMessage: ChatMessage = {
         id: crypto.randomUUID(),
         type: "pre_filter_results",
@@ -349,15 +344,14 @@ export default function TripPlannerPage() {
             flights: filteredFlights,
             hotels: filteredHotels,
             note: filterNote,
-            userInput: input // Pass user input for context
+            userInput: input 
         },
         timestamp: new Date(),
         title: "Pre-filtered Flight & Hotel Options"
     };
     setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(preFilterMessage));
-    return; // Stop before calling AI for now
+    return; // Stop before calling AI as per request
     
-    // ----- AI CALL IS DISABLED FOR NOW - Code below would be re-enabled later -----
     /*
     const plannerInputForAI: AITripPlannerInput = {
       ...input,
@@ -372,9 +366,48 @@ export default function TripPlannerPage() {
 
     try {
       const result: AITripPlannerOutput = await aiTripPlanner(plannerInputForAI);
-      // ... (rest of the AI result processing code) ...
-    } catch (error) {
-      // ... (error handling) ...
+      const itinerariesFromAI = (result.itineraries as Itinerary[] || []).map((it, index) => ({
+        ...it,
+        id: `ai-trip-${Date.now()}-${index}`, 
+        destinationImageUri: it.destinationImageUri || "https://placehold.co/600x400.png?text=Adventure",
+        hotelOptions: (it.hotelOptions || []).map(ho => ({
+            ...ho,
+            hotelImageUri: ho.hotelImageUri || "https://placehold.co/300x200.png?text=Hotel",
+            rooms: (ho.rooms || []).map(r => ({
+                ...r,
+                roomImageUri: r.roomImageUri || "https://placehold.co/300x200.png?text=Room"
+            }))
+        })),
+        dailyPlan: it.dailyPlan || []
+      }));
+
+      const aiMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        type: "ai",
+        payload: { ...result, itineraries: itinerariesFromAI },
+        timestamp: new Date(),
+      };
+      setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(aiMessage));
+
+      if (itinerariesFromAI.length === 0) {
+        const noResultsMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          type: "system",
+          payload: "I couldn't find any itineraries based on your request. This could be due to limited real-time flight/hotel availability for your specific query, or the AI couldn't form a plan with the options found. Please try different criteria.",
+          timestamp: new Date(),
+        };
+        setChatHistory(prev => [...prev, noResultsMsg]);
+      }
+
+    } catch (error: any) {
+      console.error("Error calling AI Trip Planner:", error);
+      const errorMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        type: "error",
+        payload: `Sorry, I encountered an error: ${error.message || "Unknown error"}. Please try again.`,
+        timestamp: new Date(),
+      };
+      setChatHistory((prev) => prev.filter(msg => msg.type !== 'loading').concat(errorMsg));
     }
     */
   };
