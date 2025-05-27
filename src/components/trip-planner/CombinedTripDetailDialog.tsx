@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -66,7 +65,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={cn(glassCardClasses, "sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[95vh] flex flex-col p-0 border-primary/30")}>
+      <DialogContent className={cn(glassCardClasses, "sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[95vh] flex flex-col p-0 border-primary/30 overflow-hidden")}>
         <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-20 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
           <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
@@ -86,7 +85,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow min-h-0"> {/* Outer scroll area for the entire body */}
+        <ScrollArea className="flex-1 min-h-0"> {/* Updated to flex-1 and min-h-0 */}
           <div className="p-4 sm:p-6 space-y-6"> {/* Content wrapper */}
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -238,4 +237,3 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
-

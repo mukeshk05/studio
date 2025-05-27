@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI trip planner agent.
@@ -28,81 +27,72 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
   name: 'aiTripPlannerTextPrompt',
   input: {schema: AITripPlannerInputSchema},
   output: {schema: AITripPlannerTextOutputSchema },
-  prompt: `You are a sophisticated AI Travel Concierge, BudgetRoam's "Aura AI". Your primary goal is to create 1-2 personalized and compelling trip itineraries. You will be provided with user preferences and, crucially, lists of **real flight and hotel options** (if available from our live search).
+  prompt: `You are a sophisticated AI Travel Concierge, BudgetRoam's "Aura AI". Your primary goal is to create 1 to 3 personalized and compelling trip itineraries. You will be provided with user preferences and, potentially, lists of real flight and hotel options.
 
 **Your Task:**
 
 1.  **Analyze User Input:**
-    *   Origin: {{{origin}}}
+    *   {{#if origin}}Origin: {{{origin}}}{{#endif}}
     *   Destination: {{{destination}}}
-    *   Travel Dates: {{{travelDates}}} (Interpret this flexibly, e.g., "next month for 7 days")
+    *   Travel Dates: {{{travelDates}}} (Interpret this flexibly, e.g., "next month for 7 days" to infer duration and approximate timing)
     *   Budget (USD): {{{budget}}}
-    *   {{#if userPersona}}User Persona: {{{userPersona.name}}} - {{{userPersona.description}}}{{/if}}
-    *   {{#if desiredMood}}Desired Mood/Vibe: {{{desiredMood}}}{{/if}}
-    *   {{#if weatherContext}}Weather Context: {{{weatherContext}}}{{/if}}
-    *   {{#if riskContext}}Risk/Accessibility Context: {{{riskContext}}}{{/if}}
+    *   {{#if userPersona}}User Persona: {{{userPersona.name}}} - {{{userPersona.description}}}{{#endif}}
+    *   {{#if desiredMood}}Desired Mood/Vibe: {{{desiredMood}}}{{#endif}}
+    *   {{#if weatherContext}}Weather Context: {{{weatherContext}}}{{#endif}}
+    *   {{#if riskContext}}Risk/Accessibility Context: {{{riskContext}}}{{#endif}}
 
-2.  **Process Real-Time Options (CRITICAL):**
-    *   **Real Flights (realFlightOptions):** You will receive an array of real flight options. Each option might look like:
+2.  **Process Real-Time Options (If Provided and Suitable):**
+    *   **Real Flights (realFlightOptions):** You may receive an array of real flight options. Example of ONE option (simplified):
         \`\`\`json
-        { // Example of ONE SerpApiFlightOption (simplified for prompt)
-          "price": 550,
-          "total_duration": 480, // in minutes
-          "airline": "Delta",
-          "airline_logo": "https://logos.clearbit.com/delta.com",
-          "derived_departure_time": "10:00 AM",
-          "derived_arrival_time": "06:00 PM",
-          "derived_departure_airport_name": "New York (JFK)",
-          "derived_arrival_airport_name": "Paris (CDG)",
-          "derived_flight_numbers": "DL 123, DL 456",
-          "derived_stops_description": "1 stop in AMS (2h 30m)",
-          "link": "https://www.google.com/flights/..."
+        { 
+          "price": 550, "total_duration": 480, "airline": "Delta", "airline_logo": "...", 
+          "derived_departure_time": "10:00 AM", "derived_arrival_time": "06:00 PM", 
+          "derived_departure_airport_name": "New York (JFK)", "derived_arrival_airport_name": "Paris (CDG)",
+          "derived_flight_numbers": "DL 123, DL 456", "derived_stops_description": "1 stop in AMS (2h 30m)",
+          "link": "https://www.google.com/flights/..." 
         }
         \`\`\`
-        Your task is to select 1-2 of these real flights that best fit the user's budget and travel dates/destination. If multiple fit, choose options that offer good value (e.g., balance of price and duration/stops).
-        **Output these selected flights in the 'flightOptions' array of your itinerary.** Ensure you map the data correctly to the 'FlightOptionSchema' (name, description, price, airline_logo, total_duration, derived_stops_description, link).
-
-    *   **Real Hotels (realHotelOptions):** You will receive an array of real hotel options. Each option might look like:
+        If \`realFlightOptions\` are available and suitable (considering budget, dates, and reasonable connections), select 1-2 options.
+        Populate the 'flightOptions' array in your output using data from these selected real flights. Ensure you capture name (airline + flight numbers), a description summarizing the journey (including key legs like outbound and return if it's a round trip), price, airline_logo, total_duration, derived_stops_description, and the booking link.
+    *   **Real Hotels (realHotelOptions):** You may receive an array of real hotel options. Example of ONE option (simplified):
         \`\`\`json
-        { // Example of ONE SerpApiHotelSuggestion (simplified for prompt)
-          "name": "The Grand Plaza Hotel",
-          "price_per_night": 180, // Note: AI might need to calculate total price
-          "rating": 4.5,
-          "type": "4-star hotel",
-          "amenities": ["Pool", "Free WiFi", "Restaurant"],
-          "coordinates": { "latitude": 48.8584, "longitude": 2.2945 },
-          "thumbnail": "https://example.com/hotel.jpg", // SerpApi might provide a direct image
-          "link": "https://www.booking.com/hotel/..."
+        { 
+          "name": "The Grand Plaza", "price_per_night": 180, "rating": 4.5, "type": "4-star hotel", 
+          "amenities": ["Pool", "WiFi"], "coordinates": {"latitude": 48.8, "longitude": 2.2}, 
+          "thumbnail": "...", "link": "https://www.booking.com/hotel/..." 
         }
         \`\`\`
-        Your task is to select 1-2 of these real hotels that best fit the user's budget, destination, and persona.
-        **Output these selected hotels in the 'hotelOptions' array.** For each selected hotel:
+        If \`realHotelOptions\` are available and suitable, select 1-2 options.
+        Populate the 'hotelOptions' array. For each selected hotel:
             *   Map 'name', 'rating', 'amenities', 'latitude', 'longitude', and 'link' directly from the real option.
-            *   Calculate the total 'price' for the stay based on the 'price_per_night' and the trip duration implied by 'travelDates'.
+            *   Calculate the total 'price' for the stay based on 'price_per_night' and the trip duration.
             *   **Crucially, write a compelling 'description' (2-3 sentences) for this hotel** based on its name, type, amenities, and overall fit for the user. This description will be used to generate a primary image for the hotel.
-            *   Suggest 2-3 conceptual 'rooms' within this hotel, providing a 'name', optional 'description', 'features', and a **'roomImagePrompt'** for each room (e.g., "Modern hotel room king bed city view", "Cozy twin room with balcony").
+            *   Suggest 2-3 conceptual 'rooms' within this hotel, providing a 'name', optional 'description', 'features', and a **'roomImagePrompt'** for each room (e.g., "Modern hotel room king bed city view").
+        If real options are slightly over budget, you MAY select them but MUST note this in the 'tripSummary' (e.g., "Hotel choice slightly exceeds budget for premium location").
 
-3.  **Fallback Strategy:**
-    *   If no realFlightOptions or realHotelOptions are provided, OR if the provided real options are unsuitable (e.g., all drastically over budget, wrong location type):
-        *   You MUST clearly state this in the 'tripSummary' (e.g., "No suitable real-time flights/hotels found within budget, so here are some conceptual ideas...").
-        *   In this case, generate *conceptual* flight and hotel options as you did previously, ensuring they fit the user's criteria.
+3.  **Fallback Strategy (VERY IMPORTANT):**
+    *   If no realFlightOptions or realHotelOptions arrays are provided, OR if, after careful review, NONE of the provided real options are a reasonable fit for the user's request (e.g., all options are drastically over budget, wrong location type, or completely unavailable for the dates/destination), you MUST then create 1-2 *conceptual* itineraries.
+    *   For conceptual itineraries:
+        *   You MUST clearly state this in the 'tripSummary' (e.g., "No suitable real-time flights/hotels found within budget, so here are some conceptual ideas..." or "Using conceptual examples for flights and hotels for this creative itinerary...").
+        *   Generate plausible, conceptual 'flightOptions' and 'hotelOptions' that align with the user's request and budget.
+    *   **You MUST always aim to return 1 to 3 itineraries.** Do not return an empty 'itineraries' array unless the user's core request is impossible to fulfill (e.g. destination doesn't exist).
 
 4.  **AI Guardian Instructions (Fuse these with all other preferences):**
     *   Incorporate weather context, risk/visa/accessibility reminders, and potential alternative destination suggestions if major risks are identified for the primary destination, as per your previous detailed instructions.
     *   Include conceptual sustainable travel considerations.
 
-5.  **Itinerary Construction (For each of 1-2 itineraries):**
-    *   \`origin\`: User's trip origin.
+5.  **Itinerary Construction (For each of 1-3 itineraries):**
+    *   \`origin\`: User's trip origin (if provided).
     *   \`destination\`, \`travelDates\`: From user input.
-    *   \`estimatedCost\`: Sum of your selected flight and hotel prices.
+    *   \`estimatedCost\`: Sum of your selected flight and hotel prices (real or conceptual).
     *   \`tripSummary\`: Engaging summary, including any necessary risk/visa/accessibility reminders, sustainability notes, and clear indication if using real vs. conceptual options.
-    *   \`dailyPlan\`: Detailed, engaging day-by-day activities.
+    *   **\`dailyPlan\` (MANDATORY):** A detailed, engaging day-by-day plan of activities. This MUST be an array of objects, each with 'day' (e.g., "Day 1: Arrival & City Exploration") and 'activities' (string describing morning, afternoon, evening plans for that day). Plan for the inferred duration of the trip.
     *   \`flightOptions\`: Your selected (real or conceptual) flight(s).
     *   \`hotelOptions\`: Your selected (real or conceptual) hotel(s), with AI-written descriptions and room prompts.
 
 6.  **Cultural Tip:** Provide one concise cultural tip for the main destination in the 'culturalTip' field.
 
-Return the itineraries and the culturalTip in JSON format according to the defined output schema. Ensure all fields are populated.
+Return the itineraries (1 to 3 options) and the culturalTip in JSON format according to the defined output schema. Ensure all mandatory fields are populated, especially the 'dailyPlan'.
 Focus on seamlessly integrating the real-time data when available and clearly communicating your choices.
 `,
 });
@@ -112,45 +102,32 @@ const backupAiTripPlannerTextPrompt = ai.definePrompt({
   input: {schema: AITripPlannerInputSchema}, // Still uses the full input schema
   output: {schema: AITripPlannerTextOutputSchema },
   prompt: `You are a helpful backup travel assistant. The primary planner might have encountered an issue.
-Please generate 1 or 2 robust and appealing itineraries for the user based on the following details.
-If real flight/hotel options were provided in the input, try to use them if they seem reasonable. Otherwise, create conceptual options.
+Please generate 1 or 2 robust and appealing *conceptual* itineraries for the user based on the following details.
 Focus on common attractions and adaptable activities. Keep suggestions somewhat general if specific preferences like persona, mood, or risk context are complex.
 Briefly remind the user in the trip summary to check visa and current travel advisories for {{{destination}}}, and that sustainable travel choices are encouraged.
 Also, provide one general cultural tip for {{{destination}}} in the 'culturalTip' field.
 
-Origin: {{{origin}}}
+{{#if origin}}Origin: {{{origin}}}{{#endif}}
 Travel Dates: {{{travelDates}}}
 Destination: {{{destination}}}
 Budget: {{{budget}}}
 {{#if userPersona~}}
 User Persona: {{userPersona.name}} - {{userPersona.description}} (Consider this if possible)
-{{/if~}}
+{{#endif~}}
 {{#if desiredMood~}}
 Desired Mood/Sensory Palette: {{desiredMood}} (Consider this if possible)
-{{/if~}}
+{{#endif~}}
 {{#if riskContext~}}
 User Concerns (Risks/Accessibility): {{riskContext}} (Address briefly if straightforward)
-{{/if~}}
-{{#if realFlightOptions}}
-Available Real Flight Options (use if suitable):
-{{#each realFlightOptions}}
-- Price: \${{{this.price}}}, Airline: {{this.airline}}, Stops: {{this.derived_stops_description}}, Duration: {{this.total_duration}} mins, Link: {{this.link}}
-{{/each}}
-{{/if}}
-{{#if realHotelOptions}}
-Available Real Hotel Options (use if suitable):
-{{#each realHotelOptions}}
-- Name: {{this.name}}, Price/Night: \${{{this.price_per_night}}}, Rating: {{this.rating}}, Type: {{this.type}}, Link: {{this.link}}
-{{/each}}
-{{/if}}
+{{#endif~}}
 
-For each itinerary:
+For each itinerary (aim for 1 to 3):
 1.  Provide a 'tripSummary': A concise summary of the trip.
-2.  Provide a 'dailyPlan': An array with 'day' and 'activities' for each day.
-3.  Detail 1-2 flight options (name, description, price, airline_logo, total_duration, derived_stops_description, link - try to use real data if available).
-4.  Detail 1-2 hotel options (name, description, price, rating, amenities, link, 1-2 rooms with name, features, roomImagePrompt - try to use real data if available for main hotel details, generate description/rooms).
+2.  **Provide a 'dailyPlan' (MANDATORY):** An array with 'day' and 'activities' for each day. Be descriptive.
+3.  Detail 1-2 *conceptual* flight options (name, description, price, airline_logo, total_duration, derived_stops_description, link - create plausible examples).
+4.  Detail 1-2 *conceptual* hotel options (name, description, price, rating, amenities, link, 1-2 rooms with name, features, roomImagePrompt - create plausible examples).
 5.  Provide an 'estimatedCost'.
-6.  Include the 'origin' field.
+6.  Include the 'origin' field if provided in input.
 
 Return in the specified JSON format, including the 'culturalTip'.
 `,
@@ -198,7 +175,7 @@ const aiTripPlannerFlow = ai.defineFlow(
   async (input: AITripPlannerInput): Promise<AITripPlannerOutput> => {
     let wasBackupPlannerUsed = false;
     let textOutput: TextPlannerOutput | undefined;
-    console.log("[AI Trip Planner Flow] Input received:", JSON.stringify(input, null, 2));
+    console.log("[AI Trip Planner Flow] Input received by flow:", JSON.stringify(input, null, 2));
 
 
     try {
@@ -230,29 +207,29 @@ const aiTripPlannerFlow = ai.defineFlow(
 
     if (textItineraries.some(it => !it.dailyPlan || it.dailyPlan.length === 0)) {
       console.warn("Some itineraries are missing daily plans. Check AI prompt and output structure.", textItineraries);
+       // You could add a default daily plan here if absolutely necessary, but it's better if the AI provides it.
+      // Example: it.dailyPlan = [{ day: "Day 1", activities: "Explore the main attractions." }];
     }
 
     const itinerariesWithImages = await Promise.all(
-      textItineraries.map(async (itinerary) => {
+      textItineraries.slice(0, 3).map(async (itinerary) => { // Ensure only up to 3 itineraries are processed
         const destinationImagePrompt = `A vibrant, high-quality travel photograph representing ${itinerary.destination}. Focus on its most iconic visual elements or overall atmosphere. Style: photorealistic. Aspect ratio: 16:9.`;
         const destinationImageUri = await generateImage(destinationImagePrompt, itinerary.destination);
 
         const hotelOptionsWithImages = await Promise.all(
           (itinerary.hotelOptions || []).map(async (hotel) => {
-            // The 'description' for hotelImageUri comes from the AI's output now.
-            // It's crafted by the AI based on SerpApi data or conceptually.
             const hotelImagePrompt = `Photorealistic image of a ${hotel.description}. Style: inviting, high-quality. Location: ${itinerary.destination}. Aspect ratio: 16:9.`;
-            const fallbackHotelHint = `${hotel.name.substring(0,15)} hotel`
+            const fallbackHotelHint = `${hotel.name ? hotel.name.substring(0,15) : 'Hotel'} hotel`
             const hotelImageUri = await generateImage(hotelImagePrompt, fallbackHotelHint);
 
             const roomsWithImages = hotel.rooms ? await Promise.all(
               hotel.rooms.map(async (room) => {
                 if (room.roomImagePrompt) {
-                  const fallbackRoomHint = `${room.name.substring(0,15)} room`
+                  const fallbackRoomHint = `${room.name ? room.name.substring(0,15) : 'Room'} room`
                   const roomImageUri = await generateImage(room.roomImagePrompt, fallbackRoomHint);
                   return { ...room, roomImageUri };
                 }
-                return { ...room, roomImageUri: `https://placehold.co/300x200.png?text=${encodeURIComponent(room.name.substring(0,10))}` };
+                return { ...room, roomImageUri: `https://placehold.co/300x200.png?text=${encodeURIComponent(room.name ? room.name.substring(0,10) : 'Room')}` };
               })
             ) : [];
 
@@ -262,20 +239,17 @@ const aiTripPlannerFlow = ai.defineFlow(
 
         const dailyPlan = itinerary.dailyPlan || [];
 
-        // Ensure all fields from ItineraryItemSchema are present in the final output
-        // Some fields like lat/lon might come from the AI now if it's using real options.
         return {
-          ...itinerary, // This includes name, description, price, etc. for flights and hotels from textOutput
+          ...itinerary, 
           destinationImageUri,
           hotelOptions: hotelOptionsWithImages,
           dailyPlan: dailyPlan,
-          culturalTip, // Add the culturalTip here for each itinerary
-          // Ensure other potentially missing fields are explicitly set or handled if they are part of ItineraryItemSchema
+          culturalTip, 
           isAlternative: itinerary.isAlternative || false,
           alternativeReason: itinerary.alternativeReason,
           destinationLatitude: itinerary.destinationLatitude,
           destinationLongitude: itinerary.destinationLongitude,
-          origin: itinerary.origin || input.origin, // Ensure origin is carried through
+          origin: itinerary.origin || input.origin, 
         };
       })
     );
@@ -292,11 +266,10 @@ const aiTripPlannerFlow = ai.defineFlow(
     if (input.desiredMood) {
         fusionMessages.push(`your desire for a '${input.desiredMood}' vibe/sensory experience`);
     }
-    if (input.realFlightOptions && input.realFlightOptions.length > 0) {
-        fusionMessages.push("available real-time flight data");
-    }
-    if (input.realHotelOptions && input.realHotelOptions.length > 0) {
-        fusionMessages.push("available real-time hotel data");
+    
+    const realDataUsed = (input.realFlightOptions && input.realFlightOptions.length > 0) || (input.realHotelOptions && input.realHotelOptions.length > 0);
+    if (realDataUsed && !wasBackupPlannerUsed) { // Only mention real data if primary planner used it
+        fusionMessages.push("available real-time flight/hotel data");
     }
     
     let guardianConsiderations: string[] = [];
@@ -309,7 +282,7 @@ const aiTripPlannerFlow = ai.defineFlow(
     
     if (guardianConsiderations.length > 0) {
         fusionMessages.push(guardianConsiderations.join(' and '));
-    } else if (!input.realFlightOptions && !input.realHotelOptions) { // Only add general factors if no real data was primary
+    } else if (!realDataUsed) { 
       fusionMessages.push("general travel factors (weather awareness, risk/visa/accessibility reminders, conceptual sustainability)");
     }
 
@@ -319,7 +292,7 @@ const aiTripPlannerFlow = ai.defineFlow(
         personalizationNoteParts.push(`Plans for ${input.destination} ${input.origin ? `from ${input.origin}` : ''} were generated based on your core request, including conceptual sustainability considerations.`);
     }
     
-    if (itinerariesWithImages.some(it => it.tripSummary && it.tripSummary.toLowerCase().includes("alternative suggestion:"))) {
+    if (itinerariesWithImages.some(it => it.tripSummary && it.tripSummary.toLowerCase().includes("alternative suggestion:")) {
         personalizationNoteParts.push("An alternative destination was suggested due to potential issues with your original choice.");
     }
     

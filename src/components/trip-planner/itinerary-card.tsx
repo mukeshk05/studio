@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from "react";
@@ -26,7 +25,7 @@ type ItineraryCardProps = {
 };
 
 function HotelOptionDisplay({ hotel, onClick }: { hotel: HotelOption; onClick: () => void; }) {
-  const hintWords = hotel.name.toLowerCase().split(/[\s,]+/);
+  const hintWords = hotel.name ? hotel.name.toLowerCase().split(/[\s,]+/) : ["hotel"];
   const aiHint = hintWords.slice(0, 2).join(" ");
 
   return (
@@ -57,7 +56,7 @@ function HotelOptionDisplay({ hotel, onClick }: { hotel: HotelOption; onClick: (
         <p className="font-semibold text-card-foreground group-hover:text-accent">{hotel.name}</p>
         <p className="text-xs text-muted-foreground line-clamp-2 mb-1">{hotel.description}</p>
         <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
-            <DollarSign className="w-3 h-3 mr-1"/> ${hotel.price.toLocaleString()} (Total)
+            <DollarSign className="w-3 h-3 mr-1"/> ${hotel.price ? hotel.price.toLocaleString() : 'N/A'} (Total)
         </Badge>
         {hotel.rating && <Badge variant="outline" className="ml-1.5 text-xs border-amber-500/50 text-amber-400 bg-amber-500/10">{hotel.rating.toFixed(1)} ★</Badge>}
       </div>
@@ -80,7 +79,7 @@ function FlightOptionDisplay({ flight }: { flight: FlightOption }) {
       <p className="text-xs text-muted-foreground">{flight.description}</p>
       <div className="flex justify-between items-center mt-1">
         <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
-          <DollarSign className="w-3 h-3 mr-1"/> ${flight.price.toLocaleString()}
+          <DollarSign className="w-3 h-3 mr-1"/> ${flight.price ? flight.price.toLocaleString() : 'N/A'}
         </Badge>
         {flight.total_duration && (
           <Badge variant="outline" className="text-xs border-border/70">
@@ -105,7 +104,7 @@ function DailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
         <Route className="w-4 h-4 mr-2 shrink-0" />
         {planItem.day}
       </h5>
-      <p className="text-xs text-muted-foreground whitespace-pre-line pl-6">{planItem.activities}</p>
+      <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed pl-6">{planItem.activities}</p>
     </div>
   );
 }
@@ -116,13 +115,11 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
   const [isHotelDetailOpen, setIsHotelDetailOpen] = useState(false);
 
   const handleSaveClick = () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...dataToSave } = itinerary; 
     onSaveTrip(dataToSave);
   };
 
   const handleFindDeals = () => {
-    // If a specific flight link exists, prioritize that. Otherwise, general search.
     const flightLink = itinerary.flightOptions?.[0]?.link;
     if (flightLink) {
         window.open(flightLink, "_blank", "noopener,noreferrer");
@@ -163,7 +160,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
             <Badge variant="secondary" className="text-lg py-1 px-3 text-white bg-black/70 border-black/30 backdrop-blur-sm">
                 <DollarSign className="w-4 h-4 mr-1" />
-                {itinerary.estimatedCost.toLocaleString()}
+                {itinerary.estimatedCost ? itinerary.estimatedCost.toLocaleString() : 'N/A'}
             </Badge>
           </div>
         </div>
@@ -183,7 +180,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
          {!itinerary.destinationImageUri && ( 
             <Badge variant="secondary" className="text-lg py-1 px-3 bg-primary/20 text-primary border-primary/30">
               <DollarSign className="w-4 h-4 mr-1" />
-              {itinerary.estimatedCost.toLocaleString()}
+              {itinerary.estimatedCost ? itinerary.estimatedCost.toLocaleString() : 'N/A'}
             </Badge>
           )}
         </div>
@@ -265,30 +262,32 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         </Accordion>
 
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row gap-3 pt-4">
-        <Button 
-          onClick={handleSaveClick} 
-          disabled={isSaved || isSaving} 
-          className={cn(
-            "w-full sm:flex-1",
-            isSaved ? "glass-interactive text-muted-foreground" : prominentButtonBaseClassesSm
-          )}
-          size="sm"
-          variant={isSaved ? "secondary" : "default"}
-        >
-          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
-          {isSaving ? "Saving..." : isSaved ? "Saved To Dashboard" : "Save Trip"}
-        </Button>
-        <Button 
-          onClick={handleFindDeals} 
-          className={cn("w-full sm:flex-1", prominentButtonBaseClassesSm)}
-          size="sm"
-          variant="default"
-        >
-          <ExternalLink className="mr-2 h-4 w-4" />
-          Find Deals
-        </Button>
-      </CardFooter>
+      {!isDetailedView && (
+        <CardFooter className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button 
+            onClick={handleSaveClick} 
+            disabled={isSaved || isSaving} 
+            className={cn(
+                "w-full sm:flex-1",
+                isSaved ? "glass-interactive text-muted-foreground" : prominentButtonBaseClassesSm
+            )}
+            size="sm"
+            variant={isSaved ? "secondary" : "default"}
+            >
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
+            {isSaving ? "Saving..." : isSaved ? "Saved To Dashboard" : "Save Trip"}
+            </Button>
+            <Button 
+            onClick={handleFindDeals} 
+            className={cn("w-full sm:flex-1", prominentButtonBaseClassesSm)}
+            size="sm"
+            variant="default"
+            >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Find Deals
+            </Button>
+        </CardFooter>
+      )}
     </Card>
 
     {selectedHotel && (
