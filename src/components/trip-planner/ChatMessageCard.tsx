@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { ChatMessage } from "@/app/(app)/planner/page"; 
+import type { ChatMessage, PreFilteredOptions } from "@/app/(app)/planner/page"; 
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,9 +13,9 @@ import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from 'next/image';
-import { Button, buttonVariants } from '../ui/button'; // Import buttonVariants
+import { Button, buttonVariants } from '../ui/button'; 
 import { Badge } from '../ui/badge';
-import type { PreFilteredOptions } from "@/app/(app)/planner/page"; 
+
 
 const renderMarkdownLinks = (text: string) => {
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g;
@@ -39,13 +39,15 @@ type CompactTripPackageCardProps = {
 function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackageCardProps) {
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
+  // Styling similar to "Plan History" button
   const viewPackageButtonClasses = cn(
-    buttonVariants({ size: "sm" }),
+    buttonVariants({ size: "sm" }), // Use size "sm"
     "w-full text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
     "focus-visible:ring-2 focus-visible:ring-primary/40", 
-    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100"
+    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100",
+    "py-1.5 px-3" // Adjust padding for a more compact look if needed
   );
   
 
@@ -104,7 +106,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                 Total: ~${pkg.totalEstimatedCost.toLocaleString()}
             </Badge>
           </CardContent>
-          <CardFooter className="p-0 pt-2 mt-auto">
+          <CardFooter className="p-0 pt-2 mt-auto"> {/* Added mt-auto here */}
             <Button 
                 size="sm" 
                 className={viewPackageButtonClasses}
@@ -260,3 +262,4 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
     </div>
   );
 }
+

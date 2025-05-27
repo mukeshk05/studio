@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import type { TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types";
+import type { TripPackageSuggestion } from "@/lib/types";
 import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +43,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
 
   if (!tripPackage) return null;
 
-  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri } = tripPackage;
+  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const mapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
@@ -85,7 +86,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow min-h-0"> {/* Added min-h-0 for better flex-grow behavior */}
+        <ScrollArea className="flex-grow min-h-0"> {/* MAIN SCROLL AREA FOR DIALOG BODY */}
           <div className="p-4 sm:p-6 space-y-6">
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -145,36 +146,37 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                         <TabsTrigger value="gallery" disabled={!hotel.images || hotel.images.length === 0} className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground">Gallery</TabsTrigger>
                         <TabsTrigger value="map" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground">Location</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="overview" className="space-y-3">
-                        <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3">
-                        {hotel.thumbnail ? (
-                            <Image src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-10 h-10 text-muted-foreground"/></div>
-                        )}
-                        </div>
-                        {hotel.type && <Badge variant="outline" className="text-xs capitalize bg-accent/10 text-accent border-accent/30 mb-1">{hotel.type}</Badge>}
-                        {hotel.rating && <p className="text-xs flex items-center text-amber-400 mb-1"><Star className="w-3.5 h-3.5 mr-1 fill-amber-400" /> {hotel.rating.toFixed(1)} / 5 ({hotel.reviews || 'N/A'} reviews)</p>}
-                        <p className="text-xs text-muted-foreground">{hotel.description || "Detailed description not available."}</p>
-                         <Separator className="my-2"/>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                            <div><strong className="text-card-foreground/90">Price:</strong> {hotel.price_details || (hotel.price_per_night ? `$${hotel.price_per_night.toLocaleString()}/night` : "N/A")}</div>
-                            <div><strong className="text-card-foreground/90">Total for Stay ({durationDays} days):</strong> ~${((hotel.price_per_night || 0) * durationDays).toLocaleString()}</div>
-                        </div>
-                        {hotel.amenities && hotel.amenities.length > 0 && (
-                        <div className="pt-1">
-                            <h4 className="font-medium text-card-foreground/90 text-xs mb-1">Key Amenities:</h4>
-                            <div className="flex flex-wrap gap-1.5">
-                            {hotel.amenities.slice(0, 6).map((amenity, idx) => <Badge key={idx} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{amenity}</Badge>)}
-                            {hotel.amenities.length > 6 && <Badge variant="outline" className="text-xs">+{hotel.amenities.length - 6} more</Badge>}
-                            </div>
-                        </div>
-                        )}
-                        {hotel.link && (
-                        <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-3">
-                            <a href={hotel.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />View Hotel Deal</a>
-                        </Button>
-                        )}
+                    <TabsContent value="overview" className={cn(glassCardClasses, "p-4 rounded-md")}>
+                       <ScrollArea className="max-h-[300px] pr-3"> {/* Added ScrollArea for Overview content */}
+                          <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3">
+                          {hotel.thumbnail ? (
+                              <Image src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
+                          ) : (
+                              <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-10 h-10 text-muted-foreground"/></div>
+                          )}
+                          </div>
+                          {hotel.type && <Badge variant="outline" className="text-xs capitalize bg-accent/10 text-accent border-accent/30 mb-1">{hotel.type}</Badge>}
+                          {hotel.rating && <p className="text-xs flex items-center text-amber-400 mb-1"><Star className="w-3.5 h-3.5 mr-1 fill-amber-400" /> {hotel.rating.toFixed(1)} / 5 ({hotel.reviews || 'N/A'} reviews)</p>}
+                          <p className="text-xs text-muted-foreground mb-2">{hotel.description || "Detailed description not available."}</p>
+                          <Separator className="my-2"/>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                              <div><strong className="text-card-foreground/90">Price:</strong> {hotel.price_details || (hotel.price_per_night ? `$${hotel.price_per_night.toLocaleString()}/night` : "N/A")}</div>
+                              <div><strong className="text-card-foreground/90">Total for Stay ({durationDays} days):</strong> ~${((hotel.price_per_night || 0) * durationDays).toLocaleString()}</div>
+                          </div>
+                          {hotel.amenities && hotel.amenities.length > 0 && (
+                          <div className="pt-2">
+                              <h4 className="font-medium text-card-foreground/90 text-xs mb-1">Key Amenities:</h4>
+                              <div className="flex flex-wrap gap-1.5">
+                              {hotel.amenities.map((amenity, idx) => <Badge key={idx} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{amenity}</Badge>)}
+                              </div>
+                          </div>
+                          )}
+                          {hotel.link && (
+                          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-3">
+                              <a href={hotel.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />View Hotel Deal</a>
+                          </Button>
+                          )}
+                        </ScrollArea>
                     </TabsContent>
                     <TabsContent value="gallery">
                          {hotel.images && hotel.images.length > 0 ? (
@@ -238,3 +240,4 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
+
