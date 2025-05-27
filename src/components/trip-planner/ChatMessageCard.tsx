@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { ChatMessage } from "@/app/(app)/planner/page"; 
-import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
+import type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import type { Itinerary, TripPackageSuggestion } from "@/lib/types"; 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -40,13 +40,13 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
   const viewPackageButtonClasses = cn(
-    buttonVariants({ size: "sm" }), // Use base sm size from variants
-    "text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+    buttonVariants({ size: "sm" }), 
+    "py-1 px-2.5 h-8", // Adjusted for more compact size while maintaining sm font
+    "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
     "focus-visible:ring-2 focus-visible:ring-primary/40", 
-    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100",
-    "py-1 px-2.5 h-auto" // Adjust padding to be more compact, h-auto to fit content
+    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100"
   );
   
 
@@ -101,6 +101,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                 {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
+             <p className="text-xs text-muted-foreground pt-1">Daily activity suggestions included.</p>
           </CardContent>
           <CardFooter className="p-0 pt-2 mt-auto flex justify-between items-center"> 
              <Badge variant="secondary" className="text-sm py-1 px-2 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
@@ -109,7 +110,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
             <Button 
                 className={viewPackageButtonClasses}
             >
-              <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
+              <Eye className="w-3.5 h-3.5 mr-1.5" /> View Package
             </Button>
           </CardFooter>
         </div>
@@ -159,7 +160,7 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
         const aiOutput = message.payload as AITripPlannerOutput;
         const itineraries = aiOutput.itineraries as Itinerary[];
         if (!itineraries || itineraries.length === 0) {
-          return <p>No trip options found for your request.</p>;
+          return <p>I couldn't find any itineraries based on your request. This could be due to limited real-time flight/hotel availability for your specific query, or the AI couldn't form a plan with the options found. Please try different criteria.</p>;
         }
         return (
           <div className="space-y-3">

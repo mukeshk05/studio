@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -10,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import type { TripPackageSuggestion } from "@/lib/types";
-import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel } from "lucide-react";
+import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -85,8 +86,8 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0"> {/* Updated to flex-1 and min-h-0 */}
-          <div className="p-4 sm:p-6 space-y-6"> {/* Content wrapper */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-4 sm:p-6 space-y-6"> 
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
                 <CardTitle className="text-2xl font-bold text-accent text-center flex items-center justify-center gap-2">
@@ -123,6 +124,17 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                   <div><strong className="text-card-foreground/90">To:</strong> {flight.derived_arrival_airport_name} at {flight.derived_arrival_time}</div>
                   <div><strong className="text-card-foreground/90">Duration:</strong> {formatDuration(flight.total_duration)} ({flight.derived_stops_description})</div>
                 </div>
+                {flight.flights && flight.flights.length > 1 && (
+                    <div className="mt-2 space-y-1.5">
+                        <p className="text-xs font-medium text-card-foreground/80">Legs:</p>
+                        {flight.flights.map((leg, index) => (
+                            <div key={index} className="p-1.5 border border-border/20 rounded-md bg-card/20 text-[0.7rem] leading-tight">
+                                <p>{index + 1}: {leg.airline} {leg.flight_number} ({leg.departure_airport?.name} → {leg.arrival_airport?.name})</p>
+                                <p className="text-muted-foreground">Duration: {formatDuration(leg.duration)}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 {flight.link && (
                   <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-2">
                     <a href={flight.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />View Flight on Google Flights</a>
@@ -222,6 +234,26 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                  </Tabs>
               </CardContent>
             </Card>
+            
+            {/* Conceptual Daily Activities Section */}
+            <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
+              <CardHeader className="pb-3 pt-4">
+                <CardTitle className="text-lg font-semibold text-primary flex items-center">
+                  <ListChecks className="w-5 h-5 mr-2" /> Conceptual Daily Activities Outline
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-2">
+                <p className="text-xs text-muted-foreground italic">
+                  This is a basic outline. If you proceed to fully plan this package (by clicking "Plan This Package" on the chat card), Aura AI will generate a detailed, personalized day-by-day itinerary for your {durationDays}-day trip to {destinationQuery}, tailored to your interests and budget.
+                </p>
+                <div className={cn("p-3 rounded-md border-border/40 bg-card/30 dark:bg-card/50 text-xs space-y-1.5")}>
+                    <p><strong className="text-card-foreground/90">Day 1:</strong> Arrival in {destinationQuery}, check into {hotel.name}, and explore the immediate local area, perhaps finding a nice spot for dinner.</p>
+                    <p><strong className="text-card-foreground/90">Day 2 - Day {Math.max(2, durationDays - 1)}:</strong> Focus on key attractions, cultural experiences, culinary delights, and activities matching your Travel DNA (e.g., history, adventure, relaxation) in and around {destinationQuery}. (AI will elaborate here).</p>
+                    <p><strong className="text-card-foreground/90">Day {durationDays}:</strong> Enjoy a final breakfast, any last-minute souvenir shopping or a quick visit to a favorite spot, then depart.</p>
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
         </ScrollArea>
 
