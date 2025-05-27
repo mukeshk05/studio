@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -39,12 +40,12 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
   const viewPackageButtonClasses = cn(
-    buttonVariants({ size: "sm" }), // Use standard sm size for height and base padding
-    "w-full text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40", // Retain shadows and text size
-    "bg-gradient-to-r from-primary to-accent text-primary-foreground", // Gradient
-    "hover:from-accent hover:to-primary", // Hover gradient
-    "focus-visible:ring-2 focus-visible:ring-primary/40", // Focus
-    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100" // Transform
+    buttonVariants({ size: "sm" }),
+    "w-full text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+    "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+    "hover:from-accent hover:to-primary",
+    "focus-visible:ring-2 focus-visible:ring-primary/40", 
+    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100"
   );
   
 
@@ -96,7 +97,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                   <HotelIcon className="w-3 h-3 mr-1 text-primary/80" /> 
                   {pkg.hotel.name?.substring(0,25)}... - ~${pkg.hotel.price_per_night?.toLocaleString()}/night
                 </p>
-                {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
+                {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
              <Badge variant="secondary" className="text-sm py-1 px-2 mt-1.5 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
@@ -105,7 +106,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
           </CardContent>
           <CardFooter className="p-0 pt-2 mt-auto">
             <Button 
-                size="sm" // This applies h-9, px-3, text-sm font by default from buttonVariants
+                size="sm" 
                 className={viewPackageButtonClasses}
             >
               <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
