@@ -39,15 +39,13 @@ type CompactTripPackageCardProps = {
 function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackageCardProps) {
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
-  // Styling similar to "Plan History" button on planner page
   const viewPackageButtonClasses = cn(
-    buttonVariants({ size: "sm" }), 
-    "w-full text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+    "text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
     "focus-visible:ring-2 focus-visible:ring-primary/40", 
     "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100",
-    "h-8 px-3 py-1.5" // Ensure compact size
+    "h-auto px-3 py-1" // Explicitly set py-1 to match badge, px-3 for decent width, h-auto
   );
   
 
@@ -102,14 +100,13 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                 {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
-             <Badge variant="secondary" className="text-sm py-1 px-2 mt-1.5 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
+          </CardContent>
+          <CardFooter className="p-0 pt-2 mt-auto flex justify-between items-center"> 
+             <Badge variant="secondary" className="text-sm py-1 px-2 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
                 Total: ~${pkg.totalEstimatedCost.toLocaleString()}
             </Badge>
-          </CardContent>
-          <CardFooter className="p-0 pt-2 mt-auto"> 
             <Button 
-                size="sm" 
-                className={viewPackageButtonClasses}
+                className={viewPackageButtonClasses} // Using the refined classes
             >
               <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
             </Button>
@@ -184,7 +181,7 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
           </div>
         );
       case "system":
-        return <div className="text-sm text-muted-foreground italic whitespace-pre-line"><p>{message.payload as string}</p></div>;
+        return <div className="text-sm text-muted-foreground italic py-2 animate-fade-in whitespace-pre-line">{message.payload as string}</div>;
       case "loading":
         return (
           <div className="flex items-center text-card-foreground">
