@@ -3,7 +3,7 @@
 
 import { firestore } from '@/lib/firebase';
 import {
-  generateMultipleImagesFlow,
+  generateMultipleImagesFlow as generateMultipleImagesFlowOriginal, // Renamed for clarity
   type MultipleImagesInput,
   type ImagePromptItem,
   type ImageResultItem,
@@ -24,7 +24,6 @@ import type {
 import { getJson as getSerpApiJson } from 'serpapi';
 import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types';
 import type { SerpApiHotelSearchInput, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types';
-
 
 // Import original functions with aliases and their types
 import { getPriceAdvice as getPriceAdviceOriginal } from '@/ai/flows/price-advisor-flow';
@@ -163,7 +162,7 @@ export async function getLandingPageImagesWithFallback(
     if (aiGenerationQueue.length > 0) {
       try {
         console.log(`[Server Action] Calling AI for ${aiGenerationQueue.length} images with prompts:`, aiGenerationQueue.map(p=>p.prompt));
-        const aiResultsOutput: MultipleImagesOutput = await generateMultipleImagesFlow({ prompts: aiGenerationQueue });
+        const aiResultsOutput: MultipleImagesOutput = await generateMultipleImagesFlowOriginal({ prompts: aiGenerationQueue });
         const aiResults = aiResultsOutput.results || [];
         console.log(`[Server Action] AI Results received. Count: ${aiResults.length}. Results:`, aiResults);
         
@@ -263,9 +262,9 @@ export async function getAiFlightMapDealsAction(
     }
     console.log('[Server Action - getAiFlightMapDealsAction] Real price context found:', realPriceContextString);
 
+    // @ts-ignore - Temporarily allow additional property for AI flow context
     const flowInput: AiFlightMapDealInput & { realPriceContext?: string } = {
       ...input,
-      // @ts-ignore
       realPriceContext: realPriceContextString,
     };
 
@@ -414,6 +413,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
             const legsArray = flight.flights || flight.segments || []; 
             if (legsArray.length === 0 && !flight.price) { 
                 console.warn(`[Server Action - getRealFlightsAction - processFlights] Flight option at index ${index} has no legs/segments AND no price. Skipping. Raw:`, JSON.stringify(flight, null, 2));
+                // Return a minimal object that will be filtered out
                 return { price: undefined } as unknown as SerpApiFlightOption;
             }
              if (legsArray.length === 0 && flight.price) {
@@ -454,7 +454,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
                 derived_stops_description: deriveStopsDescription({ ...flight, flights: legsArray }),
             };
             return flightOptionData;
-        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0) ) );
+        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0) ) ); // Ensure some vital info exists
     }
 
     let bestFlightsProcessed: SerpApiFlightOption[] = [];
@@ -498,25 +498,20 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 }
 
 const parsePrice = (priceValue: any): number | undefined => {
-    if (priceValue === null || priceValue === undefined) {
-        // console.log(`[actions.ts - parsePrice] Input is null/undefined, returning undefined.`);
+    if (priceValue === null || priceValue === undefined || String(priceValue).trim() === "") {
         return undefined;
     }
     if (typeof priceValue === 'number') {
-        // console.log(`[actions.ts - parsePrice] Input '${priceValue}' is already number, returning it.`);
-        return priceValue;
+        return isNaN(priceValue) ? undefined : priceValue;
     }
     if (typeof priceValue === 'string') {
-        const cleanedString = priceValue.replace(/[^0-9.]/g, ''); 
+        const cleanedString = priceValue.replace(/[^0-9.-]/g, '');
         if (cleanedString === '') {
-            // console.log(`[actions.ts - parsePrice] Input string '${priceValue}' cleaned to empty, returning undefined.`);
             return undefined;
         }
         const num = parseFloat(cleanedString);
-        // console.log(`[actions.ts - parsePrice] Input string '${priceValue}' cleaned to '${cleanedString}', parsed to ${num}.`);
         return isNaN(num) ? undefined : num;
     }
-    // console.log(`[actions.ts - parsePrice] Input '${priceValue}' (type: ${typeof priceValue}) is not number or string, returning undefined.`);
     return undefined;
 };
 
@@ -545,7 +540,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
   try {
     console.log('[Server Action - getRealHotelsAction] >>> ATTEMPTING SERPAPI CALL for hotels <<<');
     const response = await getSerpApiJson(params);
-    console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response:', JSON.stringify(response, null, 2).substring(0, 2000) + '...'); // Log snippet
+    // console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response:', JSON.stringify(response, null, 2).substring(0, 2000) + '...'); // Log snippet
 
     if (response.error) {
       console.error('[Server Action - getRealHotelsAction] SerpApi returned an error:', response.error);
@@ -566,8 +561,8 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
         name: hotel.name,
         type: hotel.type,
         description: hotel.overall_info || hotel.description,
-        price_per_night: parsedPricePerNight, // This is now a number or undefined
-        total_price: parsedTotalPrice, // This is now a number or undefined
+        price_per_night: parsedPricePerNight,
+        total_price: parsedTotalPrice,
         price_details: typeof priceSourceForPpn === 'string' ? priceSourceForPpn : (parsedPricePerNight !== undefined ? `$${parsedPricePerNight}` : undefined),
         rating: hotel.overall_rating || hotel.rating,
         reviews: hotel.reviews,
@@ -579,7 +574,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
         check_in_time: hotel.check_in_time,
         check_out_time: hotel.check_out_time,
       };
-      console.log(`[Server Action - getRealHotelsAction] FINAL MAPPING for ${finalHotelObject.name} - Raw Price Source for PPN: '${priceSourceForPpn}', Parsed PPN: ${finalHotelObject.price_per_night} (type: ${typeof finalHotelObject.price_per_night})`);
+       console.log(`[Server Action - getRealHotelsAction] FINAL MAPPING for ${finalHotelObject.name} - Raw PPN Source: '${priceSourceForPpn}', Parsed PPN: ${finalHotelObject.price_per_night} (Type: ${typeof finalHotelObject.price_per_night})`);
       return finalHotelObject;
     }).filter((h: SerpApiHotelSuggestion) => h.name && (h.price_per_night !== undefined || h.total_price !== undefined || h.price_details));
 
@@ -690,7 +685,8 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
       const flightResults = await getRealFlightsAction(flightSearchInput);
       const bestFlight = flightResults.best_flights?.[0] || flightResults.other_flights?.[0];
       if (bestFlight) {
-        augmentedSugg.realFlightExample = bestFlight as FlightOption; // Cast for now
+        // @ts-ignore - Assuming FlightOption from lib/types is compatible enough for this example
+        augmentedSugg.realFlightExample = bestFlight; 
       }
 
       const hotelSearchInput: SerpApiHotelSearchInput = {
@@ -702,7 +698,8 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
       const hotelResults = await getRealHotelsAction(hotelSearchInput);
       const bestHotel = hotelResults.hotels?.[0];
       if (bestHotel) {
-        augmentedSugg.realHotelExample = bestHotel as unknown as HotelOption; // Cast for now
+        // @ts-ignore - Assuming HotelOption from lib/types is compatible enough for this example
+        augmentedSugg.realHotelExample = bestHotel; 
       }
       
       let realPriceMin = 0;
@@ -717,12 +714,12 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
         priceNoteParts.push("No specific flight price found.");
       }
 
-      if (bestHotel?.price_per_night) { // Use parsed price_per_night which is a number
+      if (bestHotel?.price_per_night) { 
         const hotelTotal = bestHotel.price_per_night * parsedDates.durationDays;
         realPriceMin += hotelTotal;
         realPriceMax += hotelTotal;
          priceNoteParts.push(`Hotel ~\$${hotelTotal.toLocaleString()} for ${parsedDates.durationDays} nights`);
-      } else if (bestHotel?.total_price) { // Use parsed total_price which is a number
+      } else if (bestHotel?.total_price) { 
          realPriceMin += bestHotel.total_price;
          realPriceMax += bestHotel.total_price;
          priceNoteParts.push(`Hotel ~\$${bestHotel.total_price.toLocaleString()}`);
@@ -732,7 +729,7 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
 
       if (realPriceMin > 0) {
         augmentedSugg.estimatedRealPriceRange = `Around \$${realPriceMin.toLocaleString()}`;
-        if (realPriceMax > realPriceMin && realPriceMax !== realPriceMin) { // ensure they are different
+        if (realPriceMax > realPriceMin && realPriceMax !== realPriceMin) { 
              augmentedSugg.estimatedRealPriceRange = `\$${realPriceMin.toLocaleString()} - \$${realPriceMax.toLocaleString()}`;
         }
         
@@ -790,4 +787,8 @@ export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphI
 
 export async function getThingsToDoAction(input: ThingsToDoSearchInput): Promise<ThingsToDoOutput> {
   return thingsToDoFlowOriginal(input);
+}
+
+export async function generateMultipleImagesAction(input: MultipleImagesInput): Promise<MultipleImagesOutput> {
+  return generateMultipleImagesFlowOriginal(input);
 }
