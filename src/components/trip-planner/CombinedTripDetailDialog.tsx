@@ -23,6 +23,13 @@ const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-lg";
 const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
+interface CombinedTripDetailDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tripPackage: TripPackageSuggestion | null;
+  onInitiateBooking: (destination: string, travelDates: string) => void;
+}
+
 
 function formatDuration(minutes?: number): string {
   if (minutes === undefined || minutes === null) return "N/A";
@@ -79,7 +86,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow">
+        <ScrollArea className="flex-grow"> {/* ScrollArea wraps the main content div */}
           <div className="p-4 sm:p-6 space-y-6">
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">

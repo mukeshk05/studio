@@ -40,8 +40,14 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
   const hotel = pkg.hotel;
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
-  const prominentButtonClassesSm = "text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
-
+  // Styling similar to "Plan History" button in planner/page.tsx
+  const viewPackageButtonClasses = cn(
+    "w-full text-xs h-8 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+    "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+    "hover:from-accent hover:to-primary",
+    "focus-visible:ring-2 focus-visible:ring-primary/40",
+    "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+  );
 
   return (
     <Card 
@@ -65,7 +71,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
             </div>
           )}
         </div>
-        <div className="flex flex-col flex-grow p-3">
+        <div className="flex flex-col flex-grow p-3"> {/* Removed min-h-[180px] or similar fixed height constraints */}
           <CardHeader className="p-0 pb-1.5">
             <CardTitle className="text-sm font-semibold text-card-foreground flex items-center">
               <Briefcase className="w-4 h-4 mr-1.5 text-primary shrink-0" />
@@ -75,7 +81,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
               {pkg.travelDatesQuery} ({pkg.durationDays} days)
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0 text-xs space-y-1.5 flex-grow">
+          <CardContent className="p-0 text-xs space-y-1.5"> {/* Removed flex-grow here, allow natural content height */}
             {flight && (
               <div className="p-1 rounded-md border border-border/20 bg-card/30 dark:bg-card/20">
                 <p className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]">
@@ -94,14 +100,14 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                 {hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
-            <Badge variant="secondary" className="text-sm py-1 px-2 mt-1.5 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
+             <Badge variant="secondary" className="text-sm py-1 px-2 mt-1.5 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
                 Total: ~${pkg.totalEstimatedCost.toLocaleString()}
             </Badge>
           </CardContent>
-          <CardFooter className="p-0 pt-2">
+          <CardFooter className="p-0 pt-2 mt-auto"> {/* Added mt-auto to push footer to bottom */}
             <Button 
                 size="sm" 
-                className={cn("w-full text-xs h-8", prominentButtonClassesSm)}
+                className={viewPackageButtonClasses} // Apply consistent styling
             >
               <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
             </Button>
@@ -254,4 +260,3 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
     </div>
   );
 }
-
