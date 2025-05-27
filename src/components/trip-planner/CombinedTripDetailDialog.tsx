@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -86,7 +85,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow"> 
+        <ScrollArea className="flex-grow min-h-0"> {/* Added min-h-0 for better flex-grow behavior */}
           <div className="p-4 sm:p-6 space-y-6">
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">

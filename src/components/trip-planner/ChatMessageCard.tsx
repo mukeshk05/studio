@@ -1,10 +1,9 @@
-
 "use client";
 
 import React from 'react';
-import type { ChatMessage } from "@/app/(app)/planner/page"; // Ensure PreFilteredOptions is also exported if used directly
+import type { ChatMessage } from "@/app/(app)/planner/page"; 
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
-import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; // Added TripPackageSuggestion
+import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
@@ -13,9 +12,9 @@ import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from 'next/image';
-import { Button } from '../ui/button';
+import { Button, buttonVariants } from '../ui/button'; // Import buttonVariants
 import { Badge } from '../ui/badge';
-import type { PreFilteredOptions } from "@/app/(app)/planner/page"; // Import the interface
+import type { PreFilteredOptions } from "@/app/(app)/planner/page"; 
 
 const renderMarkdownLinks = (text: string) => {
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g;
@@ -40,12 +39,14 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
   const viewPackageButtonClasses = cn(
-    "w-full text-xs h-8 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
-    "bg-gradient-to-r from-primary to-accent text-primary-foreground",
-    "hover:from-accent hover:to-primary",
-    "focus-visible:ring-2 focus-visible:ring-primary/40",
-    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100" 
+    buttonVariants({ size: "sm" }), // Use standard sm size for height and base padding
+    "w-full text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40", // Retain shadows and text size
+    "bg-gradient-to-r from-primary to-accent text-primary-foreground", // Gradient
+    "hover:from-accent hover:to-primary", // Hover gradient
+    "focus-visible:ring-2 focus-visible:ring-primary/40", // Focus
+    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100" // Transform
   );
+  
 
   return (
     <Card 
@@ -95,7 +96,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                   <HotelIcon className="w-3 h-3 mr-1 text-primary/80" /> 
                   {pkg.hotel.name?.substring(0,25)}... - ~${pkg.hotel.price_per_night?.toLocaleString()}/night
                 </p>
-                {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
+                {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
              <Badge variant="secondary" className="text-sm py-1 px-2 mt-1.5 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
@@ -104,7 +105,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
           </CardContent>
           <CardFooter className="p-0 pt-2 mt-auto">
             <Button 
-                size="sm" 
+                size="sm" // This applies h-9, px-3, text-sm font by default from buttonVariants
                 className={viewPackageButtonClasses}
             >
               <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
