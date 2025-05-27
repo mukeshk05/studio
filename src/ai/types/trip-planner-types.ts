@@ -1,6 +1,8 @@
+
 import { z } from 'genkit';
-import { SerpApiFlightOptionSchema } from './serpapi-flight-search-types'; 
-import { SerpApiHotelSuggestionSchema } from './serpapi-hotel-search-types'; 
+// Corrected imports: Zod schemas are runtime values, not just types.
+import { SerpApiFlightOptionSchema } from './serpapi-flight-search-types'; // For real flight options input
+import { SerpApiHotelSuggestionSchema } from './serpapi-hotel-search-types'; // For real hotel options input
 
 // Schema for User Persona, if passed into the planner
 export const UserPersonaSchema = z.object({
@@ -65,6 +67,7 @@ export const DailyPlanItemSchema = z.object({
 export type DailyPlanItem = z.infer<typeof DailyPlanItemSchema>;
 
 export const ItineraryItemSchema = z.object({
+  origin: z.string().optional().describe("The origin of the trip (e.g., city or airport)."),
   destination: z.string().describe('The destination for this itinerary.'),
   travelDates: z.string().describe('The travel dates for this itinerary.'),
   estimatedCost: z.number().describe('The total estimated cost for this itinerary in USD, summing a representative flight and hotel option.'),
@@ -78,7 +81,6 @@ export const ItineraryItemSchema = z.object({
   alternativeReason: z.string().optional().describe("Reason why this alternative is suggested (e.g., 'Due to hurricane warning for original destination...')."),
   destinationLatitude: z.number().optional().describe("Approximate latitude of the destination for map display, if available."),
   destinationLongitude: z.number().optional().describe("Approximate longitude of the destination for map display, if available."),
-  origin: z.string().optional().describe("The origin of the trip."), 
 });
 export type ItineraryItem = z.infer<typeof ItineraryItemSchema>;
 
@@ -105,3 +107,4 @@ export const AITripPlannerTextOutputSchema = z.object({
 });
 
 export type TextPlannerOutput = z.infer<typeof AITripPlannerTextOutputSchema>;
+
