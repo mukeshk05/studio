@@ -2,13 +2,13 @@
 "use client";
 
 import React from 'react';
-import type { ChatMessage } from "@/app/(app)/planner/page"; // Import PreFilteredOptions
+import type { ChatMessage } from "@/app/(app)/planner/page";
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
-import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; // Added TripPackageSuggestion
+import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
-import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink } from "lucide-react";
+import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff } from "lucide-react"; // Added ImageOff
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -38,40 +38,70 @@ type CompactTripPackageCardProps = {
 function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackageCardProps) {
   const flight = pkg.flight;
   const hotel = pkg.hotel;
+  const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}` : undefined;
 
   return (
-    <Card className={cn("overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-200 glass-card hover:border-primary/50")}>
-      <CardHeader className="p-3 pb-2">
-        <CardTitle className="text-base flex items-center text-card-foreground">
-          <Briefcase className="w-4 h-4 mr-2 text-primary shrink-0" />
-          Trip Package to {pkg.destinationQuery}
-        </CardTitle>
-        <CardDescription className="text-xs text-muted-foreground">
-          For: {pkg.travelDatesQuery} ({pkg.durationDays} days)
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-3 text-xs space-y-2">
-        {flight && (
-          <div className="p-1.5 rounded-md border border-border/30 bg-card/50">
-            <p className="font-medium text-card-foreground/90 flex items-center"><PlaneIcon className="w-3 h-3 mr-1 text-primary" /> Flight: {flight.airline || "Selected Airline"} - ${flight.price?.toLocaleString()}</p>
-            <p className="text-muted-foreground pl-4 text-[0.7rem]">{flight.derived_departure_airport_name} to {flight.derived_arrival_airport_name} ({flight.derived_stops_description})</p>
-          </div>
-        )}
-        {hotel && (
-          <div className="p-1.5 rounded-md border border-border/30 bg-card/50">
-            <p className="font-medium text-card-foreground/90 flex items-center"><HotelIcon className="w-3 h-3 mr-1 text-primary" /> Hotel: {hotel.name?.substring(0,30)}... - ~${hotel.price_per_night?.toLocaleString()}/night</p>
-            {hotel.rating && <p className="text-muted-foreground pl-4 text-[0.7rem]">Rating: {hotel.rating.toFixed(1)} ★</p>}
-          </div>
-        )}
-         <Badge variant="secondary" className="text-sm py-1 px-2.5 mt-1.5 bg-primary/20 text-primary border-primary/30 shadow-sm">
-            Total: ~${pkg.totalEstimatedCost.toLocaleString()}
-        </Badge>
-      </CardContent>
-      <CardFooter className="p-3">
-        <Button onClick={() => onViewPackageDetails(pkg)} size="sm" className="w-full text-xs h-8 glass-interactive border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
-          <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package Details
-        </Button>
-      </CardFooter>
+    <Card 
+      className={cn(
+        "overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-out",
+        "glass-card border-primary/30 hover:border-accent/50 hover:scale-[1.015]",
+        "bg-gradient-to-br from-primary/10 via-card/60 to-accent/10 dark:from-primary/5 dark:via-card/40 dark:to-accent/5"
+      )}
+      role="button"
+      onClick={() => onViewPackageDetails(pkg)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onViewPackageDetails(pkg);}}
+      tabIndex={0}
+    >
+      <div className="flex flex-col sm:flex-row">
+        <div className="relative w-full sm:w-1/3 h-32 sm:h-auto shrink-0 group">
+          {pkg.destinationImageUri ? (
+            <Image src={pkg.destinationImageUri} alt={`Image for ${pkg.destinationQuery}`} fill className="object-cover sm:rounded-l-md sm:rounded-r-none rounded-t-md" data-ai-hint={imageHint} sizes="(max-width: 640px) 100vw, 33vw"/>
+          ) : (
+            <div className="w-full h-full bg-muted/30 flex items-center justify-center sm:rounded-l-md sm:rounded-r-none rounded-t-md">
+              <ImageOff className="w-10 h-10 text-muted-foreground opacity-70"/>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col flex-grow p-3">
+          <CardHeader className="p-0 pb-1.5">
+            <CardTitle className="text-sm font-semibold text-card-foreground flex items-center">
+              <Briefcase className="w-4 h-4 mr-1.5 text-primary shrink-0" />
+              {pkg.destinationQuery}
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              {pkg.travelDatesQuery} ({pkg.durationDays} days)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 text-xs space-y-1.5 flex-grow">
+            {flight && (
+              <div className="p-1 rounded-md border border-border/20 bg-card/30 dark:bg-card/20">
+                <p className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]">
+                  <PlaneIcon className="w-3 h-3 mr-1 text-primary/80" /> 
+                  {flight.airline || "Flight"} - ~${flight.price?.toLocaleString()}
+                </p>
+                <p className="text-muted-foreground pl-4 text-[0.65rem] truncate">{flight.derived_departure_airport_name} → {flight.derived_arrival_airport_name} ({flight.derived_stops_description})</p>
+              </div>
+            )}
+            {hotel && (
+              <div className="p-1 rounded-md border border-border/20 bg-card/30 dark:bg-card/20">
+                <p className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]">
+                  <HotelIcon className="w-3 h-3 mr-1 text-primary/80" /> 
+                  {hotel.name?.substring(0,25)}... - ~${hotel.price_per_night?.toLocaleString()}/night
+                </p>
+                {hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
+              </div>
+            )}
+            <Badge variant="secondary" className="text-sm py-1 px-2 mt-1.5 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
+                Total: ~${pkg.totalEstimatedCost.toLocaleString()}
+            </Badge>
+          </CardContent>
+          <CardFooter className="p-0 pt-2">
+            <Button variant="outline" size="sm" className="w-full text-xs h-8 glass-interactive border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
+              <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
+            </Button>
+          </CardFooter>
+        </div>
+      </div>
     </Card>
   );
 }
@@ -80,7 +110,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
 type ChatMessageCardProps = {
   message: ChatMessage;
   onViewDetails: (itinerary: Itinerary) => void;
-  onViewPackageDetails: (pkg: TripPackageSuggestion) => void; // New prop
+  onViewPackageDetails: (pkg: TripPackageSuggestion) => void; 
 };
 
 export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }: ChatMessageCardProps) {

@@ -1,7 +1,7 @@
 
 import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal, FlightOptionSchema as AIFlightOptionSchema, HotelOptionSchema as AIHotelOptionSchema, RoomSchema as AIRoomSchema, DailyPlanItemSchema as AIDailyPlanItemSchema } from "@/ai/types/trip-planner-types";
-import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // Assuming hotel suggestions are also in flight search types for now, or create a new one. This should be SerpApiHotelSuggestion from its own file.
-import { z } from 'zod'; // Ensure z is imported if used here, though likely only in AI types
+import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types";
+import { z } from 'zod';
 
 // This effectively takes the type of a single itinerary object from the array
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
@@ -94,10 +94,12 @@ export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' 
 export interface TripPackageSuggestion {
   id: string;
   flight: SerpApiFlightOption;
-  hotel: SerpApiHotelSuggestion; // Use the actual SerpApiHotelSuggestion type
+  hotel: SerpApiHotelSuggestion;
   totalEstimatedCost: number;
   durationDays: number;
-  destinationQuery: string; // User's original destination query
-  travelDatesQuery: string; // User's original travel dates query
-  userInput: AITripPlannerInput; // Include the original user input for context
+  destinationQuery: string; 
+  travelDatesQuery: string; 
+  userInput: AITripPlannerInput;
+  destinationImagePrompt?: string; // Added for package card image
+  destinationImageUri?: string;   // Added for package card image
 }
