@@ -86,8 +86,8 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow min-h-0"> {/* MAIN SCROLL AREA FOR DIALOG BODY */}
-          <div className="p-4 sm:p-6 space-y-6">
+        <ScrollArea className="flex-grow min-h-0"> {/* Outer scroll area for the entire body */}
+          <div className="p-4 sm:p-6 space-y-6"> {/* Content wrapper */}
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
                 <CardTitle className="text-2xl font-bold text-accent text-center flex items-center justify-center gap-2">
@@ -147,7 +147,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                         <TabsTrigger value="map" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground">Location</TabsTrigger>
                     </TabsList>
                     <TabsContent value="overview" className={cn(glassCardClasses, "p-4 rounded-md")}>
-                       <ScrollArea className="max-h-[300px] pr-3"> {/* Added ScrollArea for Overview content */}
+                       <ScrollArea className="pr-3"> {/* Removed max-h from this nested ScrollArea */}
                           <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3">
                           {hotel.thumbnail ? (
                               <Image src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
@@ -240,4 +240,4 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
-
+    

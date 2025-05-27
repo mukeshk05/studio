@@ -39,15 +39,15 @@ type CompactTripPackageCardProps = {
 function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackageCardProps) {
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
-  // Styling similar to "Plan History" button
+  // Styling similar to "Plan History" button on planner page
   const viewPackageButtonClasses = cn(
-    buttonVariants({ size: "sm" }), // Use size "sm"
+    buttonVariants({ size: "sm" }), 
     "w-full text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
     "focus-visible:ring-2 focus-visible:ring-primary/40", 
     "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100",
-    "py-1.5 px-3" // Adjust padding for a more compact look if needed
+    "h-8 px-3 py-1.5" // Ensure compact size
   );
   
 
@@ -106,7 +106,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                 Total: ~${pkg.totalEstimatedCost.toLocaleString()}
             </Badge>
           </CardContent>
-          <CardFooter className="p-0 pt-2 mt-auto"> {/* Added mt-auto here */}
+          <CardFooter className="p-0 pt-2 mt-auto"> 
             <Button 
                 size="sm" 
                 className={viewPackageButtonClasses}
@@ -262,4 +262,4 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
     </div>
   );
 }
-
+    
