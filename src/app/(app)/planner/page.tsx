@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/types/trip-planner-types";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
 import type { CoTravelAgentInput, CoTravelAgentOutput } from "@/ai/types/co-travel-agent-types";
-import { getCoTravelAgentResponse, getIataCodeAction, generateMultipleImagesFlow, type ImagePromptItem } from "@/app/actions"; // Added generateMultipleImagesFlow and ImagePromptItem
+import { getCoTravelAgentResponse, getIataCodeAction, generateMultipleImagesFlow, type ImagePromptItem } from "@/app/actions"; 
 import type { Itinerary, SearchHistoryEntry, SerpApiFlightOption, SerpApiHotelSuggestion, TripPackageSuggestion } from "@/lib/types";
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
@@ -22,9 +22,6 @@ import { ItineraryDetailSheet } from "@/components/trip-planner/ItineraryDetailS
 import { CombinedTripDetailDialog } from "@/components/trip-planner/CombinedTripDetailDialog";
 import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions";
 import { format, addDays, parse, differenceInDays, addMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isValid, parseISO } from 'date-fns';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
 
 
 export interface ChatMessage {
@@ -35,7 +32,7 @@ export interface ChatMessage {
   title?: string;
 }
 
-export interface PreFilteredOptions { // Keeping this if it's used elsewhere, otherwise can be removed
+export interface PreFilteredOptions {
   flights: SerpApiFlightOption[];
   hotels: SerpApiHotelSuggestion[];
   note: string;
@@ -45,24 +42,39 @@ export interface PreFilteredOptions { // Keeping this if it's used elsewhere, ot
 
 function parseFlexibleDates(dateString: string): { from: Date, to: Date, durationDays: number } {
   const now = new Date();
-  let fromDate: Date | null = null;
-  let toDate: Date | null = null;
-  let durationDays = 7; // Default duration
+  let fromDate: Date = addDays(now, 7); // Default to one week from now if unparsable
+  let toDate: Date = addDays(fromDate, 6); // Default to 7 days duration
+  let durationDays = 7;
 
   const lowerDateString = dateString.toLowerCase();
 
-  // Attempt to parse specific date ranges first (e.g., "MM/DD/YYYY - MM/DD/YYYY")
-  const specificDateRangeMatch = lowerDateString.match(/(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})\s*(?:-|to|until)\s*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/);
-  if (specificDateRangeMatch) {
+  // Try to parse specific date ranges like "MM/DD/YYYY - MM/DD/YYYY" or "Month Day - Month Day, YYYY"
+  const specificRangeMatch = lowerDateString.match(/(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\w+\s\d{1,2})\s*(?:to|-|until)\s*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\w+\s\d{1,2}(?:,\s*\d{4})?)/i);
+  if (specificRangeMatch) {
     try {
-      let d1 = parse(specificDateRangeMatch[1].replace(/\//g, '-'), 'M-d-yy', new Date());
-      if (!isValid(d1)) d1 = parse(specificDateRangeMatch[1].replace(/\//g, '-'), 'M-d-yyyy', new Date());
+      const yearMatch = specificRangeMatch[0].match(/(\d{4})/);
+      const currentYear = now.getFullYear();
+      const year = yearMatch ? parseInt(yearMatch[1]) : currentYear;
+
+      let d1Str = specificRangeMatch[1];
+      if (!d1Str.includes(String(year)) && !d1Str.match(/\d{4}/)) d1Str += `, ${year}`;
+      let d2Str = specificRangeMatch[2];
+      if (!d2Str.includes(String(year)) && !d2Str.match(/\d{4}/)) d2Str += `, ${year}`;
       
-      let d2 = parse(specificDateRangeMatch[2].replace(/\//g, '-'), 'M-d-yy', new Date());
-      if (!isValid(d2)) d2 = parse(specificDateRangeMatch[2].replace(/\//g, '-'), 'M-d-yyyy', new Date());
+      let d1 = parseISO(new Date(d1Str).toISOString());
+      let d2 = parseISO(new Date(d2Str).toISOString());
+
+      if (isValid(d1) && d1 < now && d1.getFullYear() === year && year === currentYear) { // If parsed as past date in current year, assume next year
+        d1 = new Date(d1.setFullYear(year + 1));
+      }
+      if (isValid(d2) && d2 < d1 && d2.getFullYear() === year && year === currentYear) {
+         d2 = new Date(d2.setFullYear(year + (d1.getFullYear() > year ? 1: 0))); // ensure d2 is after d1
+         if (d2 < d1) d2 = new Date(d2.setFullYear(d2.getFullYear() + 1));
+      }
+
 
       if (isValid(d1) && isValid(d2) && d2 >= d1) {
-        fromDate = d1 >= now ? d1 : now; // Ensure fromDate is not in the past
+        fromDate = d1 >= now ? d1 : addDays(now,1); // Ensure fromDate is not in the past
         toDate = d2;
         durationDays = differenceInDays(toDate, fromDate) + 1;
         return { from: fromDate, to: toDate, durationDays: Math.max(1, durationDays) };
@@ -70,30 +82,31 @@ function parseFlexibleDates(dateString: string): { from: Date, to: Date, duratio
     } catch (e) { console.warn("Could not parse specific date range:", dateString, e); }
   }
   
-  const durationForMatch = lowerDateString.match(/for\s+(\d+)\s*(days?|weeks?|months?)/i);
+  const durationForMatch = lowerDateString.match(/for\s+(?:a|\d+)\s*(day|week|month)s?/i) || lowerDateString.match(/(\d+)\s*(day|week|month)s?/i);
   if (durationForMatch) {
-    const num = parseInt(durationForMatch[1], 10);
-    const unit = durationForMatch[2].toLowerCase();
-    if (unit.startsWith('week')) durationDays = num * 7;
-    else if (unit.startsWith('month')) durationDays = num * 30; // Approximate
+    const num = parseInt(durationForMatch[1] || '1', 10); // 'a week' -> 1 week
+    const unit = durationForMatch[2]?.toLowerCase();
+    if (unit?.startsWith('week')) durationDays = num * 7;
+    else if (unit?.startsWith('month')) durationDays = num * 30; // Approximate
     else durationDays = num;
     durationDays = Math.max(1, durationDays);
   }
 
   if (lowerDateString.includes("next weekend")) {
-    fromDate = startOfWeek(addDays(now, (5 - now.getDay() + 7) % 7 + (now.getDay() >= 5 ? 7 : 0)), { weekStartsOn: 5 }); // Next Friday
+    fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 5 }); // Next Friday
     durationDays = 3; // Fri, Sat, Sun
   } else if (lowerDateString.includes("this weekend")) {
-     fromDate = startOfWeek(addDays(now, (5 - now.getDay() + 7) % 7), { weekStartsOn: 5 }); // This Friday or next if past
-     if (fromDate < now) fromDate = addDays(fromDate, 7);
+     let thisFriday = startOfWeek(now, { weekStartsOn: 5 });
+     if (thisFriday < now) thisFriday = addDays(thisFriday, 7);
+     fromDate = thisFriday;
      durationDays = 3;
   } else if (lowerDateString.includes("next month")) {
     fromDate = startOfMonth(addMonths(now, 1));
+    if (fromDate < now) fromDate = addDays(fromDate,1); // Ensure it's future
   } else if (lowerDateString.includes("this month")) {
     fromDate = startOfMonth(now);
-    if (fromDate < now) fromDate = addDays(startOfMonth(now), 1); // Ensure it's not today or past
+    if (fromDate < now) fromDate = addDays(startOfMonth(now), 1); 
   } else {
-    // Check for "in X days/weeks/months"
     const inXTimeMatch = lowerDateString.match(/in\s+(\d+)\s*(days?|weeks?|months?)/i);
     if (inXTimeMatch) {
         const num = parseInt(inXTimeMatch[1], 10);
@@ -102,26 +115,24 @@ function parseFlexibleDates(dateString: string): { from: Date, to: Date, duratio
         else if (unit.startsWith('week')) fromDate = addDays(now, num * 7);
         else if (unit.startsWith('month')) fromDate = addMonths(now, num);
     } else {
-      // Try parsing common month names
       const monthMatch = lowerDateString.match(/(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)/i);
       if (monthMatch) {
         const monthIndex = new Date(Date.parse(monthMatch[0] +" 1, 2000")).getMonth();
         let year = now.getFullYear();
-        if (monthIndex < now.getMonth() && !lowerDateString.includes(String(year+1))) { // if month is past and next year not specified
-          year++;
-        }
-        fromDate = new Date(year, monthIndex, 1); // Default to start of that month
-        // If a day is specified after month, try to use it
-        const dayOfMonthMatch = lowerDateString.match(new RegExp(monthMatch[0] + "\\s*(\\d{1,2})", "i"));
+        let tempFromDate = new Date(year, monthIndex, 1);
+         const dayOfMonthMatch = lowerDateString.match(new RegExp(monthMatch[0] + "\\s*(\\d{1,2})", "i"));
         if(dayOfMonthMatch && dayOfMonthMatch[1]){
-            fromDate.setDate(parseInt(dayOfMonthMatch[1], 10));
+            tempFromDate.setDate(parseInt(dayOfMonthMatch[1], 10));
         }
-        if (fromDate < now && !durationForMatch) fromDate = addMonths(fromDate,12); // ensure future if no duration specified
+        if (tempFromDate < now && !durationForMatch && !lowerDateString.includes(String(year + 1))) {
+           tempFromDate.setFullYear(year + 1);
+        }
+        fromDate = tempFromDate;
       }
     }
   }
   
-  if (!fromDate || fromDate < now) fromDate = addDays(now,1); // Default to tomorrow if still not set or past
+  if (!isValid(fromDate) || fromDate < now) fromDate = addDays(now,1); 
   toDate = addDays(fromDate, durationDays - 1);
 
   return { from: fromDate, to: toDate, durationDays: Math.max(1, durationDays) };
@@ -134,7 +145,8 @@ function generateTripPackageSuggestions(
   durationDays: number,
   destinationQuery: string,
   travelDatesQuery: string,
-  userInput: AITripPlannerInput
+  userInputBudget: number,
+  mainDestinationImageUri?: string,
 ): TripPackageSuggestion[] {
   const suggestions: TripPackageSuggestion[] = [];
   if (filteredFlights.length === 0 || filteredHotels.length === 0) {
@@ -142,84 +154,69 @@ function generateTripPackageSuggestions(
     return [];
   }
 
-  const overallBudget = userInput.budget;
-  const budgetTolerance = 0.25; // Allow up to 25% over budget for a package
-
-  // Sort hotels by rating (descending) if available, then price (ascending)
-  const sortedHotels = [...filteredHotels].sort((a, b) => {
-    if ((a.rating ?? 0) !== (b.rating ?? 0)) {
-      return (b.rating ?? 0) - (a.rating ?? 0);
-    }
+  // Sort hotels by rating (descending) then price (ascending) for "best rated" strategy
+  const sortedHotelsByRating = [...filteredHotels].sort((a, b) => {
+    if ((a.rating ?? 0) !== (b.rating ?? 0)) return (b.rating ?? 0) - (a.rating ?? 0);
     return (a.price_per_night ?? Infinity) - (b.price_per_night ?? Infinity);
   });
-  
+  // Sort hotels by price only for "cheapest" strategy
+  const sortedHotelsByPrice = [...filteredHotels].sort((a, b) => (a.price_per_night ?? Infinity) - (b.price_per_night ?? Infinity));
+
+
+  const budgetTolerance = 0.25; // Allow package to be up to 25% over original user budget
+  const maxBudgetForPackage = userInputBudget * (1 + budgetTolerance);
+
   // Strategy 1: Cheapest flight + Cheapest suitable hotel
-  if (filteredFlights[0] && sortedHotels.length > 0) {
+  if (filteredFlights[0] && sortedHotelsByPrice[0]?.price_per_night !== undefined) {
     const flight = filteredFlights[0];
-    const cheapestHotel = sortedHotels.reduce((prev, curr) => ((prev.price_per_night ?? Infinity) < (curr.price_per_night ?? Infinity) ? prev : curr), sortedHotels[0]);
-    
-    if (cheapestHotel.price_per_night !== undefined) {
-        const totalCost = (flight.price || 0) + (cheapestHotel.price_per_night * durationDays);
-        if (totalCost <= overallBudget * (1 + budgetTolerance)) {
-          suggestions.push({
-            id: `${flight.derived_flight_numbers || 'flight0'}_${cheapestHotel.name?.replace(/\s/g, '') || 'hotelCheapest'}`,
-            flight,
-            hotel: cheapestHotel,
-            totalEstimatedCost: totalCost,
-            durationDays,
-            destinationQuery,
-            travelDatesQuery,
-            userInput,
-            destinationImagePrompt: `Iconic view of ${destinationQuery}` // Add prompt
-          });
-        }
+    const hotel = sortedHotelsByPrice[0];
+    const totalCost = (flight.price || 0) + (hotel.price_per_night * durationDays);
+    if (totalCost <= maxBudgetForPackage) {
+      suggestions.push({
+        id: `pkg_cheapFlight_cheapHotel_${flight.derived_flight_numbers || 'f0'}_${hotel.name?.replace(/\s/g, '') || 'hC'}`,
+        flight, hotel, totalEstimatedCost: totalCost, durationDays,
+        destinationQuery, travelDatesQuery, destinationImageUri: mainDestinationImageUri,
+        destinationImagePrompt: `Iconic view of ${destinationQuery} for budget travel`,
+        userInput: { destination: destinationQuery, travelDates: travelDatesQuery, budget: userInputBudget} // Add userInput here
+      });
     }
   }
 
   // Strategy 2: Cheapest flight + Best-rated suitable hotel (if different from above)
-  if (filteredFlights[0] && sortedHotels.length > 0) {
+  if (filteredFlights[0] && sortedHotelsByRating[0]?.price_per_night !== undefined) {
     const flight = filteredFlights[0];
-    const bestRatedHotel = sortedHotels[0]; // Already sorted by rating primarily
-     if (bestRatedHotel.price_per_night !== undefined && (suggestions.length === 0 || suggestions[0].hotel.name !== bestRatedHotel.name)) {
-       const totalCost = (flight.price || 0) + (bestRatedHotel.price_per_night * durationDays);
-       if (totalCost <= overallBudget * (1 + budgetTolerance)) {
-          suggestions.push({
-            id: `${flight.derived_flight_numbers || 'flight0'}_${bestRatedHotel.name?.replace(/\s/g, '') || 'hotelTopRated'}`,
-            flight,
-            hotel: bestRatedHotel,
-            totalEstimatedCost: totalCost,
-            durationDays,
-            destinationQuery,
-            travelDatesQuery,
-            userInput,
-            destinationImagePrompt: `Luxurious stay in ${destinationQuery}` // Add prompt
-          });
-       }
+    const hotel = sortedHotelsByRating[0];
+    // Ensure this package is distinct from the first one if hotel is different
+    if (suggestions.length === 0 || suggestions[0].hotel.name !== hotel.name) {
+        const totalCost = (flight.price || 0) + (hotel.price_per_night * durationDays);
+        if (totalCost <= maxBudgetForPackage) {
+            suggestions.push({
+                id: `pkg_cheapFlight_topRatedHotel_${flight.derived_flight_numbers || 'f0'}_${hotel.name?.replace(/\s/g, '') || 'hTR'}`,
+                flight, hotel, totalEstimatedCost: totalCost, durationDays,
+                destinationQuery, travelDatesQuery, destinationImageUri: mainDestinationImageUri,
+                destinationImagePrompt: `Comfortable stay in ${destinationQuery}`,
+                userInput: { destination: destinationQuery, travelDates: travelDatesQuery, budget: userInputBudget}
+            });
+        }
     }
   }
   
   // Strategy 3: Second cheapest flight (if available) + A different suitable hotel
-  if (filteredFlights.length > 1 && sortedHotels.length > 0) {
+  if (filteredFlights.length > 1 && sortedHotelsByPrice.length > 0) {
     const flight = filteredFlights[1];
-    // Try to find a hotel different from the first suggestion's hotel, if any
-    const differentHotel = sortedHotels.find(h => suggestions.length > 0 ? h.name !== suggestions[0].hotel.name : true) || sortedHotels[0];
+    // Try to find a hotel different from the first suggestion's hotel
+    const hotel = sortedHotelsByPrice.find(h => suggestions.length > 0 ? h.name !== suggestions[0].hotel.name : true) || sortedHotelsByPrice[0];
     
-    if (differentHotel.price_per_night !== undefined) {
-        const totalCost = (flight.price || 0) + (differentHotel.price_per_night * durationDays);
-        if (totalCost <= overallBudget * (1 + budgetTolerance)) {
-            // Ensure this package is distinct enough from others already added
-            const newId = `${flight.derived_flight_numbers || 'flight1'}_${differentHotel.name?.replace(/\s/g, '') || 'hotelAlt'}`;
+    if (hotel?.price_per_night !== undefined) {
+        const totalCost = (flight.price || 0) + (hotel.price_per_night * durationDays);
+        if (totalCost <= maxBudgetForPackage) {
+            const newId = `pkg_altFlight_altHotel_${flight.derived_flight_numbers || 'f1'}_${hotel.name?.replace(/\s/g, '') || 'hA'}`;
             if (!suggestions.find(s => s.id === newId)) {
-                suggestions.push({
-                    id: newId,
-                    flight,
-                    hotel: differentHotel,
-                    totalEstimatedCost: totalCost,
-                    durationDays,
-                    destinationQuery,
-                    travelDatesQuery,
-                    userInput,
-                    destinationImagePrompt: `Exploring ${destinationQuery} highlights` // Add prompt
+                 suggestions.push({
+                    id: newId, flight, hotel, totalEstimatedCost: totalCost, durationDays,
+                    destinationQuery, travelDatesQuery, destinationImageUri: mainDestinationImageUri,
+                    destinationImagePrompt: `Exploring diverse options in ${destinationQuery}`,
+                    userInput: { destination: destinationQuery, travelDates: travelDatesQuery, budget: userInputBudget}
                 });
             }
         }
@@ -227,10 +224,9 @@ function generateTripPackageSuggestions(
   }
 
   console.log(`[PlannerPage] Generated ${suggestions.length} initial package suggestions.`);
-  // Deduplicate and limit to 3
   const uniqueSuggestions = Array.from(new Map(suggestions.map(item => [item.id, item])).values());
-  console.log(`[PlannerPage] Returning ${uniqueSuggestions.slice(0, 3).length} unique package suggestions.`);
-  return uniqueSuggestions.slice(0, 3);
+  console.log(`[PlannerPage] Returning ${Math.min(uniqueSuggestions.length, 3)} unique package suggestions.`);
+  return uniqueSuggestions.slice(0, 3); // Limit to max 3 suggestions
 }
 
 
@@ -262,27 +258,53 @@ export default function TripPlannerPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const initGoogleMapsApiPlannerPageCallback = useCallback(() => {
+    console.log("[PlannerPage] Google Maps API script loaded callback for planner page executed.");
     setIsMapsScriptLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (!apiKey) { setIsMapsScriptLoaded(false); return; }
-    if (typeof window !== 'undefined' && (window as any).google?.maps?.places) {
-      if (!isMapsScriptLoaded) setIsMapsScriptLoaded(true); return;
+    console.log("[PlannerPage] Maps API Script Loader Effect Triggered. API Key Present:", !!apiKey);
+    if (!apiKey) { 
+        console.error("[PlannerPage] Google Maps API key is missing. Autocomplete and map features will be disabled.");
+        setIsMapsScriptLoaded(false); // Explicitly set to false if no key
+        return; 
     }
-    const scriptId = 'google-maps-planner-page-script';
-    if (document.getElementById(scriptId)) {
-      if (typeof window !== 'undefined' && (window as any).google?.maps?.places && !isMapsScriptLoaded) setIsMapsScriptLoaded(true);
+    // Check if Google Maps API is already loaded by another instance (e.g. from other pages)
+    if (typeof window !== 'undefined' && (window as any).google && (window as any).google.maps && (window as any).google.maps.places) {
+      console.log("[PlannerPage] Google Maps API (with Places) already loaded.");
+      if (!isMapsScriptLoaded) setIsMapsScriptLoaded(true);
       return;
     }
-    (window as any).initGoogleMapsApiPlannerPage = initGoogleMapsApiPlannerPageCallback;
+    
+    const scriptId = 'google-maps-planner-page-script';
+    // If script already exists, don't re-add, but ensure state is correct if window.google.maps exists
+    if (document.getElementById(scriptId)) {
+        console.log("[PlannerPage] Google Maps script tag already exists in document.");
+         if (typeof window !== 'undefined' && (window as any).google?.maps?.places && !isMapsScriptLoaded) {
+            setIsMapsScriptLoaded(true); // Ensure state is true if API loaded but callback might have been missed
+        }
+        return;
+    }
+    
+    console.log("[PlannerPage] Attempting to load Google Maps API script with Places library...");
+    (window as any).initGoogleMapsApiPlannerPage = initGoogleMapsApiPlannerPageCallback; // Make callback globally accessible
+
     const script = document.createElement('script');
     script.id = scriptId;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMapsApiPlannerPage`;
-    script.async = true; script.defer = true;
-    script.onerror = () => { setIsMapsScriptLoaded(false); };
+    script.async = true; 
+    script.defer = true;
+    script.onerror = () => { 
+        console.error("[PlannerPage] Failed to load Google Maps API script. Check API key, network, and callback name.");
+        setIsMapsScriptLoaded(false); 
+    };
     document.head.appendChild(script);
-    return () => { if ((window as any).initGoogleMapsApiPlannerPage) delete (window as any).initGoogleMapsApiPlannerPage; };
+
+    return () => { // Cleanup
+      if ((window as any).initGoogleMapsApiPlannerPage) {
+        delete (window as any).initGoogleMapsApiPlannerPage;
+      }
+    };
   }, [apiKey, isMapsScriptLoaded, initGoogleMapsApiPlannerPageCallback]);
 
   useEffect(() => {
@@ -314,9 +336,28 @@ export default function TripPlannerPage() {
     catch (error) { console.warn("Failed to save search history:", error); }
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), type: "user", payload: input, timestamp: new Date(), title: "My Trip Request" };
-    const loadingMessage: ChatMessage = { id: crypto.randomUUID(), type: "loading", timestamp: new Date(), payload: "Aura is fetching real-time flight & hotel data..." };
-    setChatHistory(prev => [...prev, userMessage, loadingMessage]);
+    let loadingMessageId = crypto.randomUUID();
+    setChatHistory(prev => [...prev, userMessage, { id: loadingMessageId, type: "loading", timestamp: new Date(), payload: "Generating destination visual..." }]);
 
+    let mainDestinationImageUri: string | undefined = undefined;
+    try {
+        const imagePromptsForDestination: ImagePromptItem[] = [{ 
+            id: `dest-${input.destination.replace(/\s+/g, '-')}`, 
+            prompt: `Iconic scenic travel photograph of ${input.destination}`, 
+            styleHint: 'destination' 
+        }];
+        const destImageResult = await generateMultipleImagesFlow({ prompts: imagePromptsForDestination });
+        mainDestinationImageUri = destImageResult.results[0]?.imageUri || undefined;
+        if (mainDestinationImageUri) {
+             setChatHistory(prev => prev.map(msg => msg.id === loadingMessageId ? { ...msg, payload: "Aura is fetching real-time flight & hotel data..." } : msg));
+        } else {
+            setChatHistory(prev => prev.map(msg => msg.id === loadingMessageId ? { ...msg, payload: "Could not load destination visual. Fetching options..." } : msg));
+        }
+    } catch (imgError) {
+        console.error("[PlannerPage] Error fetching destination image:", imgError);
+        setChatHistory(prev => prev.map(msg => msg.id === loadingMessageId ? { ...msg, payload: "Visual generation failed. Fetching options..." } : msg));
+    }
+    
     const parsedDates = parseFlexibleDates(input.travelDates);
     const formattedDepartureDate = format(parsedDates.from, "yyyy-MM-dd");
     const formattedReturnDate = format(parsedDates.to, "yyyy-MM-dd");
@@ -324,7 +365,7 @@ export default function TripPlannerPage() {
     let realFlights: SerpApiFlightOption[] = [];
     let realHotels: SerpApiHotelSuggestion[] = [];
 
-    let originForFlightSearch = input.origin || "NYC"; // Default if no origin provided
+    const originForFlightSearch = input.origin || "NYC"; 
     let originIata = await getIataCodeAction(originForFlightSearch);
     if (input.origin && !originIata) console.warn(`Could not find IATA for origin: ${input.origin}, using name directly.`);
     
@@ -338,7 +379,6 @@ export default function TripPlannerPage() {
       if (flightResults.best_flights) realFlights.push(...flightResults.best_flights);
       if (flightResults.other_flights) realFlights.push(...flightResults.other_flights);
       console.log(`Fetched ${realFlights.length} real flight options for planner.`);
-      // toast({ title: "Flight Data Update", description: `SerpApi returned ${realFlights.length} flight options.` });
     } catch (e) { console.error("Error fetching real flights:", e); toast({ title: "Flight Fetch Error (SerpApi)", variant: "destructive" }); }
 
     try {
@@ -347,17 +387,16 @@ export default function TripPlannerPage() {
       const hotelResults = await getRealHotelsAction(hotelSearchInput);
       if (hotelResults.hotels) realHotels = hotelResults.hotels;
       console.log(`Fetched ${realHotels.length} real hotel options for planner.`);
-      // toast({ title: "Hotel Data Update", description: `SerpApi returned ${realHotels.length} hotel options.` });
     } catch (e) { console.error("Error fetching real hotels:", e); toast({ title: "Hotel Fetch Error (SerpApi)", variant: "destructive" }); }
     
-    setChatHistory(prev => prev.map(msg => msg.id === loadingMessage.id ? { ...msg, payload: "Aura is pre-filtering & combining best options..." } : msg));
+    setChatHistory(prev => prev.map(msg => msg.id === loadingMessageId ? { ...msg, payload: "Aura is pre-filtering & combining best options..." } : msg));
 
     const flightBudgetPercentage = 0.40; 
     const hotelBudgetPercentage = 0.60;
     const allocatedFlightBudget = input.budget * flightBudgetPercentage;
     const allocatedHotelBudgetTotal = input.budget * hotelBudgetPercentage;
 
-    console.log(`Total Budget: $${input.budget}, Flight Allocation: ~$${allocatedFlightBudget.toFixed(0)}, Hotel Total Allocation: ~$${allocatedHotelBudgetTotal.toFixed(0)} for ${parsedDates.durationDays} days.`);
+    console.log(`Total User Budget: $${input.budget}, Flight Allocation: ~$${allocatedFlightBudget.toFixed(0)}, Hotel Total Allocation: ~$${allocatedHotelBudgetTotal.toFixed(0)} for ${parsedDates.durationDays} days.`);
 
     const filteredFlights = realFlights
       .filter(flight => flight.price != null && flight.price <= allocatedFlightBudget)
@@ -375,48 +414,32 @@ export default function TripPlannerPage() {
       .slice(0, 10);
     console.log(`Hotels: ${realHotels.length} initially, ${filteredHotels.length} after budget filter.`);
     
-    const tripPackages = generateTripPackageSuggestions(filteredFlights, filteredHotels, parsedDates.durationDays, input.destination, input.travelDates, input);
+    const tripPackages = generateTripPackageSuggestions(
+      filteredFlights, 
+      filteredHotels, 
+      parsedDates.durationDays, 
+      input.destination, 
+      input.travelDates,
+      input.budget,
+      mainDestinationImageUri // Pass the fetched destination image
+    );
 
-    // Fetch images for packages
-    const imagePromptsForPackages: ImagePromptItem[] = tripPackages.map((pkg, index) => ({
-        id: `pkg-${pkg.id}`, // Use package ID for mapping
-        prompt: pkg.destinationImagePrompt || `Iconic view of ${pkg.destinationQuery}`,
-        styleHint: 'destination',
-    }));
-
-    let packagesWithImages = [...tripPackages];
-    if (imagePromptsForPackages.length > 0) {
-        try {
-            console.log("[PlannerPage] Fetching images for generated packages...");
-            const imageResults = await generateMultipleImagesFlow({ prompts: imagePromptsForPackages });
-            packagesWithImages = tripPackages.map(pkg => {
-                const imgResult = imageResults.results.find(res => res.id === `pkg-${pkg.id}`);
-                return { ...pkg, destinationImageUri: imgResult?.imageUri || undefined };
-            });
-            console.log("[PlannerPage] Images fetched for packages.");
-        } catch (imgError) {
-            console.error("[PlannerPage] Error fetching images for packages:", imgError);
-            toast({ title: "Image Fetch Error", description: "Could not load images for package suggestions.", variant: "warning"});
-        }
-    }
-    
-
-    let packageNote = `Aura AI curated ${packagesWithImages.length} trip package(s) from ${filteredFlights.length} suitable flights and ${filteredHotels.length} suitable hotels.`;
-    if(packagesWithImages.length === 0) {
-        packageNote = `Aura AI could not create any trip packages strictly within budget from the ${filteredFlights.length} flights and ${filteredHotels.length} hotels found. You might need to increase your budget, adjust dates/destination, or I can try to make a purely conceptual plan.`;
+    let packageNote = `Aura AI curated ${tripPackages.length} trip package(s) for ${input.destination} from ${filteredFlights.length} suitable flights and ${filteredHotels.length} suitable hotels found within budget allocations.`;
+    if(tripPackages.length === 0) {
+        packageNote = `Aura AI could not create any trip packages strictly within your budget from the ${filteredFlights.length} flights and ${filteredHotels.length} hotels found. You might need to increase your budget or adjust dates/destination. The AI will now try to make purely conceptual plans.`;
     }
 
     const packageMessage: ChatMessage = {
       id: crypto.randomUUID(),
       type: "trip_package_suggestions",
-      payload: { packages: packagesWithImages, note: packageNote, userInput: input },
+      payload: { packages: tripPackages, note: packageNote, userInput: input },
       timestamp: new Date(),
       title: "Curated Trip Packages by Aura AI"
     };
-    // setChatHistory(prev => prev.filter(msg => msg.type !== 'loading').concat(packageMessage));
-     // Commenting out the AI trip planner call as per previous instructions.
-     // If you want to re-enable it, make sure plannerInputForAI is correctly defined using
-     // the filtered (or all) realFlights and realHotels.
+    setChatHistory(prev => prev.map(msg => msg.id === loadingMessageId ? { ...msg, type:"system", payload: packageNote } : msg).concat(packageMessage)); // Show package note then packages
+    loadingMessageId = crypto.randomUUID(); // New ID for AI planning loader
+    setChatHistory(prev => [...prev, { id: loadingMessageId, type: "loading", timestamp: new Date(), payload: "Aura AI is now crafting your personalized itineraries based on these options..." }]);
+
 
     const plannerInputForAI: AITripPlannerInput = {
       ...input,
@@ -425,9 +448,7 @@ export default function TripPlannerPage() {
       realHotelOptions: filteredHotels.length > 0 ? filteredHotels : undefined,
     };
     console.log("[PlannerPage] FINAL Input to aiTripPlanner flow (after filtering and package generation):", JSON.stringify(plannerInputForAI, null, 2));
-    
-    setChatHistory(prev => prev.map(msg => msg.id === loadingMessage.id ? { ...msg, payload: "Aura AI is now crafting your personalized itineraries based on these options..." } : msg));
-    
+        
     try {
       const aiResult = await aiTripPlanner(plannerInputForAI);
       const aiMessage: ChatMessage = {
@@ -437,7 +458,7 @@ export default function TripPlannerPage() {
         timestamp: new Date(),
         title: "Your AI Curated Trip Options"
       };
-       setChatHistory(prev => prev.filter(msg => msg.type !== 'loading').concat(packageMessage, aiMessage)); // Show packages THEN AI plans
+       setChatHistory(prev => prev.filter(msg => msg.id !== loadingMessageId).concat(aiMessage)); 
        if (!aiResult.itineraries || aiResult.itineraries.length === 0) {
          toast({
             title: "AI Planning Note",
@@ -449,7 +470,7 @@ export default function TripPlannerPage() {
     } catch (error: any) {
       console.error("Error calling AI Trip Planner:", error);
       const errorMessage: ChatMessage = { id: crypto.randomUUID(), type: "error", payload: `AI Planner Error: ${error.message}`, timestamp: new Date() };
-      setChatHistory(prev => prev.filter(msg => msg.type !== 'loading').concat(packageMessage, errorMessage)); // Show packages even if AI plan fails
+      setChatHistory(prev => prev.filter(msg => msg.id !== loadingMessageId).concat(errorMessage));
     }
   };
 

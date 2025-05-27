@@ -16,14 +16,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Added Tabs
-
-type CombinedTripDetailDialogProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  tripPackage: TripPackageSuggestion | null;
-  onInitiateBooking: (destination: string, travelDates: string) => void;
-};
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; 
 
 const glassPaneClasses = "glass-pane";
 const glassCardClasses = "glass-card";

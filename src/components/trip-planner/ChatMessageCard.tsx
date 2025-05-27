@@ -8,7 +8,7 @@ import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHote
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
-import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff } from "lucide-react"; // Added ImageOff
+import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff } from "lucide-react"; 
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -38,7 +38,10 @@ type CompactTripPackageCardProps = {
 function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackageCardProps) {
   const flight = pkg.flight;
   const hotel = pkg.hotel;
-  const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}` : undefined;
+  const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
+
+  const prominentButtonClassesSm = "text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
+
 
   return (
     <Card 
@@ -96,7 +99,10 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
             </Badge>
           </CardContent>
           <CardFooter className="p-0 pt-2">
-            <Button variant="outline" size="sm" className="w-full text-xs h-8 glass-interactive border-primary/50 text-primary hover:bg-primary/10 hover:text-primary">
+            <Button 
+                size="sm" 
+                className={cn("w-full text-xs h-8", prominentButtonClassesSm)}
+            >
               <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
             </Button>
           </CardFooter>
@@ -248,3 +254,4 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
     </div>
   );
 }
+
