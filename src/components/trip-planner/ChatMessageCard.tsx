@@ -2,9 +2,9 @@
 "use client";
 
 import React from 'react';
-import type { ChatMessage, PreFilteredOptions } from "@/app/(app)/planner/page"; 
+import type { ChatMessage } from "@/app/(app)/planner/page"; 
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
-import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; 
+import type { Itinerary, TripPackageSuggestion } from "@/lib/types"; 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
@@ -40,12 +40,13 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
   const viewPackageButtonClasses = cn(
+    buttonVariants({ size: "sm" }), // Use base sm size from variants
     "text-sm shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
     "focus-visible:ring-2 focus-visible:ring-primary/40", 
     "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100",
-    "h-auto px-3 py-1" // Explicitly set py-1 to match badge, px-3 for decent width, h-auto
+    "py-1 px-2.5 h-auto" // Adjust padding to be more compact, h-auto to fit content
   );
   
 
@@ -106,7 +107,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                 Total: ~${pkg.totalEstimatedCost.toLocaleString()}
             </Badge>
             <Button 
-                className={viewPackageButtonClasses} // Using the refined classes
+                className={viewPackageButtonClasses}
             >
               <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
             </Button>

@@ -147,7 +147,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                         <TabsTrigger value="map" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground">Location</TabsTrigger>
                     </TabsList>
                     <TabsContent value="overview" className={cn(glassCardClasses, "p-4 rounded-md")}>
-                       <ScrollArea className="pr-3"> {/* Removed max-h from this nested ScrollArea */}
                           <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3">
                           {hotel.thumbnail ? (
                               <Image src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
@@ -176,7 +175,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                               <a href={hotel.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />View Hotel Deal</a>
                           </Button>
                           )}
-                        </ScrollArea>
                     </TabsContent>
                     <TabsContent value="gallery">
                          {hotel.images && hotel.images.length > 0 ? (
@@ -240,4 +238,4 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
-    
+
