@@ -1,13 +1,13 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Removed ScrollBar import
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import type { TripPackageSuggestion, DailyPlanItem as ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover } from "@/lib/types";
@@ -65,7 +65,6 @@ function LayoverDisplay({ layover }: { layover: SerpApiLayover }) {
     );
 }
 
-
 function ConceptualDailyPlanDisplay({ planItem, isLast }: { planItem: ConceptualDailyPlanItem, isLast: boolean }) {
   return (
     <div className={cn("relative flex items-start", !isLast ? "pb-4" : "pb-1")}>
@@ -81,8 +80,10 @@ function ConceptualDailyPlanDisplay({ planItem, isLast }: { planItem: Conceptual
   );
 }
 
+
 export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onInitiateBooking }: CombinedTripDetailDialogProps) {
   const { toast } = useToast();
+  const mapRef = useRef<HTMLIFrameElement>(null); 
 
   if (!tripPackage) return null;
 
@@ -110,7 +111,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     if (i === 0) return { day: "Day 1", activities: `Arrive in ${destinationQuery}, check into ${hotel.name || 'your accommodation'}, and explore the immediate local area. Enjoy a welcome dinner.` };
     if (i === (durationDays || 3) - 1) return { day: `Day ${durationDays || 3}`, activities: "Enjoy a final breakfast, any last-minute souvenir shopping or a quick visit to a favorite spot, then prepare for departure." };
     return { day: `Day ${i + 1}`, activities: `Explore key attractions, cultural experiences, and culinary delights specific to ${destinationQuery}. (Detailed activities will be AI-generated upon full planning).` };
-  }).slice(0, Math.min(durationDays || 3, 5));
+  }).slice(0, Math.min(durationDays || 3, 7)); 
 
 
   return (
@@ -135,8 +136,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
-           <ScrollBar orientation="vertical" />
+        <ScrollArea className="flex-1 min-h-0"> {/* Key change: flex-1 and min-h-0 */}
           <div className="p-4 sm:p-6 space-y-6"> 
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -149,7 +149,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
               </CardHeader>
             </Card>
 
-            {/* Flight Details Section */}
             <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg font-semibold text-primary flex items-center">
@@ -197,7 +196,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
               </CardContent>
             </Card>
 
-            {/* Hotel Details Section */}
             <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg font-semibold text-primary flex items-center">
@@ -268,6 +266,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                          {mapsApiKey && (hotel.coordinates?.latitude && hotel.coordinates?.longitude || hotel.name) ? (
                             <div className="aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg">
                             <iframe
+                                ref={mapRef}
                                 width="100%"
                                 height="100%"
                                 style={{ border: 0 }}
@@ -289,7 +288,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
               </CardContent>
             </Card>
             
-            {/* Conceptual Daily Activities Section */}
             <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg font-semibold text-primary flex items-center">
@@ -298,7 +296,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
               </CardHeader>
               <CardContent className="text-sm space-y-1.5">
                 <p className="text-xs text-muted-foreground italic mb-3">
-                  This is a high-level conceptual outline. A detailed, personalized day-by-day plan will be generated by Aura AI if you proceed to fully plan this package.
+                  This is a high-level conceptual outline. When you proceed to fully plan this package by clicking "Plan This Package with AI" below, Aura AI will generate a detailed, personalized day-by-day plan based on your interests for {destinationQuery} over {durationDays} days.
                 </p>
                 <div className="space-y-1 relative pl-2">
                   {conceptualDailyPlan.map((item, index) => (
