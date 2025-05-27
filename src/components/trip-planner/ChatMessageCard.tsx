@@ -2,9 +2,9 @@
 "use client";
 
 import React from 'react';
-import type { ChatMessage } from "@/app/(app)/planner/page"; 
+import type { ChatMessage, PreFilteredOptions } from "@/app/(app)/planner/page"; 
 import type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
-import type { Itinerary, TripPackageSuggestion } from "@/lib/types"; 
+import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
@@ -37,11 +37,13 @@ type CompactTripPackageCardProps = {
 };
 
 function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackageCardProps) {
-  const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
+  const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') 
+    ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) 
+    : undefined;
 
   const viewPackageButtonClasses = cn(
     buttonVariants({ size: "sm" }), 
-    "py-1 px-2.5 h-8", // Adjusted for more compact size while maintaining sm font
+    "py-1 px-2.5 h-8 text-xs", // More compact text, standard small button height
     "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
@@ -49,7 +51,6 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
     "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100"
   );
   
-
   return (
     <Card 
       className={cn(
@@ -65,7 +66,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
       <div className="flex flex-col sm:flex-row">
         <div className="relative w-full sm:w-1/3 h-32 sm:h-auto shrink-0 group">
           {pkg.destinationImageUri ? (
-            <Image src={pkg.destinationImageUri} alt={`Image for ${pkg.destinationQuery}`} fill className="object-cover sm:rounded-l-md sm:rounded-r-none rounded-t-md" data-ai-hint={imageHint} sizes="(max-width: 640px) 100vw, 33vw"/>
+            <Image src={pkg.destinationImageUri} alt={`Image for ${pkg.destinationQuery}`} fill className="object-cover sm:rounded-l-md sm:rounded-r-none rounded-t-md group-hover:scale-105 transition-transform" data-ai-hint={imageHint} sizes="(max-width: 640px) 100vw, 33vw"/>
           ) : (
             <div className="w-full h-full bg-muted/30 flex items-center justify-center sm:rounded-l-md sm:rounded-r-none rounded-t-md">
               <ImageOff className="w-10 h-10 text-muted-foreground opacity-70"/>
@@ -101,7 +102,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                 {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
-             <p className="text-xs text-muted-foreground pt-1">Daily activity suggestions included.</p>
+             <p className="text-xs text-muted-foreground pt-1">AI-powered daily activity suggestions included.</p>
           </CardContent>
           <CardFooter className="p-0 pt-2 mt-auto flex justify-between items-center"> 
              <Badge variant="secondary" className="text-sm py-1 px-2 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
@@ -261,4 +262,3 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
     </div>
   );
 }
-    

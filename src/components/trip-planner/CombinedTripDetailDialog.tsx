@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import type { TripPackageSuggestion, DailyPlanItem as ConceptualDailyPlanItem } from "@/lib/types"; // Assuming ConceptualDailyPlanItem might be similar to DailyPlanItem
+import type { TripPackageSuggestion, DailyPlanItem as ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover } from "@/lib/types";
 import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -31,22 +31,49 @@ interface CombinedTripDetailDialogProps {
 }
 
 function formatDuration(minutes?: number): string {
-  if (minutes === undefined || minutes === null) return "N/A";
+  if (minutes === undefined || minutes === null || isNaN(minutes)) return "N/A";
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h}h ${m}m`;
 }
 
+function FlightLegDisplay({ leg, isLast }: { leg: SerpApiFlightLeg, isLast: boolean }) {
+  return (
+    <div className={cn("p-2 rounded-md", innerGlassEffectClasses, !isLast && "mb-2")}>
+      <div className="flex items-center gap-2 mb-1">
+        {leg.airline_logo && <Image src={leg.airline_logo} alt={leg.airline || ""} width={20} height={20} className="rounded-sm"/>}
+        <span className="font-semibold text-xs text-card-foreground">{leg.airline} {leg.flight_number}</span>
+        {leg.airplane && <span className="text-muted-foreground text-[0.65rem]">({leg.airplane})</span>}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        <strong className="text-card-foreground/80">Departs:</strong> {leg.departure_airport?.name} ({leg.departure_airport?.id}) at {leg.departure_airport?.time || 'N/A'}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        <strong className="text-card-foreground/80">Arrives:</strong> {leg.arrival_airport?.name} ({leg.arrival_airport?.id}) at {leg.arrival_airport?.time || 'N/A'}
+      </p>
+      <p className="text-xs text-muted-foreground"><strong className="text-card-foreground/80">Duration:</strong> {formatDuration(leg.duration)}</p>
+      {leg.travel_class && <p className="text-xs text-muted-foreground"><strong className="text-card-foreground/80">Class:</strong> {leg.travel_class}</p>}
+    </div>
+  );
+}
+
+function LayoverDisplay({ layover }: { layover: SerpApiLayover }) {
+    return (
+      <div className="pl-8 py-1 text-xs text-muted-foreground">
+        <span className="font-medium text-card-foreground/80">Layover:</span> {layover.name || layover.id} ({formatDuration(layover.duration)})
+      </div>
+    );
+}
+
+
 function ConceptualDailyPlanDisplay({ planItem, isLast }: { planItem: ConceptualDailyPlanItem, isLast: boolean }) {
   return (
-    <div className="relative flex items-start pb-3">
-      <div className="absolute left-1.5 top-1.5 h-full w-0.5 bg-primary/20"></div>
-      <div className="relative z-10 flex h-3 w-3 items-center justify-center rounded-full bg-primary">
-        <div className="h-1.5 w-1.5 rounded-full bg-primary-foreground"></div>
-      </div>
-      <div className={cn("ml-4 pl-3 py-2 pr-2 rounded-md w-full", innerGlassEffectClasses)}>
-        <h5 className="font-semibold text-xs text-primary mb-0.5">{planItem.day}</h5>
-        <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
+    <div className={cn("relative flex items-start", !isLast ? "pb-4" : "pb-1")}>
+      <div className="absolute left-[5px] top-[11px] h-full w-0.5 bg-primary/30"></div>
+      <div className="relative z-10 flex h-3 w-3 items-center justify-center rounded-full bg-primary ring-2 ring-background mt-1"></div>
+      <div className={cn("ml-4 pl-3 py-2 pr-2 rounded-md w-full text-xs", innerGlassEffectClasses)}>
+        <h5 className="font-semibold text-primary mb-0.5">{planItem.day}</h5>
+        <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
           {planItem.activities}
         </p>
       </div>
@@ -62,12 +89,12 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
-  const mapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
+  const hotelMapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
     ? `${hotel.coordinates.latitude},${hotel.coordinates.longitude}`
     : encodeURIComponent(`${hotel.name}, ${destinationQuery}`);
   
-  const mapEmbedUrl = mapsApiKey
-    ? `https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${mapQuery}&zoom=14`
+  const hotelMapEmbedUrl = mapsApiKey
+    ? `https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${hotelMapQuery}&zoom=14`
     : "";
 
   const handleConceptualSave = () => {
@@ -77,14 +104,13 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     });
   };
   
-  const flightImageHint = flight.airline_logo ? flight.airline?.toLowerCase() : "airline logo";
   const hotelMainImageHint = hotel.thumbnail ? hotel.name?.toLowerCase().split(" ").slice(0,2).join(" ") : "hotel exterior";
   
   const conceptualDailyPlan: ConceptualDailyPlanItem[] = Array.from({ length: durationDays || 3 }, (_, i) => {
     if (i === 0) return { day: "Day 1", activities: `Arrive in ${destinationQuery}, check into ${hotel.name || 'your accommodation'}, and explore the immediate local area. Enjoy a welcome dinner.` };
     if (i === (durationDays || 3) - 1) return { day: `Day ${durationDays || 3}`, activities: "Enjoy a final breakfast, any last-minute souvenir shopping or a quick visit to a favorite spot, then prepare for departure." };
     return { day: `Day ${i + 1}`, activities: `Explore key attractions, cultural experiences, and culinary delights specific to ${destinationQuery}. (Detailed activities will be AI-generated upon full planning).` };
-  }).slice(0, Math.min(durationDays || 3, 5)); // Show up to 5 days for brevity in this placeholder
+  }).slice(0, Math.min(durationDays || 3, 5));
 
 
   return (
@@ -109,8 +135,8 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0"> 
-          <ScrollBar />
+        <ScrollArea className="flex-1 min-h-0">
+           <ScrollBar orientation="vertical" />
           <div className="p-4 sm:p-6 space-y-6"> 
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -131,36 +157,40 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-2">
                   {flight.airline_logo ? (
-                    <Image src={flight.airline_logo} alt={flight.airline || "Airline"} width={80} height={30} className="object-contain rounded-sm bg-muted/20 p-0.5" data-ai-hint={flightImageHint} />
+                    <Image src={flight.airline_logo} alt={flight.airline || "Airline"} width={60} height={22.5} className="object-contain rounded-sm bg-muted/20 p-0.5" data-ai-hint={flight.airline?.toLowerCase()} />
                   ) : (
-                    <Plane className="w-6 h-6 text-primary" />
+                    <Plane className="w-5 h-5 text-primary" />
                   )}
                   <div>
-                    <p className="font-medium text-card-foreground">{flight.airline || "Selected Airline"} {flight.derived_flight_numbers}</p>
-                    <p className="text-xs text-muted-foreground">Price: ${flight.price?.toLocaleString()}</p>
+                    <p className="font-medium text-card-foreground text-sm">{flight.airline || "Selected Airline"} {flight.derived_flight_numbers}</p>
                   </div>
                 </div>
-                <Separator />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div><strong className="text-card-foreground/90">From:</strong> {flight.derived_departure_airport_name} at {flight.derived_departure_time}</div>
-                  <div><strong className="text-card-foreground/90">To:</strong> {flight.derived_arrival_airport_name} at {flight.derived_arrival_time}</div>
-                  <div><strong className="text-card-foreground/90">Duration:</strong> {formatDuration(flight.total_duration)} ({flight.derived_stops_description})</div>
+                <Separator/>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <p><strong className="text-card-foreground/90">Price:</strong> ${flight.price?.toLocaleString()}</p>
+                  <p><strong className="text-card-foreground/90">Type:</strong> {flight.type || "N/A"}</p>
+                  <p><strong className="text-card-foreground/90">Total Duration:</strong> {formatDuration(flight.total_duration)}</p>
+                  <p><strong className="text-card-foreground/90">Stops:</strong> {flight.derived_stops_description || "N/A"}</p>
                 </div>
-                {flight.flights && flight.flights.length > 1 && (
-                    <div className="mt-2 space-y-1.5">
-                        <p className="text-xs font-medium text-card-foreground/80">Legs:</p>
-                        {flight.flights.map((leg, index) => (
-                            <div key={index} className="p-1.5 border border-border/20 rounded-md bg-card/20 text-[0.7rem] leading-tight">
-                                <p>{index + 1}: {leg.airline} {leg.flight_number} ({leg.departure_airport?.name} → {leg.arrival_airport?.name})</p>
-                                <p className="text-muted-foreground">Duration: {formatDuration(leg.duration)}</p>
-                            </div>
+                
+                {flight.flights && flight.flights.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                        <h4 className="text-xs font-semibold text-card-foreground/80">Flight Legs:</h4>
+                        {flight.flights.map((leg, index, arr) => (
+                            <React.Fragment key={`leg-${index}`}>
+                                <FlightLegDisplay leg={leg} isLast={index === arr.length -1 && (!flight.layovers || flight.layovers.length <= index )}/>
+                                {flight.layovers && flight.layovers[index] && index < arr.length -1 && (
+                                    <LayoverDisplay layover={flight.layovers[index]} />
+                                )}
+                            </React.Fragment>
                         ))}
                     </div>
                 )}
+
                 {flight.link && (
-                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-2">
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-3">
                     <a href={flight.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />View Flight on Google Flights</a>
                   </Button>
                 )}
@@ -177,28 +207,28 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
               <CardContent className="text-sm">
                  <Tabs defaultValue="overview" className="w-full">
                     <TabsList className={cn("grid w-full grid-cols-2 sm:grid-cols-3 mb-4 glass-pane p-1", "border border-border/50")}>
-                        <TabsTrigger value="overview" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
-                        <TabsTrigger value="gallery" disabled={!hotel.images || hotel.images.length === 0} className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground">Gallery</TabsTrigger>
-                        <TabsTrigger value="map" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground">Location</TabsTrigger>
+                        <TabsTrigger value="overview" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Overview</TabsTrigger>
+                        <TabsTrigger value="gallery" disabled={!hotel.images || hotel.images.length === 0} className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Gallery</TabsTrigger>
+                        <TabsTrigger value="map" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Location</TabsTrigger>
                     </TabsList>
                     <TabsContent value="overview" className={cn(glassCardClasses, "p-4 rounded-md")}>
-                          <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3">
+                          <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3 shadow-md">
                           {hotel.thumbnail ? (
                               <Image src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
                           ) : (
                               <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-10 h-10 text-muted-foreground"/></div>
                           )}
                           </div>
-                          {hotel.type && <Badge variant="outline" className="text-xs capitalize bg-accent/10 text-accent border-accent/30 mb-1">{hotel.type}</Badge>}
-                          {hotel.rating && <p className="text-xs flex items-center text-amber-400 mb-1"><Star className="w-3.5 h-3.5 mr-1 fill-amber-400" /> {hotel.rating.toFixed(1)} / 5 ({hotel.reviews || 'N/A'} reviews)</p>}
-                          <p className="text-xs text-muted-foreground mb-2">{hotel.description || "Detailed description not available."}</p>
-                          <Separator className="my-2"/>
+                          {hotel.type && <Badge variant="outline" className="text-xs capitalize bg-accent/10 text-accent border-accent/30 mb-1.5">{hotel.type}</Badge>}
+                          {hotel.rating && <p className="text-sm flex items-center text-amber-400 mb-1.5"><Star className="w-4 h-4 mr-1 fill-amber-400" /> {hotel.rating.toFixed(1)} / 5 ({hotel.reviews || 'N/A'} reviews)</p>}
+                          <p className="text-xs text-muted-foreground mb-2 leading-relaxed">{hotel.description || "Detailed description not available."}</p>
+                          <Separator className="my-2.5"/>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                               <div><strong className="text-card-foreground/90">Price:</strong> {hotel.price_details || (hotel.price_per_night ? `$${hotel.price_per_night.toLocaleString()}/night` : "N/A")}</div>
                               <div><strong className="text-card-foreground/90">Total for Stay ({durationDays} days):</strong> ~${((hotel.price_per_night || 0) * durationDays).toLocaleString()}</div>
                           </div>
                           {hotel.amenities && hotel.amenities.length > 0 && (
-                          <div className="pt-2">
+                          <div className="pt-2.5">
                               <h4 className="font-medium text-card-foreground/90 text-xs mb-1">Key Amenities:</h4>
                               <div className="flex flex-wrap gap-1.5">
                               {hotel.amenities.map((amenity, idx) => <Badge key={idx} variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">{amenity}</Badge>)}
@@ -206,7 +236,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                           </div>
                           )}
                           {hotel.link && (
-                          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-3">
+                          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-3.5">
                               <a href={hotel.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />View Hotel Deal</a>
                           </Button>
                           )}
@@ -217,7 +247,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 <CarouselContent className="-ml-2">
                                 {hotel.images.map((img, idx) => (
                                     <CarouselItem key={idx} className="pl-2 md:basis-1/2 lg:basis-1/3">
-                                    <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 bg-muted/30">
+                                    <div className="relative aspect-square w-full rounded-md overflow-hidden border border-border/30 bg-muted/30 shadow-sm">
                                         {img.thumbnail ? (
                                         <Image src={img.thumbnail} alt={`Hotel image ${idx + 1}`} fill className="object-cover" sizes="(max-width: 768px) 45vw, 200px" />
                                         ) : (
@@ -244,7 +274,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 loading="lazy"
                                 allowFullScreen
                                 referrerPolicy="no-referrer-when-downgrade"
-                                src={mapEmbedUrl}
+                                src={hotelMapEmbedUrl}
                                 title={`Map of ${hotel.name}`}
                             ></iframe>
                             </div>
@@ -266,18 +296,17 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                   <ListChecks className="w-5 h-5 mr-2" /> Conceptual Daily Activities Outline
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-sm space-y-2">
+              <CardContent className="text-sm space-y-1.5">
                 <p className="text-xs text-muted-foreground italic mb-3">
-                  This is a conceptual outline. A detailed, personalized day-by-day plan will be generated by Aura AI if you proceed to fully plan this package using the main AI Trip Planner.
+                  This is a high-level conceptual outline. A detailed, personalized day-by-day plan will be generated by Aura AI if you proceed to fully plan this package.
                 </p>
-                <div className="space-y-1 relative">
+                <div className="space-y-1 relative pl-2">
                   {conceptualDailyPlan.map((item, index) => (
                     <ConceptualDailyPlanDisplay key={`conceptual-day-${index}`} planItem={item} isLast={index === conceptualDailyPlan.length - 1} />
                   ))}
                 </div>
               </CardContent>
             </Card>
-
           </div>
         </ScrollArea>
 
@@ -293,5 +322,3 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
-
-    
