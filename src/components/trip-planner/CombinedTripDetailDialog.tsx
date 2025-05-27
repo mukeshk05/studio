@@ -43,7 +43,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
 
   if (!tripPackage) return null;
 
-  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput } = tripPackage;
+  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const mapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
@@ -86,7 +86,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow"> {/* ScrollArea wraps the main content div */}
+        <ScrollArea className="flex-grow"> 
           <div className="p-4 sm:p-6 space-y-6">
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -224,7 +224,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                  </Tabs>
               </CardContent>
             </Card>
-
           </div>
         </ScrollArea>
 

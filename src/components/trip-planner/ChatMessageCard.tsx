@@ -2,9 +2,9 @@
 "use client";
 
 import React from 'react';
-import type { ChatMessage } from "@/app/(app)/planner/page";
+import type { ChatMessage } from "@/app/(app)/planner/page"; // Ensure PreFilteredOptions is also exported if used directly
 import type { AITripPlannerInput, AITripPlannerOutput } from "@/ai/types/trip-planner-types";
-import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types";
+import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; // Added TripPackageSuggestion
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
@@ -15,6 +15,7 @@ import Link from "next/link";
 import Image from 'next/image';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import type { PreFilteredOptions } from "@/app/(app)/planner/page"; // Import the interface
 
 const renderMarkdownLinks = (text: string) => {
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g;
@@ -36,17 +37,14 @@ type CompactTripPackageCardProps = {
 };
 
 function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackageCardProps) {
-  const flight = pkg.flight;
-  const hotel = pkg.hotel;
   const imageHint = pkg.destinationImageUri?.startsWith('https://placehold.co') ? (pkg.destinationImagePrompt || `iconic view of ${pkg.destinationQuery.toLowerCase().split(" ").slice(0,2).join(" ")}`) : undefined;
 
-  // Styling similar to "Plan History" button in planner/page.tsx
   const viewPackageButtonClasses = cn(
     "w-full text-xs h-8 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
     "focus-visible:ring-2 focus-visible:ring-primary/40",
-    "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+    "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100" 
   );
 
   return (
@@ -71,7 +69,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
             </div>
           )}
         </div>
-        <div className="flex flex-col flex-grow p-3"> {/* Removed min-h-[180px] or similar fixed height constraints */}
+        <div className="flex flex-col flex-grow p-3">
           <CardHeader className="p-0 pb-1.5">
             <CardTitle className="text-sm font-semibold text-card-foreground flex items-center">
               <Briefcase className="w-4 h-4 mr-1.5 text-primary shrink-0" />
@@ -81,33 +79,33 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
               {pkg.travelDatesQuery} ({pkg.durationDays} days)
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0 text-xs space-y-1.5"> {/* Removed flex-grow here, allow natural content height */}
-            {flight && (
+          <CardContent className="p-0 text-xs space-y-1.5 flex-grow"> 
+            {pkg.flight && (
               <div className="p-1 rounded-md border border-border/20 bg-card/30 dark:bg-card/20">
                 <p className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]">
                   <PlaneIcon className="w-3 h-3 mr-1 text-primary/80" /> 
-                  {flight.airline || "Flight"} - ~${flight.price?.toLocaleString()}
+                  {pkg.flight.airline || "Flight"} - ~${pkg.flight.price?.toLocaleString()}
                 </p>
-                <p className="text-muted-foreground pl-4 text-[0.65rem] truncate">{flight.derived_departure_airport_name} → {flight.derived_arrival_airport_name} ({flight.derived_stops_description})</p>
+                <p className="text-muted-foreground pl-4 text-[0.65rem] truncate">{pkg.flight.derived_departure_airport_name} → {pkg.flight.derived_arrival_airport_name} ({pkg.flight.derived_stops_description})</p>
               </div>
             )}
-            {hotel && (
+            {pkg.hotel && (
               <div className="p-1 rounded-md border border-border/20 bg-card/30 dark:bg-card/20">
                 <p className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]">
                   <HotelIcon className="w-3 h-3 mr-1 text-primary/80" /> 
-                  {hotel.name?.substring(0,25)}... - ~${hotel.price_per_night?.toLocaleString()}/night
+                  {pkg.hotel.name?.substring(0,25)}... - ~${pkg.hotel.price_per_night?.toLocaleString()}/night
                 </p>
-                {hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
+                {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
              <Badge variant="secondary" className="text-sm py-1 px-2 mt-1.5 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
                 Total: ~${pkg.totalEstimatedCost.toLocaleString()}
             </Badge>
           </CardContent>
-          <CardFooter className="p-0 pt-2 mt-auto"> {/* Added mt-auto to push footer to bottom */}
+          <CardFooter className="p-0 pt-2 mt-auto">
             <Button 
                 size="sm" 
-                className={viewPackageButtonClasses} // Apply consistent styling
+                className={viewPackageButtonClasses}
             >
               <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
             </Button>
@@ -203,7 +201,7 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
             <CardHeader className="p-0 pb-2">
               <CardTitle className="text-base flex items-center text-card-foreground">
                 <Briefcase className="w-4 h-4 mr-2 text-primary" />
-                {message.title || "Curated Trip Packages"}
+                {message.title || "Curated Trip Packages by Aura AI"}
               </CardTitle>
               {packageData.userInput && (
                 <CardDescription className="text-xs text-muted-foreground">
