@@ -1,6 +1,5 @@
-
 import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal, FlightOptionSchema as AIFlightOptionSchema, HotelOptionSchema as AIHotelOptionSchema, RoomSchema as AIRoomSchema, DailyPlanItemSchema as AIDailyPlanItemSchema } from "@/ai/types/trip-planner-types";
-import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types";
+import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // This import is fine
 import { z } from 'zod';
 
 // This effectively takes the type of a single itinerary object from the array
@@ -52,7 +51,7 @@ export interface PriceTrackerEntry {
   currentPrice: number;
   travelDates?: string;
   lastChecked: string;
-  createdAt?: any;
+  createdAt?: any; 
   alertStatus?: {
     shouldAlert: boolean;
     alertMessage: string;
@@ -66,13 +65,13 @@ export interface SearchHistoryEntry {
   destination: string;
   travelDates: string;
   budget: number;
-  searchedAt: any;
+  searchedAt: any; 
 }
 
 export interface UserTravelPersona {
   name: string;
   description: string;
-  lastUpdated: any;
+  lastUpdated: any; 
 }
 
 
@@ -100,6 +99,14 @@ export interface TripPackageSuggestion {
   destinationQuery: string; 
   travelDatesQuery: string; 
   userInput: AITripPlannerInput;
-  destinationImagePrompt?: string; // Added for package card image
-  destinationImageUri?: string;   // Added for package card image
+  destinationImagePrompt?: string;
+  destinationImageUri?: string;
+  userId: string; // Added for saving package
+  createdAt?: any; // For Firestore serverTimestamp
+}
+
+// Conceptual daily plan item for the dialog (simpler than full DailyPlanItem)
+export interface ConceptualDailyPlanItem {
+  day: string;
+  activities: string;
 }

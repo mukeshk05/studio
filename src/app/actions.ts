@@ -53,8 +53,9 @@ import type { FlightOption, HotelOption } from '@/lib/types';
 
 import { format, addDays, parse, differenceInDays, addMonths } from 'date-fns';
 
-const CACHE_EXPIRY_HOURS_API = 24;
-const CACHE_EXPIRY_DAYS_IMAGE = 7;
+const CACHE_EXPIRY_DAYS_API = 30; 
+const CACHE_EXPIRY_DAYS_IMAGE = 30;
+const CACHE_EXPIRY_DAYS_IATA = 90;
 
 
 export interface ImageRequest {
@@ -244,23 +245,64 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
 
 export async function getIataCodeAction(placeName: string): Promise<string | null> {
   if (!placeName || placeName.trim().length < 3) return null;
+  const normalizedPlaceName = placeName.trim().toLowerCase();
+  const cacheKey = `iata_${normalizedPlaceName.replace(/[^a-z0-9]/g, '_')}`;
+  const cacheCollection = 'iataCodeCache';
+
+  if (firestore) {
+    const cacheDocRef = doc(firestore, cacheCollection, cacheKey);
+    try {
+      const docSnap = await getDoc(cacheDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const cachedAt = (data.cachedAt as Timestamp)?.toDate();
+        if (cachedAt) {
+          const now = new Date();
+          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+          if (daysDiff < CACHE_EXPIRY_DAYS_IATA) {
+            console.log(`[Cache HIT - IATA] For: ${normalizedPlaceName}, Key: ${cacheKey}, Code: ${data.iataCode}`);
+            return data.iataCode;
+          }
+          console.log(`[Cache STALE - IATA] For: ${normalizedPlaceName}, Key: ${cacheKey}`);
+        }
+      } else {
+        console.log(`[Cache MISS - IATA] For: ${normalizedPlaceName}, Key: ${cacheKey}`);
+      }
+    } catch (e) {
+      console.error(`[Cache Read Error - IATA] For ${cacheKey}:`, e);
+    }
+  }
+
   const apiKey = process.env.SERPAPI_API_KEY;
   if (!apiKey) { console.warn("[getIataCodeAction] SerpApi key not found."); return null; }
-  const params = { engine: "google", q: `IATA code for ${placeName} airport`, api_key: apiKey };
+  const params = { engine: "google", q: `IATA code for ${normalizedPlaceName} airport`, api_key: apiKey };
   try {
     const response = await getSerpApiJson(params);
-    if (response.answer_box?.answer) { const m = response.answer_box.answer.match(/\b([A-Z]{3})\b/); if (m) return m[1]; }
-    if (response.knowledge_graph?.iata_code) return response.knowledge_graph.iata_code;
-    if (response.knowledge_graph?.description) { const m = response.knowledge_graph.description.match(/IATA: ([A-Z]{3})/i); if (m) return m[1];}
-    if (response.organic_results?.length) {
+    let iataCode: string | null = null;
+    if (response.answer_box?.answer) { const m = response.answer_box.answer.match(/\b([A-Z]{3})\b/); if (m) iataCode = m[1]; }
+    if (!iataCode && response.knowledge_graph?.iata_code) iataCode = response.knowledge_graph.iata_code;
+    if (!iataCode && response.knowledge_graph?.description) { const m = response.knowledge_graph.description.match(/IATA: ([A-Z]{3})/i); if (m) iataCode = m[1];}
+    if (!iataCode && response.organic_results?.length) {
       for (const r of response.organic_results) {
-        if (r.snippet) { const m = r.snippet.match(/\b([A-Z]{3})\b is the IATA code/i) || r.snippet.match(/IATA code: ([A-Z]{3})/i) || r.snippet.match(/airport code ([A-Z]{3})/i); if (m) return m[1]; }
-        if (r.title) { const m = r.title.match(/\(([A-Z]{3})\)/i); if (m) return m[1]; }
+        if (r.snippet) { const m = r.snippet.match(/\b([A-Z]{3})\b is the IATA code/i) || r.snippet.match(/IATA code: ([A-Z]{3})/i) || r.snippet.match(/airport code ([A-Z]{3})/i); if (m) { iataCode = m[1]; break; } }
+        if (r.title) { const m = r.title.match(/\(([A-Z]{3})\)/i); if (m) { iataCode = m[1]; break; } }
       }
     }
-    if (/^[A-Z]{3}$/.test(placeName.toUpperCase())) return placeName.toUpperCase();
-    return null;
-  } catch (error) { console.error(`Error fetching IATA for ${placeName}:`, error); return null; }
+    if (!iataCode && /^[A-Z]{3}$/.test(normalizedPlaceName.toUpperCase())) iataCode = normalizedPlaceName.toUpperCase();
+    
+    if (iataCode && firestore) {
+      const cacheDocRef = doc(firestore, cacheCollection, cacheKey);
+      try {
+        console.log(`[Cache Write - IATA] Attempting to SAVE to cache. Key: ${cacheKey}, Code: ${iataCode}`);
+        await setDoc(cacheDocRef, { iataCode, cachedAt: serverTimestamp(), queryKey: normalizedPlaceName });
+        console.log(`[Cache Write - IATA] Successfully SAVED to cache. Key: ${cacheKey}`);
+      } catch (e) {
+        console.error(`[Cache Write Error - IATA] For ${cacheKey}:`, e);
+      }
+    }
+    console.log(`[SerpApi - IATA] Fetched for ${normalizedPlaceName}: ${iataCode}`);
+    return iataCode;
+  } catch (error) { console.error(`Error fetching IATA for ${normalizedPlaceName}:`, error); return null; }
 }
 
 const parsePrice = (priceValue: any): number | undefined => {
@@ -268,7 +310,7 @@ const parsePrice = (priceValue: any): number | undefined => {
     if (typeof priceValue === 'number') return isNaN(priceValue) ? undefined : priceValue;
     if (typeof priceValue === 'string') {
         if (priceValue.trim() === "") return undefined;
-        const cleanedString = priceValue.replace(/[^0-9.-]/g, ''); 
+        const cleanedString = priceValue.replace(/[^0-9.]/g, ''); 
         if (cleanedString === '') return undefined;
         const num = parseFloat(cleanedString);
         return isNaN(num) ? undefined : num;
@@ -284,34 +326,38 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
     return { error: "Flight search service is not configured." };
   }
 
-  const cacheKey = `flights_${input.origin}_${input.destination}_${input.departureDate}_${input.returnDate || 'ow'}_${input.tripType || 'rt'}`;
-  const cacheDocRef = doc(firestore, 'serpApiFlightsCache', cacheKey);
-  console.log(`[Server Action - getRealFlightsAction] Cache Key: ${cacheKey}`);
-
-  try {
-    console.log(`[Server Action - getRealFlightsAction] Attempting to read from cache for key: ${cacheKey}`);
-    const docSnap = await getDoc(cacheDocRef);
-    if (docSnap.exists()) {
-      const cacheData = docSnap.data();
-      const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate(); 
-      if (cachedAt) {
-        const now = new Date();
-        const hoursDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60);
-        console.log(`[Server Action - getRealFlightsAction] Found cache entry for ${cacheKey}. Age: ${hoursDiff.toFixed(1)} hours.`);
-        if (hoursDiff < CACHE_EXPIRY_HOURS_API) {
-          console.log(`[Server Action - getRealFlightsAction] Cache HIT for key: ${cacheKey}. Returning cached data.`);
-          return cacheData.data as SerpApiFlightSearchOutput;
+  const cacheKey = `flights_${(input.origin || 'any').replace(/[^a-zA-Z0-9]/g, '')}_${(input.destination || 'any').replace(/[^a-zA-Z0-9]/g, '')}_${input.departureDate}_${input.returnDate || 'ow'}_${input.tripType || 'rt'}`;
+  const cacheCollection = 'serpApiFlightsCache';
+  
+  if (firestore) {
+    const cacheDocRef = doc(firestore, cacheCollection, cacheKey);
+    console.log(`[Cache Read - Flights] Attempting to read for key: ${cacheKey}`);
+    try {
+      const docSnap = await getDoc(cacheDocRef);
+      console.log(`[Cache Read - Flights] Doc exists for key ${cacheKey}: ${docSnap.exists()}`);
+      if (docSnap.exists()) {
+        const cacheData = docSnap.data();
+        const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
+        if (cachedAt) {
+          const now = new Date();
+          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+          console.log(`[Cache Read - Flights] Found cache entry for ${cacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API}`);
+          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
+            console.log(`[Cache HIT - Flights] For key: ${cacheKey}. Returning cached data.`);
+            return cacheData.data as SerpApiFlightSearchOutput;
+          }
+          console.log(`[Cache STALE - Flights] For key: ${cacheKey}. Fetching fresh data.`);
+        } else {
+          console.log(`[Cache Read - Flights] Cache entry for ${cacheKey} has no valid cachedAt. Fetching fresh.`);
         }
-        console.log(`[Server Action - getRealFlightsAction] Cache STALE for key: ${cacheKey}. Fetching fresh data.`);
       } else {
-        console.log(`[Server Action - getRealFlightsAction] Cache entry for ${cacheKey} has no valid cachedAt timestamp. Fetching fresh data.`);
+        console.log(`[Cache MISS - Flights] For key: ${cacheKey}. Fetching fresh data.`);
       }
-    } else {
-      console.log(`[Server Action - getRealFlightsAction] Cache MISS for key: ${cacheKey}. Fetching fresh data.`);
+    } catch (cacheError: any) {
+      console.error(`[Cache Read Error - Flights] For key ${cacheKey}:`, cacheError.message);
     }
-  } catch (cacheError: any) {
-    console.error(`[Server Action - getRealFlightsAction] Error reading cache for key ${cacheKey}:`, cacheError.message);
   }
+
 
   const params: any = {
     engine: "google_flights", departure_id: input.origin, arrival_id: input.destination,
@@ -322,7 +368,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   console.log('[Server Action - getRealFlightsAction] Parameters sent to SerpApi:', params);
   try {
     const response = await getSerpApiJson(params);
-    console.log('[Server Action - getRealFlightsAction] RAW SerpApi Response received:', JSON.stringify(response, null, 2).substring(0, 1000) + "..."); 
+    // console.log('[Server Action - getRealFlightsAction] RAW SerpApi Response received:', JSON.stringify(response, null, 2).substring(0, 1000) + "..."); 
 
     if (response.error) {
       console.error('[Server Action - getRealFlightsAction] SerpApi returned an error:', response.error);
@@ -346,7 +392,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
                 derived_flight_numbers: legsArray.map((f: any) => f.flight_number).filter(Boolean).join(', '),
                 derived_stops_description: deriveStopsDescription({ ...flight, flights: legsArray }),
             };
-            console.log(`[Server Action - getRealFlightsAction] Processed flight: ${processedFlight.airline} ${processedFlight.derived_flight_numbers}, Price: ${processedFlight.price} (Type: ${typeof processedFlight.price})`);
+            // console.log(`[Server Action - getRealFlightsAction] Processed flight: ${processedFlight.airline} ${processedFlight.derived_flight_numbers}, Price: ${processedFlight.price} (Type: ${typeof processedFlight.price})`);
             return processedFlight;
         }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0)));
     }
@@ -365,17 +411,18 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
     };
 
     if (firestore && (output.best_flights || output.other_flights)) {
+      const cacheDocRef = doc(firestore, cacheCollection, cacheKey);
       try {
-        console.log(`[Server Action - getRealFlightsAction] Attempting to SAVE to cache for key: ${cacheKey}`);
-        await setDoc(cacheDocRef, { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey }, { merge: true });
-        console.log(`[Server Action - getRealFlightsAction] Successfully SAVED to cache for key: ${cacheKey}`);
+        console.log(`[Cache Write - Flights] Attempting to SAVE to cache for key: ${cacheKey}. Data: `, JSON.stringify(output).substring(0,200));
+        await setDoc(cacheDocRef, { data: output, cachedAt: serverTimestamp(), queryKey }, { merge: true });
+        console.log(`[Cache Write - Flights] Successfully SAVED to cache for key: ${cacheKey}`);
       } catch (cacheWriteError: any) {
-        console.error(`[Server Action - getRealFlightsAction] Error writing to cache for key ${cacheKey}:`, cacheWriteError.message);
+        console.error(`[Cache Write Error - Flights] For key ${cacheKey}:`, cacheWriteError.message, cacheWriteError.stack);
       }
     }
     return output;
   } catch (error: any) {
-    console.error('[Server Action - getRealFlightsAction] Error calling SerpApi or processing:', error.message);
+    console.error('[Server Action - getRealFlightsAction] Error calling SerpApi or processing:', error.message, error.stack);
     return { error: `Failed to fetch flights: ${error.message || 'Unknown error'}` };
   }
 }
@@ -388,34 +435,38 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     return { hotels: [], error: "Hotel search service is not configured." };
   }
 
-  const cacheKey = `hotels_${input.destination}_${input.checkInDate}_${input.checkOutDate}_${input.guests || '2'}`;
-  const cacheDocRef = doc(firestore, 'serpApiHotelsCache', cacheKey);
-  console.log(`[Server Action - getRealHotelsAction] Cache Key: ${cacheKey}`);
+  const cacheKey = `hotels_${(input.destination || 'any').replace(/[^a-zA-Z0-9]/g, '')}_${input.checkInDate}_${input.checkOutDate}_${input.guests || '2'}`;
+  const cacheCollection = 'serpApiHotelsCache';
   
-  try {
-    console.log(`[Server Action - getRealHotelsAction] Attempting to read from cache for key: ${cacheKey}`);
-    const docSnap = await getDoc(cacheDocRef);
-    if (docSnap.exists()) {
-      const cacheData = docSnap.data();
-      const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
-      if (cachedAt) {
-        const now = new Date();
-        const hoursDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60);
-        console.log(`[Server Action - getRealHotelsAction] Found cache entry for ${cacheKey}. Age: ${hoursDiff.toFixed(1)} hours.`);
-        if (hoursDiff < CACHE_EXPIRY_HOURS_API) {
-          console.log(`[Server Action - getRealHotelsAction] Cache HIT for key: ${cacheKey}. Returning cached data.`);
-          return cacheData.data as SerpApiHotelSearchOutput;
+  if (firestore) {
+    const cacheDocRef = doc(firestore, cacheCollection, cacheKey);
+    console.log(`[Cache Read - Hotels] Attempting to read for key: ${cacheKey}`);
+    try {
+      const docSnap = await getDoc(cacheDocRef);
+      console.log(`[Cache Read - Hotels] Doc exists for key ${cacheKey}: ${docSnap.exists()}`);
+      if (docSnap.exists()) {
+        const cacheData = docSnap.data();
+        const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
+        if (cachedAt) {
+          const now = new Date();
+          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+          console.log(`[Cache Read - Hotels] Found cache entry for ${cacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API}`);
+          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
+            console.log(`[Cache HIT - Hotels] For key: ${cacheKey}. Returning cached data.`);
+            return cacheData.data as SerpApiHotelSearchOutput;
+          }
+           console.log(`[Cache STALE - Hotels] For key: ${cacheKey}. Fetching fresh data.`);
+        } else {
+           console.log(`[Cache Read - Hotels] Cache entry for ${cacheKey} has no valid cachedAt. Fetching fresh data.`);
         }
-         console.log(`[Server Action - getRealHotelsAction] Cache STALE for key: ${cacheKey}. Fetching fresh data.`);
       } else {
-         console.log(`[Server Action - getRealHotelsAction] Cache entry for ${cacheKey} has no valid cachedAt timestamp. Fetching fresh data.`);
+        console.log(`[Cache MISS - Hotels] For key: ${cacheKey}. Fetching fresh data.`);
       }
-    } else {
-      console.log(`[Server Action - getRealHotelsAction] Cache MISS for key: ${cacheKey}. Fetching fresh data.`);
+    } catch (cacheError: any) {
+      console.error(`[Cache Read Error - Hotels] For key ${cacheKey}:`, cacheError.message);
     }
-  } catch (cacheError: any) {
-    console.error(`[Server Action - getRealHotelsAction] Error reading cache for key ${cacheKey}:`, cacheError.message);
   }
+
 
   const params: any = {
     engine: "google_hotels", q: input.destination, check_in_date: input.checkInDate, check_out_date: input.checkOutDate,
@@ -426,7 +477,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
   try {
     console.log('[Server Action - getRealHotelsAction] Making SerpApi call for hotels...');
     const response = await getSerpApiJson(params);
-    console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response:', JSON.stringify(response, null, 2).substring(0,1000) + "...");
+    // console.log('[Server Action - getRealHotelsAction] RAW SerpApi Hotel Response:', JSON.stringify(response, null, 2).substring(0,1000) + "...");
 
     if (response.error) {
       console.error('[Server Action - getRealHotelsAction] SerpApi returned an error:', response.error);
@@ -467,17 +518,18 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     };
 
     if (firestore && output.hotels && output.hotels.length > 0) {
+      const cacheDocRef = doc(firestore, cacheCollection, cacheKey);
       try {
-        console.log(`[Server Action - getRealHotelsAction] Attempting to SAVE to cache for key: ${cacheKey}`);
+        console.log(`[Cache Write - Hotels] Attempting to SAVE to cache for key: ${cacheKey}. Data: `, JSON.stringify(output).substring(0,200));
         await setDoc(cacheDocRef, { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey }, { merge: true });
-        console.log(`[Server Action - getRealHotelsAction] Successfully SAVED to cache for key: ${cacheKey}`);
+        console.log(`[Cache Write - Hotels] Successfully SAVED to cache for key: ${cacheKey}`);
       } catch (cacheWriteError: any) {
-        console.error(`[Server Action - getRealHotelsAction] Error writing to cache for key ${cacheKey}:`, cacheWriteError.message);
+        console.error(`[Cache Write Error - Hotels] For key ${cacheKey}:`, cacheWriteError.message, cacheWriteError.stack);
       }
     }
     return output;
   } catch (error: any) {
-    console.error('[Server Action - getRealHotelsAction] Error calling SerpApi or processing hotels:', error.message);
+    console.error('[Server Action - getRealHotelsAction] Error calling SerpApi or processing hotels:', error.message, error.stack);
     return { hotels: [], error: `Failed to fetch hotels: ${error.message || 'Unknown error'}` };
   }
 }
@@ -485,7 +537,8 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
 export async function generateMultipleImagesAction(input: MultipleImagesInput): Promise<MultipleImagesOutput> {
   console.log(`[Server Action - generateMultipleImagesAction] Starting generation for ${input.prompts.length} images.`);
   const results: ImageResultItem[] = [];
-  const batchSize = 5;
+  const batchSize = 5; // Process in batches
+  const cacheCollection = 'imageCache';
 
   for (let i = 0; i < input.prompts.length; i += batchSize) {
       const batch = input.prompts.slice(i, i + batchSize);
@@ -496,33 +549,34 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
           console.log(`[Server Action - generateMultipleImagesAction] Processing item ID (cache key): ${imageCacheKey}`);
 
           if (imageCacheKey && firestore) {
-              const cacheDocRef = doc(firestore, 'imageCache', imageCacheKey);
+              const cacheDocRef = doc(firestore, cacheCollection, imageCacheKey);
               try {
-                  console.log(`[Server Action - generateMultipleImagesAction] Checking image cache for key: ${imageCacheKey}`);
+                  console.log(`[Cache Read - Images] Attempting to read from cache for key: ${imageCacheKey}`);
                   const docSnap = await getDoc(cacheDocRef);
+                  console.log(`[Cache Read - Images] Doc exists for key ${imageCacheKey}: ${docSnap.exists()}`);
                   if (docSnap.exists()) {
                       const cacheData = docSnap.data();
                       const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
                       if(cachedAt) {
                         const now = new Date();
                         const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
-                        console.log(`[Server Action - generateMultipleImagesAction] Found image cache entry for ${imageCacheKey}. Age: ${daysDiff.toFixed(1)} days.`);
+                        console.log(`[Cache Read - Images] Found image cache entry for ${imageCacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_IMAGE}`);
                         if (daysDiff < CACHE_EXPIRY_DAYS_IMAGE && cacheData.imageUri && cacheData.promptUsed === item.prompt && cacheData.styleHint === item.styleHint) {
-                            console.log(`[Server Action - generateMultipleImagesAction] Image Cache HIT for key: ${imageCacheKey}`);
+                            console.log(`[Cache HIT - Images] For key: ${imageCacheKey}`);
                             return { id: item.id, imageUri: cacheData.imageUri };
                         }
-                        console.log(`[Server Action - generateMultipleImagesAction] Image Cache STALE or mismatched for key: ${imageCacheKey}. Will regenerate.`);
+                        console.log(`[Cache STALE - Images] For key: ${imageCacheKey}. Will regenerate.`);
                       } else {
-                        console.log(`[Server Action - generateMultipleImagesAction] Image Cache entry for key: ${imageCacheKey} missing valid cachedAt. Will regenerate.`);
+                        console.log(`[Cache Read - Images] Cache entry for key: ${imageCacheKey} missing valid cachedAt. Will regenerate.`);
                       }
                   } else {
-                      console.log(`[Server Action - generateMultipleImagesAction] Image Cache MISS for key: ${imageCacheKey}`);
+                      console.log(`[Cache MISS - Images] For key: ${imageCacheKey}`);
                   }
               } catch (cacheError: any) {
-                  console.error(`[Server Action - generateMultipleImagesAction] Error reading image cache for key ${imageCacheKey}:`, cacheError.message);
+                  console.error(`[Cache Read Error - Images] For key ${imageCacheKey}:`, cacheError.message);
               }
           } else {
-             console.log(`[Server Action - generateMultipleImagesAction] No cacheKey or Firestore instance, proceeding to generate image for ID: ${item.id}`);
+             console.log(`[Server Action - generateMultipleImagesAction] No imageCacheKey or Firestore instance, proceeding to generate image for ID: ${item.id}`);
           }
           
           let fullPrompt = item.prompt; 
@@ -549,13 +603,13 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
               if (mediaUrl) {
                   console.log(`[Server Action - generateMultipleImagesAction] AI Success for ID: ${item.id}.`);
                   if (imageCacheKey && firestore) {
-                      const cacheDocRef = doc(firestore, 'imageCache', imageCacheKey); 
+                      const cacheDocRef = doc(firestore, cacheCollection, imageCacheKey); 
                       try {
-                          console.log(`[Server Action - generateMultipleImagesAction] Attempting to SAVE image to cache for key: ${imageCacheKey}`);
+                          console.log(`[Cache Write - Images] Attempting to SAVE image to cache for key: ${imageCacheKey}. Prompt: ${item.prompt}, Style: ${item.styleHint}`);
                           await setDoc(cacheDocRef, { imageUri: mediaUrl, promptUsed: item.prompt, styleHint: item.styleHint, cachedAt: serverTimestamp() }, { merge: true });
-                          console.log(`[Server Action - generateMultipleImagesAction] Successfully SAVED image to cache for key: ${imageCacheKey}`);
+                          console.log(`[Cache Write - Images] Successfully SAVED image to cache for key: ${imageCacheKey}`);
                       } catch (cacheWriteError: any) {
-                          console.error(`[Server Action - generateMultipleImagesAction] Error writing image to cache for key ${imageCacheKey}:`, cacheWriteError.message);
+                          console.error(`[Cache Write Error - Images] For key ${imageCacheKey}:`, cacheWriteError.message, cacheWriteError.stack);
                       }
                   }
                   return { id: item.id, imageUri: mediaUrl };
@@ -564,7 +618,7 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
                   return { id: item.id, imageUri: null, error: 'No media URL returned by AI.' };
               }
           } catch (error: any) {
-              console.error(`[Server Action - generateMultipleImagesAction] FAILED to generate image for ID: ${item.id} (prompt "${item.prompt}"):`, error.message || error);
+              console.error(`[Server Action - generateMultipleImagesAction] FAILED to generate image for ID: ${item.id} (prompt "${item.prompt}"):`, error.message || error, error.stack);
               return { id: item.id, imageUri: null, error: error.message || 'Unknown error during image generation.' };
           }
       });
@@ -614,7 +668,7 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
             } catch (e) { console.warn("Date parsing failed for smart bundle, using defaults:", e); }
         }
     }
-    if (toDate === undefined || fromDate >= toDate) { // Ensure toDate is always set if it wasn't from range parsing
+    if (toDate === undefined || fromDate >= toDate) { 
         toDate = addDays(fromDate, durationDays - 1);
     }
     return { departureDate: format(fromDate, "yyyy-MM-dd"), returnDate: toDate ? format(toDate, "yyyy-MM-dd") : undefined, durationDays };
@@ -679,7 +733,7 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
        console.log(`[Server Action - generateSmartBundles] Bundle for ${destination} - Feasibility: ${augmentedSugg.priceFeasibilityNote}`);
     } catch (error: any) { 
         augmentedSugg.priceFeasibilityNote = "Error fetching real-time price context for this bundle."; 
-        console.error(`[Server Action - generateSmartBundles] Error augmenting bundle for ${destination}:`, error.message);
+        console.error(`[Server Action - generateSmartBundles] Error augmenting bundle for ${destination}:`, error.message, error.stack);
     }
     augmentedSuggestions.push(augmentedSugg);
   }

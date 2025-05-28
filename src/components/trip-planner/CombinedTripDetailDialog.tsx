@@ -7,16 +7,17 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area"; // Removed ScrollBar import
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import type { TripPackageSuggestion, DailyPlanItem as ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover } from "@/lib/types";
-import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks } from "lucide-react";
+import type { TripPackageSuggestion, ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover } from "@/lib/types";
+import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks, Save, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAddSavedPackage } from '@/lib/firestoreHooks'; // Import the new hook
 
 const glassPaneClasses = "glass-pane";
 const glassCardClasses = "glass-card";
@@ -83,11 +84,13 @@ function ConceptualDailyPlanDisplay({ planItem, isLast }: { planItem: Conceptual
 
 export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onInitiateBooking }: CombinedTripDetailDialogProps) {
   const { toast } = useToast();
-  const mapRef = useRef<HTMLIFrameElement>(null); 
+  const mapRef = useRef<HTMLIFrameElement>(null);
+  const addSavedPackageMutation = useAddSavedPackage();
+
 
   if (!tripPackage) return null;
 
-  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri } = tripPackage;
+  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const hotelMapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
@@ -98,11 +101,21 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     ? `https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${hotelMapQuery}&zoom=14`
     : "";
 
-  const handleConceptualSave = () => {
-    toast({
-      title: "Save Package (Conceptual)",
-      description: "This specific flight + hotel package would be saved to your dashboard in a full implementation.",
-    });
+  const handleSavePackage = async () => {
+    if (!tripPackage.userId) {
+        toast({ title: "Error", description: "User ID is missing for saving the package.", variant: "destructive"});
+        return;
+    }
+    try {
+        await addSavedPackageMutation.mutateAsync(tripPackage);
+        toast({
+            title: "Package Saved!",
+            description: `Your trip package to ${tripPackage.destinationQuery} has been saved to your dashboard.`,
+        });
+    } catch (error) {
+        console.error("Error saving package:", error);
+        toast({ title: "Save Error", description: "Could not save the trip package.", variant: "destructive"});
+    }
   };
   
   const hotelMainImageHint = hotel.thumbnail ? hotel.name?.toLowerCase().split(" ").slice(0,2).join(" ") : "hotel exterior";
@@ -117,7 +130,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className={cn(glassCardClasses, "sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[95vh] flex flex-col p-0 border-primary/30 overflow-hidden")}>
-        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
+        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 bg-card/80 dark:bg-card/50 backdrop-blur-sm shrink-0">
           <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
               <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center">
@@ -136,7 +149,8 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0"> {/* Key change: flex-1 and min-h-0 */}
+        <ScrollArea className="flex-1 min-h-0">
+          <ScrollBar orientation="vertical" />
           <div className="p-4 sm:p-6 space-y-6"> 
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -308,9 +322,16 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </ScrollArea>
 
-        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3", glassPaneClasses)}>
-          <Button onClick={handleConceptualSave} variant="outline" size="lg" className="w-full glass-interactive border-accent/50 text-accent hover:bg-accent/10">
-            <Sparkles className="mr-2" />Save Package (Future)
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0", glassPaneClasses)}>
+          <Button 
+            onClick={handleSavePackage} 
+            variant="outline" 
+            size="lg" 
+            className="w-full glass-interactive border-accent/50 text-accent hover:bg-accent/10"
+            disabled={addSavedPackageMutation.isPending}
+          >
+            {addSavedPackageMutation.isPending ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+            {addSavedPackageMutation.isPending ? "Saving..." : "Save Package"}
           </Button>
           <Button onClick={() => onInitiateBooking(destinationQuery, travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses, "sm:col-span-2")}>
             <Ticket className="mr-2" /> Plan This Package with AI
@@ -319,4 +340,123 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
       </DialogContent>
     </Dialog>
   );
+}
+
+  </content>
+  </change>
+
+  <change>
+    <file>/home/user/studio/src/lib/types.ts</file>
+    <content><![CDATA[
+import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal, FlightOptionSchema as AIFlightOptionSchema, HotelOptionSchema as AIHotelOptionSchema, RoomSchema as AIRoomSchema, DailyPlanItemSchema as AIDailyPlanItemSchema } from "@/ai/types/trip-planner-types";
+import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // This import is fine
+import { z } from 'zod';
+
+// This effectively takes the type of a single itinerary object from the array
+type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
+
+// Re-define local types based on the AI flow's output schemas for clarity and directness
+export type FlightOption = z.infer<typeof AIFlightOptionSchema>;
+export type Room = z.infer<typeof AIRoomSchema>;
+export type HotelOption = Omit<z.infer<typeof AIHotelOptionSchema>, 'rooms'> & { rooms?: Room[] }; // Ensure rooms array uses local Room type
+export type DailyPlanItem = z.infer<typeof AIDailyPlanItemSchema>;
+
+// Add the 'id' field that we add manually and use the locally defined types
+export type Itinerary = Omit<SingleItineraryFromAI, 'flightOptions' | 'hotelOptions' | 'dailyPlan'> & {
+  id: string;
+  flightOptions: FlightOption[];
+  hotelOptions: HotelOption[];
+  dailyPlan: DailyPlanItem[];
+  aiGeneratedMemory?: {
+    memoryText: string;
+    generatedAt: string;
+  };
+  aiTripSummary?: {
+    text: string;
+    generatedAt: string;
+  };
+  culturalTip?: string | null;
+  weatherContext?: string | null;
+  riskContext?: string | null;
+  isAlternative?: boolean;
+  alternativeReason?: string;
+  destinationLatitude?: number;
+  destinationLongitude?: number;
+};
+
+
+export interface PriceForecast {
+  forecast: string;
+  confidence?: 'low' | 'medium' | 'high';
+  forecastedAt: string;
+}
+
+export interface PriceTrackerEntry {
+  id: string;
+  itemType: "flight" | "hotel";
+  itemName: string;
+  originCity?: string;
+  destination?: string;
+  targetPrice: number;
+  currentPrice: number;
+  travelDates?: string;
+  lastChecked: string;
+  createdAt?: any; 
+  alertStatus?: {
+    shouldAlert: boolean;
+    alertMessage: string;
+  };
+  aiAdvice?: string;
+  priceForecast?: PriceForecast;
+}
+
+export interface SearchHistoryEntry {
+  id: string;
+  destination: string;
+  travelDates: string;
+  budget: number;
+  searchedAt: any; 
+}
+
+export interface UserTravelPersona {
+  name: string;
+  description: string;
+  lastUpdated: any; 
+}
+
+
+export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
+
+export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' | 'desiredMood' | 'weatherContext' | 'riskContext' | 'realFlightOptions' | 'realHotelOptions'> & {
+  userPersona?: {
+    name: string;
+    description: string;
+  } | null;
+  desiredMood?: string | null;
+  weatherContext?: string | null;
+  riskContext?: string | null;
+  realFlightOptions?: import('@/ai/types/serpapi-flight-search-types').SerpApiFlightOption[];
+  realHotelOptions?: import('@/ai/types/serpapi-hotel-search-types').SerpApiHotelSuggestion[];
+};
+
+// New type for combined trip package suggestions
+export interface TripPackageSuggestion {
+  id: string;
+  flight: SerpApiFlightOption;
+  hotel: SerpApiHotelSuggestion;
+  totalEstimatedCost: number;
+  durationDays: number;
+  destinationQuery: string; 
+  travelDatesQuery: string; 
+  userInput: AITripPlannerInput;
+  destinationImagePrompt?: string;
+  destinationImageUri?: string;
+  userId: string; // Added for saving package
+  createdAt?: any; // For Firestore serverTimestamp
+}
+
+// Conceptual daily plan item for the dialog (simpler than full DailyPlanItem)
+export interface ConceptualDailyPlanItem {
+  day: string;
+  activities: string;
 }
