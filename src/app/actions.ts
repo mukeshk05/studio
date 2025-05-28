@@ -25,13 +25,13 @@ import { getJson as getSerpApiJson } from 'serpapi';
 import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types';
 import type { SerpApiHotelSearchInput, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types';
 
-import { PriceAdvisorInputSchema, PriceAdvisorInput, PriceAdvisorOutputSchema, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types';
+import { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types';
 import { getPriceAdvice as getPriceAdviceOriginal } from '@/ai/flows/price-advisor-flow';
 
-import { ConceptualDateGridInputSchema, ConceptualDateGridInput, ConceptualDateGridOutputSchema, ConceptualDateGridOutput } from '@/ai/types/ai-conceptual-date-grid-types';
+import { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/types/ai-conceptual-date-grid-types';
 import { conceptualDateGridFlow as conceptualDateGridFlowOriginal } from '@/ai/flows/conceptual-date-grid-flow';
 
-import { ConceptualPriceGraphInputSchema, ConceptualPriceGraphInput, ConceptualPriceGraphOutputSchema, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
+import { ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
 import { conceptualPriceGraphFlow as conceptualPriceGraphFlowOriginal } from '@/ai/flows/conceptual-price-graph-flow';
 
 import { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
@@ -57,13 +57,13 @@ const CACHE_EXPIRY_DAYS_API = 30;
 const CACHE_EXPIRY_DAYS_IMAGE = 30;
 const CACHE_EXPIRY_DAYS_IATA = 30;
 
-
 // Helper function to normalize parts of cache keys
-const normalizeCacheKeyPart = (part?: string | number): string => {
-  if (part === undefined || part === null) return 'unknown';
+const normalizeCacheKeyPart = (part?: string | number | null): string => {
+  if (part === undefined || part === null) return 'na';
   const strPart = String(part).trim().toLowerCase();
   if (strPart === "") return 'empty';
-  return strPart.replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_'); // Replace non-alphanumeric (except _-) with _, then collapse multiple _
+  // Keep alphanumeric, underscore, hyphen. Replace others with underscore. Collapse multiple underscores.
+  return strPart.replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_');
 };
 
 
@@ -84,7 +84,7 @@ export async function getLandingPageImagesWithFallback(
   const MAX_FIRESTORE_IN_QUERY = 30; 
 
   try {
-    const requestIdsToCacheCheck = requests.map(r => r.id).filter(id => id); // Filter out any undefined/null IDs just in case
+    const requestIdsToCacheCheck = requests.map(r => r.id).filter(id => id); 
     if (requestIdsToCacheCheck.length > 0 && firestore) {
       console.log(`[DB Check] Total IDs to check in Firestore for landing page: ${requestIdsToCacheCheck.length}`);
       for (let i = 0; i < requestIdsToCacheCheck.length; i += MAX_FIRESTORE_IN_QUERY) {
@@ -152,6 +152,7 @@ export async function getLandingPageImagesWithFallback(
     if (aiGenerationQueue.length > 0) {
       try {
         console.log(`[LandingPageImages] Calling generateMultipleImagesAction for ${aiGenerationQueue.length} images (landing page batch).`);
+        // Assuming generateMultipleImagesAction internally handles its own caching for these generic IDs.
         const aiResultsOutput: MultipleImagesOutput = await generateMultipleImagesAction({ prompts: aiGenerationQueue });
         const aiResults = aiResultsOutput.results || [];
 
@@ -168,12 +169,6 @@ export async function getLandingPageImagesWithFallback(
           if (imageUris[req.id] === null) imageUris[req.id] = null;
         });
       }
-    }
-
-    for (const req of requests) {
-        if (imageUris[req.id] === null) {
-          // Let it remain null, UI can handle this state.
-        }
     }
     
     console.log(`[Server Action - getLandingPageImagesWithFallback] Completed. Returning URIs. Count: ${Object.keys(imageUris).length}`);
@@ -216,8 +211,8 @@ export async function getAiFlightMapDealsAction(input: AiFlightMapDealInput): Pr
     if (bestFlight?.price) {
       flowInput.realPriceContext = `around $${bestFlight.price.toLocaleString()}`;
     }
-  } catch (e) {
-    console.error("[Action Error] Failed to get real price context for map deals:", e);
+  } catch (e: any) {
+    console.error("[Action Error] Failed to get real price context for map deals:", e.message);
   }
   return aiFlightMapDealsFlow(flowInput);
 }
@@ -246,14 +241,14 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
 
 export async function getIataCodeAction(placeName?: string): Promise<string | null> {
   if (!placeName || placeName.trim().length < 2 || placeName.toLowerCase().includes("current location") || /^[A-Z]{3}$/.test(placeName.trim().toUpperCase())) {
-    if(/^[A-Z]{3}$/.test(placeName!.trim().toUpperCase())) return placeName!.trim().toUpperCase(); // Already an IATA code
-    return null; // Skip for generic location or if already looks like an IATA code
+    if(placeName && /^[A-Z]{3}$/.test(placeName.trim().toUpperCase())) return placeName.trim().toUpperCase(); 
+    return null; 
   }
 
   const normalizedPlaceNameKey = normalizeCacheKeyPart(placeName);
   const cacheKey = `iata_${normalizedPlaceNameKey}`;
   const cacheCollectionName = 'iataCodeCache';
-  console.log(`[getIataCodeAction] For place: "${placeName}", Normalized cache key part: "${normalizedPlaceNameKey}", Full cache key: "${cacheKey}"`);
+  console.log(`[getIataCodeAction] For place: "${placeName}", Cache key: "${cacheKey}"`);
 
   if (firestore) {
     const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
@@ -271,12 +266,12 @@ export async function getIataCodeAction(placeName?: string): Promise<string | nu
             console.log(`[Cache HIT - IATA] For key: ${cacheKey}, Code: ${data.iataCode}`);
             return data.iataCode;
           }
-          console.log(`[Cache STALE - IATA] For key: ${cacheKey}. Will fetch fresh data.`);
+          console.log(`[Cache STALE - IATA] For key: ${cacheKey}. Will fetch fresh data from SerpApi.`);
         } else {
           console.log(`[Cache Read - IATA] Cache entry for ${cacheKey} has no valid cachedAt. Will fetch fresh data.`);
         }
       } else {
-        console.log(`[Cache MISS - IATA] For key: ${cacheKey}. Will fetch fresh data.`);
+        console.log(`[Cache MISS - IATA] For key: ${cacheKey}. Will fetch fresh data from SerpApi.`);
       }
     } catch (e: any) {
       console.error(`[Cache Read Error - IATA] For key ${cacheKey}:`, e.message, e);
@@ -290,18 +285,16 @@ export async function getIataCodeAction(placeName?: string): Promise<string | nu
     console.warn("[getIataCodeAction] SerpApi key not found or is placeholder. Cannot fetch IATA code.");
     return null;
   }
-  // Using a more generic search for airport codes as "IATA code for X" can be flaky
+  
   const params = { engine: "google", q: `${placeName.trim()} airport code IATA`, api_key: apiKey };
   console.log(`[SerpApi - IATA] Calling SerpApi for: "${placeName.trim()}" with params:`, params);
   try {
     const response = await getSerpApiJson(params);
     let iataCode: string | null = null;
-    // Look in knowledge graph or answer box first
     if (response.answer_box?.answer) { const m = response.answer_box.answer.match(/\b([A-Z]{3})\b/); if (m) iataCode = m[1]; }
     if (!iataCode && response.knowledge_graph?.iata_code) iataCode = response.knowledge_graph.iata_code;
     if (!iataCode && response.knowledge_graph?.description) { const m = response.knowledge_graph.description.match(/IATA: ([A-Z]{3})/i); if (m) iataCode = m[1];}
     
-    // Then try organic results
     if (!iataCode && response.organic_results?.length) {
       for (const r of response.organic_results) {
         const textToSearch = `${r.title || ''} ${r.snippet || ''}`;
@@ -312,7 +305,7 @@ export async function getIataCodeAction(placeName?: string): Promise<string | nu
 
     if (iataCode && firestore) {
       const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-      const dataToCache = { iataCode, cachedAt: serverTimestamp(), queryKey: normalizedPlaceNameKey, originalQuery: placeName.trim() };
+      const dataToCache = { iataCode, cachedAt: serverTimestamp(), queryKey, originalQuery: placeName.trim() };
       console.log(`[Cache Write - IATA] Attempting to SAVE to cache. Key: ${cacheKey}, Data:`, JSON.stringify(dataToCache));
       try {
         await setDoc(cacheDocRef, dataToCache);
@@ -334,7 +327,7 @@ const parsePrice = (priceValue: any): number | undefined => {
     if (typeof priceValue === 'number') return isNaN(priceValue) ? undefined : priceValue;
     if (typeof priceValue === 'string') {
         if (priceValue.trim() === "") return undefined;
-        const cleanedString = priceValue.replace(/[^0-9.-]/g, ''); // Allow for decimal and negative
+        const cleanedString = priceValue.replace(/[^0-9.]/g, ''); 
         if (cleanedString === '') return undefined;
         const num = parseFloat(cleanedString);
         return isNaN(num) ? undefined : num;
@@ -373,9 +366,9 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
         const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
         if (cachedAt) {
           const now = new Date();
-          const hoursDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60); // Use hours for API
-          console.log(`[Cache Read - Flights] Found cache entry for ${cacheKey}. Age: ${hoursDiff.toFixed(1)} hours. Max age: ${CACHE_EXPIRY_DAYS_API * 24} hours.`);
-          if (hoursDiff < (CACHE_EXPIRY_DAYS_API * 24)) { // Convert days to hours
+          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+          console.log(`[Cache Read - Flights] Found cache entry for ${cacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API} days.`);
+          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
             console.log(`[Cache HIT - Flights] For key: ${cacheKey}. Returning cached data.`);
             return cacheData.data as SerpApiFlightSearchOutput;
           }
@@ -406,7 +399,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
     params.return_date = input.returnDate;
   }
 
-  console.log(`[SerpApi - Flights] Calling SerpApi with params:`, JSON.stringify(params));
+  console.log(`[SerpApi - Flights] Parameters being sent to SerpApi:`, JSON.stringify(params));
   try {
     const response = await getSerpApiJson(params);
     console.log(`[SerpApi - Flights] RAW SerpApi Response for key ${cacheKey}:`, JSON.stringify(response, null, 2).substring(0, 1000) + "...");
@@ -457,12 +450,12 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
       other_flights: otherFlightsProcessed.length > 0 ? otherFlightsProcessed : undefined,
       price_insights: response.price_insights,
     };
-    console.log(`[Server Action - getRealFlightsAction] Processed ${bestFlightsProcessed.length} best flights, ${otherFlightsProcessed.length} other flights.`);
+    console.log(`[Server Action - getRealFlightsAction] Processed ${bestFlightsProcessed.length} best flights, ${otherFlightsProcessed.length} other flights for key ${cacheKey}.`);
 
     if (firestore && (output.best_flights || output.other_flights)) {
       const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
       const dataToCache = { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey };
-      console.log(`[Cache Write - Flights] Attempting to SAVE to cache for key: ${cacheKey}. Data present: ${!!output.best_flights || !!output.other_flights}`);
+      console.log(`[Cache Write - Flights] Attempting to SAVE to cache for key: ${cacheKey}. Data to cache:`, JSON.stringify(dataToCache).substring(0, 200) + "...");
       try {
         await setDoc(cacheDocRef, dataToCache, { merge: true });
         console.log(`[Cache Write - Flights] Successfully SAVED to cache for key: ${cacheKey}`);
@@ -505,9 +498,9 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
         const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
         if (cachedAt) {
           const now = new Date();
-          const hoursDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60);
-          console.log(`[Cache Read - Hotels] Found cache entry for ${cacheKey}. Age: ${hoursDiff.toFixed(1)} hours. Max age: ${CACHE_EXPIRY_DAYS_API*24} hours.`);
-          if (hoursDiff < (CACHE_EXPIRY_DAYS_API*24)) {
+          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+          console.log(`[Cache Read - Hotels] Found cache entry for ${cacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API} days.`);
+          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
             console.log(`[Cache HIT - Hotels] For key: ${cacheKey}. Returning cached data.`);
             return cacheData.data as SerpApiHotelSearchOutput;
           }
@@ -537,7 +530,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     hl: input.hl || "en", 
     api_key: apiKey,
   };
-  console.log(`[SerpApi - Hotels] Calling SerpApi with params:`, JSON.stringify(params));
+  console.log(`[SerpApi - Hotels] Parameters being sent to SerpApi:`, JSON.stringify(params));
 
   try {
     const response = await getSerpApiJson(params);
@@ -589,7 +582,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     if (firestore && output.hotels && output.hotels.length > 0) {
       const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
       const dataToCache = { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey };
-      console.log(`[Cache Write - Hotels] Attempting to SAVE to cache for key: ${cacheKey}. Data present: ${!!output.hotels && output.hotels.length > 0}`);
+      console.log(`[Cache Write - Hotels] Attempting to SAVE to cache for key: ${cacheKey}. Data to cache:`, JSON.stringify(dataToCache).substring(0, 200) + "...");
       try {
         await setDoc(cacheDocRef, dataToCache, { merge: true });
         console.log(`[Cache Write - Hotels] Successfully SAVED to cache for key: ${cacheKey}`);
@@ -667,16 +660,17 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
 
           try {
               console.log(`[AI Image Gen] Calling Genkit AI for ID: ${item.id}, Full Prompt: "${fullPrompt}"`);
+              // Since generateMultipleImagesFlowOriginal takes MultipleImagesInput, wrap the single item
               const singleItemInput: MultipleImagesInput = { prompts: [{...item, prompt: fullPrompt }] }; 
-              const aiFlowResult = await generateMultipleImagesFlowOriginal(singleItemInput);
-              const mediaUrl = aiFlowResult.results[0]?.imageUri;
+              const aiFlowResult = await generateMultipleImagesFlowOriginal(singleItemInput); // Call the original flow
+              const mediaUrl = aiFlowResult.results[0]?.imageUri; // Access the first result
 
               if (mediaUrl) {
                   console.log(`[AI Image Gen] Success for ID: ${item.id}. Image URI starts with: ${mediaUrl.substring(0, 50)}...`);
                   if (imageCacheKey && firestore) { 
                       const cacheDocRef = doc(firestore, cacheCollectionName, imageCacheKey);
                       const dataToCache = { imageUri: mediaUrl, promptUsed: item.prompt, styleHint: item.styleHint as string, cachedAt: serverTimestamp() };
-                      console.log(`[Cache Write - Images] Attempting to SAVE image to cache for key: ${imageCacheKey}.`);
+                      console.log(`[Cache Write - Images] Attempting to SAVE image to cache for key: ${imageCacheKey}. Data:`, JSON.stringify(dataToCache));
                       try {
                           await setDoc(cacheDocRef, dataToCache, { merge: true });
                           console.log(`[Cache Write - Images] Successfully SAVED image to cache for key: ${imageCacheKey}`);
@@ -913,6 +907,9 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
 }
 
 
+// --- Server Action Wrappers for AI Flows ---
+// These ensure that only async functions are exported from this 'use server' file.
+
 export async function getCoTravelAgentResponse(input: CoTravelAgentInput): Promise<CoTravelAgentOutput> { return getCoTravelAgentResponseOriginal(input); }
 export async function getItineraryAssistance(input: ItineraryAssistanceInput): Promise<ItineraryAssistanceOutput> { return getItineraryAssistanceOriginal(input); }
 export async function generateTripSummary(input: TripSummaryInput): Promise<TripSummaryOutput> { return generateTripSummaryOriginal(input); }
@@ -988,3 +985,5 @@ export async function narrateLocalLegend(input: LocalLegendNarratorInput): Promi
 import { synthesizePostTripFeedback as synthesizePostTripFeedbackFlow } from '@/ai/flows/post-trip-synthesizer-flow';
 import type { PostTripFeedbackInput, PostTripAnalysisOutput } from '@/ai/flows/post-trip-synthesizer-flow';
 export async function synthesizePostTripFeedback(input: PostTripFeedbackInput): Promise<PostTripAnalysisOutput> { return synthesizePostTripFeedbackFlow(input); }
+
+    
