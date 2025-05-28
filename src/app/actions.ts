@@ -25,13 +25,13 @@ import { getJson as getSerpApiJson } from 'serpapi';
 import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types';
 import type { SerpApiHotelSearchInput, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types';
 
-import { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types';
+import { PriceAdvisorInputSchema, PriceAdvisorInput, PriceAdvisorOutputSchema, PriceAdvisorOutput } from '@/ai/types/price-advisor-flow-types';
 import { getPriceAdvice as getPriceAdviceOriginal } from '@/ai/flows/price-advisor-flow';
 
-import { ConceptualDateGridInput, ConceptualDateGridOutput } from '@/ai/types/ai-conceptual-date-grid-types';
+import { ConceptualDateGridInputSchema, ConceptualDateGridInput, ConceptualDateGridOutputSchema, ConceptualDateGridOutput } from '@/ai/types/ai-conceptual-date-grid-types';
 import { conceptualDateGridFlow as conceptualDateGridFlowOriginal } from '@/ai/flows/conceptual-date-grid-flow';
 
-import { ConceptualPriceGraphInput, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
+import { ConceptualPriceGraphInputSchema, ConceptualPriceGraphInput, ConceptualPriceGraphOutputSchema, ConceptualPriceGraphOutput } from '@/ai/types/ai-conceptual-price-graph-types';
 import { conceptualPriceGraphFlow as conceptualPriceGraphFlowOriginal } from '@/ai/flows/conceptual-price-graph-flow';
 
 import { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
@@ -51,16 +51,19 @@ import { ThingsToDoSearchInput, ThingsToDoOutput } from '@/ai/types/things-to-do
 import { thingsToDoFlow as thingsToDoFlowOriginal } from '@/ai/flows/things-to-do-flow';
 import type { FlightOption, HotelOption } from '@/lib/types'; 
 
-import { format, addDays, parse, differenceInDays, addMonths, isBefore, isValid, parseISO, startOfMonth, startOfWeek, endOfMonth } from 'date-fns';
+import { format, addDays, parseISO, differenceInDays, addMonths, isBefore, isValid, startOfMonth, startOfWeek, endOfMonth } from 'date-fns';
 
 const CACHE_EXPIRY_DAYS_API = 30;
 const CACHE_EXPIRY_DAYS_IMAGE = 30;
 const CACHE_EXPIRY_DAYS_IATA = 30;
 
+
 // Helper function to normalize parts of cache keys
 const normalizeCacheKeyPart = (part?: string | number): string => {
   if (part === undefined || part === null) return 'unknown';
-  return String(part).trim().toLowerCase().replace(/[\s,.]+/g, '_').replace(/[^a-z0-9_-]/g, '');
+  const strPart = String(part).trim().toLowerCase();
+  if (strPart === "") return 'empty';
+  return strPart.replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_'); // Replace non-alphanumeric (except _-) with _, then collapse multiple _
 };
 
 
@@ -75,17 +78,17 @@ export async function getLandingPageImagesWithFallback(
 ): Promise<Record<string, string | null>> {
   console.log(`[Server Action - getLandingPageImagesWithFallback] Started. Total requests: ${requests.length}`);
   const imageUris: Record<string, string | null> = {};
-  requests.forEach(req => imageUris[req.id] = null); // Initialize all as null
+  requests.forEach(req => imageUris[req.id] = null); 
 
   const aiGenerationQueue: ImagePromptItem[] = [];
-  const MAX_FIRESTORE_IN_QUERY = 30; // Firestore 'in' query limit
+  const MAX_FIRESTORE_IN_QUERY = 30; 
 
   try {
-    if (requestIds.length > 0 && firestore) {
-      console.log(`[DB Check] Total IDs to check in Firestore for landing page: ${requestIds.length}`);
-      // Batch Firestore reads
-      for (let i = 0; i < requestIds.length; i += MAX_FIRESTORE_IN_QUERY) {
-        const chunkOfIds = requestIds.slice(i, i + MAX_FIRESTORE_IN_QUERY);
+    const requestIdsToCacheCheck = requests.map(r => r.id).filter(id => id); // Filter out any undefined/null IDs just in case
+    if (requestIdsToCacheCheck.length > 0 && firestore) {
+      console.log(`[DB Check] Total IDs to check in Firestore for landing page: ${requestIdsToCacheCheck.length}`);
+      for (let i = 0; i < requestIdsToCacheCheck.length; i += MAX_FIRESTORE_IN_QUERY) {
+        const chunkOfIds = requestIdsToCacheCheck.slice(i, i + MAX_FIRESTORE_IN_QUERY);
         if (chunkOfIds.length === 0) continue;
         
         try {
@@ -95,17 +98,16 @@ export async function getLandingPageImagesWithFallback(
           imageDocsSnap.forEach(docSnap => {
             if (docSnap.exists()) {
               const data = docSnap.data();
-              const originalRequest = requests.find(r => r.id === docSnap.id); // Find the original request by ID
+              const originalRequest = requests.find(r => r.id === docSnap.id); 
               const cachedAt = (data.cachedAt as Timestamp)?.toDate();
               const now = new Date();
               const daysDiff = cachedAt ? (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24) : CACHE_EXPIRY_DAYS_IMAGE + 1;
 
-              // Check if prompt and styleHint also match, in addition to ID and freshness
               if (data.imageUri && originalRequest?.promptText === data.promptUsed && originalRequest?.styleHint === data.styleHint && daysDiff < CACHE_EXPIRY_DAYS_IMAGE) {
                  imageUris[docSnap.id] = data.imageUri;
                  console.log(`[DB Check - Landing] Cache HIT for ID: ${docSnap.id}. Prompt & Style matched.`);
               } else {
-                if (originalRequest && !aiGenerationQueue.find(q => q.id === docSnap.id)) { // Avoid duplicates in queue
+                if (originalRequest && !aiGenerationQueue.find(q => q.id === docSnap.id)) { 
                      aiGenerationQueue.push({ id: originalRequest.id, prompt: originalRequest.promptText, styleHint: originalRequest.styleHint });
                      console.log(`[DB Check - Landing] Cache STALE or MISMATCH for ID: ${docSnap.id}. Queued for AI. Reason: daysDiff=${daysDiff.toFixed(1)}, promptMatch=${originalRequest?.promptText === data.promptUsed}, styleMatch=${originalRequest?.styleHint === data.styleHint}`);
                 }
@@ -113,11 +115,10 @@ export async function getLandingPageImagesWithFallback(
             }
           });
 
-          // For IDs in the chunk not found in Firestore (cache miss)
           chunkOfIds.forEach(idInChunk => {
-            if (imageUris[idInChunk] === null) { // If not already satisfied by a cache hit
+            if (imageUris[idInChunk] === null) { 
                 const originalRequest = requests.find(r => r.id === idInChunk);
-                if (originalRequest && !aiGenerationQueue.find(q => q.id === idInChunk)) { // Avoid duplicates
+                if (originalRequest && !aiGenerationQueue.find(q => q.id === idInChunk)) { 
                     aiGenerationQueue.push({ id: originalRequest.id, prompt: originalRequest.promptText, styleHint: originalRequest.styleHint });
                     console.log(`[DB Check - Landing] Cache MISS for ID: ${idInChunk}. Queued for AI.`);
                 }
@@ -126,7 +127,6 @@ export async function getLandingPageImagesWithFallback(
 
         } catch (dbError: any) {
           console.error(`[DB Check Error - Landing] Firestore query failed for chunk starting with ID ${chunkOfIds[0]}. Error: ${dbError.message}`);
-          // Fallback: queue all items in this chunk for AI generation if they haven't been hit yet
           chunkOfIds.forEach(idInChunk => {
             if (imageUris[idInChunk] === null) {
               const originalRequest = requests.find(r => r.id === idInChunk);
@@ -142,7 +142,6 @@ export async function getLandingPageImagesWithFallback(
       requests.forEach(req => aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint }));
     }
     
-    // Ensure any request not satisfied by cache is queued (e.g. if firestore read failed for initial chunks)
     requests.forEach(req => {
       if (imageUris[req.id] === null && !aiGenerationQueue.find(q => q.id === req.id)) {
         aiGenerationQueue.push({ id: req.id, prompt: req.promptText, styleHint: req.styleHint });
@@ -150,39 +149,30 @@ export async function getLandingPageImagesWithFallback(
       }
     });
 
-
-    // Perform AI generation for queued items
     if (aiGenerationQueue.length > 0) {
       try {
         console.log(`[LandingPageImages] Calling generateMultipleImagesAction for ${aiGenerationQueue.length} images (landing page batch).`);
-        // The generateMultipleImagesAction already has its own internal batching and caching logic for individual prompts
         const aiResultsOutput: MultipleImagesOutput = await generateMultipleImagesAction({ prompts: aiGenerationQueue });
         const aiResults = aiResultsOutput.results || [];
 
         aiResults.forEach(aiResult => {
           if (aiResult.imageUri) {
             imageUris[aiResult.id] = aiResult.imageUri;
-            // Cache update is now handled within generateMultipleImagesAction
           } else {
             console.warn(`[LandingPageImages] AI generation failed for ID ${aiResult.id}: ${aiResult.error}. Placeholder will be used.`);
-            // imageUris[aiResult.id] remains null or becomes a specific error placeholder if needed
           }
         });
       } catch (flowError: any) {
         console.error('[Server Action - Landing Img AI Error] Error calling generateMultipleImagesAction for landing page. Error: ', flowError.message);
-        // Fallback for all queued items if the flow itself fails
         aiGenerationQueue.forEach(req => {
-          if (imageUris[req.id] === null) imageUris[req.id] = null; // Ensure it's null if not already set
+          if (imageUris[req.id] === null) imageUris[req.id] = null;
         });
       }
     }
 
-    // Final check: any URI still null after cache and AI attempt gets a generic placeholder
     for (const req of requests) {
         if (imageUris[req.id] === null) {
-            // imageUris[req.id] = `https://placehold.co/600x400.png?text=${encodeURIComponent(req.id.substring(0,15))}`; // Fallback placeholder
-            // console.log(`[LandingPageImages] Final fallback placeholder set for ID: ${req.id}`);
-             // Let it remain null, so UI can show ImageOff or specific loading/error state
+          // Let it remain null, UI can handle this state.
         }
     }
     
@@ -190,13 +180,11 @@ export async function getLandingPageImagesWithFallback(
     return imageUris;
   } catch (topLevelError: any) {
     console.error('[Server Action - getLandingPageImagesWithFallback] TOP LEVEL CRITICAL ERROR:', topLevelError.message, topLevelError.stack);
-    // Return null for all requested images in case of a catastrophic failure
     const fallbackUris: Record<string, string | null> = {};
     requests.forEach(req => fallbackUris[req.id] = null);
     return fallbackUris;
   }
 }
-const requestIds = features.map(f => f.id); // Used in getLandingPageImagesWithFallback if it was called from there
 
 
 export async function getPopularDestinations(input: PopularDestinationsInput): Promise<PopularDestinationsOutput> {
@@ -213,12 +201,12 @@ export async function getAiFlightMapDealsAction(input: AiFlightMapDealInput): Pr
     const startDate = addMonths(new Date(), 1);
     const endDate = addDays(startDate, 7);
     
-    const originIata = await getIataCodeAction(input.originDescription); // originDescription can be "User's current location (approx...)" or a city
+    const originIata = await getIataCodeAction(input.originDescription); 
     const destinationIata = await getIataCodeAction(input.targetDestinationCity);
 
     const flightSearchInput: SerpApiFlightSearchInput = {
-      origin: originIata || input.originDescription, // Fallback to original description if IATA not found
-      destination: destinationIata || input.targetDestinationCity, // Fallback to original city name
+      origin: originIata || input.originDescription, 
+      destination: destinationIata || input.targetDestinationCity, 
       departureDate: format(startDate, "yyyy-MM-dd"),
       returnDate: format(endDate, "yyyy-MM-dd"),
       tripType: "round-trip",
@@ -239,18 +227,14 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
     if (legs.length === 0) return "Unknown stops";
     if (legs.length === 1 && (!flightOption.layovers || flightOption.layovers.length === 0)) return "Non-stop";
     
-    // For round trips, Google Flights often lists 2 legs for non-stop (outbound, return)
-    // If it's a round trip and has exactly 2 legs and no layovers, it's likely non-stop each way.
     if (legs.length === 2 && (!flightOption.layovers || flightOption.layovers.length === 0) && flightOption.type === 'Round trip') {
-        // A more robust check might be needed if leg structure varies greatly
         if(legs[0]?.arrival_airport?.name === legs[1]?.departure_airport?.name && legs[0]?.departure_airport?.name === legs[1]?.arrival_airport?.name) {
             return "Non-stop (each way)";
         }
     }
 
     const numStops = (flightOption.layovers?.length || Math.max(0, legs.length - 1));
-    // If still 0 stops after previous checks but more than 1 leg (e.g. one-way with stops but layovers not listed in typical way)
-    if (numStops <= 0 && legs.length <= 2 ) return "Non-stop"; // Simplified: if 2 legs and no layovers, assume non-stop for each segment of a more complex trip
+    if (numStops <= 0 && legs.length <= 2 ) return "Non-stop"; 
 
     let stopsDesc = `${numStops} stop${numStops > 1 ? 's' : ''}`;
     if (flightOption.layovers && flightOption.layovers.length > 0) {
@@ -261,7 +245,11 @@ function deriveStopsDescription(flightOption: SerpApiFlightOption): string {
 }
 
 export async function getIataCodeAction(placeName?: string): Promise<string | null> {
-  if (!placeName || placeName.trim().length < 2 || placeName.toLowerCase().includes("current location")) return null; // Skip for generic location
+  if (!placeName || placeName.trim().length < 2 || placeName.toLowerCase().includes("current location") || /^[A-Z]{3}$/.test(placeName.trim().toUpperCase())) {
+    if(/^[A-Z]{3}$/.test(placeName!.trim().toUpperCase())) return placeName!.trim().toUpperCase(); // Already an IATA code
+    return null; // Skip for generic location or if already looks like an IATA code
+  }
+
   const normalizedPlaceNameKey = normalizeCacheKeyPart(placeName);
   const cacheKey = `iata_${normalizedPlaceNameKey}`;
   const cacheCollectionName = 'iataCodeCache';
@@ -302,21 +290,25 @@ export async function getIataCodeAction(placeName?: string): Promise<string | nu
     console.warn("[getIataCodeAction] SerpApi key not found or is placeholder. Cannot fetch IATA code.");
     return null;
   }
-  const params = { engine: "google_flights_travel_partners", q: `IATA code for ${placeName.trim()}`, api_key: apiKey };
+  // Using a more generic search for airport codes as "IATA code for X" can be flaky
+  const params = { engine: "google", q: `${placeName.trim()} airport code IATA`, api_key: apiKey };
   console.log(`[SerpApi - IATA] Calling SerpApi for: "${placeName.trim()}" with params:`, params);
   try {
     const response = await getSerpApiJson(params);
     let iataCode: string | null = null;
+    // Look in knowledge graph or answer box first
     if (response.answer_box?.answer) { const m = response.answer_box.answer.match(/\b([A-Z]{3})\b/); if (m) iataCode = m[1]; }
     if (!iataCode && response.knowledge_graph?.iata_code) iataCode = response.knowledge_graph.iata_code;
     if (!iataCode && response.knowledge_graph?.description) { const m = response.knowledge_graph.description.match(/IATA: ([A-Z]{3})/i); if (m) iataCode = m[1];}
+    
+    // Then try organic results
     if (!iataCode && response.organic_results?.length) {
       for (const r of response.organic_results) {
-        if (r.snippet) { const m = r.snippet.match(/\b([A-Z]{3})\b is the IATA code/i) || r.snippet.match(/IATA code: ([A-Z]{3})/i) || r.snippet.match(/airport code ([A-Z]{3})/i); if (m) { iataCode = m[1]; break; } }
-        if (r.title) { const m = r.title.match(/\(([A-Z]{3})\)/i); if (m) { iataCode = m[1]; break; } }
+        const textToSearch = `${r.title || ''} ${r.snippet || ''}`;
+        const m = textToSearch.match(/\b([A-Z]{3})\b is the IATA code for/i) || textToSearch.match(/IATA code for .*? is \b([A-Z]{3})\b/i) || textToSearch.match(/airport code for .*? is \b([A-Z]{3})\b/i) || textToSearch.match(/\(([A-Z]{3})\)/i);
+        if (m && m[1]) { iataCode = m[1]; break; }
       }
     }
-    if (!iataCode && /^[A-Z]{3}$/.test(placeName.trim().toUpperCase())) iataCode = placeName.trim().toUpperCase();
 
     if (iataCode && firestore) {
       const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
@@ -326,7 +318,7 @@ export async function getIataCodeAction(placeName?: string): Promise<string | nu
         await setDoc(cacheDocRef, dataToCache);
         console.log(`[Cache Write - IATA] Successfully SAVED to cache. Key: ${cacheKey}`);
       } catch (e: any) {
-        console.error(`[Cache Write Error - IATA] For ${cacheKey}:`, e.message, e);
+        console.error(`[Cache Write Error - IATA] For key ${cacheKey}:`, e.message, e);
       }
     }
     console.log(`[SerpApi - IATA] Fetched for "${placeName.trim()}": ${iataCode}`);
@@ -342,7 +334,7 @@ const parsePrice = (priceValue: any): number | undefined => {
     if (typeof priceValue === 'number') return isNaN(priceValue) ? undefined : priceValue;
     if (typeof priceValue === 'string') {
         if (priceValue.trim() === "") return undefined;
-        const cleanedString = priceValue.replace(/[^0-9.]/g, ''); // Allow for decimal, remove other non-numeric
+        const cleanedString = priceValue.replace(/[^0-9.-]/g, ''); // Allow for decimal and negative
         if (cleanedString === '') return undefined;
         const num = parseFloat(cleanedString);
         return isNaN(num) ? undefined : num;
@@ -370,7 +362,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   const cacheKey = `flights_${originKeyPart}_${destinationKeyPart}_${depDateKeyPart}_${retDateKeyPart}_${tripTypeKeyPart}`;
   const cacheCollectionName = 'serpApiFlightsCache';
   
-  console.log(`[Cache Read - Flights] Attempting to read from Firestore for key: ${cacheKey}`);
+  console.log(`[Cache Read - Flights] Attempting to read from Firestore. Generated cacheKey: ${cacheKey}`);
 
   if (firestore) {
     const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
@@ -381,15 +373,15 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
         const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
         if (cachedAt) {
           const now = new Date();
-          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
-          console.log(`[Cache Read - Flights] Found cache entry for ${cacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API} days.`);
-          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
+          const hoursDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60); // Use hours for API
+          console.log(`[Cache Read - Flights] Found cache entry for ${cacheKey}. Age: ${hoursDiff.toFixed(1)} hours. Max age: ${CACHE_EXPIRY_DAYS_API * 24} hours.`);
+          if (hoursDiff < (CACHE_EXPIRY_DAYS_API * 24)) { // Convert days to hours
             console.log(`[Cache HIT - Flights] For key: ${cacheKey}. Returning cached data.`);
             return cacheData.data as SerpApiFlightSearchOutput;
           }
-          console.log(`[Cache STALE - Flights] For key: ${cacheKey}. Fetching fresh data from SerpApi.`);
+          console.log(`[Cache STALE - Flights] For key: ${cacheKey}. Will fetch fresh data from SerpApi.`);
         } else {
-          console.log(`[Cache Read - Flights] Cache entry for ${cacheKey} has no valid cachedAt. Fetching fresh data from SerpApi.`);
+          console.log(`[Cache Read - Flights] Cache entry for ${cacheKey} has no valid cachedAt. Fetching fresh data.`);
         }
       } else {
         console.log(`[Cache MISS - Flights] For key: ${cacheKey}. Fetching fresh data from SerpApi.`);
@@ -400,11 +392,11 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   } else {
     console.warn("[Server Action - getRealFlightsAction] Firestore instance is not available. Skipping cache check.");
   }
-
+  
   const params: any = {
     engine: "google_flights", 
-    departure_id: originIata || input.origin, // Use IATA if available, else original string
-    arrival_id: destinationIata || input.destination, // Use IATA if available, else original string
+    departure_id: originIata || input.origin, 
+    arrival_id: destinationIata || input.destination, 
     outbound_date: input.departureDate, 
     currency: input.currency || "USD", 
     hl: input.hl || "en", 
@@ -414,7 +406,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
     params.return_date = input.returnDate;
   }
 
-  console.log(`[SerpApi - Flights] Calling SerpApi for key: ${cacheKey} with params:`, JSON.stringify(params));
+  console.log(`[SerpApi - Flights] Calling SerpApi with params:`, JSON.stringify(params));
   try {
     const response = await getSerpApiJson(params);
     console.log(`[SerpApi - Flights] RAW SerpApi Response for key ${cacheKey}:`, JSON.stringify(response, null, 2).substring(0, 1000) + "...");
@@ -446,15 +438,14 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
                 derived_departure_airport_name: firstLeg?.departure_airport?.name, 
                 derived_arrival_airport_name: lastLeg?.arrival_airport?.name,
                 derived_flight_numbers: legsArray.map((f: any) => f.flight_number).filter(Boolean).join(', '),
-                derived_stops_description: deriveStopsDescription({ ...flight, flights: legsArray }), // Pass the full flight object
+                derived_stops_description: deriveStopsDescription({ ...flight, flights: legsArray }),
             };
             return processedFlight;
-        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0))); // Basic validation
+        }).filter(fo => fo.price != null && (fo.derived_departure_airport_name != null || (fo.flights && fo.flights.length > 0))); 
     }
 
     let bestFlightsProcessed = processFlights(response.best_flights);
     let otherFlightsProcessed = processFlights(response.other_flights);
-    // Fallback if main arrays are empty but a general 'flights' array exists
     if (bestFlightsProcessed.length === 0 && otherFlightsProcessed.length === 0 && response.flights?.length > 0) {
         console.log("[Server Action - getRealFlightsAction] Using response.flights as fallback for processing.");
         otherFlightsProcessed = processFlights(response.flights);
@@ -470,14 +461,16 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
     if (firestore && (output.best_flights || output.other_flights)) {
       const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-      const dataToCache = { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey }; // Store cacheKey for debugging
-      console.log(`[Cache Write - Flights] Attempting to SAVE to cache for key: ${cacheKey}. Has data: ${!!output.best_flights || !!output.other_flights}`);
+      const dataToCache = { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey };
+      console.log(`[Cache Write - Flights] Attempting to SAVE to cache for key: ${cacheKey}. Data present: ${!!output.best_flights || !!output.other_flights}`);
       try {
         await setDoc(cacheDocRef, dataToCache, { merge: true });
         console.log(`[Cache Write - Flights] Successfully SAVED to cache for key: ${cacheKey}`);
       } catch (cacheWriteError: any) {
         console.error(`[Cache Write Error - Flights] For key ${cacheKey}:`, cacheWriteError.message, cacheWriteError);
       }
+    } else if (firestore) {
+      console.log(`[Cache Write - Flights] SKIPPING save to cache for key: ${cacheKey} because no valid flights were processed.`);
     }
     return output;
   } catch (error: any) {
@@ -501,7 +494,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
   const cacheKey = `hotels_${destinationKeyPart}_${checkInDateKeyPart}_${checkOutDateKeyPart}_${guestsKeyPart}`;
   const cacheCollectionName = 'serpApiHotelsCache';
 
-  console.log(`[Cache Read - Hotels] Attempting to read from Firestore for key: ${cacheKey}`);
+  console.log(`[Cache Read - Hotels] Attempting to read from Firestore. Generated cacheKey: ${cacheKey}`);
 
   if (firestore) {
     const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
@@ -512,15 +505,15 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
         const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
         if (cachedAt) {
           const now = new Date();
-          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
-          console.log(`[Cache Read - Hotels] Found cache entry for ${cacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API} days.`);
-          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
+          const hoursDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60);
+          console.log(`[Cache Read - Hotels] Found cache entry for ${cacheKey}. Age: ${hoursDiff.toFixed(1)} hours. Max age: ${CACHE_EXPIRY_DAYS_API*24} hours.`);
+          if (hoursDiff < (CACHE_EXPIRY_DAYS_API*24)) {
             console.log(`[Cache HIT - Hotels] For key: ${cacheKey}. Returning cached data.`);
             return cacheData.data as SerpApiHotelSearchOutput;
           }
            console.log(`[Cache STALE - Hotels] For key: ${cacheKey}. Fetching fresh data from SerpApi.`);
         } else {
-           console.log(`[Cache Read - Hotels] Cache entry for ${cacheKey} has no valid cachedAt. Fetching fresh data from SerpApi.`);
+           console.log(`[Cache Read - Hotels] Cache entry for ${cacheKey} has no valid cachedAt. Fetching fresh data.`);
         }
       } else {
         console.log(`[Cache MISS - Hotels] For key: ${cacheKey}. Fetching fresh data from SerpApi.`);
@@ -532,23 +525,23 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     console.warn("[Server Action - getRealHotelsAction] Firestore instance is not available. Skipping cache check.");
   }
 
-  const destinationForApi = await getIataCodeAction(input.destination) || input.destination; // Use IATA if available
+  const destinationForApi = await getIataCodeAction(input.destination) || input.destination; 
 
   const params: any = {
     engine: "google_hotels", 
-    q: destinationForApi, // Use IATA code if available, else original destination string
+    q: destinationForApi, 
     check_in_date: input.checkInDate, 
     check_out_date: input.checkOutDate,
-    adults: input.guests || "2", // SerpApi expects string for adults
+    adults: input.guests || "2", 
     currency: input.currency || "USD", 
     hl: input.hl || "en", 
     api_key: apiKey,
   };
-  console.log(`[SerpApi - Hotels] Calling SerpApi for key: ${cacheKey} with params:`, JSON.stringify(params));
+  console.log(`[SerpApi - Hotels] Calling SerpApi with params:`, JSON.stringify(params));
 
   try {
     const response = await getSerpApiJson(params);
-    console.log(`[SerpApi - Hotels] RAW SerpApi Response for key ${cacheKey}:`, JSON.stringify(response, null, 2).substring(0, 500) + "...");
+    console.log(`[SerpApi - Hotels] RAW SerpApi Hotel Response for key ${cacheKey}:`, JSON.stringify(response, null, 2).substring(0, 500) + "...");
 
     if (response.error) {
       console.error('[Server Action - getRealHotelsAction] SerpApi returned an error:', response.error);
@@ -596,13 +589,15 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
     if (firestore && output.hotels && output.hotels.length > 0) {
       const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
       const dataToCache = { data: output, cachedAt: serverTimestamp(), queryKey: cacheKey };
-      console.log(`[Cache Write - Hotels] Attempting to SAVE to cache for key: ${cacheKey}. Has data: ${!!output.hotels && output.hotels.length > 0}`);
+      console.log(`[Cache Write - Hotels] Attempting to SAVE to cache for key: ${cacheKey}. Data present: ${!!output.hotels && output.hotels.length > 0}`);
       try {
         await setDoc(cacheDocRef, dataToCache, { merge: true });
         console.log(`[Cache Write - Hotels] Successfully SAVED to cache for key: ${cacheKey}`);
       } catch (cacheWriteError: any) {
         console.error(`[Cache Write Error - Hotels] For key ${cacheKey}:`, cacheWriteError.message, cacheWriteError);
       }
+    } else if (firestore) {
+      console.log(`[Cache Write - Hotels] SKIPPING save to cache for key: ${cacheKey} because no valid hotels were processed.`);
     }
     return output;
   } catch (error: any) {
@@ -614,7 +609,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
 export async function generateMultipleImagesAction(input: MultipleImagesInput): Promise<MultipleImagesOutput> {
   console.log(`[Server Action - generateMultipleImagesAction] Starting generation for ${input.prompts.length} images.`);
   const results: ImageResultItem[] = [];
-  const batchSize = 5; // Process in batches to avoid overwhelming the API or local resources
+  const batchSize = 5; 
   const cacheCollectionName = 'imageCache';
 
   for (let i = 0; i < input.prompts.length; i += batchSize) {
@@ -622,10 +617,10 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
       console.log(`[Server Action - generateMultipleImagesAction] Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(input.prompts.length / batchSize)} (size: ${batch.length})`);
 
       const batchPromises = batch.map(async (item): Promise<ImageResultItem> => {
-          const imageCacheKey = item.id; // Use the passed ID as the cache key
+          const imageCacheKey = item.id; 
           console.log(`[Server Action - generateMultipleImagesAction] Processing item ID (cache key): ${imageCacheKey}`);
 
-          if (imageCacheKey && firestore) { // Ensure key exists and Firestore is available
+          if (imageCacheKey && firestore) { 
               const cacheDocRef = doc(firestore, cacheCollectionName, imageCacheKey);
               console.log(`[Cache Read - Images] Attempting to read from Firestore for key: ${imageCacheKey}`);
               try {
@@ -637,7 +632,6 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
                         const now = new Date();
                         const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
                         console.log(`[Cache Read - Images] Found image cache entry for ${imageCacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_IMAGE} days.`);
-                        // Also check if prompt and styleHint match, as ID might be reused with different content
                         if (daysDiff < CACHE_EXPIRY_DAYS_IMAGE && cacheData.imageUri && cacheData.promptUsed === item.prompt && cacheData.styleHint === item.styleHint) {
                             console.log(`[Cache HIT - Images] For key: ${imageCacheKey}`);
                             return { id: item.id, imageUri: cacheData.imageUri };
@@ -656,7 +650,6 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
              console.log(`[Server Action - generateMultipleImagesAction] No imageCacheKey or Firestore instance, proceeding to generate image for ID: ${item.id}`);
           }
 
-          // AI Generation logic (copied from your original flow, to be called directly or via another imported flow)
           let fullPrompt = item.prompt;
            if (item.styleHint === 'hero') {
                 fullPrompt = `Generate a captivating, high-resolution hero image for a travel website, representing: "${item.prompt}". Style: cinematic, inspiring, travel-focused. Aspect ratio 1:1 for carousel.`;
@@ -671,19 +664,16 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
             } else if (item.styleHint === 'hotelRoom') {
                  fullPrompt = `Generate an attractive, high-quality photograph of a hotel room interior based on: ${item.prompt}. Style: clean, well-lit, inviting. Aspect ratio 16:9.`;
             }
-             // else: use item.prompt as is for 'general' or undefined styleHint
 
           try {
               console.log(`[AI Image Gen] Calling Genkit AI for ID: ${item.id}, Full Prompt: "${fullPrompt}"`);
-              // Assuming generateMultipleImagesFlowOriginal is the actual Genkit flow
-              // For a single image, you might have a simpler flow or adapt this one
               const singleItemInput: MultipleImagesInput = { prompts: [{...item, prompt: fullPrompt }] }; 
               const aiFlowResult = await generateMultipleImagesFlowOriginal(singleItemInput);
               const mediaUrl = aiFlowResult.results[0]?.imageUri;
 
               if (mediaUrl) {
                   console.log(`[AI Image Gen] Success for ID: ${item.id}. Image URI starts with: ${mediaUrl.substring(0, 50)}...`);
-                  if (imageCacheKey && firestore) { // Ensure key exists for caching
+                  if (imageCacheKey && firestore) { 
                       const cacheDocRef = doc(firestore, cacheCollectionName, imageCacheKey);
                       const dataToCache = { imageUri: mediaUrl, promptUsed: item.prompt, styleHint: item.styleHint as string, cachedAt: serverTimestamp() };
                       console.log(`[Cache Write - Images] Attempting to SAVE image to cache for key: ${imageCacheKey}.`);
@@ -714,16 +704,14 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
 }
 
 
-// Helper function to parse flexible date strings for SerpApi
 function parseTravelDatesForSerpApi(travelDates: string): { departureDate: string; returnDate?: string; durationDays: number } {
     const now = new Date();
-    now.setHours(0,0,0,0); // Normalize to start of day
+    now.setHours(0,0,0,0); 
 
-    // Default values: 30 days from now, for 7 days.
     let fromDate: Date = addDays(now, 30); 
-    let toDate: Date | undefined = addDays(fromDate, 6); // 7 days total duration
+    let toDate: Date | undefined = addDays(fromDate, 6); 
     let durationDays: number = 7;
-    let isRoundTrip = true; // Assume round trip unless "one way" or similar is found
+    let isRoundTrip = true;
 
     if (!travelDates || travelDates.trim() === "") {
       console.warn("[parseTravelDatesForSerpApi] Empty travelDates input, using defaults.");
@@ -732,24 +720,20 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
     
     const lowerTravelDates = travelDates.toLowerCase();
 
-    // Check for "one way"
     if (lowerTravelDates.includes("one way") || lowerTravelDates.includes("one-way")) {
         isRoundTrip = false;
         toDate = undefined;
     }
     
-    // Attempt to parse specific date ranges like "MM/DD/YYYY - MM/DD/YYYY" or "Month DD - Month DD, YYYY"
     const specificDateRangeMatch = lowerTravelDates.match(/(\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?|\w+\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*\d{4})?)\s*(?:to|-|until|&)\s*(\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?|\w+\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*\d{4})?)/i);
     if (specificDateRangeMatch) {
         try {
             const d1Str = specificDateRangeMatch[1].replace(/(st|nd|rd|th)/gi, '');
             const d2Str = specificDateRangeMatch[2].replace(/(st|nd|rd|th)/gi, '');
             
-            // Try to parse with common formats, ensuring year is handled
-            let d1Candidate = parseISO(new Date(d1Str).toISOString()); // Using parseISO for robustness with various inputs
+            let d1Candidate = parseISO(new Date(d1Str).toISOString()); 
             let d2Candidate = parseISO(new Date(d2Str).toISOString());
 
-            // If year is missing and date is in past, assume next year
             if (isValid(d1Candidate) && isBefore(d1Candidate, now) && !d1Str.match(/\d{4}/)) d1Candidate = addYears(d1Candidate, 1);
             if (isValid(d2Candidate) && isBefore(d2Candidate, d1Candidate) && !d2Str.match(/\d{4}/)) d2Candidate = addYears(d2Candidate, 1);
             
@@ -757,39 +741,36 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
                 fromDate = d1Candidate;
                 toDate = d2Candidate;
                 durationDays = differenceInDays(toDate, fromDate) + 1;
-                isRoundTrip = true; // A range implies round trip
+                isRoundTrip = true; 
                 console.log(`[parseTravelDatesForSerpApi] Parsed specific range: ${format(fromDate, "yyyy-MM-dd")} to ${format(toDate, "yyyy-MM-dd")}`);
                 return { departureDate: format(fromDate, "yyyy-MM-dd"), returnDate: format(toDate, "yyyy-MM-dd"), durationDays };
             }
         } catch (e) { console.warn("Could not parse specific date range from:", travelDates, e); }
     }
     
-    // Parse duration keywords like "for 7 days", "for 2 weeks"
     const durationKeywordMatch = lowerTravelDates.match(/(?:for\s+)?(\d+)\s*(day|week|month)s?/i);
     if (durationKeywordMatch) {
         const num = parseInt(durationKeywordMatch[1], 10);
         const unit = durationKeywordMatch[2].toLowerCase();
         if (unit.startsWith('week')) durationDays = num * 7;
-        else if (unit.startsWith('month')) durationDays = num * 30; // Approximate
+        else if (unit.startsWith('month')) durationDays = num * 30; 
         else durationDays = num;
         console.log(`[parseTravelDatesForSerpApi] Parsed duration: ${durationDays} days`);
     }
 
-    // Parse relative terms like "next month", "this weekend"
     if (lowerTravelDates.includes("next month")) {
         fromDate = startOfMonth(addMonths(now, 1));
     } else if (lowerTravelDates.includes("this month")) {
         fromDate = startOfMonth(now);
-        if (isBefore(fromDate, now) && now.getDate() !== 1) fromDate = addDays(now,1); // If past start of this month, start from tomorrow
+        if (isBefore(fromDate, now) && now.getDate() !== 1) fromDate = addDays(now,1); 
     } else if (lowerTravelDates.includes("next weekend")) {
-        fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 5 }); // Assuming weekend starts Friday
-        durationDays = 3; // Default weekend duration
+        fromDate = startOfWeek(addDays(now, 7), { weekStartsOn: 5 }); 
+        durationDays = 3; 
     } else if (lowerTravelDates.includes("this weekend")) {
          fromDate = startOfWeek(now, { weekStartsOn: 5 });
-         if (isBefore(fromDate, now)) fromDate = addDays(fromDate, 7); // If current Friday is past, go to next Friday
+         if (isBefore(fromDate, now)) fromDate = addDays(fromDate, 7); 
          durationDays = 3;
     } else {
-        // Try parsing "in X days/weeks/months"
         const inXTimeMatch = lowerTravelDates.match(/in\s+(\d+)\s*(days?|weeks?|months?)/i);
         if (inXTimeMatch) {
             const num = parseInt(inXTimeMatch[1], 10);
@@ -798,10 +779,9 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
             else if (unit.startsWith('week')) fromDate = addDays(now, num * 7);
             else if (unit.startsWith('month')) fromDate = addMonths(now, num);
         } else {
-           // Try parsing month names, e.g., "July", "July 10", "July 10 2025"
            const monthNameMatch = lowerTravelDates.match(/(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)/i);
            if (monthNameMatch) {
-             const monthIdx = new Date(Date.parse(monthNameMatch[0] + " 1, 2000")).getMonth(); // Get month index
+             const monthIdx = new Date(Date.parse(monthNameMatch[0] + " 1, 2000")).getMonth(); 
              let year = now.getFullYear();
              let dayOfMonth = 1;
 
@@ -812,14 +792,13 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
              }
              
              let tempFrom = new Date(year, monthIdx, dayOfMonth);
-             if(isBefore(tempFrom, now) && !dayAndYearMatch?.[2] && !lowerTravelDates.match(/\d{4}/) ) tempFrom.setFullYear(year + 1); // If month is past and no year specified, assume next year
+             if(isBefore(tempFrom, now) && !dayAndYearMatch?.[2] && !lowerTravelDates.match(/\d{4}/) ) tempFrom.setFullYear(year + 1); 
              
              if (isValid(tempFrom)) fromDate = tempFrom;
            }
         }
     }
 
-    // Ensure fromDate is not in the past
     if (isBefore(fromDate, now)) {
         console.warn(`[parseTravelDatesForSerpApi] Calculated fromDate ${format(fromDate, "yyyy-MM-dd")} is in the past. Defaulting to 30 days from now.`);
         fromDate = addDays(now, 30);
@@ -828,7 +807,7 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
     if (isRoundTrip) {
       toDate = addDays(fromDate, Math.max(1, durationDays) - 1);
     } else {
-      toDate = undefined; // For one-way
+      toDate = undefined; 
     }
     
     console.log(`[parseTravelDatesForSerpApi] Final dates: Departure: ${format(fromDate, "yyyy-MM-dd")}, Return: ${toDate ? format(toDate, "yyyy-MM-dd") : 'N/A'}, Duration: ${durationDays} days`);
@@ -847,7 +826,7 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
   const augmentedSuggestions: BundleSuggestion[] = [];
 
   for (const conceptualSuggestion of conceptualBundles.suggestions) {
-    let augmentedSugg: BundleSuggestion = { ...conceptualSuggestion, userId: input.userId }; // Add userId here
+    let augmentedSugg: BundleSuggestion = { ...conceptualSuggestion, userId: input.userId }; 
     const { destination, travelDates, budget: conceptualBudget, origin: conceptualOrigin } = conceptualSuggestion.tripIdea;
     console.log(`[Server Action - generateSmartBundles] Augmenting bundle for: ${destination}, Dates: ${travelDates}, AI Budget: ${conceptualBudget}, Conceptual Origin: ${conceptualOrigin}`);
     
@@ -855,7 +834,7 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
       const parsedDates = parseTravelDatesForSerpApi(travelDates);
       console.log(`[Server Action - generateSmartBundles] Parsed dates for SerpApi: Departure ${parsedDates.departureDate}, Return ${parsedDates.returnDate}, Duration ${parsedDates.durationDays} days`);
 
-      const originForFlight = conceptualOrigin || "NYC"; // Default if AI doesn't provide one
+      const originForFlight = conceptualSuggestion.tripIdea.origin || "NYC"; 
       
       const flightResults = await getRealFlightsAction({ 
         origin: originForFlight, 
@@ -867,7 +846,7 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
       const bestFlight = flightResults.best_flights?.[0] || flightResults.other_flights?.[0];
       
       if (bestFlight) {
-        augmentedSugg.realFlightExample = bestFlight as unknown as FlightOption; // Cast might be needed if types differ slightly
+        augmentedSugg.realFlightExample = bestFlight as unknown as FlightOption; 
         console.log(`[Server Action - generateSmartBundles] Found real flight example: ${bestFlight.airline} for $${bestFlight.price}`);
       } else {
         console.log(`[Server Action - generateSmartBundles] No real flight found for ${destination}.`);
@@ -877,17 +856,16 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
         destination: destination, 
         checkInDate: parsedDates.departureDate, 
         checkOutDate: parsedDates.returnDate || format(addDays(parseISO(parsedDates.departureDate), parsedDates.durationDays -1 ), "yyyy-MM-dd"), 
-        guests: "2" // Default guests for bundle check
+        guests: "2" 
       });
       const bestHotel = hotelResults.hotels?.[0];
       if (bestHotel) {
-        augmentedSugg.realHotelExample = bestHotel as unknown as HotelOption; // Cast
+        augmentedSugg.realHotelExample = bestHotel as unknown as HotelOption; 
          console.log(`[Server Action - generateSmartBundles] Found real hotel example: ${bestHotel.name} for ~$${bestHotel.price_per_night}/night`);
       } else {
          console.log(`[Server Action - generateSmartBundles] No real hotel found for ${destination}.`);
       }
 
-      // Calculate and note price feasibility
       let realPriceMin = 0;
       let priceNoteParts: string[] = [];
 
@@ -935,7 +913,6 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
 }
 
 
-// Wrapper functions for other flows, ensuring they are async and correctly typed for server actions
 export async function getCoTravelAgentResponse(input: CoTravelAgentInput): Promise<CoTravelAgentOutput> { return getCoTravelAgentResponseOriginal(input); }
 export async function getItineraryAssistance(input: ItineraryAssistanceInput): Promise<ItineraryAssistanceOutput> { return getItineraryAssistanceOriginal(input); }
 export async function generateTripSummary(input: TripSummaryInput): Promise<TripSummaryOutput> { return generateTripSummaryOriginal(input); }
