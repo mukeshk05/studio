@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -16,6 +17,7 @@ const Switch = React.forwardRef<
     )}
     {...props}
     ref={ref}
+    suppressHydrationWarning={true} // Added to ignore browser extension modifications
   >
     <SwitchPrimitives.Thumb
       className={cn(
