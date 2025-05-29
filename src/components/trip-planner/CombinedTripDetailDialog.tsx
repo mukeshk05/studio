@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -114,8 +113,9 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
       const packageToSave: TripPackageSuggestion = {
         ...tripPackage,
         userId: currentUser.uid, // Ensure current user's ID is used
+        createdAt: new Date().toISOString(), // Use client-side timestamp for consistency if serverTimestamp causes issues, or ensure firestore types are correct
       };
-      console.log("[Save Package] Package to save:", JSON.stringify(packageToSave, null, 2).substring(0,500) + "...");
+      console.log("[CombinedTripDetailDialog] Package to save:", JSON.stringify(packageToSave).substring(0,500)+"...");
 
       await addSavedPackageMutation.mutateAsync(packageToSave);
       toast({
@@ -123,7 +123,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
         description: `Trip package to ${tripPackage.destinationQuery} saved to your dashboard.`,
       });
     } catch (error: any) {
-      console.error("Error saving package:", error);
+      console.error("[CombinedTripDetailDialog] Error saving package:", error);
       toast({ title: "Save Error", description: error.message || "Could not save the trip package.", variant: "destructive" });
     } finally {
       setIsSavingPackage(false);
@@ -334,27 +334,26 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </ScrollArea>
 
-        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0", glassPaneClasses)}>
-          <Button 
-            onClick={handleSavePackage} 
-            variant="outline" 
-            size="lg" 
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3", glassPaneClasses)}>
+          <Button
+            onClick={handleSavePackage}
+            variant="outline"
+            size="sm" 
             className="w-full glass-interactive border-accent/50 text-accent hover:bg-accent/10"
-            disabled={isSavingPackage}
+            disabled={addSavedPackageMutation.isPending}
           >
-            {isSavingPackage ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-            {isSavingPackage ? "Saving..." : "Save Package"}
+            {addSavedPackageMutation.isPending ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+            {addSavedPackageMutation.isPending ? "Saving..." : "Save Package"}
           </Button>
           <Button
-            onClick={() => toast({ title: "Feature Coming Soon!", description: "This button would link to a full-page view of this package."})}
+            onClick={() => toast({ title: "Feature Coming Soon!", description: "A dedicated page for this package will be available in the future."})}
             variant="outline"
-            size="lg"
+            size="sm" 
             className="w-full glass-interactive"
-            disabled={true} // Conceptual for now
           >
-            <Eye className="mr-2" /> View on Full Page
+            <ExternalLink className="mr-2" /> View on Full Page
           </Button>
-          <Button onClick={() => onInitiateBooking(destinationQuery, travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses)}>
+          <Button onClick={() => onInitiateBooking(tripPackage.destinationQuery, tripPackage.travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses)}>
             <Ticket className="mr-2" /> Plan This Package with AI
           </Button>
         </DialogFooter>
@@ -362,3 +361,4 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
+
