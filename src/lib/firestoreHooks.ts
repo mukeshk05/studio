@@ -11,6 +11,7 @@ import type { SerpApiFlightSearchOutput, SerpApiHotelSearchOutput } from '@/ai/t
 // --- Saved Trips Hooks ---
 
 const SAVED_TRIPS_QUERY_KEY = 'savedTrips';
+const MAX_IMAGE_URI_LENGTH_FIRESTORE = 1000000; // Approx 1MB, slightly less than Firestore's limit for a single field
 
 // Hook to get saved trips
 export function useSavedTrips() {
@@ -209,17 +210,11 @@ const SEARCH_HISTORY_QUERY_KEY = 'searchHistory';
 // Helper function to clean data for Firestore
 // This function is now more robust.
 function cleanDataForFirestore(obj: any): any {
-  // Step 1: Deep clone and initial sanitization with JSON.parse(JSON.stringify())
-  // This removes functions, symbols, and converts top-level undefined properties (though not deeply nested undefined in objects)
-  // and converts undefined array elements to null.
   let sanitizedObj;
   try {
     sanitizedObj = JSON.parse(JSON.stringify(obj));
   } catch (e) {
-    // Fallback for circular references or other stringify errors
     console.warn("[Firestore Clean] Initial JSON.parse(JSON.stringify()) failed. Proceeding with recursive cleaning on original object structure.", e);
-    
-    // Create a structured clone if possible as a better fallback
     if (typeof globalThis.structuredClone === 'function') {
         try {
             sanitizedObj = structuredClone(obj);
@@ -232,37 +227,34 @@ function cleanDataForFirestore(obj: any): any {
     }
   }
 
-
-  // Step 2: Recursive deep cleaning function
   function deepClean(current: any): any {
     if (current === undefined) {
-      return null; // Convert standalone undefined to null
+      return null; 
     }
     if (current === null || typeof current !== 'object') {
-      return current; // Primitives or null are fine
+      return current; 
     }
 
     if (Array.isArray(current)) {
       const cleanedArray = current
         .map(item => {
-          if (Array.isArray(item)) { // Nested array
+          if (Array.isArray(item)) { 
             console.warn(`[Firestore Clean] Nested array found and converted to string: ${JSON.stringify(item)}`);
-            return JSON.stringify(item); // Stringify inner arrays
+            return JSON.stringify(item); 
           }
-          return deepClean(item); // Recursively clean other items
+          return deepClean(item); 
         })
-        .filter(item => item !== undefined && item !== null); // Remove items that became undefined or null
+        .filter(item => item !== undefined && item !== null); 
       return cleanedArray;
     }
 
-    // Handling objects
     const newObject: { [key: string]: any } = {};
     for (const key in current) {
       if (Object.prototype.hasOwnProperty.call(current, key)) {
         const value = current[key];
-        if (value !== undefined) { // Skip properties that are already undefined
+        if (value !== undefined) { 
           const cleanedValue = deepClean(value);
-          if (cleanedValue !== undefined) { // Only add if the cleaned value isn't undefined
+          if (cleanedValue !== undefined) { 
             newObject[key] = cleanedValue;
           }
         }
@@ -285,13 +277,26 @@ export function useAddSearchHistory() {
       if (!currentUser) throw new Error("User not authenticated to save search history");
       const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
       
-      const dataToSave = {
-        ...searchData,
-        destination: searchData.userInput.destination, // Ensure these top-level fields are present for quick display
-        travelDates: searchData.userInput.travelDates,
-        budget: searchData.userInput.budget,
+      const dataToSave: Partial<SearchHistoryEntry> = { // Use Partial to build up
+        userInput: searchData.userInput,
+        flightResults: searchData.flightResults,
+        hotelResults: searchData.hotelResults,
+        aiItineraries: searchData.aiItineraries,
+        tripPackages: searchData.tripPackages,
         searchedAt: serverTimestamp(),
       };
+      
+      // Ensure top-level fields for quick display are present
+      if(searchData.userInput){
+        dataToSave.destination = searchData.userInput.destination;
+        dataToSave.travelDates = searchData.userInput.travelDates;
+        dataToSave.budget = searchData.userInput.budget;
+      } else {
+        // Fallbacks if userInput is somehow missing, though it shouldn't be
+        dataToSave.destination = "Unknown Destination";
+        dataToSave.travelDates = "Unknown Dates";
+        dataToSave.budget = 0;
+      }
       
       const cleanedData = cleanDataForFirestore(dataToSave);
       console.log("[FirestoreHooks] Attempting to save search history (cleaned):", JSON.stringify(cleanedData, null, 2).substring(0, 500) + "...");
@@ -322,24 +327,23 @@ export function useSearchHistory(count: number = 20) {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => {
         const data = doc.data();
-        let searchedAtDate = new Date(); // Default to now if parsing fails
+        let searchedAtDate = new Date(); 
         if (data.searchedAt instanceof Timestamp) {
           searchedAtDate = data.searchedAt.toDate();
         } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
-          // Handle cases where searchedAt might be a simple ISO string or millis from Firestore (less common now with serverTimestamp)
           const tsSeconds = data.searchedAt.seconds || (typeof data.searchedAt === 'number' ? data.searchedAt / 1000 : undefined);
           const tsNanos = data.searchedAt.nanoseconds || 0;
           if (tsSeconds !== undefined) {
             searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
           } else {
-             const parsed = new Date(data.searchedAt); // Try parsing as string
+             const parsed = new Date(data.searchedAt); 
              if(!isNaN(parsed.getTime())) {
                 searchedAtDate = parsed;
              } else {
                 console.warn(`[FirestoreHooks] Could not parse searchedAt for doc ${doc.id}:`, data.searchedAt);
              }
           }
-        } else if (data.searchedAt) { // If searchedAt exists but is not a Timestamp or recognized format
+        } else if (data.searchedAt) { 
             console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${doc.id}:`, data.searchedAt, `Type: ${typeof data.searchedAt}`);
         }
 
@@ -373,8 +377,8 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
     const querySnapshot = await getDocs(q);
     const history = querySnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
-        // Robust date parsing for searchedAt
-        let searchedAtDate = new Date(); // Default to now if parsing fails
+        
+        let searchedAtDate = new Date(); 
         if (data.searchedAt instanceof Timestamp) {
           searchedAtDate = data.searchedAt.toDate();
         } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
@@ -393,9 +397,9 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
 
         return {
             id: docSnapshot.id,
-            destination: data.destination || "Unknown Destination",
-            travelDates: data.travelDates || "Unknown Dates",
-            budget: typeof data.budget === 'number' ? data.budget : 0,
+            destination: data.destination || data.userInput?.destination || "Unknown Destination",
+            travelDates: data.travelDates || data.userInput?.travelDates || "Unknown Dates",
+            budget: typeof data.budget === 'number' ? data.budget : (data.userInput?.budget || 0),
             userInput: data.userInput || {} as AITripPlannerInput,
             flightResults: data.flightResults || null,
             hotelResults: data.hotelResults || null,
@@ -482,7 +486,7 @@ export async function getUserTravelPersona(userId: string): Promise<UserTravelPe
     const docSnap = await getDoc(personaDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      let lastUpdatedDate = new Date(); // Default if parsing fails
+      let lastUpdatedDate = new Date(); 
         if (data.lastUpdated instanceof Timestamp) {
           lastUpdatedDate = data.lastUpdated.toDate();
         } else if (data.lastUpdated && (typeof data.lastUpdated === 'string' || typeof data.lastUpdated === 'number')) {
@@ -576,11 +580,20 @@ export function useAddSavedPackage() {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id, ...dataToSaveWithoutId } = packageData; 
       
-      const finalDataToSave = {
+      const finalDataToSave: Omit<TripPackageSuggestion, 'id'> = { // Ensure type matches what we save
         ...dataToSaveWithoutId,
-        userId: currentUserId,
+        userId: currentUserId, // Ensure userId is set from current auth context if not already on packageData
         createdAt: serverTimestamp(),
       };
+      
+      // Check destinationImageUri length before saving
+      if (finalDataToSave.destinationImageUri && finalDataToSave.destinationImageUri.length > MAX_IMAGE_URI_LENGTH_FIRESTORE) {
+        console.warn(`[FirestoreHooks useAddSavedPackage] destinationImageUri for package ${finalDataToSave.destinationQuery} is too long (${finalDataToSave.destinationImageUri.length} bytes). Omitting from save.`);
+        // @ts-ignore
+        delete finalDataToSave.destinationImageUri; // Or set to null: finalDataToSave.destinationImageUri = null;
+      }
+
+
       const cleanedDataToSave = cleanDataForFirestore(finalDataToSave);
       console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package (cleaned):", JSON.stringify(cleanedDataToSave, null, 2).substring(0,500)+"...");
 
