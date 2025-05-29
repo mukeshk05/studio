@@ -493,6 +493,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
                 flights: legsArray.map((l: any) => ({...l, duration: l.duration ? parseInt(l.duration) : undefined })),
                 layovers: flight.layovers?.map((l: any) => ({...l, duration: l.duration ? parseInt(l.duration) : undefined })),
                 total_duration: flight.total_duration ? parseInt(flight.total_duration) : undefined,
+                departure_token: flight.departure_token,
                 price: parsePrice(flight.price),
                 type: flight.type, 
                 airline: flight.airline || firstLeg?.airline, 

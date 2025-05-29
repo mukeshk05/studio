@@ -14,9 +14,8 @@ export const SerpApiFlightLegSchema = z.object({
   flight_number: z.string().optional(),
   airplane: z.string().optional(),
   travel_class: z.string().optional(),
-  extensions: z.array(z.string()).optional(),
-  departure_token: z.string().optional().describe("Token for fetching related flights, e.g., return flights for this leg."),
-});
+  extensions: z.array(z.string()).optional()
+ });
 export type SerpApiFlightLeg = z.infer<typeof SerpApiFlightLegSchema>;
 
 // Layover details
@@ -32,6 +31,7 @@ export const SerpApiFlightOptionSchema = z.object({
   flights: z.array(SerpApiFlightLegSchema).optional(),
   layovers: z.array(SerpApiLayoverSchema).optional(),
   total_duration: z.number().optional().describe("Total duration in minutes"),
+  departure_token: z.string().optional().describe("Token for fetching related flights, e.g., return flights for this leg."),
   price: z.number().optional(),
   type: z.string().optional().describe("e.g., 'Round trip', 'One way'"),
   airline: z.string().optional().describe("Primary airline for the option"), // SerpApi might provide this at top level

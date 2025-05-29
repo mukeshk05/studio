@@ -200,7 +200,7 @@ export default function TripPlannerPage() {
   const chatInputRef = useRef<HTMLInputElement>(null);
 
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = "AIzaSyDojiz_4q5c23EAg9SBqStgdVjeSa8R9_8";
 
   const initGoogleMapsApiPlannerPageCallback = useCallback(() => {
     console.log("[PlannerPage] Google Maps API script loaded callback for planner page executed.");
