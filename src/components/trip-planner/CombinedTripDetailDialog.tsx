@@ -87,8 +87,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const mapRef = useRef<HTMLIFrameElement>(null);
   const addSavedPackageMutation = useAddSavedPackage();
   const { currentUser } = useAuth();
-  const [isSavingPackage, setIsSavingPackage] = useState(false);
-
+  
   if (!tripPackage) return null;
 
   const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri } = tripPackage;
@@ -109,16 +108,15 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
       return;
     }
 
-    setIsSavingPackage(true);
-    try {
-      // Ensure the userId is correctly part of the packageData before saving
-      const packageToSave: TripPackageSuggestion = {
-        ...tripPackage,
-        userId: currentUser.uid, // Explicitly set current user's ID
-        createdAt: new Date().toISOString(), // Or use serverTimestamp if preferred and handled correctly
-      };
-      console.log("[CombinedTripDetailDialog] Package to save:", JSON.stringify(packageToSave).substring(0,500)+"...");
+    const packageToSave: TripPackageSuggestion = {
+      ...tripPackage,
+      userId: currentUser.uid, 
+      createdAt: new Date().toISOString(), 
+    };
+    
+    console.log("[CombinedTripDetailDialog] Package to save:", JSON.stringify(packageToSave).substring(0,500)+"...");
 
+    try {
       await addSavedPackageMutation.mutateAsync(packageToSave);
       toast({
         title: "Package Saved!",
@@ -127,8 +125,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     } catch (error: any) {
       console.error("[CombinedTripDetailDialog] Error saving package:", error);
       toast({ title: "Save Error", description: error.message || "Could not save the trip package.", variant: "destructive" });
-    } finally {
-      setIsSavingPackage(false);
     }
   };
   
@@ -181,7 +177,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg font-semibold text-primary flex items-center">
-                  <Plane className="w-5 h-5 mr-2" /> Flight Details
+                  <Plane className="w-5 h-5 mr-2" /> Full Journey Details (All Legs)
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-3">
@@ -211,6 +207,14 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 <FlightLegDisplay leg={leg} isLast={index === arr.length -1 && (!flight.layovers || flight.layovers.length <= index )}/>
                                 {flight.layovers && flight.layovers[index] && index < arr.length -1 && (
                                     <LayoverDisplay layover={flight.layovers[index]} />
+                                )}
+                                {index < arr.length - 1 && (!flight.layovers || flight.layovers.length <= index || !flight.layovers[index]) && (
+                                  // Add a small visual separator if there's no explicit layover info, but there's a next leg
+                                  <div className="flex items-center my-1">
+                                    <Separator className="flex-grow border-border/30" />
+                                    <Route className="w-3 h-3 mx-2 text-muted-foreground/70" />
+                                    <Separator className="flex-grow border-border/30" />
+                                  </div>
                                 )}
                             </React.Fragment>
                         ))}

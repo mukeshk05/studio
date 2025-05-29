@@ -51,8 +51,8 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
           "derived_departure_airport_name": "New York (JFK)", "derived_arrival_airport_name": "Paris (CDG)",
           "derived_flight_numbers": "DL 123, DL 456", "derived_stops_description": "1 stop in AMS (2h 30m)",
           "link": "https://www.google.com/flights/...",
-          "flights": [ // Array of flight legs
-            { "departure_airport": {"name": "JFK", "time": "10:00 AM"}, "arrival_airport": {"name": "AMS", "time": "09:00 PM"}, "airline": "Delta", "flight_number": "DL 123", "departure_token": "some_token_value_if_present" },
+          "flights": [ // Array of flight legs, can include outbound, connecting, and return
+            { "departure_airport": {"name": "JFK", "time": "10:00 AM"}, "arrival_airport": {"name": "AMS", "time": "09:00 PM"}, "airline": "Delta", "flight_number": "DL 123", "departure_token": "some_token_if_present" },
             { "departure_airport": {"name": "AMS", "time": "11:30 PM"}, "arrival_airport": {"name": "CDG", "time": "01:00 AM"}, "airline": "Delta", "flight_number": "DL 456" }
             // ... potentially more legs including return journey legs ...
           ]
@@ -60,7 +60,8 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
         \`\`\`
         If realFlightOptions are available and suitable (considering budget, dates, and reasonable connections), select 1-2 options.
         Populate the 'flightOptions' array in your output. For each selected option:
-            *   Ensure you capture the overall 'name' (e.g., airline + key flight numbers), a 'description' summarizing the full journey (outbound and return, key stops), 'price', 'airline_logo', 'total_duration', 'derived_stops_description', and the booking 'link' directly from the selected real flight option.
+            *   Ensure you capture the overall 'name' (e.g., airline + key flight numbers), a 'description' summarizing the full journey (outbound and return, key stops), 'price', 'airline_logo', 'total_duration', 'derived_stops_description', and the booking 'link' directly from the selected real flight option. 
+            *   The 'description' MUST clearly distinguish between outbound and return segments if it's a round trip. For example: "Outbound: JFK 10:00 AM - CDG 11:00 PM (1 stop). Return: CDG 08:00 PM - JFK 10:00 PM (direct)."
             *   Individual legs within the real option may contain a 'departure_token'. You do not need to use this token to search for new flights; focus on the complete journey options provided.
     *   **Real Hotels (realHotelOptions):** You MAY receive an array of real hotel options. Each option might look like:
         \`\`\`json
@@ -82,7 +83,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   If no realFlightOptions or realHotelOptions arrays are provided, OR if, after careful review, NONE of the provided real options are a reasonable fit for the user's request (e.g., all options are drastically over budget, wrong location type, or completely unavailable for the dates/destination), you MUST then create 1-2 *conceptual* itineraries.
     *   For conceptual itineraries:
         *   You MUST clearly state this in the 'tripSummary' (e.g., "No suitable real-time flights/hotels found within budget, so here are some conceptual ideas..." or "Using conceptual examples for flights and hotels for this creative itinerary...").
-        *   Generate plausible, conceptual 'flightOptions' and 'hotelOptions' that align with the user's request and budget.
+        *   Generate plausible, conceptual 'flightOptions' and 'hotelOptions' that align with the user's request and budget. Ensure flight descriptions for conceptual round trips also detail outbound and return.
     *   **You MUST always aim to return 1 to 3 itineraries.** Do not return an empty 'itineraries' array unless the user's core request is impossible to fulfill (e.g. destination doesn't exist).
 
 4.  **AI Guardian Instructions (Fuse these with all other preferences):**
@@ -96,7 +97,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   \`tripSummary\`: Engaging summary, including any necessary risk/visa/accessibility reminders, sustainability notes, and clear indication if using real vs. conceptual options.
     *   **\`dailyPlan\` (MANDATORY AND CRITICAL):** For EACH itinerary, you MUST provide a detailed, engaging day-by-day plan of activities. This MUST be an array of objects, each with 'day' (e.g., "Day 1: Arrival & City Exploration") and 'activities' (string describing morning, afternoon, and evening plans for that day). Plan for the full inferred duration of the trip (e.g., if 'travelDates' suggests 7 days, provide 7 days of plans). Be specific and creative.
         *   Example for one day: \`{ "day": "Day 1: Arrival & Old Town Charm", "activities": "Morning: Arrive at {{{destination}}} airport, transfer to hotel, and check in. Settle in and take a brief rest.\\nAfternoon: Begin with a leisurely stroll through the historic Old Town. Visit the Main Square, admire the architecture of St. Mary's Basilica, and browse the stalls at the Cloth Hall.\\nEvening: Enjoy a traditional dinner at a local restaurant in the Old Town, savoring regional specialties. Consider a short evening walk to see the illuminated city." }\`
-    *   \`flightOptions\`: Your selected (real or conceptual) flight(s).
+    *   \`flightOptions\`: Your selected (real or conceptual) flight(s). Ensure the description field here comprehensively describes the full journey including return details if applicable.
     *   \`hotelOptions\`: Your selected (real or conceptual) hotel(s), with AI-written descriptions and room prompts.
 
 6.  **Cultural Tip:** Provide one concise cultural tip for the main destination in the 'culturalTip' field.
@@ -122,19 +123,19 @@ Destination: {{{destination}}}
 Budget: {{{budget}}}
 {{#if userPersona~}}
 User Persona: {{userPersona.name}} - {{userPersona.description}} (Consider this if possible)
-{{#endif~}}
+{{/if~}}
 {{#if desiredMood~}}
 Desired Mood/Sensory Palette: {{desiredMood}} (Consider this if possible)
-{{#endif~}}
+{{/if~}}
 {{#if riskContext~}}
 User Concerns (Risks/Accessibility): {{riskContext}} (Address briefly if straightforward)
-{{#endif~}}
+{{/if~}}
 
-For each itinerary (aim for 1 to 3):
+For each itinerary (aim for 1 to 2):
 1.  Provide a 'tripSummary': A concise summary of the trip.
 2.  **Provide a 'dailyPlan' (MANDATORY AND CRITICAL):** An array with 'day' and 'activities' for each day. Be descriptive and plan for the inferred duration.
     *   Example for one day: \`{ "day": "Day 1: Arrival & Local Market Visit", "activities": "Morning: Arrive and settle into your accommodation.\\nAfternoon: Explore a vibrant local market to soak in the sights and sounds. Sample some street food.\\nEvening: Enjoy a relaxed dinner at a nearby restaurant." }\`
-3.  Detail 1-2 *conceptual* flight options (name, description, price, airline_logo, total_duration, derived_stops_description, link - create plausible examples).
+3.  Detail 1-2 *conceptual* flight options (name, description including conceptual outbound and return details, price, airline_logo, total_duration, derived_stops_description, link - create plausible examples).
 4.  Detail 1-2 *conceptual* hotel options (name, description, price, rating, amenities, link, 1-2 rooms with name, features, roomImagePrompt - create plausible examples).
 5.  Provide an 'estimatedCost'.
 6.  Include the 'origin' field if provided in input.
@@ -191,8 +192,8 @@ const aiTripPlannerFlow = ai.defineFlow(
     try {
         const { output } = await aiTripPlannerTextPrompt(input);
         textOutput = output;
-    } catch (primaryError) {
-        console.warn("Primary AI Trip Planner text prompt failed:", primaryError);
+    } catch (primaryError: any) {
+        console.warn("Primary AI Trip Planner text prompt failed:", primaryError.message, primaryError.stack, primaryError);
         textOutput = undefined;
     }
 
@@ -202,8 +203,8 @@ const aiTripPlannerFlow = ai.defineFlow(
       try {
         const { output: backupOutput } = await backupAiTripPlannerTextPrompt(input);
         textOutput = backupOutput;
-      } catch (backupError) {
-        console.error("Backup AI Trip Planner also failed:", backupError);
+      } catch (backupError: any) {
+        console.error("Backup AI Trip Planner also failed:", backupError.message, backupError.stack, backupError);
          return { itineraries: [], personalizationNote: "Sorry, we encountered an issue generating trip plans, even with our backup planner. Please try again later or adjust your query." };
       }
     }
@@ -295,7 +296,7 @@ const aiTripPlannerFlow = ai.defineFlow(
     
     if (guardianConsiderations.length > 0) {
         fusionMessages.push(guardianConsiderations.join(' and '));
-    } else if (!realDataUsed && !wasBackupPlannerUsed) { // Add this condition
+    } else if (!realDataUsed && !wasBackupPlannerUsed) { 
       fusionMessages.push("general travel factors (weather awareness, risk/visa/accessibility reminders, conceptual sustainability)");
     }
 
