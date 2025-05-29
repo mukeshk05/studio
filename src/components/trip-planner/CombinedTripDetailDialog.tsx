@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -110,10 +111,11 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
 
     setIsSavingPackage(true);
     try {
+      // Ensure the userId is correctly part of the packageData before saving
       const packageToSave: TripPackageSuggestion = {
         ...tripPackage,
-        userId: currentUser.uid, // Ensure current user's ID is used
-        createdAt: new Date().toISOString(), // Use client-side timestamp for consistency if serverTimestamp causes issues, or ensure firestore types are correct
+        userId: currentUser.uid, // Explicitly set current user's ID
+        createdAt: new Date().toISOString(), // Or use serverTimestamp if preferred and handled correctly
       };
       console.log("[CombinedTripDetailDialog] Package to save:", JSON.stringify(packageToSave).substring(0,500)+"...");
 
@@ -163,6 +165,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0"> 
+          <ScrollBar />
           <div className="p-4 sm:p-6 space-y-6"> 
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -346,10 +349,10 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             {addSavedPackageMutation.isPending ? "Saving..." : "Save Package"}
           </Button>
           <Button
-            onClick={() => toast({ title: "Feature Coming Soon!", description: "A dedicated page for this package will be available in the future."})}
             variant="outline"
             size="sm" 
             className="w-full glass-interactive"
+            onClick={() => toast({ title: "Feature Coming Soon!", description: "A dedicated page for this package will be available in the future."})}
           >
             <ExternalLink className="mr-2" /> View on Full Page
           </Button>
@@ -361,4 +364,3 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
-
