@@ -15,6 +15,7 @@ export const SerpApiFlightLegSchema = z.object({
   airplane: z.string().optional(),
   travel_class: z.string().optional(),
   extensions: z.array(z.string()).optional(),
+  departure_token: z.string().optional().describe("Token for fetching related flights, e.g., return flights for this leg."),
 });
 export type SerpApiFlightLeg = z.infer<typeof SerpApiFlightLegSchema>;
 
@@ -74,4 +75,3 @@ export const SerpApiFlightSearchOutputSchema = z.object({
   error: z.string().optional().describe("Error message if the search failed."),
 });
 export type SerpApiFlightSearchOutput = z.infer<typeof SerpApiFlightSearchOutputSchema>;
-

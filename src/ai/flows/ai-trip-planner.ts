@@ -43,24 +43,31 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   {{#if riskContext}}Risk/Accessibility Context: {{{riskContext}}}{{/if}}
 
 2.  **Process Real-Time Options (CRITICAL):**
-    *   **Real Flights (realFlightOptions):** You MAY receive an array of real flight options. Each option might look like:
+    *   **Real Flights (realFlightOptions):** You MAY receive an array of real flight options. Each option typically represents a full journey (e.g., a round trip) and might look like:
         \`\`\`json
-        { 
-          "price": 550, "total_duration": 480, "airline": "Delta", "airline_logo": "https://logos.com/delta.png", 
-          "derived_departure_time": "10:00 AM", "derived_arrival_time": "06:00 PM", 
+        { // Example of ONE SerpApiFlightOption (simplified for prompt)
+          "price": 550, "total_duration": 480, "airline": "Delta", "airline_logo": "https://logos.com/delta.png",
+          "derived_departure_time": "10:00 AM", "derived_arrival_time": "06:00 PM",
           "derived_departure_airport_name": "New York (JFK)", "derived_arrival_airport_name": "Paris (CDG)",
           "derived_flight_numbers": "DL 123, DL 456", "derived_stops_description": "1 stop in AMS (2h 30m)",
-          "link": "https://www.google.com/flights/..." 
+          "link": "https://www.google.com/flights/...",
+          "flights": [ // Array of flight legs
+            { "departure_airport": {"name": "JFK", "time": "10:00 AM"}, "arrival_airport": {"name": "AMS", "time": "09:00 PM"}, "airline": "Delta", "flight_number": "DL 123", "departure_token": "some_token_value_if_present" },
+            { "departure_airport": {"name": "AMS", "time": "11:30 PM"}, "arrival_airport": {"name": "CDG", "time": "01:00 AM"}, "airline": "Delta", "flight_number": "DL 456" }
+            // ... potentially more legs including return journey legs ...
+          ]
         }
         \`\`\`
         If realFlightOptions are available and suitable (considering budget, dates, and reasonable connections), select 1-2 options.
-        Populate the 'flightOptions' array in your output using data from these selected real flights. Ensure you capture name (airline + flight numbers), a description summarizing the journey (including key legs like outbound and return if it's a round trip), price, airline_logo, total_duration, derived_stops_description, and the booking link.
+        Populate the 'flightOptions' array in your output. For each selected option:
+            *   Ensure you capture the overall 'name' (e.g., airline + key flight numbers), a 'description' summarizing the full journey (outbound and return, key stops), 'price', 'airline_logo', 'total_duration', 'derived_stops_description', and the booking 'link' directly from the selected real flight option.
+            *   Individual legs within the real option may contain a 'departure_token'. You do not need to use this token to search for new flights; focus on the complete journey options provided.
     *   **Real Hotels (realHotelOptions):** You MAY receive an array of real hotel options. Each option might look like:
         \`\`\`json
-        { 
-          "name": "The Grand Plaza", "price_per_night": 180, "rating": 4.5, "type": "4-star hotel", 
-          "amenities": ["Pool", "WiFi"], "coordinates": {"latitude": 48.8, "longitude": 2.2}, 
-          "thumbnail": "https://images.com/hotel.jpg", "link": "https://www.booking.com/hotel/..." 
+        { // Example of ONE SerpApiHotelSuggestion (simplified for prompt)
+          "name": "The Grand Plaza", "price_per_night": 180, "rating": 4.5, "type": "4-star hotel",
+          "amenities": ["Pool", "WiFi"], "coordinates": {"latitude": 48.8, "longitude": 2.2},
+          "thumbnail": "https://images.com/hotel.jpg", "link": "https://www.booking.com/hotel/..."
         }
         \`\`\`
         If realHotelOptions are available and suitable, select 1-2 options.
@@ -178,7 +185,7 @@ const aiTripPlannerFlow = ai.defineFlow(
   async (input: AITripPlannerInput): Promise<AITripPlannerOutput> => {
     let wasBackupPlannerUsed = false;
     let textOutput: TextPlannerOutput | undefined;
-    console.log("[AI Trip Planner Flow] Input received by flow:", JSON.stringify(input, null, 2));
+    console.log("[AI Trip Planner Flow] Input received by flow (first 2000 chars):", JSON.stringify(input, null, 2).substring(0, 2000) + (JSON.stringify(input, null, 2).length > 2000 ? "..." : ""));
 
 
     try {
@@ -288,9 +295,10 @@ const aiTripPlannerFlow = ai.defineFlow(
     
     if (guardianConsiderations.length > 0) {
         fusionMessages.push(guardianConsiderations.join(' and '));
-    } else if (!realDataUsed) { 
+    } else if (!realDataUsed && !wasBackupPlannerUsed) { // Add this condition
       fusionMessages.push("general travel factors (weather awareness, risk/visa/accessibility reminders, conceptual sustainability)");
     }
+
 
     if (fusionMessages.length > 0) {
         personalizationNoteParts.push(`Plans for ${input.destination} ${input.origin ? `from ${input.origin}` : ''} were crafted by fusing ${fusionMessages.join(', ')} with your core request.`);
