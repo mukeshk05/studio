@@ -206,11 +206,24 @@ export function useRemoveTrackedItem() {
 // --- Search History Hooks ---
 const SEARCH_HISTORY_QUERY_KEY = 'searchHistory';
 
-// Helper to clean data for Firestore (removes undefined)
+// Helper function to clean data for Firestore (removes undefined and stringifies nested arrays)
+// This function is now self-contained within firestoreHooks.ts
 function cleanDataForFirestore(obj: any): any {
-  if (obj === undefined) return null; // Firestore prefers null over undefined for missing fields
+  if (obj === undefined) return null; // Firestore prefers null over undefined
   if (obj === null || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(cleanDataForFirestore).filter(item => item !== undefined);
+
+  if (Array.isArray(obj)) {
+    return obj
+      .map(item => {
+        if (Array.isArray(item)) {
+          // If an array element is itself an array (nested array)
+          console.warn(`[Firestore Clean] Nested array found and converted to string: ${JSON.stringify(item)}`);
+          return JSON.stringify(item); // Convert inner array to JSON string
+        }
+        return cleanDataForFirestore(item); // Recursively clean other items
+      })
+      .filter(item => item !== undefined && item !== null); // Filter out undefined/null from mapping
+  }
 
   const newObj: any = {};
   for (const key in obj) {
@@ -218,12 +231,17 @@ function cleanDataForFirestore(obj: any): any {
       const value = obj[key];
       if (value !== undefined) {
         const cleanedValue = cleanDataForFirestore(value);
-        if (cleanedValue !== undefined) { // Ensure nested cleaning didn't result in undefined
+        if (cleanedValue !== undefined && cleanedValue !== null) {
           newObj[key] = cleanedValue;
         }
       }
     }
   }
+  // Return newObj; if it's empty, Firestore accepts empty maps.
+  // If newObj has no properties after cleaning, it might become an empty object.
+  // To avoid saving empty objects if that's not desired for some fields,
+  // one might add a check here: if (Object.keys(newObj).length === 0 && !Array.isArray(obj)) return null;
+  // But for now, allowing empty objects is fine.
   return newObj;
 }
 
@@ -233,26 +251,21 @@ export function useAddSearchHistory() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
-  // The input type is Omit<SearchHistoryEntry, 'id' | 'searchedAt'>
-  // This means we expect the full rich structure defined in types.ts
   return useMutation<string, Error, Omit<SearchHistoryEntry, 'id' | 'searchedAt'>>({
     mutationFn: async (searchData) => {
       if (!currentUser) throw new Error("User not authenticated to save search history");
       const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
       
       const dataToSave = {
-        ...searchData, // This already contains userInput, flightResults, etc.
-        // destination, travelDates, budget on top level are for quick display
+        ...searchData,
         destination: searchData.userInput.destination,
         travelDates: searchData.userInput.travelDates,
         budget: searchData.userInput.budget,
         searchedAt: serverTimestamp(),
       };
       
-      // Clean the data before saving
       const cleanedData = cleanDataForFirestore(dataToSave);
-      console.log("[FirestoreHooks] Attempting to save search history:", JSON.stringify(cleanedData, null, 2).substring(0, 500) + "...");
-
+      console.log("[FirestoreHooks] Attempting to save search history (cleaned):", JSON.stringify(cleanedData, null, 2).substring(0, 500) + "...");
 
       const docRef = await addDoc(historyCollectionRef, cleanedData);
       return docRef.id;
@@ -304,7 +317,7 @@ export function useSearchHistory(count: number = 20) {
           ...data,
           id: doc.id,
           searchedAt: searchedAtDate
-        } as SearchHistoryEntry; // Cast to ensure all fields are present
+        } as SearchHistoryEntry; 
       });
     },
     enabled: !!currentUser,
@@ -351,7 +364,6 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
 
         return {
             id: docSnapshot.id,
-            // Ensure all fields of SearchHistoryEntry are present, defaulting if necessary
             destination: data.destination || "Unknown Destination",
             travelDates: data.travelDates || "Unknown Dates",
             budget: typeof data.budget === 'number' ? data.budget : 0,
@@ -525,22 +537,22 @@ export function useAddSavedPackage() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
-  return useMutation<string, Error, TripPackageSuggestion>({ // Expects full TripPackageSuggestion including userId
+  return useMutation<string, Error, TripPackageSuggestion>({ 
     mutationFn: async (packageData) => {
-      if (!packageData.userId) throw new Error("User ID is missing in package data for saving.");
-      if (!currentUser || packageData.userId !== currentUser.uid) throw new Error("User not authenticated or mismatched ID for saving package.");
+      const currentUserId = packageData.userId || currentUser?.uid;
+      if (!currentUserId) throw new Error("User ID is missing for saving package.");
 
-      const packagesCollectionRef = collection(firestore, 'users', packageData.userId, 'savedTripPackages');
+      const packagesCollectionRef = collection(firestore, 'users', currentUserId, 'savedTripPackages');
       
-      // Remove id if it exists, as Firestore will generate one
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, ...dataToSave } = packageData; 
+      const { id, ...dataToSaveWithoutId } = packageData; 
       
       const finalDataToSave = {
-        ...dataToSave,
+        ...dataToSaveWithoutId,
+        userId: currentUserId, // Ensure userId is explicitly set from current session or packageData
         createdAt: serverTimestamp(),
       };
-      console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package:", JSON.stringify(finalDataToSave, null, 2).substring(0,500)+"...");
+      console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package:", JSON.stringify(cleanDataForFirestore(finalDataToSave), null, 2).substring(0,500)+"...");
 
       const docRef = await addDoc(packagesCollectionRef, cleanDataForFirestore(finalDataToSave));
       return docRef.id;
