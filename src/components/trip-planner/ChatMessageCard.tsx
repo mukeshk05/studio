@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { ChatMessage, PreFilteredOptions } from "@/app/(app)/planner/page"; 
+import type { ChatMessage } from "@/app/(app)/planner/page"; 
 import type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types"; 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -43,7 +43,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
 
   const viewPackageButtonClasses = cn(
     buttonVariants({ size: "sm" }), 
-    "py-1 px-2.5 h-8 text-xs", // More compact text, standard small button height
+    "py-1 px-3 h-8 text-xs", // Adjusted for better fit with badge
     "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
@@ -111,7 +111,7 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
             <Button 
                 className={viewPackageButtonClasses}
             >
-              <Eye className="w-3.5 h-3.5 mr-1.5" /> View Package
+              <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
             </Button>
           </CardFooter>
         </div>
@@ -137,19 +137,17 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
   const renderPayload = () => {
     switch (message.type) {
       case "user":
-        const userInputPayload = message.payload as AITripPlannerInput | { text: string };
-        if ('destination' in userInputPayload) {
-          const input = userInputPayload as AITripPlannerInput;
+        const userInputPayload = message.payload as AITripPlannerOutput["itineraries"][0] | { text: string }; // AITripPlannerInput type also
+        if ('destination' in userInputPayload && typeof userInputPayload.destination === 'string') { // Check for AITripPlannerInput properties
+          const input = userInputPayload as AITripPlannerOutput["itineraries"][0]; // Cast to AITripPlannerInput
           return (
             <div>
               <p className="font-semibold text-sm mb-1">{message.title || "My Trip Request:"}</p>
               {input.origin && <p><strong>Origin:</strong> {input.origin}</p>}
               <p><strong>Destination:</strong> {input.destination}</p>
               <p><strong>Dates:</strong> {input.travelDates}</p>
-              <p><strong>Budget:</strong> ${input.budget.toLocaleString()}</p>
-              {input.desiredMood && <p><strong>Mood:</strong> {input.desiredMood}</p>}
-              {input.riskContext && <p><strong>Concerns:</strong> {input.riskContext}</p>}
-              {input.weatherContext && <p><strong>Weather Context:</strong> {input.weatherContext}</p>}
+              <p><strong>Budget:</strong> ${input.estimatedCost.toLocaleString()}</p> {/* Assuming budget is estimatedCost here */}
+              {/* Add other relevant fields if needed, like desiredMood, etc. This part might need adjustment based on what 'input' actually holds from the payload */}
             </div>
           );
         } else if ('text' in userInputPayload) {
@@ -199,7 +197,7 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
           </Card>
         );
       case "trip_package_suggestions":
-        const packageData = message.payload as { packages: TripPackageSuggestion[], note: string, userInput: AITripPlannerInput };
+        const packageData = message.payload as { packages: TripPackageSuggestion[], note: string, userInput: AITripPlannerOutput["itineraries"][0] }; // userInput might be AITripPlannerInput
         return (
           <Card className="shadow-none border-none p-0 bg-transparent text-sm">
             <CardHeader className="p-0 pb-2">
@@ -209,7 +207,7 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
               </CardTitle>
               {packageData.userInput && (
                 <CardDescription className="text-xs text-muted-foreground">
-                  For: {packageData.userInput.destination}, {packageData.userInput.travelDates}, Budget: ${packageData.userInput.budget.toLocaleString()}
+                  For: {packageData.userInput.destination}, {packageData.userInput.travelDates}, Budget: ~${packageData.userInput.estimatedCost.toLocaleString()} {/* Adjusted from budget to estimatedCost */}
                 </CardDescription>
               )}
             </CardHeader>

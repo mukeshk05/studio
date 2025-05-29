@@ -11,14 +11,14 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import type { TripPackageSuggestion, ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover } from "@/lib/types";
-import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks, Save, Loader2 } from "lucide-react";
+import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks, Save, Loader2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAddSavedPackage } from '@/lib/firestoreHooks';
-import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
+import { useAuth } from '@/contexts/AuthContext';
 
 const glassPaneClasses = "glass-pane";
 const glassCardClasses = "glass-card";
@@ -86,12 +86,12 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const { toast } = useToast();
   const mapRef = useRef<HTMLIFrameElement>(null);
   const addSavedPackageMutation = useAddSavedPackage();
-  const { currentUser } = useAuth(); // Get currentUser from AuthContext
+  const { currentUser } = useAuth();
   const [isSavingPackage, setIsSavingPackage] = useState(false);
 
   if (!tripPackage) return null;
 
-  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput } = tripPackage;
+  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const hotelMapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
@@ -106,7 +106,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     if (!tripPackage) return;
     if (!currentUser?.uid) {
       toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
-      console.error("[Save Package] User not authenticated or UID missing at dialog level.");
       return;
     }
 
@@ -114,7 +113,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     try {
       const packageToSave: TripPackageSuggestion = {
         ...tripPackage,
-        userId: currentUser.uid, // Force overwrite/ensure userId is the current authenticated user
+        userId: currentUser.uid, // Ensure current user's ID is used
       };
       console.log("[Save Package] Package to save:", JSON.stringify(packageToSave, null, 2).substring(0,500) + "...");
 
@@ -123,7 +122,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
         title: "Package Saved!",
         description: `Trip package to ${tripPackage.destinationQuery} saved to your dashboard.`,
       });
-      // Optionally close dialog or update UI to show "Saved"
     } catch (error: any) {
       console.error("Error saving package:", error);
       toast({ title: "Save Error", description: error.message || "Could not save the trip package.", variant: "destructive" });
@@ -347,7 +345,16 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             {isSavingPackage ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
             {isSavingPackage ? "Saving..." : "Save Package"}
           </Button>
-          <Button onClick={() => onInitiateBooking(destinationQuery, travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses, "sm:col-span-2")}>
+          <Button
+            onClick={() => toast({ title: "Feature Coming Soon!", description: "This button would link to a full-page view of this package."})}
+            variant="outline"
+            size="lg"
+            className="w-full glass-interactive"
+            disabled={true} // Conceptual for now
+          >
+            <Eye className="mr-2" /> View on Full Page
+          </Button>
+          <Button onClick={() => onInitiateBooking(destinationQuery, travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses)}>
             <Ticket className="mr-2" /> Plan This Package with AI
           </Button>
         </DialogFooter>
