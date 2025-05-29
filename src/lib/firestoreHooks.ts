@@ -27,7 +27,7 @@ export function useSavedTrips() {
       return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<Itinerary, 'id'>, id: doc.id }));
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 
@@ -207,14 +207,14 @@ export function useRemoveTrackedItem() {
 // --- Search History Hooks ---
 const SEARCH_HISTORY_QUERY_KEY = 'searchHistory';
 
-// Helper function to clean data for Firestore
-// This function is now more robust.
+// Helper function to recursively remove undefined fields and handle nested arrays
 function cleanDataForFirestore(obj: any): any {
   let sanitizedObj;
   try {
+    // Initial pass to remove functions, top-level undefined from objects, and convert array undefineds to nulls
     sanitizedObj = JSON.parse(JSON.stringify(obj));
   } catch (e) {
-    console.warn("[Firestore Clean] Initial JSON.parse(JSON.stringify()) failed. Proceeding with recursive cleaning on original object structure.", e);
+    console.warn("[Firestore Clean] Initial JSON.parse(JSON.stringify()) failed. Using structuredClone or shallow copy.", e);
     if (typeof globalThis.structuredClone === 'function') {
         try {
             sanitizedObj = structuredClone(obj);
@@ -223,46 +223,54 @@ function cleanDataForFirestore(obj: any): any {
             sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj };
         }
     } else {
-        sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj };
+        sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj }; // Fallback to shallow copy
     }
   }
 
   function deepClean(current: any): any {
     if (current === undefined) {
-      return null; 
+      // This path should ideally not be hit if JSON.stringify worked for the parent object.
+      // If it is, it means 'current' was explicitly undefined and should be removed by the parent.
+      return undefined;
     }
     if (current === null || typeof current !== 'object') {
-      return current; 
+      return current; // Primitives (string, number, boolean, null) are returned as is.
     }
 
     if (Array.isArray(current)) {
       const cleanedArray = current
         .map(item => {
-          if (Array.isArray(item)) { 
-            console.warn(`[Firestore Clean] Nested array found and converted to string: ${JSON.stringify(item)}`);
-            return JSON.stringify(item); 
+          if (Array.isArray(item)) {
+            console.warn(`[Firestore Clean - Array] Nested array found and converted to string: ${JSON.stringify(item)}`);
+            return JSON.stringify(item); // Convert inner array to string.
           }
-          return deepClean(item); 
+          return deepClean(item); // Recursively clean other items
         })
-        .filter(item => item !== undefined && item !== null); 
-      return cleanedArray;
+        .filter(item => item !== undefined); // Filter out any items that explicitly became undefined after cleaning.
+                                           // Firestore generally allows null in arrays.
+      // If array becomes empty after filtering, return null so Firestore can handle it (or an empty array if preferred)
+      return cleanedArray.length > 0 ? cleanedArray : null;
     }
 
+    // Handling objects
     const newObject: { [key: string]: any } = {};
     for (const key in current) {
       if (Object.prototype.hasOwnProperty.call(current, key)) {
         const value = current[key];
-        if (value !== undefined) { 
-          const cleanedValue = deepClean(value);
-          if (cleanedValue !== undefined) { 
-            newObject[key] = cleanedValue;
-          }
+        const cleanedValue = deepClean(value);
+        if (cleanedValue !== undefined) { // Only add property if its cleaned value is not undefined
+          newObject[key] = cleanedValue;
         }
       }
     }
+    // Return the object. If it's empty ({}), Firestore handles it.
     return newObject;
   }
 
+  // After the initial JSON.stringify pass, run deepClean.
+  // The initial stringify handles top-level undefined properties correctly (they are omitted).
+  // It also converts undefined array elements to null.
+  // deepClean then handles nested structures and further ensures no 'undefined' values for properties.
   return deepClean(sanitizedObj);
 }
 
@@ -277,7 +285,7 @@ export function useAddSearchHistory() {
       if (!currentUser) throw new Error("User not authenticated to save search history");
       const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
       
-      const dataToSave: Partial<SearchHistoryEntry> = { // Use Partial to build up
+      const dataToSave: Partial<SearchHistoryEntry> = {
         userInput: searchData.userInput,
         flightResults: searchData.flightResults,
         hotelResults: searchData.hotelResults,
@@ -286,20 +294,19 @@ export function useAddSearchHistory() {
         searchedAt: serverTimestamp(),
       };
       
-      // Ensure top-level fields for quick display are present
       if(searchData.userInput){
         dataToSave.destination = searchData.userInput.destination;
         dataToSave.travelDates = searchData.userInput.travelDates;
         dataToSave.budget = searchData.userInput.budget;
       } else {
-        // Fallbacks if userInput is somehow missing, though it shouldn't be
         dataToSave.destination = "Unknown Destination";
         dataToSave.travelDates = "Unknown Dates";
         dataToSave.budget = 0;
       }
       
+      console.log("[FirestoreHooks useAddSearchHistory] Data BEFORE cleaning:", JSON.stringify(dataToSave, null, 2).substring(0, 1000) + "...");
       const cleanedData = cleanDataForFirestore(dataToSave);
-      console.log("[FirestoreHooks] Attempting to save search history (cleaned):", JSON.stringify(cleanedData, null, 2).substring(0, 500) + "...");
+      console.log("[FirestoreHooks useAddSearchHistory] Attempting to save search history (cleaned):", JSON.stringify(cleanedData, null, 2).substring(0, 1000) + "...");
 
       const docRef = await addDoc(historyCollectionRef, cleanedData);
       return docRef.id;
@@ -572,27 +579,27 @@ export function useAddSavedPackage() {
 
   return useMutation<string, Error, TripPackageSuggestion>({ 
     mutationFn: async (packageData) => {
-      const currentUserId = packageData.userId || currentUser?.uid;
-      if (!currentUserId) throw new Error("User ID is missing for saving package.");
+      const currentUserId = packageData.userId || currentUser?.uid; // Prioritize packageData.userId if present
+      if (!currentUserId) {
+        console.error("[FirestoreHooks useAddSavedPackage] User ID is missing. Cannot save package. PackageData:", packageData, "CurrentUser:", currentUser);
+        throw new Error("User ID is missing for saving package.");
+      }
 
       const packagesCollectionRef = collection(firestore, 'users', currentUserId, 'savedTripPackages');
       
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id, ...dataToSaveWithoutId } = packageData; 
       
-      const finalDataToSave: Omit<TripPackageSuggestion, 'id'> = { // Ensure type matches what we save
+      const finalDataToSave: Omit<TripPackageSuggestion, 'id'> = {
         ...dataToSaveWithoutId,
-        userId: currentUserId, // Ensure userId is set from current auth context if not already on packageData
+        userId: currentUserId, // Ensure userId is set to the determined one
         createdAt: serverTimestamp(),
       };
       
-      // Check destinationImageUri length before saving
       if (finalDataToSave.destinationImageUri && finalDataToSave.destinationImageUri.length > MAX_IMAGE_URI_LENGTH_FIRESTORE) {
-        console.warn(`[FirestoreHooks useAddSavedPackage] destinationImageUri for package ${finalDataToSave.destinationQuery} is too long (${finalDataToSave.destinationImageUri.length} bytes). Omitting from save.`);
-        // @ts-ignore
-        delete finalDataToSave.destinationImageUri; // Or set to null: finalDataToSave.destinationImageUri = null;
+        console.warn(`[FirestoreHooks useAddSavedPackage] destinationImageUri for package ${finalDataToSave.destinationQuery} is too long (${finalDataToSave.destinationImageUri.length} bytes). Setting to null.`);
+        finalDataToSave.destinationImageUri = undefined; // Set to undefined to be cleaned by cleanDataForFirestore
       }
-
 
       const cleanedDataToSave = cleanDataForFirestore(finalDataToSave);
       console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package (cleaned):", JSON.stringify(cleanedDataToSave, null, 2).substring(0,500)+"...");
@@ -608,5 +615,3 @@ export function useAddSavedPackage() {
     }
   });
 }
-
-    
