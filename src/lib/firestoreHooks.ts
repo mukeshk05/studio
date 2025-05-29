@@ -3,8 +3,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firestore } from './firebase'; // Ensure firestore is correctly initialized and exported
 import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId, Timestamp } from 'firebase/firestore';
-import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion } from './types';
+import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput } from './types';
 import { useAuth } from '@/contexts/AuthContext';
+import type { SerpApiFlightSearchOutput, SerpApiHotelSearchOutput } from '@/ai/types/serpapi-flight-search-types';
+
 
 // --- Saved Trips Hooks ---
 
@@ -74,7 +76,7 @@ export function useUpdateSavedTripMemory() {
       const tripDocRef = doc(firestore, 'users', currentUser.uid, 'savedTrips', tripId);
       await updateDoc(tripDocRef, {
         aiGeneratedMemory: memory,
-        lastModified: serverTimestamp() 
+        lastModified: serverTimestamp()
       });
     },
     onSuccess: (_data, variables) => {
@@ -204,29 +206,66 @@ export function useRemoveTrackedItem() {
 // --- Search History Hooks ---
 const SEARCH_HISTORY_QUERY_KEY = 'searchHistory';
 
+// Helper to clean data for Firestore (removes undefined)
+function cleanDataForFirestore(obj: any): any {
+  if (obj === undefined) return null; // Firestore prefers null over undefined for missing fields
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(cleanDataForFirestore).filter(item => item !== undefined);
+
+  const newObj: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (value !== undefined) {
+        const cleanedValue = cleanDataForFirestore(value);
+        if (cleanedValue !== undefined) { // Ensure nested cleaning didn't result in undefined
+          newObj[key] = cleanedValue;
+        }
+      }
+    }
+  }
+  return newObj;
+}
+
+
 // Hook to add a search history entry
 export function useAddSearchHistory() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
+  // The input type is Omit<SearchHistoryEntry, 'id' | 'searchedAt'>
+  // This means we expect the full rich structure defined in types.ts
   return useMutation<string, Error, Omit<SearchHistoryEntry, 'id' | 'searchedAt'>>({
     mutationFn: async (searchData) => {
       if (!currentUser) throw new Error("User not authenticated to save search history");
       const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
-      const docRef = await addDoc(historyCollectionRef, {
-        ...searchData,
+      
+      const dataToSave = {
+        ...searchData, // This already contains userInput, flightResults, etc.
+        // destination, travelDates, budget on top level are for quick display
+        destination: searchData.userInput.destination,
+        travelDates: searchData.userInput.travelDates,
+        budget: searchData.userInput.budget,
         searchedAt: serverTimestamp(),
-      });
+      };
+      
+      // Clean the data before saving
+      const cleanedData = cleanDataForFirestore(dataToSave);
+      console.log("[FirestoreHooks] Attempting to save search history:", JSON.stringify(cleanedData, null, 2).substring(0, 500) + "...");
+
+
+      const docRef = await addDoc(historyCollectionRef, cleanedData);
       return docRef.id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SEARCH_HISTORY_QUERY_KEY, currentUser?.uid] });
     },
     onError: (error) => {
-      console.warn("Failed to save search history:", error.message);
+      console.error("Failed to save search history:", error.message, error);
     }
   });
 }
+
 
 // Hook to get search history (e.g., last N entries)
 export function useSearchHistory(count: number = 20) {
@@ -241,7 +280,7 @@ export function useSearchHistory(count: number = 20) {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => {
         const data = doc.data();
-        let searchedAtDate = new Date(); 
+        let searchedAtDate = new Date();
         if (data.searchedAt instanceof Timestamp) {
           searchedAtDate = data.searchedAt.toDate();
         } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
@@ -250,7 +289,7 @@ export function useSearchHistory(count: number = 20) {
           if (tsSeconds !== undefined) {
             searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
           } else {
-            const parsed = new Date(data.searchedAt); 
+            const parsed = new Date(data.searchedAt);
             if (!isNaN(parsed.getTime())) {
               searchedAtDate = parsed;
             } else {
@@ -260,12 +299,12 @@ export function useSearchHistory(count: number = 20) {
         } else if (data.searchedAt) {
             console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${doc.id}:`, data.searchedAt);
         }
-        
-        return { 
-          ...data, 
-          id: doc.id, 
-          searchedAt: searchedAtDate 
-        } as SearchHistoryEntry;
+
+        return {
+          ...data,
+          id: doc.id,
+          searchedAt: searchedAtDate
+        } as SearchHistoryEntry; // Cast to ensure all fields are present
       });
     },
     enabled: !!currentUser,
@@ -290,7 +329,7 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
     const querySnapshot = await getDocs(q);
     const history = querySnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
-        let searchedAtDate = new Date(); 
+        let searchedAtDate = new Date();
         if (data.searchedAt instanceof Timestamp) {
           searchedAtDate = data.searchedAt.toDate();
         } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
@@ -299,7 +338,7 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
           if (tsSeconds !== undefined) {
             searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
           } else {
-            const parsed = new Date(data.searchedAt); 
+            const parsed = new Date(data.searchedAt);
             if (!isNaN(parsed.getTime())) {
               searchedAtDate = parsed;
             } else {
@@ -309,12 +348,18 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
         } else if (data.searchedAt) {
             console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${docSnapshot.id}:`, data.searchedAt);
         }
-        
+
         return {
             id: docSnapshot.id,
+            // Ensure all fields of SearchHistoryEntry are present, defaulting if necessary
             destination: data.destination || "Unknown Destination",
             travelDates: data.travelDates || "Unknown Dates",
             budget: typeof data.budget === 'number' ? data.budget : 0,
+            userInput: data.userInput || {} as AITripPlannerInput,
+            flightResults: data.flightResults || null,
+            hotelResults: data.hotelResults || null,
+            aiItineraries: data.aiItineraries || null,
+            tripPackages: data.tripPackages || null,
             searchedAt: searchedAtDate,
         } as SearchHistoryEntry;
     });
@@ -324,7 +369,7 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
     console.error(`[FirestoreHooks] CRITICAL ERROR in getRecentUserSearchHistory for user ${userId}:`, error.message);
     console.error(`[FirestoreHooks] Full error object:`, error);
     if(error.stack) console.error(`[FirestoreHooks] Error stack:`, error.stack);
-    return []; 
+    return [];
   }
 }
 
@@ -377,7 +422,7 @@ export function useGetUserTravelPersona() {
       return null;
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 15, 
+    staleTime: 1000 * 60 * 15,
   });
 }
 
@@ -436,7 +481,7 @@ export async function getAllUserSavedTrips(userId: string): Promise<Itinerary[]>
       return {
         ...data,
         id: docSnapshot.id,
-      } as Itinerary; 
+      } as Itinerary;
     });
     console.log(`[FirestoreHooks] Fetched ${trips.length} saved trips for userId ${userId}.`);
     return trips;
@@ -480,20 +525,31 @@ export function useAddSavedPackage() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
-  return useMutation<string, Error, Omit<TripPackageSuggestion, 'id' | 'createdAt' | 'userId'>>({
+  return useMutation<string, Error, TripPackageSuggestion>({ // Expects full TripPackageSuggestion including userId
     mutationFn: async (packageData) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const packagesCollectionRef = collection(firestore, 'users', currentUser.uid, 'savedTripPackages');
-      const dataToSave = {
-        ...packageData,
-        userId: currentUser.uid, // Ensure userId is part of the saved data
+      if (!packageData.userId) throw new Error("User ID is missing in package data for saving.");
+      if (!currentUser || packageData.userId !== currentUser.uid) throw new Error("User not authenticated or mismatched ID for saving package.");
+
+      const packagesCollectionRef = collection(firestore, 'users', packageData.userId, 'savedTripPackages');
+      
+      // Remove id if it exists, as Firestore will generate one
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, ...dataToSave } = packageData; 
+      
+      const finalDataToSave = {
+        ...dataToSave,
         createdAt: serverTimestamp(),
       };
-      const docRef = await addDoc(packagesCollectionRef, dataToSave);
+      console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package:", JSON.stringify(finalDataToSave, null, 2).substring(0,500)+"...");
+
+      const docRef = await addDoc(packagesCollectionRef, cleanDataForFirestore(finalDataToSave));
       return docRef.id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SAVED_TRIP_PACKAGES_QUERY_KEY, currentUser?.uid] });
     },
+    onError: (error) => {
+        console.error("[FirestoreHooks useAddSavedPackage] Error saving package:", error.message, error);
+    }
   });
 }

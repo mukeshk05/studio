@@ -1,5 +1,6 @@
+
 import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal, FlightOptionSchema as AIFlightOptionSchema, HotelOptionSchema as AIHotelOptionSchema, RoomSchema as AIRoomSchema, DailyPlanItemSchema as AIDailyPlanItemSchema } from "@/ai/types/trip-planner-types";
-import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // This import is fine
+import type { SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // This import is fine
 import { z } from 'zod';
 
 // This effectively takes the type of a single itinerary object from the array
@@ -51,7 +52,7 @@ export interface PriceTrackerEntry {
   currentPrice: number;
   travelDates?: string;
   lastChecked: string;
-  createdAt?: any; 
+  createdAt?: any;
   alertStatus?: {
     shouldAlert: boolean;
     alertMessage: string;
@@ -60,24 +61,32 @@ export interface PriceTrackerEntry {
   priceForecast?: PriceForecast;
 }
 
+// Updated SearchHistoryEntry
 export interface SearchHistoryEntry {
   id: string;
-  destination: string;
-  travelDates: string;
-  budget: number;
-  searchedAt: any; 
+  destination: string; // Kept for quick display in drawer
+  travelDates: string; // Kept for quick display in drawer
+  budget: number;      // Kept for quick display in drawer
+  userInput: AITripPlannerInput; // The full input that triggered the search/plan
+  flightResults?: SerpApiFlightSearchOutput | null; // Raw flight results from SerpApi
+  hotelResults?: SerpApiHotelSearchOutput | null;   // Raw hotel results from SerpApi
+  aiItineraries?: AITripPlannerOutput | null;     // Full AI planner output if generated
+  tripPackages?: TripPackageSuggestion[] | null;  // Combined packages if generated
+  searchedAt: any;
 }
+
 
 export interface UserTravelPersona {
   name: string;
   description: string;
-  lastUpdated: any; 
+  lastUpdated: any;
 }
 
 
 export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
 export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' | 'desiredMood' | 'weatherContext' | 'riskContext' | 'realFlightOptions' | 'realHotelOptions'> & {
+  userId?: string; // Added userId here
   userPersona?: {
     name: string;
     description: string;
@@ -96,13 +105,13 @@ export interface TripPackageSuggestion {
   hotel: SerpApiHotelSuggestion;
   totalEstimatedCost: number;
   durationDays: number;
-  destinationQuery: string; 
-  travelDatesQuery: string; 
+  destinationQuery: string;
+  travelDatesQuery: string;
   userInput: AITripPlannerInput;
   destinationImagePrompt?: string;
   destinationImageUri?: string;
-  userId: string; // Added for saving package
-  createdAt?: any; // For Firestore serverTimestamp
+  userId: string;
+  createdAt?: any; 
 }
 
 // Conceptual daily plan item for the dialog (simpler than full DailyPlanItem)
