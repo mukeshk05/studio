@@ -17,7 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAddSavedPackage } from '@/lib/firestoreHooks'; // Import the hook
+import { useAddSavedPackage } from '@/lib/firestoreHooks';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 
 const glassPaneClasses = "glass-pane";
 const glassCardClasses = "glass-card";
@@ -85,10 +86,12 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const { toast } = useToast();
   const mapRef = useRef<HTMLIFrameElement>(null);
   const addSavedPackageMutation = useAddSavedPackage();
+  const { currentUser } = useAuth(); // Get currentUser from AuthContext
+  const [isSavingPackage, setIsSavingPackage] = useState(false);
 
   if (!tripPackage) return null;
 
-  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, userId } = tripPackage;
+  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const hotelMapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
@@ -100,25 +103,37 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     : "";
 
   const handleSavePackage = async () => {
-    if (!userId) { 
-        toast({ title: "Error", description: "User information is missing for saving the package.", variant: "destructive"});
-        return;
+    if (!tripPackage) return;
+    if (!currentUser?.uid) {
+      toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
+      console.error("[Save Package] User not authenticated or UID missing at dialog level.");
+      return;
     }
+
+    setIsSavingPackage(true);
     try {
-        await addSavedPackageMutation.mutateAsync(tripPackage);
-        toast({
-            title: "Package Saved!",
-            description: `Your trip package to ${tripPackage.destinationQuery} has been saved to your dashboard.`,
-        });
-    } catch (error) {
-        console.error("Error saving package:", error);
-        toast({ title: "Save Error", description: "Could not save the trip package.", variant: "destructive"});
+      const packageToSave: TripPackageSuggestion = {
+        ...tripPackage,
+        userId: currentUser.uid, // Force overwrite/ensure userId is the current authenticated user
+      };
+      console.log("[Save Package] Package to save:", JSON.stringify(packageToSave, null, 2).substring(0,500) + "...");
+
+      await addSavedPackageMutation.mutateAsync(packageToSave);
+      toast({
+        title: "Package Saved!",
+        description: `Trip package to ${tripPackage.destinationQuery} saved to your dashboard.`,
+      });
+      // Optionally close dialog or update UI to show "Saved"
+    } catch (error: any) {
+      console.error("Error saving package:", error);
+      toast({ title: "Save Error", description: error.message || "Could not save the trip package.", variant: "destructive" });
+    } finally {
+      setIsSavingPackage(false);
     }
   };
   
   const hotelMainImageHint = hotel.thumbnail ? hotel.name?.toLowerCase().split(" ").slice(0,2).join(" ") : "hotel exterior";
   
-  // Generate a more generic conceptual daily plan if specific duration is not available or for brevity.
   const conceptualDailyPlan: ConceptualDailyPlanItem[] = Array.from({ length: Math.max(1, Math.min(durationDays || 3, 7)) }, (_, i) => {
     if (i === 0) return { day: "Day 1", activities: `Arrive in ${destinationQuery}, check into ${hotel.name || 'your accommodation'}, and explore the immediate local area. Enjoy a welcome dinner.` };
     if (i === Math.max(1, durationDays || 3) - 1 && durationDays > 1) return { day: `Day ${durationDays || 3}`, activities: "Enjoy a final breakfast, any last-minute souvenir shopping or a quick visit to a favorite spot, then prepare for departure." };
@@ -150,7 +165,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0"> 
-          <ScrollBar />
           <div className="p-4 sm:p-6 space-y-6"> 
             <Card className={cn(innerGlassEffectClasses, "border-accent/20 shadow-lg")}>
               <CardHeader className="pb-2 pt-4">
@@ -328,10 +342,10 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             variant="outline" 
             size="lg" 
             className="w-full glass-interactive border-accent/50 text-accent hover:bg-accent/10"
-            disabled={addSavedPackageMutation.isPending}
+            disabled={isSavingPackage}
           >
-            {addSavedPackageMutation.isPending ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-            {addSavedPackageMutation.isPending ? "Saving..." : "Save Package"}
+            {isSavingPackage ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+            {isSavingPackage ? "Saving..." : "Save Package"}
           </Button>
           <Button onClick={() => onInitiateBooking(destinationQuery, travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses, "sm:col-span-2")}>
             <Ticket className="mr-2" /> Plan This Package with AI
@@ -341,5 +355,3 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
-
-    
