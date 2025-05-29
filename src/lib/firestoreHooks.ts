@@ -206,43 +206,72 @@ export function useRemoveTrackedItem() {
 // --- Search History Hooks ---
 const SEARCH_HISTORY_QUERY_KEY = 'searchHistory';
 
-// Helper function to clean data for Firestore (removes undefined and stringifies nested arrays)
-// This function is now self-contained within firestoreHooks.ts
+// Helper function to clean data for Firestore
+// This function is now more robust.
 function cleanDataForFirestore(obj: any): any {
-  if (obj === undefined) return null; // Firestore prefers null over undefined
-  if (obj === null || typeof obj !== 'object') return obj;
-
-  if (Array.isArray(obj)) {
-    return obj
-      .map(item => {
-        if (Array.isArray(item)) {
-          // If an array element is itself an array (nested array)
-          console.warn(`[Firestore Clean] Nested array found and converted to string: ${JSON.stringify(item)}`);
-          return JSON.stringify(item); // Convert inner array to JSON string
+  // Step 1: Deep clone and initial sanitization with JSON.parse(JSON.stringify())
+  // This removes functions, symbols, and converts top-level undefined properties (though not deeply nested undefined in objects)
+  // and converts undefined array elements to null.
+  let sanitizedObj;
+  try {
+    sanitizedObj = JSON.parse(JSON.stringify(obj));
+  } catch (e) {
+    // Fallback for circular references or other stringify errors
+    console.warn("[Firestore Clean] Initial JSON.parse(JSON.stringify()) failed. Proceeding with recursive cleaning on original object structure.", e);
+    
+    // Create a structured clone if possible as a better fallback
+    if (typeof globalThis.structuredClone === 'function') {
+        try {
+            sanitizedObj = structuredClone(obj);
+        } catch (cloneError) {
+            console.warn("[Firestore Clean] structuredClone also failed. Falling back to shallow copy for root.", cloneError);
+            sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj };
         }
-        return cleanDataForFirestore(item); // Recursively clean other items
-      })
-      .filter(item => item !== undefined && item !== null); // Filter out undefined/null from mapping
+    } else {
+        sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj };
+    }
   }
 
-  const newObj: any = {};
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const value = obj[key];
-      if (value !== undefined) {
-        const cleanedValue = cleanDataForFirestore(value);
-        if (cleanedValue !== undefined && cleanedValue !== null) {
-          newObj[key] = cleanedValue;
+
+  // Step 2: Recursive deep cleaning function
+  function deepClean(current: any): any {
+    if (current === undefined) {
+      return null; // Convert standalone undefined to null
+    }
+    if (current === null || typeof current !== 'object') {
+      return current; // Primitives or null are fine
+    }
+
+    if (Array.isArray(current)) {
+      const cleanedArray = current
+        .map(item => {
+          if (Array.isArray(item)) { // Nested array
+            console.warn(`[Firestore Clean] Nested array found and converted to string: ${JSON.stringify(item)}`);
+            return JSON.stringify(item); // Stringify inner arrays
+          }
+          return deepClean(item); // Recursively clean other items
+        })
+        .filter(item => item !== undefined && item !== null); // Remove items that became undefined or null
+      return cleanedArray;
+    }
+
+    // Handling objects
+    const newObject: { [key: string]: any } = {};
+    for (const key in current) {
+      if (Object.prototype.hasOwnProperty.call(current, key)) {
+        const value = current[key];
+        if (value !== undefined) { // Skip properties that are already undefined
+          const cleanedValue = deepClean(value);
+          if (cleanedValue !== undefined) { // Only add if the cleaned value isn't undefined
+            newObject[key] = cleanedValue;
+          }
         }
       }
     }
+    return newObject;
   }
-  // Return newObj; if it's empty, Firestore accepts empty maps.
-  // If newObj has no properties after cleaning, it might become an empty object.
-  // To avoid saving empty objects if that's not desired for some fields,
-  // one might add a check here: if (Object.keys(newObj).length === 0 && !Array.isArray(obj)) return null;
-  // But for now, allowing empty objects is fine.
-  return newObj;
+
+  return deepClean(sanitizedObj);
 }
 
 
@@ -258,7 +287,7 @@ export function useAddSearchHistory() {
       
       const dataToSave = {
         ...searchData,
-        destination: searchData.userInput.destination,
+        destination: searchData.userInput.destination, // Ensure these top-level fields are present for quick display
         travelDates: searchData.userInput.travelDates,
         budget: searchData.userInput.budget,
         searchedAt: serverTimestamp(),
@@ -293,25 +322,27 @@ export function useSearchHistory(count: number = 20) {
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => {
         const data = doc.data();
-        let searchedAtDate = new Date();
+        let searchedAtDate = new Date(); // Default to now if parsing fails
         if (data.searchedAt instanceof Timestamp) {
           searchedAtDate = data.searchedAt.toDate();
         } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
+          // Handle cases where searchedAt might be a simple ISO string or millis from Firestore (less common now with serverTimestamp)
           const tsSeconds = data.searchedAt.seconds || (typeof data.searchedAt === 'number' ? data.searchedAt / 1000 : undefined);
           const tsNanos = data.searchedAt.nanoseconds || 0;
           if (tsSeconds !== undefined) {
             searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
           } else {
-            const parsed = new Date(data.searchedAt);
-            if (!isNaN(parsed.getTime())) {
-              searchedAtDate = parsed;
-            } else {
-              console.warn(`[FirestoreHooks] Could not parse searchedAt for doc ${doc.id}:`, data.searchedAt);
-            }
+             const parsed = new Date(data.searchedAt); // Try parsing as string
+             if(!isNaN(parsed.getTime())) {
+                searchedAtDate = parsed;
+             } else {
+                console.warn(`[FirestoreHooks] Could not parse searchedAt for doc ${doc.id}:`, data.searchedAt);
+             }
           }
-        } else if (data.searchedAt) {
-            console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${doc.id}:`, data.searchedAt);
+        } else if (data.searchedAt) { // If searchedAt exists but is not a Timestamp or recognized format
+            console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${doc.id}:`, data.searchedAt, `Type: ${typeof data.searchedAt}`);
         }
+
 
         return {
           ...data,
@@ -321,7 +352,7 @@ export function useSearchHistory(count: number = 20) {
       });
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 15, // 15 minutes
   });
 }
 
@@ -342,7 +373,8 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
     const querySnapshot = await getDocs(q);
     const history = querySnapshot.docs.map(docSnapshot => {
         const data = docSnapshot.data();
-        let searchedAtDate = new Date();
+        // Robust date parsing for searchedAt
+        let searchedAtDate = new Date(); // Default to now if parsing fails
         if (data.searchedAt instanceof Timestamp) {
           searchedAtDate = data.searchedAt.toDate();
         } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
@@ -351,12 +383,9 @@ export async function getRecentUserSearchHistory(userId: string, count: number =
           if (tsSeconds !== undefined) {
             searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
           } else {
-            const parsed = new Date(data.searchedAt);
-            if (!isNaN(parsed.getTime())) {
-              searchedAtDate = parsed;
-            } else {
-              console.warn(`[FirestoreHooks] Could not parse searchedAt for doc ${docSnapshot.id}:`, data.searchedAt);
-            }
+             const parsed = new Date(data.searchedAt);
+             if(!isNaN(parsed.getTime())) searchedAtDate = parsed;
+             else console.warn(`[FirestoreHooks] Could not parse searchedAt for doc ${docSnapshot.id}:`, data.searchedAt);
           }
         } else if (data.searchedAt) {
             console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${docSnapshot.id}:`, data.searchedAt);
@@ -434,7 +463,7 @@ export function useGetUserTravelPersona() {
       return null;
     },
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 15, // 15 minutes
   });
 }
 
@@ -453,7 +482,7 @@ export async function getUserTravelPersona(userId: string): Promise<UserTravelPe
     const docSnap = await getDoc(personaDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      let lastUpdatedDate = new Date();
+      let lastUpdatedDate = new Date(); // Default if parsing fails
         if (data.lastUpdated instanceof Timestamp) {
           lastUpdatedDate = data.lastUpdated.toDate();
         } else if (data.lastUpdated && (typeof data.lastUpdated === 'string' || typeof data.lastUpdated === 'number')) {
@@ -549,12 +578,13 @@ export function useAddSavedPackage() {
       
       const finalDataToSave = {
         ...dataToSaveWithoutId,
-        userId: currentUserId, // Ensure userId is explicitly set from current session or packageData
+        userId: currentUserId,
         createdAt: serverTimestamp(),
       };
-      console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package:", JSON.stringify(cleanDataForFirestore(finalDataToSave), null, 2).substring(0,500)+"...");
+      const cleanedDataToSave = cleanDataForFirestore(finalDataToSave);
+      console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package (cleaned):", JSON.stringify(cleanedDataToSave, null, 2).substring(0,500)+"...");
 
-      const docRef = await addDoc(packagesCollectionRef, cleanDataForFirestore(finalDataToSave));
+      const docRef = await addDoc(packagesCollectionRef, cleanedDataToSave);
       return docRef.id;
     },
     onSuccess: () => {
@@ -565,3 +595,5 @@ export function useAddSavedPackage() {
     }
   });
 }
+
+    
