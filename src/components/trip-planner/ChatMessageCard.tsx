@@ -42,14 +42,15 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
     : undefined;
 
   const viewPackageButtonClasses = cn(
-    buttonVariants({ size: "sm" }),
-    "py-1 px-2.5 h-8 text-xs", // Adjusted for compact fit
+    buttonVariants({ size: "sm" }), // Use standard small button size as a base
+    "py-1 px-2.5 h-8 text-xs",      // Override padding and height for a more compact fit if needed
     "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
     "bg-gradient-to-r from-primary to-accent text-primary-foreground",
     "hover:from-accent hover:to-primary",
-    "focus-visible:ring-2 focus-visible:ring-primary/40",
+    "focus-visible:ring-2 focus-visible:ring-primary/40", // Adjusted ring for sm button
     "transform transition-all duration-300 ease-out hover:scale-[1.01] active:scale-100"
   );
+
 
   return (
     <Card
@@ -88,9 +89,9 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
               <div className="p-1 rounded-md border border-border/20 bg-card/30 dark:bg-card/20">
                 <p className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]">
                   <PlaneIcon className="w-3 h-3 mr-1 text-primary/80" />
-                  {pkg.flight.airline || "Flight"} - ~${pkg.flight.price?.toLocaleString()}
+                  {pkg.flight.airline || "Flight"} - ~${pkg.flight.price?.toLocaleString()} {pkg.flight.type === 'Round trip' ? '(Round Trip)' : ''}
                 </p>
-                <p className="text-muted-foreground pl-4 text-[0.65rem] truncate">{pkg.flight.derived_departure_airport_name} → {pkg.flight.derived_arrival_airport_name} ({pkg.flight.derived_stops_description})</p>
+                <p className="text-muted-foreground pl-4 text-[0.65rem] truncate">{pkg.flight.derived_departure_airport_name} → {pkg.flight.derived_arrival_airport_name} ({pkg.flight.derived_stops_description || 'Details inside'})</p>
               </div>
             )}
             {pkg.hotel && (
@@ -99,10 +100,10 @@ function CompactTripPackageCard({ pkg, onViewPackageDetails }: CompactTripPackag
                   <HotelIcon className="w-3 h-3 mr-1 text-primary/80" />
                   {pkg.hotel.name?.substring(0,25)}... - ~${pkg.hotel.price_per_night?.toLocaleString()}/night
                 </p>
-                {pkg.hotel.rating && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
+                {pkg.hotel.rating !== undefined && pkg.hotel.rating !== null && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
-             <p className="text-xs text-muted-foreground pt-1">AI-powered daily activity suggestions included.</p>
+             <p className="text-xs text-muted-foreground pt-1">AI-powered daily activity suggestions included (conceptual).</p>
           </CardContent>
           <CardFooter className="p-0 pt-2 mt-auto flex justify-between items-center">
              <Badge variant="secondary" className="text-sm py-1 px-2 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
@@ -137,13 +138,11 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
   const renderPayload = () => {
     switch (message.type) {
       case "user":
-        const userPayload = message.payload as any; // Use 'any' for initial type check
+        const userPayload = message.payload as any; 
         if (userPayload && typeof userPayload.text === 'string') {
-          // This is a simple text chat message from the user
           return <p>{userPayload.text}</p>;
         } else if (userPayload && typeof userPayload.destination === 'string' && typeof userPayload.budget === 'number' && typeof userPayload.travelDates === 'string') {
-          // This looks like the initial trip request payload (AITripPlannerInput)
-          const requestInput = userPayload as AITripPlannerInput; // Cast to our AITripPlannerInput
+          const requestInput = userPayload as AITripPlannerInput; 
           return (
             <div>
               <p className="font-semibold text-sm mb-1">{message.title || "My Trip Request:"}</p>
@@ -157,7 +156,6 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
             </div>
           );
         }
-        // Fallback for unknown user payload structure
         return <p>My message (details unavailable)</p>;
 
       case "ai":
@@ -265,3 +263,5 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageDetails }
     </div>
   );
 }
+
+    

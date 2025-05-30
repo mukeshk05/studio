@@ -41,27 +41,26 @@ function formatDuration(minutes?: number): string {
 
 function FlightLegDisplay({ leg, isLast }: { leg: SerpApiFlightLeg, isLast: boolean }) {
   return (
-    <div className={cn("p-2 rounded-md", innerGlassEffectClasses, !isLast && "mb-2")}>
-      <div className="flex items-center gap-2 mb-1">
-        {leg.airline_logo && <Image src={leg.airline_logo} alt={leg.airline || ""} width={20} height={20} className="rounded-sm"/>}
-        <span className="font-semibold text-xs text-card-foreground">{leg.airline} {leg.flight_number}</span>
-        {leg.airplane && <span className="text-muted-foreground text-[0.65rem]">({leg.airplane})</span>}
+    <div className={cn("p-2.5 rounded-md", innerGlassEffectClasses, !isLast && "mb-2")}>
+      <div className="flex items-center gap-2 mb-1.5">
+        {leg.airline_logo && <Image src={leg.airline_logo} alt={leg.airline || "Airline logo"} width={24} height={24} className="rounded-sm object-contain bg-muted/20 p-0.5"/>}
+        <span className="font-semibold text-sm text-card-foreground">{leg.airline} {leg.flight_number}</span>
+        {leg.airplane && <span className="text-muted-foreground text-xs">({leg.airplane})</span>}
       </div>
-      <p className="text-xs text-muted-foreground">
-        <strong className="text-card-foreground/80">Departs:</strong> {leg.departure_airport?.name} ({leg.departure_airport?.id}) at {leg.departure_airport?.time || 'N/A'}
-      </p>
-      <p className="text-xs text-muted-foreground">
-        <strong className="text-card-foreground/80">Arrives:</strong> {leg.arrival_airport?.name} ({leg.arrival_airport?.id}) at {leg.arrival_airport?.time || 'N/A'}
-      </p>
-      <p className="text-xs text-muted-foreground"><strong className="text-card-foreground/80">Duration:</strong> {formatDuration(leg.duration)}</p>
-      {leg.travel_class && <p className="text-xs text-muted-foreground"><strong className="text-card-foreground/80">Class:</strong> {leg.travel_class}</p>}
+      <div className="text-xs text-muted-foreground space-y-0.5">
+        <p><strong className="text-card-foreground/80">Departs:</strong> {leg.departure_airport?.name} ({leg.departure_airport?.id}) at {leg.departure_airport?.time || 'N/A'}</p>
+        <p><strong className="text-card-foreground/80">Arrives:</strong> {leg.arrival_airport?.name} ({leg.arrival_airport?.id}) at {leg.arrival_airport?.time || 'N/A'}</p>
+        <p><strong className="text-card-foreground/80">Duration:</strong> {formatDuration(leg.duration)}</p>
+        {leg.travel_class && <p><strong className="text-card-foreground/80">Class:</strong> {leg.travel_class}</p>}
+      </div>
     </div>
   );
 }
 
 function LayoverDisplay({ layover }: { layover: SerpApiLayover }) {
     return (
-      <div className="pl-8 py-1 text-xs text-muted-foreground">
+      <div className="pl-6 py-1.5 my-1 text-xs text-muted-foreground border-l-2 border-dashed border-primary/50 ml-[13px]">
+        <Clock className="w-3 h-3 inline-block mr-1.5 text-primary/70 relative -left-[25px] top-[1px] bg-background rounded-full p-0.5" />
         <span className="font-medium text-card-foreground/80">Layover:</span> {layover.name || layover.id} ({formatDuration(layover.duration)})
       </div>
     );
@@ -110,11 +109,11 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
 
     const packageToSave: TripPackageSuggestion = {
       ...tripPackage,
-      userId: currentUser.uid, 
+      userId: currentUser.uid, // Ensure current user's ID is used
       createdAt: new Date().toISOString(), 
     };
     
-    console.log("[CombinedTripDetailDialog] Package to save:", JSON.stringify(packageToSave).substring(0,500)+"...");
+    console.log("[CombinedTripDetailDialog] Attempting to save package:", JSON.stringify(packageToSave).substring(0,500)+"...");
 
     try {
       await addSavedPackageMutation.mutateAsync(packageToSave);
@@ -177,43 +176,42 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg font-semibold text-primary flex items-center">
-                  <Plane className="w-5 h-5 mr-2" /> Full Journey Details (All Legs)
+                  <Plane className="w-5 h-5 mr-2" /> Full Flight Journey
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-3">
                 <div className="flex items-center gap-3 mb-2">
                   {flight.airline_logo ? (
-                    <Image src={flight.airline_logo} alt={flight.airline || "Airline"} width={60} height={22.5} className="object-contain rounded-sm bg-muted/20 p-0.5" data-ai-hint={flight.airline?.toLowerCase()} />
+                    <Image src={flight.airline_logo} alt={flight.airline || "Airline"} width={70} height={26.25} className="object-contain rounded-sm bg-muted/20 p-0.5" data-ai-hint={flight.airline?.toLowerCase()}/>
                   ) : (
-                    <Plane className="w-5 h-5 text-primary" />
+                    <Plane className="w-6 h-6 text-primary" />
                   )}
                   <div>
-                    <p className="font-medium text-card-foreground text-sm">{flight.airline || "Selected Airline"} {flight.derived_flight_numbers}</p>
+                    <p className="font-medium text-card-foreground text-base">{flight.airline || "Selected Airline"} {flight.derived_flight_numbers}</p>
                   </div>
                 </div>
                 <Separator/>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                  <p><strong className="text-card-foreground/90">Price:</strong> ${flight.price?.toLocaleString()}</p>
-                  <p><strong className="text-card-foreground/90">Type:</strong> {flight.type || "N/A"}</p>
-                  <p><strong className="text-card-foreground/90">Total Duration:</strong> {formatDuration(flight.total_duration)}</p>
-                  <p><strong className="text-card-foreground/90">Stops:</strong> {flight.derived_stops_description || "N/A"}</p>
+                  <p><strong className="text-card-foreground/90">Total Price:</strong> ${flight.price?.toLocaleString()}</p>
+                  <p><strong className="text-card-foreground/90">Trip Type:</strong> {flight.type || "N/A"}</p>
+                  <p><strong className="text-card-foreground/90">Total Journey Duration:</strong> {formatDuration(flight.total_duration)}</p>
+                  <p><strong className="text-card-foreground/90">Overall Stops:</strong> {flight.derived_stops_description || "N/A"}</p>
                 </div>
                 
                 {flight.flights && flight.flights.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                        <h4 className="text-xs font-semibold text-card-foreground/80">Flight Legs:</h4>
+                    <div className="mt-4 space-y-1.5">
+                        <h4 className="text-sm font-semibold text-card-foreground/90 mb-1.5">Journey Segments:</h4>
                         {flight.flights.map((leg, index, arr) => (
                             <React.Fragment key={`leg-${index}`}>
                                 <FlightLegDisplay leg={leg} isLast={index === arr.length -1 && (!flight.layovers || flight.layovers.length <= index )}/>
                                 {flight.layovers && flight.layovers[index] && index < arr.length -1 && (
                                     <LayoverDisplay layover={flight.layovers[index]} />
                                 )}
-                                {index < arr.length - 1 && (!flight.layovers || flight.layovers.length <= index || !flight.layovers[index]) && (
-                                  // Add a small visual separator if there's no explicit layover info, but there's a next leg
-                                  <div className="flex items-center my-1">
-                                    <Separator className="flex-grow border-border/30" />
-                                    <Route className="w-3 h-3 mx-2 text-muted-foreground/70" />
-                                    <Separator className="flex-grow border-border/30" />
+                                {index < arr.length - 1 && (!flight.layovers || flight.layovers.length <= index || !flight.layovers[index]) && flight.flights.length > 1 && (
+                                  <div className="flex items-center my-2">
+                                    <Separator className="flex-grow border-border/40" />
+                                    <Route className="w-3.5 h-3.5 mx-2.5 text-muted-foreground/70" />
+                                    <Separator className="flex-grow border-border/40" />
                                   </div>
                                 )}
                             </React.Fragment>
@@ -222,7 +220,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                 )}
 
                 {flight.link && (
-                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-3">
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto glass-interactive border-primary/40 text-primary hover:bg-primary/10 mt-3.5">
                     <a href={flight.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />View Flight on Google Flights</a>
                   </Button>
                 )}
@@ -341,7 +339,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </ScrollArea>
 
-        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3", glassPaneClasses)}>
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3 items-center", glassPaneClasses)}>
           <Button
             onClick={handleSavePackage}
             variant="outline"
@@ -368,3 +366,5 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
+
+    
