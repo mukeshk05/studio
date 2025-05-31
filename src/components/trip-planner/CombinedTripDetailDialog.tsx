@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image'; // Aliased import
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAddSavedPackage } from '@/lib/firestoreHooks';
 import { useAuth } from '@/contexts/AuthContext';
+import { getIataCodeAction } from '@/app/actions'; // For identifying destination airport
 
 const glassPaneClasses = "glass-pane";
 const glassCardClasses = "glass-card";
@@ -43,13 +44,13 @@ function FlightLegDisplay({ leg, isLast }: { leg: SerpApiFlightLeg, isLast: bool
   return (
     <div className={cn("p-2.5 rounded-md", innerGlassEffectClasses, !isLast && "mb-2")}>
       <div className="flex items-center gap-2 mb-1.5">
-        {leg.airline_logo && <Image src={leg.airline_logo} alt={leg.airline || "Airline logo"} width={24} height={24} className="rounded-sm object-contain bg-muted/20 p-0.5"/>}
+        {leg.airline_logo && <NextImage src={leg.airline_logo} alt={leg.airline || "Airline logo"} width={24} height={24} className="rounded-sm object-contain bg-muted/20 p-0.5"/>}
         <span className="font-semibold text-sm text-card-foreground">{leg.airline} {leg.flight_number}</span>
         {leg.airplane && <span className="text-muted-foreground text-xs">({leg.airplane})</span>}
       </div>
       <div className="text-xs text-muted-foreground space-y-0.5">
-        <p><strong className="text-card-foreground/80">Departs:</strong> {leg.departure_airport?.name} ({leg.departure_airport?.id}) at {leg.departure_airport?.time || 'N/A'}</p>
-        <p><strong className="text-card-foreground/80">Arrives:</strong> {leg.arrival_airport?.name} ({leg.arrival_airport?.id}) at {leg.arrival_airport?.time || 'N/A'}</p>
+        <p><strong className="text-card-foreground/80">Departs:</strong> {leg.departure_airport?.name} ({leg.departure_airport?.id || 'N/A'}) at {leg.departure_airport?.time || 'N/A'}</p>
+        <p><strong className="text-card-foreground/80">Arrives:</strong> {leg.arrival_airport?.name} ({leg.arrival_airport?.id || 'N/A'}) at {leg.arrival_airport?.time || 'N/A'}</p>
         <p><strong className="text-card-foreground/80">Duration:</strong> {formatDuration(leg.duration)}</p>
         {leg.travel_class && <p><strong className="text-card-foreground/80">Class:</strong> {leg.travel_class}</p>}
       </div>
@@ -86,6 +87,15 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const mapRef = useRef<HTMLIFrameElement>(null);
   const addSavedPackageMutation = useAddSavedPackage();
   const { currentUser } = useAuth();
+  const [destinationAirportCode, setDestinationAirportCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tripPackage?.destinationQuery && isOpen) {
+      getIataCodeAction(tripPackage.destinationQuery)
+        .then(code => setDestinationAirportCode(code))
+        .catch(err => console.error("Failed to fetch destination IATA code:", err));
+    }
+  }, [tripPackage?.destinationQuery, isOpen]);
   
   if (!tripPackage) return null;
 
@@ -106,23 +116,11 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
       toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
       return;
     }
-
-    const packageToSave: TripPackageSuggestion = {
-      ...tripPackage,
-      userId: currentUser.uid, // Ensure current user's ID is used
-      createdAt: new Date().toISOString(), 
-    };
-    
-    console.log("[CombinedTripDetailDialog] Attempting to save package:", JSON.stringify(packageToSave).substring(0,500)+"...");
-
+    const packageToSave: TripPackageSuggestion = { ...tripPackage, userId: currentUser.uid, createdAt: new Date().toISOString() };
     try {
       await addSavedPackageMutation.mutateAsync(packageToSave);
-      toast({
-        title: "Package Saved!",
-        description: `Trip package to ${tripPackage.destinationQuery} saved to your dashboard.`,
-      });
+      toast({ title: "Package Saved!", description: `Trip package to ${tripPackage.destinationQuery} saved to your dashboard.` });
     } catch (error: any) {
-      console.error("[CombinedTripDetailDialog] Error saving package:", error);
       toast({ title: "Save Error", description: error.message || "Could not save the trip package.", variant: "destructive" });
     }
   };
@@ -136,6 +134,52 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     return { day: `Day ${i + 1}`, activities: `Explore key attractions, cultural experiences, and culinary delights specific to ${destinationQuery}. (Detailed activities will be AI-generated upon full planning).` };
   });
 
+  // Group flight legs
+  const allFlightLegs = flight.flights || [];
+  let outboundLegs: SerpApiFlightLeg[] = [];
+  let returnLegs: SerpApiFlightLeg[] = [];
+  let foundTurnaround = false;
+  
+  const mainDestinationNamePart = destinationQuery.split(',')[0].trim().toLowerCase();
+
+  if (allFlightLegs.length > 1) {
+    let turnaroundIndex = -1;
+    for (let i = 0; i < allFlightLegs.length -1; i++) { // Iterate up to second to last leg
+        const currentLeg = allFlightLegs[i];
+        const nextLeg = allFlightLegs[i+1];
+        // Check if current leg arrives at destination and next leg departs from destination
+        const arrivesAtDest = currentLeg.arrival_airport?.id === destinationAirportCode || 
+                              currentLeg.arrival_airport?.name?.toLowerCase().includes(mainDestinationNamePart);
+        const nextDepartsFromDest = nextLeg.departure_airport?.id === destinationAirportCode ||
+                                    nextLeg.departure_airport?.name?.toLowerCase().includes(mainDestinationNamePart);
+        if (arrivesAtDest && nextDepartsFromDest) {
+             // This is a crude check. A true turnaround means the NEXT leg is starting the return.
+             // So, the current leg is the last of the outbound/connecting.
+             if (currentLeg.arrival_airport?.id !== nextLeg.departure_airport?.id &&
+                 currentLeg.arrival_airport?.name !== nextLeg.departure_airport?.name) {
+                // If arrival of current and departure of next are different airports but both are "destination"
+                // it could still be part of a complex outbound.
+                // This logic is hard without knowing overall route structure from API.
+                // For simplicity, if current leg arrives at destination, consider it end of outbound segment.
+             }
+            turnaroundIndex = i;
+            foundTurnaround = true;
+            break; 
+        }
+    }
+
+    if (foundTurnaround) {
+        outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
+        returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
+    }
+  }
+
+  // If no clear turnaround, or it's a one-way trip, show all legs as primary segments
+  if (!foundTurnaround || flight.type?.toLowerCase() === 'one way') {
+    outboundLegs = allFlightLegs;
+    returnLegs = [];
+  }
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -144,7 +188,13 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
               <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center">
-                <Briefcase className="w-6 h-6 mr-2 text-primary" />
+                {destinationImageUri ? (
+                    <div className="relative w-8 h-8 mr-2.5 shrink-0 rounded-md overflow-hidden border border-border/20">
+                         <NextImage src={destinationImageUri} alt="" fill className="object-cover" />
+                    </div>
+                ) : (
+                    <Ticket className="w-6 h-6 mr-2 text-primary" />
+                )}
                 Your Trip Package to {destinationQuery}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
@@ -176,13 +226,13 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg font-semibold text-primary flex items-center">
-                  <Plane className="w-5 h-5 mr-2" /> Full Flight Journey
+                  <Plane className="w-5 h-5 mr-2" /> Full Flight Journey Details (All Legs)
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-3">
                 <div className="flex items-center gap-3 mb-2">
                   {flight.airline_logo ? (
-                    <Image src={flight.airline_logo} alt={flight.airline || "Airline"} width={70} height={26.25} className="object-contain rounded-sm bg-muted/20 p-0.5" data-ai-hint={flight.airline?.toLowerCase()}/>
+                    <NextImage src={flight.airline_logo} alt={flight.airline || "Airline"} width={70} height={26.25} className="object-contain rounded-sm bg-muted/20 p-0.5" data-ai-hint={flight.airline?.toLowerCase()}/>
                   ) : (
                     <Plane className="w-6 h-6 text-primary" />
                   )}
@@ -198,24 +248,58 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                   <p><strong className="text-card-foreground/90">Overall Stops:</strong> {flight.derived_stops_description || "N/A"}</p>
                 </div>
                 
-                {flight.flights && flight.flights.length > 0 && (
+                {allFlightLegs.length > 0 && (
                     <div className="mt-4 space-y-1.5">
-                        <h4 className="text-sm font-semibold text-card-foreground/90 mb-1.5">Journey Segments:</h4>
-                        {flight.flights.map((leg, index, arr) => (
-                            <React.Fragment key={`leg-${index}`}>
-                                <FlightLegDisplay leg={leg} isLast={index === arr.length -1 && (!flight.layovers || flight.layovers.length <= index )}/>
-                                {flight.layovers && flight.layovers[index] && index < arr.length -1 && (
-                                    <LayoverDisplay layover={flight.layovers[index]} />
-                                )}
-                                {index < arr.length - 1 && (!flight.layovers || flight.layovers.length <= index || !flight.layovers[index]) && flight.flights.length > 1 && (
-                                  <div className="flex items-center my-2">
-                                    <Separator className="flex-grow border-border/40" />
-                                    <Route className="w-3.5 h-3.5 mx-2.5 text-muted-foreground/70" />
-                                    <Separator className="flex-grow border-border/40" />
-                                  </div>
-                                )}
-                            </React.Fragment>
-                        ))}
+                        {outboundLegs.length > 0 && (
+                            <>
+                                <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-2 mb-1">Outbound Journey</p>
+                                {outboundLegs.map((leg, index, arr) => {
+                                    const currentLegOriginalIndex = allFlightLegs.indexOf(leg);
+                                    return (
+                                    <React.Fragment key={`out-leg-${index}`}>
+                                        <FlightLegDisplay leg={leg} isLast={index === arr.length -1 && (!flight.layovers || flight.layovers.length <= currentLegOriginalIndex )}/>
+                                        {flight.layovers && flight.layovers[currentLegOriginalIndex] && index < arr.length -1 && (
+                                            <LayoverDisplay layover={flight.layovers[currentLegOriginalIndex]} />
+                                        )}
+                                        {index < arr.length - 1 && (!flight.layovers || flight.layovers.length <= currentLegOriginalIndex || !flight.layovers[currentLegOriginalIndex]) && outboundLegs.length > 1 && (
+                                        <div className="flex items-center my-2">
+                                            <Separator className="flex-grow border-border/40" />
+                                            <Route className="w-3.5 h-3.5 mx-2.5 text-muted-foreground/70" />
+                                            <Separator className="flex-grow border-border/40" />
+                                        </div>
+                                        )}
+                                    </React.Fragment>
+                                    );
+                                })}
+                            </>
+                        )}
+                        {returnLegs.length > 0 && (
+                             <>
+                                <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-3 mb-1">Return Journey</p>
+                                {returnLegs.map((leg, index, arr) => {
+                                    const currentLegOriginalIndex = allFlightLegs.indexOf(leg);
+                                    return (
+                                    <React.Fragment key={`ret-leg-${index}`}>
+                                        <FlightLegDisplay leg={leg} isLast={index === arr.length -1 && (!flight.layovers || flight.layovers.length <= currentLegOriginalIndex )}/>
+                                         {flight.layovers && flight.layovers[currentLegOriginalIndex] && index < arr.length -1 && (
+                                            <LayoverDisplay layover={flight.layovers[currentLegOriginalIndex]} />
+                                        )}
+                                        {index < arr.length - 1 && (!flight.layovers || flight.layovers.length <= currentLegOriginalIndex || !flight.layovers[currentLegOriginalIndex]) && returnLegs.length > 1 && (
+                                        <div className="flex items-center my-2">
+                                            <Separator className="flex-grow border-border/40" />
+                                            <Route className="w-3.5 h-3.5 mx-2.5 text-muted-foreground/70" />
+                                            <Separator className="flex-grow border-border/40" />
+                                        </div>
+                                        )}
+                                    </React.Fragment>
+                                    );
+                                })}
+                            </>
+                        )}
+                         {allFlightLegs.length > 0 && outboundLegs.length === allFlightLegs.length && returnLegs.length === 0 && flight.type?.toLowerCase() === 'round trip' && (
+                           <p className="text-xs text-muted-foreground italic mt-2">This appears to be a round trip, but return leg details could not be programmatically separated. All segments are shown above.</p>
+                         )}
+                          {allFlightLegs.length === 0 && <p className="text-xs text-muted-foreground italic mt-2">No flight leg details available for this option.</p>}
                     </div>
                 )}
 
@@ -243,7 +327,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                     <TabsContent value="overview" className={cn(glassCardClasses, "p-4 rounded-md")}>
                           <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3 shadow-md">
                           {hotel.thumbnail ? (
-                              <Image src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
+                              <NextImage src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
                           ) : (
                               <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-10 h-10 text-muted-foreground"/></div>
                           )}
@@ -278,7 +362,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                     <CarouselItem key={idx} className="pl-2 md:basis-1/2 lg:basis-1/3">
                                     <div className="relative aspect-square w-full rounded-md overflow-hidden border border-border/30 bg-muted/30 shadow-sm">
                                         {img.thumbnail ? (
-                                        <Image src={img.thumbnail} alt={`Hotel image ${idx + 1}`} fill className="object-cover" sizes="(max-width: 768px) 45vw, 200px" />
+                                        <NextImage src={img.thumbnail} alt={`Hotel image ${idx + 1}`} fill className="object-cover" sizes="(max-width: 768px) 45vw, 200px" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center"><ImageOff className="w-8 h-8 text-muted-foreground"/></div>
                                         )}
@@ -339,24 +423,16 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           </div>
         </ScrollArea>
 
-        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3 items-center", glassPaneClasses)}>
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3 items-center", glassPaneClasses)}>
           <Button
             onClick={handleSavePackage}
             variant="outline"
-            size="sm" 
+            size="lg" 
             className="w-full glass-interactive border-accent/50 text-accent hover:bg-accent/10"
             disabled={addSavedPackageMutation.isPending}
           >
             {addSavedPackageMutation.isPending ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
             {addSavedPackageMutation.isPending ? "Saving..." : "Save Package"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm" 
-            className="w-full glass-interactive"
-            onClick={() => toast({ title: "Feature Coming Soon!", description: "A dedicated page for this package will be available in the future."})}
-          >
-            <ExternalLink className="mr-2" /> View on Full Page
           </Button>
           <Button onClick={() => onInitiateBooking(tripPackage.destinationQuery, tripPackage.travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses)}>
             <Ticket className="mr-2" /> Plan This Package with AI
@@ -366,5 +442,3 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
-
-    
