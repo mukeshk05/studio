@@ -20,12 +20,43 @@ export function useSavedTrips() {
   return useQuery<Itinerary[], Error>({
     queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid],
     queryFn: async () => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const tripsCollectionRef = collection(firestore, 'users', currentUser.uid, 'savedTrips');
-      // Temporarily removed orderBy to debug
+      if (!currentUser) {
+        console.log("[useSavedTrips] User not authenticated at query time.");
+        throw new Error("User not authenticated");
+      }
+      console.log(`[useSavedTrips] Attempting to fetch trips for user ID: ${currentUser.uid}`);
+      const path = `users/${currentUser.uid}/savedTrips`;
+      console.log(`[useSavedTrips] Firestore query path: ${path}`);
+      const tripsCollectionRef = collection(firestore, path);
+      
+      // Simplified query without ordering for debugging
       const q = query(tripsCollectionRef); 
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<Itinerary, 'id'>, id: doc.id }));
+      console.log("[useSavedTrips] Executing Firestore query...");
+
+      try {
+        const querySnapshot = await getDocs(q);
+        console.log(`[useSavedTrips] Query successful. Found ${querySnapshot.docs.length} documents.`);
+        
+        if (querySnapshot.empty) {
+          console.log(`[useSavedTrips] No documents found at path: ${path} for user ${currentUser.uid}.`);
+        } else {
+          querySnapshot.forEach(docSnapshot => { // Renamed doc to docSnapshot to avoid conflict
+            console.log(`[useSavedTrips] Doc ID: ${docSnapshot.id}, Data (first 100 chars):`, JSON.stringify(docSnapshot.data()).substring(0,100) + "...");
+          });
+        }
+        
+        return querySnapshot.docs.map(docSnapshot => ({ ...docSnapshot.data() as Omit<Itinerary, 'id'>, id: docSnapshot.id }));
+      } catch (e: any) { // Explicitly type 'e' as any or unknown then check
+        console.error("[useSavedTrips] Error fetching documents: ", e);
+        if (e && typeof e === 'object' && 'code' in e && 'message' in e) {
+            const firestoreError = e as { code: string; message: string }; // Type assertion
+            console.error(`[useSavedTrips] Firestore error code: ${firestoreError.code}, message: ${firestoreError.message}`);
+            if (firestoreError.code === 'permission-denied') {
+                throw new Error("Permission denied. Please check Firestore security rules for reading 'savedTrips'.");
+            }
+        }
+        throw e; // Re-throw other errors
+      }
     },
     enabled: !!currentUser,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -609,3 +640,4 @@ export function useAddSavedPackage() {
     }
   });
 }
+
