@@ -22,7 +22,8 @@ export function useSavedTrips() {
     queryFn: async () => {
       if (!currentUser) throw new Error("User not authenticated");
       const tripsCollectionRef = collection(firestore, 'users', currentUser.uid, 'savedTrips');
-      const q = query(tripsCollectionRef, orderBy('createdAt', 'desc'));
+      // Temporarily removed orderBy to debug
+      const q = query(tripsCollectionRef); 
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<Itinerary, 'id'>, id: doc.id }));
     },
@@ -246,9 +247,7 @@ function cleanDataForFirestore(obj: any): any {
           }
           return deepClean(item); // Recursively clean other items
         })
-        .filter(item => item !== undefined); // Filter out any items that explicitly became undefined after cleaning.
-                                           // Firestore generally allows null in arrays.
-      // If array becomes empty after filtering, return null so Firestore can handle it (or an empty array if preferred)
+        .filter(item => item !== undefined && item !== null); // Filter out any items that explicitly became undefined or null after cleaning.
       return cleanedArray.length > 0 ? cleanedArray : null;
     }
 
@@ -263,14 +262,9 @@ function cleanDataForFirestore(obj: any): any {
         }
       }
     }
-    // Return the object. If it's empty ({}), Firestore handles it.
     return newObject;
   }
 
-  // After the initial JSON.stringify pass, run deepClean.
-  // The initial stringify handles top-level undefined properties correctly (they are omitted).
-  // It also converts undefined array elements to null.
-  // deepClean then handles nested structures and further ensures no 'undefined' values for properties.
   return deepClean(sanitizedObj);
 }
 
