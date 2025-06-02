@@ -63,7 +63,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
       )}
       role="button"
       onClick={() => {
-          console.log("CompactTripPackageCard clicked, package ID:", pkg.id);
+          console.log("CompactTripPackageCard clicked, package ID:", pkg.id); // Debug log
           if (typeof onViewPackageOnFullPage === 'function') {
             onViewPackageOnFullPage(pkg);
           } else {
@@ -72,7 +72,13 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
           }
         }
       }
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (typeof onViewPackageOnFullPage === 'function') { onViewPackageOnFullPage(pkg); } else { console.error("onViewPackageOnFullPage is not a function in CompactTripPackageCard (onKeyDown)."); }}}}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { 
+          if (typeof onViewPackageOnFullPage === 'function') { 
+            onViewPackageOnFullPage(pkg); 
+          } else { 
+            console.error("onViewPackageOnFullPage is not a function in CompactTripPackageCard (onKeyDown). Prop value:", onViewPackageOnFullPage);
+          }
+      }}}
       tabIndex={0}
     >
       <div className="flex flex-col sm:flex-row">
@@ -282,3 +288,4 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
     </div>
   );
 }
+
