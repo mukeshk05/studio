@@ -63,7 +63,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
       )}
       role="button"
       onClick={() => {
-          console.log("CompactTripPackageCard clicked, package ID:", pkg.id); 
+          console.log("CompactTripPackageCard clicked, package ID:", pkg.id);
           if (typeof onViewPackageOnFullPage === 'function') {
             onViewPackageOnFullPage(pkg);
           } else {
@@ -76,7 +76,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
           if (typeof onViewPackageOnFullPage === 'function') { 
             onViewPackageOnFullPage(pkg); 
           } else { 
-            console.error("onViewPackageOnFullPage is not a function in CompactTripPackageCard (onKeyDown). Prop value:", onViewPackageOnFullPage);
+            console.error("onViewPackageOnFullPage (onKeyDown) is not a function in CompactTripPackageCard. Prop value:", onViewPackageOnFullPage);
           }
         }
       }}
@@ -150,7 +150,9 @@ type ChatMessageCardProps = {
   onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void;
 };
 
-export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPage }: ChatMessageCardProps) {
+export function ChatMessageCard(props: ChatMessageCardProps) { // Changed to use props object
+  const { message, onViewDetails, onViewPackageOnFullPage } = props; // Destructure here
+
   const isUser = message.type === "user";
   const bubbleAlignment = isUser ? "justify-end" : "justify-start";
   const bubbleClasses = isUser
@@ -223,8 +225,7 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
         );
       case "trip_package_suggestions":
         const packageData = message.payload as { packages: TripPackageSuggestion[], note: string, userInput: AITripPlannerInput };
-        // Log the prop value here to check
-        console.log("[ChatMessageCard] Rendering trip_package_suggestions. Prop 'onViewPackageOnFullPage' in ChatMessageCard:", onViewPackageOnFullPage);
+        console.log("[ChatMessageCard] Rendering trip_package_suggestions. onViewPackageOnFullPage received by ChatMessageCard:", typeof props.onViewPackageOnFullPage);
         return (
           <Card className="shadow-none border-none p-0 bg-transparent text-sm">
             <CardHeader className="p-0 pb-2">
@@ -242,13 +243,16 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
               <p className="text-xs italic p-2 bg-primary/5 border border-primary/20 rounded-md">{packageData.note}</p>
               {packageData.packages.length > 0 ? (
                 <div className="space-y-3">
-                  {packageData.packages.map((pkg) => (
-                    <CompactTripPackageCard
-                      key={pkg.id}
-                      pkg={pkg}
-                      onViewPackageOnFullPage={onViewPackageOnFullPage} 
-                    />
-                  ))}
+                  {packageData.packages.map((pkg) => {
+                    console.log(`[ChatMessageCard] Passing onViewPackageOnFullPage to CompactTripPackageCard for ${pkg.id}. Type:`, typeof props.onViewPackageOnFullPage);
+                    return (
+                        <CompactTripPackageCard
+                            key={pkg.id}
+                            pkg={pkg}
+                            onViewPackageOnFullPage={props.onViewPackageOnFullPage} // Pass directly from props
+                        />
+                    );
+                   })}
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground py-3">No trip packages could be created with the current filtered options. Try adjusting your budget or criteria.</p>
