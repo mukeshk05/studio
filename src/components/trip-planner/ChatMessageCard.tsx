@@ -8,11 +8,11 @@ import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHote
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
-import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff, Route } from "lucide-react"; // Added Route
+import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff, Route } from "lucide-react";
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import NextImage from 'next/image'; // Ensured NextImage is used
+import NextImage from 'next/image';
 import { Button, buttonVariants } from '../ui/button';
 import { Badge } from '../ui/badge';
 
@@ -63,12 +63,11 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
       )}
       role="button"
       onClick={() => {
-          console.log("CompactTripPackageCard clicked, package ID:", pkg.id); // Debug log
+          console.log("CompactTripPackageCard clicked, package ID:", pkg.id);
           if (typeof onViewPackageOnFullPage === 'function') {
             onViewPackageOnFullPage(pkg);
           } else {
             console.error("onViewPackageOnFullPage is not a function in CompactTripPackageCard. Prop value:", onViewPackageOnFullPage);
-            // Optionally, show a user-facing error or toast here
           }
         }
       }
@@ -288,4 +287,3 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
     </div>
   );
 }
-
