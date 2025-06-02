@@ -63,7 +63,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
       )}
       role="button"
       onClick={() => {
-          console.log("CompactTripPackageCard clicked, package ID:", pkg.id);
+          console.log("CompactTripPackageCard clicked, package ID:", pkg.id); 
           if (typeof onViewPackageOnFullPage === 'function') {
             onViewPackageOnFullPage(pkg);
           } else {
@@ -71,13 +71,15 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
           }
         }
       }
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { 
+      onKeyDown={(e) => { 
+        if (e.key === 'Enter' || e.key === ' ') {
           if (typeof onViewPackageOnFullPage === 'function') { 
             onViewPackageOnFullPage(pkg); 
           } else { 
             console.error("onViewPackageOnFullPage is not a function in CompactTripPackageCard (onKeyDown). Prop value:", onViewPackageOnFullPage);
           }
-      }}}
+        }
+      }}
       tabIndex={0}
     >
       <div className="flex flex-col sm:flex-row">
@@ -148,7 +150,7 @@ type ChatMessageCardProps = {
   onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void;
 };
 
-export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPage }: ChatMessageCardProps) {
+export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPage: receivedOnViewPackageOnFullPageProp }: ChatMessageCardProps) {
   const isUser = message.type === "user";
   const bubbleAlignment = isUser ? "justify-end" : "justify-start";
   const bubbleClasses = isUser
@@ -242,7 +244,7 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
                     <CompactTripPackageCard
                       key={pkg.id}
                       pkg={pkg}
-                      onViewPackageOnFullPage={onViewPackageOnFullPage} 
+                      onViewPackageOnFullPage={receivedOnViewPackageOnFullPageProp} 
                     />
                   ))}
                 </div>
