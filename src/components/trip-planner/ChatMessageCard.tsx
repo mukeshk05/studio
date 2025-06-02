@@ -150,7 +150,7 @@ type ChatMessageCardProps = {
   onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void;
 };
 
-export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPage: receivedOnViewPackageOnFullPageProp }: ChatMessageCardProps) {
+export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPage }: ChatMessageCardProps) {
   const isUser = message.type === "user";
   const bubbleAlignment = isUser ? "justify-end" : "justify-start";
   const bubbleClasses = isUser
@@ -223,6 +223,8 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
         );
       case "trip_package_suggestions":
         const packageData = message.payload as { packages: TripPackageSuggestion[], note: string, userInput: AITripPlannerInput };
+        // Log the prop value here to check
+        console.log("[ChatMessageCard] Rendering trip_package_suggestions. Prop 'onViewPackageOnFullPage' in ChatMessageCard:", onViewPackageOnFullPage);
         return (
           <Card className="shadow-none border-none p-0 bg-transparent text-sm">
             <CardHeader className="p-0 pb-2">
@@ -244,7 +246,7 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
                     <CompactTripPackageCard
                       key={pkg.id}
                       pkg={pkg}
-                      onViewPackageOnFullPage={receivedOnViewPackageOnFullPageProp} 
+                      onViewPackageOnFullPage={onViewPackageOnFullPage} 
                     />
                   ))}
                 </div>
@@ -284,8 +286,23 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
   return (
     <div className={cn("flex items-end gap-3 animate-fade-in", bubbleAlignment)}>
       {!isUser && (<Avatar className="w-8 h-8 shrink-0 border border-primary/50"><AvatarFallback className={cn(iconBgClass)}><IconToUse className={message.type === 'loading' ? 'animate-spin' : ''} /></AvatarFallback></Avatar>)}
-      <div className={cn("max-w-[85%] sm:max-w-[75%] p-0")}><CardContent className={cn("p-3 rounded-xl text-sm", bubbleClasses, message.type === 'loading' && "py-4", message.type === 'ai_text_response' && "bg-card/80 dark:bg-card/60 border-teal-500/40", message.type === 'trip_package_suggestions' && "bg-card/80 dark:bg-card/60 border-blue-500/40", "whitespace-pre-line")}>{renderPayload()}</CardContent><p className={cn("text-xs text-muted-foreground mt-1 px-1", isUser ? 'text-right' : 'text-left')}>{message.type !== 'loading' ? format(message.timestamp, "p") : (message.payload as string || "Thinking...")}</p></div>
+      <div className={cn("max-w-[85%] sm:max-w-[75%] p-0")}>
+        <CardContent className={cn(
+            "p-3 rounded-xl text-sm", 
+            bubbleClasses, 
+            message.type === 'loading' && "py-4", 
+            message.type === 'ai_text_response' && "bg-card/80 dark:bg-card/60 border-teal-500/40", 
+            message.type === 'trip_package_suggestions' && "bg-card/80 dark:bg-card/60 border-blue-500/40", 
+            "whitespace-pre-line"
+        )}>
+            {renderPayload()}
+        </CardContent>
+        <p className={cn("text-xs text-muted-foreground mt-1 px-1", isUser ? 'text-right' : 'text-left')}>
+            {message.type !== 'loading' ? format(message.timestamp, "p") : (message.payload as string || "Thinking...")}
+        </p>
+      </div>
       {isUser && (<Avatar className="w-8 h-8 shrink-0 border border-primary/50"><AvatarFallback className="bg-muted/50"><User /></AvatarFallback></Avatar>)}
     </div>
   );
 }
+
