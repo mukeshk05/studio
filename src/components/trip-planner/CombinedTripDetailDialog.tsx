@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"; // Added CardDescription
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import type { TripPackageSuggestion, ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover } from "@/lib/types";
 import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks, Save, Loader2, Eye } from "lucide-react";
@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAddSavedPackage } from '@/lib/firestoreHooks';
 import { useAuth } from '@/contexts/AuthContext';
-import { getIataCodeAction } from '@/app/actions'; // For identifying destination airport
+import { getIataCodeAction } from '@/app/actions';
 
 const glassPaneClasses = "glass-pane";
 const glassCardClasses = "glass-card";
@@ -134,52 +134,67 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     return { day: `Day ${i + 1}`, activities: `Explore key attractions, cultural experiences, and culinary delights specific to ${destinationQuery}. (Detailed activities will be AI-generated upon full planning).` };
   });
 
-  // Group flight legs
   const allFlightLegs = flight.flights || [];
   let outboundLegs: SerpApiFlightLeg[] = [];
   let returnLegs: SerpApiFlightLeg[] = [];
-  let foundTurnaround = false;
-  
-  const mainDestinationNamePart = destinationQuery.split(',')[0].trim().toLowerCase();
 
-  if (allFlightLegs.length > 1) {
+  if (flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 0) {
     let turnaroundIndex = -1;
-    for (let i = 0; i < allFlightLegs.length -1; i++) { // Iterate up to second to last leg
-        const currentLeg = allFlightLegs[i];
-        const nextLeg = allFlightLegs[i+1];
-        // Check if current leg arrives at destination and next leg departs from destination
-        const arrivesAtDest = currentLeg.arrival_airport?.id === destinationAirportCode || 
-                              currentLeg.arrival_airport?.name?.toLowerCase().includes(mainDestinationNamePart);
-        const nextDepartsFromDest = nextLeg.departure_airport?.id === destinationAirportCode ||
-                                    nextLeg.departure_airport?.name?.toLowerCase().includes(mainDestinationNamePart);
-        if (arrivesAtDest && nextDepartsFromDest) {
-             // This is a crude check. A true turnaround means the NEXT leg is starting the return.
-             // So, the current leg is the last of the outbound/connecting.
-             if (currentLeg.arrival_airport?.id !== nextLeg.departure_airport?.id &&
-                 currentLeg.arrival_airport?.name !== nextLeg.departure_airport?.name) {
-                // If arrival of current and departure of next are different airports but both are "destination"
-                // it could still be part of a complex outbound.
-                // This logic is hard without knowing overall route structure from API.
-                // For simplicity, if current leg arrives at destination, consider it end of outbound segment.
-             }
-            turnaroundIndex = i;
-            foundTurnaround = true;
-            break; 
+    const mainDestinationNamePart = destinationQuery.split(',')[0].trim().toLowerCase();
+    const originNamePart = userInput.origin ? userInput.origin.split(',')[0].trim().toLowerCase() : null;
+
+    for (let i = 0; i < allFlightLegs.length; i++) {
+      const leg = allFlightLegs[i];
+      const arrivalAirportName = leg.arrival_airport?.name?.toLowerCase() || "";
+      const arrivalAirportId = leg.arrival_airport?.id?.toLowerCase();
+
+      // Check if this leg arrives at the main destination
+      if ((destinationAirportCode && arrivalAirportId === destinationAirportCode.toLowerCase()) || 
+          arrivalAirportName.includes(mainDestinationNamePart)) {
+        turnaroundIndex = i;
+        // Now check if the *next* leg departs from the destination towards origin
+        if (i + 1 < allFlightLegs.length) {
+          const nextLeg = allFlightLegs[i+1];
+          const nextDepartureAirportName = nextLeg.departure_airport?.name?.toLowerCase() || "";
+          const nextDepartureAirportId = nextLeg.departure_airport?.id?.toLowerCase();
+          const nextArrivalAirportName = nextLeg.arrival_airport?.name?.toLowerCase() || "";
+          
+          const departsFromDest = (destinationAirportCode && nextDepartureAirportId === destinationAirportCode.toLowerCase()) ||
+                                  nextDepartureAirportName.includes(mainDestinationNamePart);
+          
+          const arrivesAtOrigin = originNamePart && 
+                                 (nextArrivalAirportName.includes(originNamePart) || 
+                                  allFlightLegs[allFlightLegs.length -1].arrival_airport?.name?.toLowerCase().includes(originNamePart));
+          
+          if (departsFromDest && (arrivesAtOrigin || returnLegs.length > 0) ) {
+            // This is a stronger indication of turnaround
+            break;
+          }
+        } else if (i === allFlightLegs.length -1 && turnaroundIndex !== -1) {
+            // If last leg arrives at destination, and we already found a potential turnaround
+            // it means this might be the end of outbound for a one-way TO destination or complex journey
+            // For simplicity in round-trip, we'll assume the last leg arriving at destination is end of outbound.
         }
+      }
     }
 
-    if (foundTurnaround) {
-        outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
-        returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
+    if (turnaroundIndex !== -1) {
+      outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
+      returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
+    } else {
+      // If no clear turnaround found, but it's marked as round trip,
+      // and more than 1 leg, try splitting in half. This is a rough heuristic.
+      if (allFlightLegs.length > 1) {
+        const midPoint = Math.ceil(allFlightLegs.length / 2);
+        outboundLegs = allFlightLegs.slice(0, midPoint);
+        returnLegs = allFlightLegs.slice(midPoint);
+      } else {
+        outboundLegs = allFlightLegs; // Likely one-way or single leg round trip (e.g. same airport)
+      }
     }
-  }
-
-  // If no clear turnaround, or it's a one-way trip, show all legs as primary segments
-  if (!foundTurnaround || flight.type?.toLowerCase() === 'one way') {
+  } else { // One-way or no legs
     outboundLegs = allFlightLegs;
-    returnLegs = [];
   }
-
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -226,7 +241,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg font-semibold text-primary flex items-center">
-                  <Plane className="w-5 h-5 mr-2" /> Full Flight Journey Details (All Legs)
+                  <Plane className="w-5 h-5 mr-2" /> Full Flight Journey Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-3">
@@ -248,20 +263,22 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                   <p><strong className="text-card-foreground/90">Overall Stops:</strong> {flight.derived_stops_description || "N/A"}</p>
                 </div>
                 
-                {allFlightLegs.length > 0 && (
+                {(outboundLegs.length > 0 || returnLegs.length > 0) ? (
                     <div className="mt-4 space-y-1.5">
                         {outboundLegs.length > 0 && (
                             <>
                                 <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-2 mb-1">Outbound Journey</p>
-                                {outboundLegs.map((leg, index, arr) => {
-                                    const currentLegOriginalIndex = allFlightLegs.indexOf(leg);
+                                {outboundLegs.map((leg, index) => {
+                                    const legOriginalIndex = allFlightLegs.indexOf(leg);
+                                    const nextLegIsOutbound = index < outboundLegs.length - 1;
+                                    const layoverAfterThisLeg = flight.layovers && flight.layovers[legOriginalIndex];
                                     return (
                                     <React.Fragment key={`out-leg-${index}`}>
-                                        <FlightLegDisplay leg={leg} isLast={index === arr.length -1 && (!flight.layovers || flight.layovers.length <= currentLegOriginalIndex )}/>
-                                        {flight.layovers && flight.layovers[currentLegOriginalIndex] && index < arr.length -1 && (
-                                            <LayoverDisplay layover={flight.layovers[currentLegOriginalIndex]} />
+                                        <FlightLegDisplay leg={leg} isLast={!nextLegIsOutbound && !layoverAfterThisLeg} />
+                                        {layoverAfterThisLeg && nextLegIsOutbound && (
+                                            <LayoverDisplay layover={layoverAfterThisLeg} />
                                         )}
-                                        {index < arr.length - 1 && (!flight.layovers || flight.layovers.length <= currentLegOriginalIndex || !flight.layovers[currentLegOriginalIndex]) && outboundLegs.length > 1 && (
+                                        {nextLegIsOutbound && !layoverAfterThisLeg && (
                                         <div className="flex items-center my-2">
                                             <Separator className="flex-grow border-border/40" />
                                             <Route className="w-3.5 h-3.5 mx-2.5 text-muted-foreground/70" />
@@ -276,15 +293,17 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                         {returnLegs.length > 0 && (
                              <>
                                 <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-3 mb-1">Return Journey</p>
-                                {returnLegs.map((leg, index, arr) => {
-                                    const currentLegOriginalIndex = allFlightLegs.indexOf(leg);
+                                {returnLegs.map((leg, index) => {
+                                    const legOriginalIndex = allFlightLegs.indexOf(leg);
+                                    const nextLegIsReturn = index < returnLegs.length - 1;
+                                    const layoverAfterThisLeg = flight.layovers && flight.layovers[legOriginalIndex];
                                     return (
                                     <React.Fragment key={`ret-leg-${index}`}>
-                                        <FlightLegDisplay leg={leg} isLast={index === arr.length -1 && (!flight.layovers || flight.layovers.length <= currentLegOriginalIndex )}/>
-                                         {flight.layovers && flight.layovers[currentLegOriginalIndex] && index < arr.length -1 && (
-                                            <LayoverDisplay layover={flight.layovers[currentLegOriginalIndex]} />
+                                        <FlightLegDisplay leg={leg} isLast={!nextLegIsReturn && !layoverAfterThisLeg}/>
+                                         {layoverAfterThisLeg && nextLegIsReturn && (
+                                            <LayoverDisplay layover={layoverAfterThisLeg} />
                                         )}
-                                        {index < arr.length - 1 && (!flight.layovers || flight.layovers.length <= currentLegOriginalIndex || !flight.layovers[currentLegOriginalIndex]) && returnLegs.length > 1 && (
+                                        {nextLegIsReturn && !layoverAfterThisLeg && (
                                         <div className="flex items-center my-2">
                                             <Separator className="flex-grow border-border/40" />
                                             <Route className="w-3.5 h-3.5 mx-2.5 text-muted-foreground/70" />
@@ -296,11 +315,12 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 })}
                             </>
                         )}
-                         {allFlightLegs.length > 0 && outboundLegs.length === allFlightLegs.length && returnLegs.length === 0 && flight.type?.toLowerCase() === 'round trip' && (
-                           <p className="text-xs text-muted-foreground italic mt-2">This appears to be a round trip, but return leg details could not be programmatically separated. All segments are shown above.</p>
+                          {outboundLegs.length === allFlightLegs.length && returnLegs.length === 0 && flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 0 && (
+                           <p className="text-xs text-muted-foreground italic mt-2">This appears to be a round trip. All flight segments are displayed above under "Outbound Journey" as a clear return start point wasn't automatically identified for separate display.</p>
                          )}
-                          {allFlightLegs.length === 0 && <p className="text-xs text-muted-foreground italic mt-2">No flight leg details available for this option.</p>}
                     </div>
+                ) : (
+                     <p className="text-xs text-muted-foreground italic mt-3">No detailed flight leg information available for this option.</p>
                 )}
 
                 {flight.link && (
@@ -442,3 +462,4 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
+
