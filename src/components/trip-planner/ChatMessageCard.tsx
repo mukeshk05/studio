@@ -63,11 +63,16 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
       )}
       role="button"
       onClick={() => {
-          console.log("CompactTripPackageCard clicked, package ID:", pkg.id); // Debug log
-          onViewPackageOnFullPage(pkg);
+          console.log("CompactTripPackageCard clicked, package ID:", pkg.id);
+          if (typeof onViewPackageOnFullPage === 'function') {
+            onViewPackageOnFullPage(pkg);
+          } else {
+            console.error("onViewPackageOnFullPage is not a function in CompactTripPackageCard. Prop value:", onViewPackageOnFullPage);
+            // Optionally, show a user-facing error or toast here
+          }
         }
       }
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onViewPackageOnFullPage(pkg);}}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (typeof onViewPackageOnFullPage === 'function') { onViewPackageOnFullPage(pkg); } else { console.error("onViewPackageOnFullPage is not a function in CompactTripPackageCard (onKeyDown)."); }}}}
       tabIndex={0}
     >
       <div className="flex flex-col sm:flex-row">
@@ -93,7 +98,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
           <CardContent className="p-0 text-xs space-y-1.5 flex-grow">
             {pkg.flight && (
               <div className="p-1 rounded-md border border-border/20 bg-card/30 dark:bg-card/20">
-                <div className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]"> {/* Changed p to div */}
+                <div className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]">
                   <PlaneIcon className="w-3 h-3 mr-1 text-primary/80" />
                   {pkg.flight.airline || "Flight"} - ~${pkg.flight.price?.toLocaleString()} 
                   {isRoundTrip && <Badge variant="outline" className="ml-1.5 px-1 py-0 text-[0.6rem] border-primary/40 text-primary/90 bg-primary/5">Round Trip</Badge>}
@@ -229,7 +234,11 @@ export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPag
               {packageData.packages.length > 0 ? (
                 <div className="space-y-3">
                   {packageData.packages.map((pkg) => (
-                    <CompactTripPackageCard key={pkg.id} pkg={pkg} onViewPackageOnFullPage={onViewPackageOnFullPage} />
+                    <CompactTripPackageCard
+                      key={pkg.id}
+                      pkg={pkg}
+                      onViewPackageOnFullPage={onViewPackageOnFullPage} 
+                    />
                   ))}
                 </div>
               ) : (
