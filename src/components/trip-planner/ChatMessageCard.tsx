@@ -12,7 +12,7 @@ import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare,
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import Image from 'next/image';
+import NextImage from 'next/image'; // Ensured NextImage is used
 import { Button, buttonVariants } from '../ui/button';
 import { Badge } from '../ui/badge';
 
@@ -33,7 +33,7 @@ const renderMarkdownLinks = (text: string) => {
 
 type CompactTripPackageCardProps = {
   pkg: TripPackageSuggestion;
-  onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void; // Changed prop name
+  onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void;
 };
 
 function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPackageCardProps) {
@@ -52,7 +52,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
   );
 
   const isRoundTrip = pkg.flight.type?.toLowerCase() === "round trip";
-  const multipleLegs = (pkg.flight.flights?.length || 0) > (isRoundTrip ? 2 : 1); // Approximation
+  const multipleLegs = (pkg.flight.flights?.length || 0) > (isRoundTrip ? 2 : 1);
 
   return (
     <Card
@@ -62,14 +62,18 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
         "bg-gradient-to-br from-primary/10 via-card/60 to-accent/10 dark:from-primary/5 dark:via-card/40 dark:to-accent/5"
       )}
       role="button"
-      onClick={() => onViewPackageOnFullPage(pkg)} // Updated handler
+      onClick={() => {
+          console.log("CompactTripPackageCard clicked, package ID:", pkg.id); // Debug log
+          onViewPackageOnFullPage(pkg);
+        }
+      }
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onViewPackageOnFullPage(pkg);}}
       tabIndex={0}
     >
       <div className="flex flex-col sm:flex-row">
         <div className="relative w-full sm:w-1/3 h-32 sm:h-auto shrink-0 group">
           {pkg.destinationImageUri ? (
-            <Image src={pkg.destinationImageUri} alt={`Image for ${pkg.destinationQuery}`} fill className="object-cover sm:rounded-l-md sm:rounded-r-none rounded-t-md group-hover:scale-105 transition-transform" data-ai-hint={imageHint} sizes="(max-width: 640px) 100vw, 33vw"/>
+            <NextImage src={pkg.destinationImageUri} alt={`Image for ${pkg.destinationQuery}`} fill className="object-cover sm:rounded-l-md sm:rounded-r-none rounded-t-md group-hover:scale-105 transition-transform" data-ai-hint={imageHint} sizes="(max-width: 640px) 100vw, 33vw"/>
           ) : (
             <div className="w-full h-full bg-muted/30 flex items-center justify-center sm:rounded-l-md sm:rounded-r-none rounded-t-md">
               <ImageOff className="w-10 h-10 text-muted-foreground opacity-70"/>
@@ -89,11 +93,11 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
           <CardContent className="p-0 text-xs space-y-1.5 flex-grow">
             {pkg.flight && (
               <div className="p-1 rounded-md border border-border/20 bg-card/30 dark:bg-card/20">
-                <p className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]">
+                <div className="font-medium text-card-foreground/90 flex items-center text-[0.7rem]"> {/* Changed p to div */}
                   <PlaneIcon className="w-3 h-3 mr-1 text-primary/80" />
                   {pkg.flight.airline || "Flight"} - ~${pkg.flight.price?.toLocaleString()} 
                   {isRoundTrip && <Badge variant="outline" className="ml-1.5 px-1 py-0 text-[0.6rem] border-primary/40 text-primary/90 bg-primary/5">Round Trip</Badge>}
-                </p>
+                </div>
                 <p className="text-muted-foreground pl-4 text-[0.65rem] truncate">{pkg.flight.derived_departure_airport_name} → {pkg.flight.derived_arrival_airport_name} ({pkg.flight.derived_stops_description || 'Details inside'})</p>
                 {isRoundTrip && multipleLegs && (pkg.flight.flights?.length || 0) > 1 && (
                     <p className="text-muted-foreground pl-4 text-[0.6rem] italic">(Includes return legs)</p>
@@ -116,7 +120,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
                 Total: ~${pkg.totalEstimatedCost.toLocaleString()}
             </Badge>
             <Button
-                className={viewPackageButtonClasses} // Use the updated class
+                className={viewPackageButtonClasses}
             >
               <Eye className="w-3.5 h-3.5 mr-1.5" /> View Full Package
             </Button>
@@ -131,7 +135,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
 type ChatMessageCardProps = {
   message: ChatMessage;
   onViewDetails: (itinerary: Itinerary) => void;
-  onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void; // Updated prop name
+  onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void;
 };
 
 export function ChatMessageCard({ message, onViewDetails, onViewPackageOnFullPage }: ChatMessageCardProps) {
