@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/types/trip-planner-types";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
-import { getCoTravelAgentResponse, getIataCodeAction, generateMultipleImagesAction, getRealFlightsAction, getRealHotelsAction } from "@/app/actions";
-import type { Itinerary, SearchHistoryEntry, SerpApiFlightOption, SerpApiHotelSuggestion, TripPackageSuggestion } from "@/lib/types";
+import { getCoTravelAgentResponse, getIataCodeAction, generateMultipleImagesAction, getRealFlightsAction, getRealHotelsAction, getThingsToDoAction } from "@/app/actions"; // Added getThingsToDoAction
+import type { Itinerary, SearchHistoryEntry, SerpApiFlightOption, SerpApiHotelSuggestion, TripPackageSuggestion, ActivitySuggestion } from "@/lib/types"; // Added ActivitySuggestion
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";
 import { Input } from "@/components/ui/input";
@@ -200,7 +200,7 @@ export default function TripPlannerPage() {
   const chatInputRef = useRef<HTMLInputElement>(null);
 
   const [isMapsScriptLoaded, setIsMapsScriptLoaded] = useState(false);
-  const apiKey = "AIzaSyDojiz_4q5c23EAg9SBqStgdVjeSa8R9_8";
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY; // Ensure this is NEXT_PUBLIC_
 
   const initGoogleMapsApiPlannerPageCallback = useCallback(() => {
     console.log("[PlannerPage] Google Maps API script loaded callback for planner page executed.");
@@ -275,7 +275,8 @@ export default function TripPlannerPage() {
     filteredHotels: SerpApiHotelSuggestion[],
     durationDays: number,
     userInput: AITripPlannerInput, // Use the full userInput for context
-    mainDestinationImageUri?: string
+    mainDestinationImageUri?: string,
+    suggestedActivities?: ActivitySuggestion[] // Add suggested activities
   ): TripPackageSuggestion[] {
     const suggestions: TripPackageSuggestion[] = [];
     if (filteredFlights.length === 0 || filteredHotels.length === 0) {
@@ -303,6 +304,7 @@ export default function TripPlannerPage() {
           destinationImagePrompt: `Iconic view of ${userInput.destination} for a trip`,
           userInput: { ...userInput, userId: currentUser?.uid }, // Store the original userInput for later planning
           userId: currentUser?.uid || "unknown_user", // Ensure userId is here
+          suggestedActivities: suggestedActivities?.slice(0,3) // Add up to 3 activities
         });
       }
     };
@@ -387,6 +389,7 @@ export default function TripPlannerPage() {
     let realHotels: SerpApiHotelSuggestion[] = [];
     let flightResults: SerpApiFlightSearchOutput | null = null;
     let hotelResults: SerpApiHotelSearchOutput | null = null;
+    let thingsToDoResults: ActivitySuggestion[] = [];
 
 
     const originForFlightSearch = input.origin || "NYC"; // Default origin if not provided
@@ -414,6 +417,14 @@ export default function TripPlannerPage() {
       if (hotelResults.hotels) realHotels = hotelResults.hotels;
       console.log(`Fetched ${realHotels.length} real hotel options for planner.`);
     } catch (e) { console.error("Error fetching real hotels:", e); toast({ title: "Hotel Fetch Error (SerpApi)", description: "Could not retrieve hotel options from SerpApi.", variant: "destructive" }); }
+
+    try {
+      setChatHistory(prev => prev.map(msg => msg.id === loadingMessageId ? { ...msg, payload: "Aura is finding things to do..." } : msg));
+      const thingsToDoOutput = await getThingsToDoAction({ location: input.destination });
+      thingsToDoResults = thingsToDoOutput.activities || [];
+      console.log(`Fetched ${thingsToDoResults.length} things to do for ${input.destination}.`);
+    } catch(e) { console.error("Error fetching things to do:", e); toast({ title: "Things to Do Fetch Error", description: "Could not retrieve activity suggestions.", variant: "destructive" }); }
+
 
     setChatHistory(prev => prev.map(msg => msg.id === loadingMessageId ? { ...msg, payload: "Aura is pre-filtering & combining best options..." } : msg));
 
@@ -445,10 +456,11 @@ export default function TripPlannerPage() {
       filteredHotels,
       parsedDates.durationDays,
       plannerInputWithUser, // Pass the full input with userId
-      mainDestinationImageUri
+      mainDestinationImageUri,
+      thingsToDoResults // Pass fetched activities
     );
 
-    let packageNote = `Aura AI curated ${tripPackages.length} trip package(s) for ${input.destination} from ${filteredFlights.length} suitable flights and ${filteredHotels.length} suitable hotels found within budget allocations.`;
+    let packageNote = `Aura AI curated ${tripPackages.length} trip package(s) for ${input.destination} from ${filteredFlights.length} suitable flights and ${filteredHotels.length} suitable hotels found within budget allocations. Activities are also suggested.`;
     if(tripPackages.length === 0) {
         packageNote = `Aura AI could not create any trip packages strictly within your budget from the ${filteredFlights.length} flights and ${filteredHotels.length} hotels found. You might need to increase your budget or adjust dates/destination. The AI will now try to make purely conceptual plans based on your original request.`;
     }
@@ -462,7 +474,7 @@ export default function TripPlannerPage() {
     };
     setChatHistory(prev => prev.map(msg => msg.id === loadingMessageId ? { ...msg, type:"system", payload: packageNote } : msg).concat(packageMessage));
     loadingMessageId = crypto.randomUUID();
-    setChatHistory(prev => [...prev, { id: loadingMessageId, type: "loading", timestamp: new Date(), payload: "Aura AI is now crafting your personalized itineraries based on these options..." }]);
+    setChatHistory(prev => [...prev, { id: loadingMessageId, type: "loading", timestamp: new Date(), payload: "Aura AI is now crafting your personalized itineraries based on these options and activities..." }]);
 
 
     const plannerInputForAI: AITripPlannerInput = {
@@ -470,6 +482,7 @@ export default function TripPlannerPage() {
       userPersona: userPersona ? { name: userPersona.name, description: userPersona.description } : undefined,
       realFlightOptions: filteredFlights.length > 0 ? filteredFlights : undefined,
       realHotelOptions: filteredHotels.length > 0 ? filteredHotels : undefined,
+      availableActivities: thingsToDoResults.length > 0 ? thingsToDoResults : undefined, // Pass activities to AI
     };
     console.log("[PlannerPage] Input to aiTripPlanner flow:", JSON.stringify(plannerInputForAI, null, 2));
 
@@ -628,7 +641,7 @@ export default function TripPlannerPage() {
       <ScrollArea className="flex-grow p-4 sm:p-6" ref={chatContainerRef}>
         <div className="max-w-3xl mx-auto space-y-6 pb-4">
           {chatHistory.map((msg) => (
-            <ChatMessageCard key={msg.id} message={msg} onViewDetails={handleViewDetails} onViewPackageDetails={handleViewPackageDetails} />
+            <ChatMessageCard key={msg.id} message={msg} onViewDetails={handleViewDetails} onViewPackageOnFullPage={handleViewPackageDetails} />
           ))}
         </div>
       </ScrollArea>
@@ -656,3 +669,4 @@ export default function TripPlannerPage() {
     </div>
   );
 }
+

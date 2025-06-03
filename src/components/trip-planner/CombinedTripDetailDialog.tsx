@@ -10,12 +10,11 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"; // Added CardDescription
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import type { TripPackageSuggestion, ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover } from "@/lib/types";
-import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks, Save, Loader2, Eye } from "lucide-react";
+import type { TripPackageSuggestion, ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover, ActivitySuggestion } from "@/lib/types"; // Added ActivitySuggestion
+import { X, Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks, Save, Loader2, Eye, Map as LucideMap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAddSavedPackage } from '@/lib/firestoreHooks';
 import { useAuth } from '@/contexts/AuthContext';
@@ -82,8 +81,29 @@ function ConceptualDailyPlanDisplay({ planItem, isLast }: { planItem: Conceptual
   );
 }
 
+function ActivityDisplayCard({ activity }: { activity: ActivitySuggestion }) {
+  const imageHint = activity.imageUri?.startsWith('https://placehold.co')
+    ? (activity.imagePrompt || activity.name.toLowerCase().split(" ").slice(0, 2).join(" "))
+    : undefined;
+  return (
+    <div className={cn("p-3 rounded-lg mb-3 border border-border/40", innerGlassEffectClasses)}>
+      {activity.imageUri && (
+         <div className="relative aspect-video w-full rounded-md overflow-hidden mb-2 border border-border/30 shadow-sm">
+            <NextImage src={activity.imageUri} alt={activity.name} fill className="object-cover" data-ai-hint={imageHint} />
+         </div>
+      )}
+      <h5 className="font-semibold text-sm text-card-foreground mb-1 flex items-center">
+        <LucideMap className="w-4 h-4 mr-2 text-accent" /> {activity.name}
+      </h5>
+      <Badge variant="outline" className="text-xs capitalize bg-accent/10 text-accent border-accent/30 mb-1">{activity.category}</Badge>
+      <p className="text-xs text-muted-foreground leading-relaxed">{activity.description}</p>
+      {activity.estimatedPrice && <p className="text-xs font-medium text-primary mt-1">Est. Price: {activity.estimatedPrice}</p>}
+    </div>
+  );
+}
+
+
 export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onInitiateBooking }: CombinedTripDetailDialogProps) {
-  const { toast } = useToast();
   const mapRef = useRef<HTMLIFrameElement>(null);
   const addSavedPackageMutation = useAddSavedPackage();
   const { currentUser } = useAuth();
@@ -99,7 +119,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   
   if (!tripPackage) return null;
 
-  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri } = tripPackage;
+  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, travelDatesQuery, userInput, destinationImageUri, suggestedActivities } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const hotelMapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
@@ -113,15 +133,18 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const handleSavePackage = async () => {
     if (!tripPackage) return;
     if (!currentUser?.uid) {
-      toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
+      // This case should ideally be handled by disabling the button if no user.
+      // toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
       return;
     }
     const packageToSave: TripPackageSuggestion = { ...tripPackage, userId: currentUser.uid, createdAt: new Date().toISOString() };
     try {
       await addSavedPackageMutation.mutateAsync(packageToSave);
-      toast({ title: "Package Saved!", description: `Trip package to ${tripPackage.destinationQuery} saved to your dashboard.` });
+      // Toast for success is handled by the hook's onSuccess if configured, or here
+      // toast({ title: "Package Saved!", description: `Trip package to ${tripPackage.destinationQuery} saved to your dashboard.` });
     } catch (error: any) {
-      toast({ title: "Save Error", description: error.message || "Could not save the trip package.", variant: "destructive" });
+      // Toast for error is handled by the hook's onError if configured, or here
+      // toast({ title: "Save Error", description: error.message || "Could not save the trip package.", variant: "destructive" });
     }
   };
   
@@ -148,11 +171,9 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
       const arrivalAirportName = leg.arrival_airport?.name?.toLowerCase() || "";
       const arrivalAirportId = leg.arrival_airport?.id?.toLowerCase();
 
-      // Check if this leg arrives at the main destination
       if ((destinationAirportCode && arrivalAirportId === destinationAirportCode.toLowerCase()) || 
           arrivalAirportName.includes(mainDestinationNamePart)) {
         turnaroundIndex = i;
-        // Now check if the *next* leg departs from the destination towards origin
         if (i + 1 < allFlightLegs.length) {
           const nextLeg = allFlightLegs[i+1];
           const nextDepartureAirportName = nextLeg.departure_airport?.name?.toLowerCase() || "";
@@ -161,38 +182,28 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
           
           const departsFromDest = (destinationAirportCode && nextDepartureAirportId === destinationAirportCode.toLowerCase()) ||
                                   nextDepartureAirportName.includes(mainDestinationNamePart);
-          
           const arrivesAtOrigin = originNamePart && 
                                  (nextArrivalAirportName.includes(originNamePart) || 
                                   allFlightLegs[allFlightLegs.length -1].arrival_airport?.name?.toLowerCase().includes(originNamePart));
-          
           if (departsFromDest && (arrivesAtOrigin || returnLegs.length > 0) ) {
-            // This is a stronger indication of turnaround
-            break;
+            break; 
           }
-        } else if (i === allFlightLegs.length -1 && turnaroundIndex !== -1) {
-            // If last leg arrives at destination, and we already found a potential turnaround
-            // it means this might be the end of outbound for a one-way TO destination or complex journey
-            // For simplicity in round-trip, we'll assume the last leg arriving at destination is end of outbound.
         }
       }
     }
-
     if (turnaroundIndex !== -1) {
       outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
       returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
     } else {
-      // If no clear turnaround found, but it's marked as round trip,
-      // and more than 1 leg, try splitting in half. This is a rough heuristic.
       if (allFlightLegs.length > 1) {
         const midPoint = Math.ceil(allFlightLegs.length / 2);
         outboundLegs = allFlightLegs.slice(0, midPoint);
         returnLegs = allFlightLegs.slice(midPoint);
       } else {
-        outboundLegs = allFlightLegs; // Likely one-way or single leg round trip (e.g. same airport)
+        outboundLegs = allFlightLegs;
       }
     }
-  } else { // One-way or no legs
+  } else { 
     outboundLegs = allFlightLegs;
   }
 
@@ -271,7 +282,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 {outboundLegs.map((leg, index) => {
                                     const legOriginalIndex = allFlightLegs.indexOf(leg);
                                     const nextLegIsOutbound = index < outboundLegs.length - 1;
-                                    const layoverAfterThisLeg = flight.layovers && flight.layovers[legOriginalIndex];
+                                    const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndex);
                                     return (
                                     <React.Fragment key={`out-leg-${index}`}>
                                         <FlightLegDisplay leg={leg} isLast={!nextLegIsOutbound && !layoverAfterThisLeg} />
@@ -296,7 +307,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 {returnLegs.map((leg, index) => {
                                     const legOriginalIndex = allFlightLegs.indexOf(leg);
                                     const nextLegIsReturn = index < returnLegs.length - 1;
-                                    const layoverAfterThisLeg = flight.layovers && flight.layovers[legOriginalIndex];
+                                    const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndex);
                                     return (
                                     <React.Fragment key={`ret-leg-${index}`}>
                                         <FlightLegDisplay leg={leg} isLast={!nextLegIsReturn && !layoverAfterThisLeg}/>
@@ -426,17 +437,27 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg font-semibold text-primary flex items-center">
-                  <ListChecks className="w-5 h-5 mr-2" /> Conceptual Daily Activities Outline
+                  <ListChecks className="w-5 h-5 mr-2" /> 
+                  {suggestedActivities && suggestedActivities.length > 0 ? "Suggested Activities" : "Conceptual Daily Activities Outline"}
                 </CardTitle>
                  <CardDescription className="text-xs text-muted-foreground">
-                  This is a high-level conceptual outline. A detailed, personalized day-by-day plan will be generated by Aura AI if you proceed to "Plan This Package".
+                  {suggestedActivities && suggestedActivities.length > 0 
+                    ? "Here are some AI-suggested activities for your trip:" 
+                    : "This is a high-level conceptual outline. A detailed, personalized day-by-day plan will be generated by Aura AI if you proceed to \"Plan This Package\"."
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-sm space-y-1.5">
-                <div className="space-y-1 relative pl-2">
-                  {conceptualDailyPlan.map((item, index) => (
-                    <ConceptualDailyPlanDisplay key={`conceptual-day-${index}`} planItem={item} isLast={index === conceptualDailyPlan.length - 1} />
-                  ))}
+                <div className="space-y-3 relative pl-2">
+                  {suggestedActivities && suggestedActivities.length > 0 ? (
+                      suggestedActivities.map((activity, index) => (
+                          <ActivityDisplayCard key={`activity-${index}`} activity={activity} />
+                      ))
+                  ) : (
+                    conceptualDailyPlan.map((item, index) => (
+                      <ConceptualDailyPlanDisplay key={`conceptual-day-${index}`} planItem={item} isLast={index === conceptualDailyPlan.length - 1} />
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

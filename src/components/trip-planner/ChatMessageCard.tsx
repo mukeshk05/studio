@@ -4,11 +4,11 @@
 import React from 'react';
 import type { ChatMessage } from "@/app/(app)/planner/page";
 import type { AITripPlannerOutput, AITripPlannerInput } from "@/ai/types/trip-planner-types";
-import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion } from "@/lib/types";
+import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion, ActivitySuggestion } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
-import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff, Route } from "lucide-react";
+import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff, Route, MapPin as ActivityIconPin } from "lucide-react"; // Renamed MapPin
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -125,7 +125,14 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
                 {pkg.hotel.rating !== undefined && pkg.hotel.rating !== null && <p className="text-muted-foreground pl-4 text-[0.65rem]">Rating: {pkg.hotel.rating.toFixed(1)} <Star className="w-2.5 h-2.5 inline-block text-amber-400 fill-amber-400" /></p>}
               </div>
             )}
-             <p className="text-xs text-muted-foreground pt-1">AI-powered daily activity suggestions included (conceptual).</p>
+            {pkg.suggestedActivities && pkg.suggestedActivities.length > 0 && (
+                <p className="text-xs text-muted-foreground pt-1">
+                  + {pkg.suggestedActivities.length} suggested activit{pkg.suggestedActivities.length > 1 ? 'ies' : 'y'}.
+                </p>
+            )}
+             {!pkg.suggestedActivities && (
+                <p className="text-xs text-muted-foreground pt-1">AI-powered daily activity suggestions included (conceptual).</p>
+             )}
           </CardContent>
           <CardFooter className="p-0 pt-2 mt-auto flex justify-between items-center">
              <Badge variant="secondary" className="text-sm py-1 px-2 shadow-sm bg-accent/80 text-accent-foreground border-accent/50">
@@ -147,7 +154,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
 type ChatMessageCardProps = {
   message: ChatMessage;
   onViewDetails: (itinerary: Itinerary) => void;
-  onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void;
+  onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void; // This prop comes from TripPlannerPage
 };
 
 export function ChatMessageCard(props: ChatMessageCardProps) { 

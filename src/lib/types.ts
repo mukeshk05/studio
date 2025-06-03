@@ -1,6 +1,8 @@
 
+
 import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal, FlightOptionSchema as AIFlightOptionSchema, HotelOptionSchema as AIHotelOptionSchema, RoomSchema as AIRoomSchema, DailyPlanItemSchema as AIDailyPlanItemSchema } from "@/ai/types/trip-planner-types";
 import type { SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // This import is fine
+import type { ActivitySuggestion as ThingsToDoActivitySuggestion } from "@/ai/types/things-to-do-types"; // For suggested activities
 import { z } from 'zod';
 
 // This effectively takes the type of a single itinerary object from the array
@@ -11,6 +13,7 @@ export type FlightOption = z.infer<typeof AIFlightOptionSchema>;
 export type Room = z.infer<typeof AIRoomSchema>;
 export type HotelOption = Omit<z.infer<typeof AIHotelOptionSchema>, 'rooms'> & { rooms?: Room[] }; // Ensure rooms array uses local Room type
 export type DailyPlanItem = z.infer<typeof AIDailyPlanItemSchema>;
+export type ActivitySuggestion = ThingsToDoActivitySuggestion; // Alias for consistency
 
 // Add the 'id' field that we add manually and use the locally defined types
 export type Itinerary = Omit<SingleItineraryFromAI, 'flightOptions' | 'hotelOptions' | 'dailyPlan'> & {
@@ -33,6 +36,7 @@ export type Itinerary = Omit<SingleItineraryFromAI, 'flightOptions' | 'hotelOpti
   alternativeReason?: string;
   destinationLatitude?: number;
   destinationLongitude?: number;
+  availableActivities?: ActivitySuggestion[]; // For storing activities passed to AI
 };
 
 
@@ -85,7 +89,7 @@ export interface UserTravelPersona {
 
 export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
-export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' | 'desiredMood' | 'weatherContext' | 'riskContext' | 'realFlightOptions' | 'realHotelOptions'> & {
+export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' | 'desiredMood' | 'weatherContext' | 'riskContext' | 'realFlightOptions' | 'realHotelOptions' | 'availableActivities'> & {
   userId?: string; // Added userId here
   userPersona?: {
     name: string;
@@ -96,6 +100,7 @@ export type AITripPlannerInput = Omit<AITripPlannerInputOriginal, 'userPersona' 
   riskContext?: string | null;
   realFlightOptions?: import('@/ai/types/serpapi-flight-search-types').SerpApiFlightOption[];
   realHotelOptions?: import('@/ai/types/serpapi-hotel-search-types').SerpApiHotelSuggestion[];
+  availableActivities?: ActivitySuggestion[]; // Added to original for planner
 };
 
 // New type for combined trip package suggestions
@@ -112,6 +117,7 @@ export interface TripPackageSuggestion {
   destinationImageUri?: string;
   userId: string;
   createdAt?: any; 
+  suggestedActivities?: ActivitySuggestion[]; // Added suggested activities
 }
 
 // Conceptual daily plan item for the dialog (simpler than full DailyPlanItem)
@@ -119,3 +125,4 @@ export interface ConceptualDailyPlanItem {
   day: string;
   activities: string;
 }
+

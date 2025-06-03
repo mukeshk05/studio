@@ -28,7 +28,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
   name: 'aiTripPlannerTextPrompt',
   input: {schema: AITripPlannerInputSchema},
   output: {schema: AITripPlannerTextOutputSchema },
-  prompt: `You are a sophisticated AI Travel Concierge, BudgetRoam's "Aura AI". Your primary goal is to create 1 to 3 personalized and compelling trip itineraries. You will be provided with user preferences and, potentially, lists of real flight and hotel options.
+  prompt: `You are a sophisticated AI Travel Concierge, BudgetRoam's "Aura AI". Your primary goal is to create 1 to 3 personalized and compelling trip itineraries. You will be provided with user preferences and, potentially, lists of real flight, hotel, and activity options.
   
 **Your Task:**
 
@@ -43,51 +43,31 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   {{#if riskContext}}Risk/Accessibility Context: {{{riskContext}}}{{/if}}
 
 2.  **Process Real-Time Options (CRITICAL):**
-    *   **Real Flights (realFlightOptions):** You MAY receive an array of real flight options. Each option typically represents a full journey (e.g., a round trip) and might look like:
-        \`\`\`json
-        { // Example of ONE SerpApiFlightOption (simplified for prompt)
-          "price": 550, "total_duration": 480, "airline": "Delta", "airline_logo": "https://logos.com/delta.png",
-          "derived_departure_time": "10:00 AM", "derived_arrival_time": "06:00 PM",
-          "derived_departure_airport_name": "New York (JFK)", "derived_arrival_airport_name": "Paris (CDG)",
-          "derived_flight_numbers": "DL 123, DL 456", "derived_stops_description": "1 stop in AMS (2h 30m)",
-          "link": "https://www.google.com/flights/...",
-          "flights": [ // Array of flight legs, can include outbound, connecting, and return
-            { "departure_airport": {"name": "JFK", "time": "10:00 AM"}, "arrival_airport": {"name": "AMS", "time": "09:00 PM"}, "airline": "Delta", "flight_number": "DL 123", "departure_token": "some_token_if_present" },
-            { "departure_airport": {"name": "AMS", "time": "11:30 PM"}, "arrival_airport": {"name": "CDG", "time": "01:00 AM"}, "airline": "Delta", "flight_number": "DL 456" }
-            // ... potentially more legs including return journey legs ...
-          ]
-        }
-        \`\`\`
+    *   **Real Flights (realFlightOptions):** You MAY receive an array of real flight options. Each option typically represents a full journey (e.g., a round trip). If `travelDates` implies a round trip, the `flights` array within each `realFlightOption` will contain ALL legs for the outbound AND return journey.
         If realFlightOptions are available and suitable (considering budget, dates, and reasonable connections), select 1-2 options.
         Populate the 'flightOptions' array in your output. For each selected option:
-            *   Ensure you capture the overall 'name' (e.g., airline + key flight numbers), a 'description' summarizing the full journey (outbound and return, key stops), 'price', 'airline_logo', 'total_duration', 'derived_stops_description', and the booking 'link' directly from the selected real flight option. 
+            *   Map the overall 'name' (e.g., airline + key flight numbers, like "Delta DL123/DL456 RT"), a 'description' summarizing the full journey (outbound and return, key stops), 'price', 'airline_logo', 'total_duration', 'derived_stops_description', and the booking 'link' directly from the selected real flight option. 
             *   The 'description' MUST clearly distinguish between outbound and return segments if it's a round trip. For example: "Outbound: JFK 10:00 AM - CDG 11:00 PM (1 stop). Return: CDG 08:00 PM - JFK 10:00 PM (direct)."
-            *   Individual legs within the real option may contain a 'departure_token'. You do not need to use this token to search for new flights; focus on the complete journey options provided.
-    *   **Real Hotels (realHotelOptions):** You MAY receive an array of real hotel options. Each option might look like:
-        \`\`\`json
-        { // Example of ONE SerpApiHotelSuggestion (simplified for prompt)
-          "name": "The Grand Plaza", "price_per_night": 180, "rating": 4.5, "type": "4-star hotel",
-          "amenities": ["Pool", "WiFi"], "coordinates": {"latitude": 48.8, "longitude": 2.2},
-          "thumbnail": "https://images.com/hotel.jpg", "link": "https://www.booking.com/hotel/..."
-        }
-        \`\`\`
+            *   Do not try to re-fetch or find separate return flights; assume the provided `realFlightOptions` are complete for the journey type requested.
+    *   **Real Hotels (realHotelOptions):** You MAY receive an array of real hotel options.
         If realHotelOptions are available and suitable, select 1-2 options.
         Populate the 'hotelOptions' array. For each selected hotel:
             *   Map 'name', 'rating', 'amenities', 'latitude', 'longitude', and 'link' directly from the real option.
             *   Calculate the total 'price' for the stay based on 'price_per_night' and the trip duration.
             *   **Crucially, write a compelling 'description' (2-3 sentences) for this hotel** based on its name, type, amenities, and overall fit for the user. This description will be used to generate a primary image for the hotel.
-            *   Suggest 2-3 conceptual 'rooms' within this hotel, providing a 'name', optional 'description', 'features', and a **'roomImagePrompt'** for each room (e.g., "Modern hotel room king bed city view", "Cozy twin room with balcony").
-        If real options are slightly over budget (e.g., total trip cost up to 20-25% over user's budget), you MAY select them but MUST note this in the 'tripSummary' (e.g., "Hotel choice slightly exceeds budget for premium location").
+            *   Suggest 2-3 conceptual 'rooms' within this hotel, providing a 'name', optional 'description', 'features', and a **'roomImagePrompt'** for each room.
+        If real options are slightly over budget (e.g., total trip cost up to 20-25% over user's budget), you MAY select them but MUST note this in the 'tripSummary'.
+    *   **Available Activities (availableActivities):** You MAY receive an array of suggested activities for the destination (name, category, description, estimated price).
 
 3.  **Fallback Strategy (VERY IMPORTANT):**
-    *   If no realFlightOptions or realHotelOptions arrays are provided, OR if, after careful review, NONE of the provided real options are a reasonable fit for the user's request (e.g., all options are drastically over budget, wrong location type, or completely unavailable for the dates/destination), you MUST then create 1-2 *conceptual* itineraries.
+    *   If no realFlightOptions or realHotelOptions arrays are provided, OR if, after careful review, NONE of the provided real options are a reasonable fit (e.g., drastically over budget, wrong location type), you MUST then create 1-2 *conceptual* itineraries.
     *   For conceptual itineraries:
-        *   You MUST clearly state this in the 'tripSummary' (e.g., "No suitable real-time flights/hotels found within budget, so here are some conceptual ideas..." or "Using conceptual examples for flights and hotels for this creative itinerary...").
-        *   Generate plausible, conceptual 'flightOptions' and 'hotelOptions' that align with the user's request and budget. Ensure flight descriptions for conceptual round trips also detail outbound and return.
-    *   **You MUST always aim to return 1 to 3 itineraries.** Do not return an empty 'itineraries' array unless the user's core request is impossible to fulfill (e.g. destination doesn't exist).
+        *   You MUST clearly state this in the 'tripSummary'.
+        *   Generate plausible, conceptual 'flightOptions' and 'hotelOptions' that align with the user's request and budget. Ensure conceptual round-trip flight descriptions also detail outbound and return.
+    *   **You MUST always aim to return 1 to 3 itineraries.** Do not return an empty 'itineraries' array unless the user's core request is impossible to fulfill.
 
 4.  **AI Guardian Instructions (Fuse these with all other preferences):**
-    *   Incorporate weather context, risk/visa/accessibility reminders, and potential alternative destination suggestions if major risks are identified for the primary destination, as per your previous detailed instructions.
+    *   Incorporate weather context, risk/visa/accessibility reminders, and potential alternative destination suggestions if major risks are identified.
     *   Include conceptual sustainable travel considerations.
 
 5.  **Itinerary Construction (For each of 1-3 itineraries):**
@@ -95,8 +75,11 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   \`destination\`, \`travelDates\`: From user input.
     *   \`estimatedCost\`: Sum of your selected flight and hotel prices (real or conceptual).
     *   \`tripSummary\`: Engaging summary, including any necessary risk/visa/accessibility reminders, sustainability notes, and clear indication if using real vs. conceptual options.
-    *   **\`dailyPlan\` (MANDATORY AND CRITICAL):** For EACH itinerary, you MUST provide a detailed, engaging day-by-day plan of activities. This MUST be an array of objects, each with 'day' (e.g., "Day 1: Arrival & City Exploration") and 'activities' (string describing morning, afternoon, and evening plans for that day). Plan for the full inferred duration of the trip (e.g., if 'travelDates' suggests 7 days, provide 7 days of plans). Be specific and creative.
-        *   Example for one day: \`{ "day": "Day 1: Arrival & Old Town Charm", "activities": "Morning: Arrive at {{{destination}}} airport, transfer to hotel, and check in. Settle in and take a brief rest.\\nAfternoon: Begin with a leisurely stroll through the historic Old Town. Visit the Main Square, admire the architecture of St. Mary's Basilica, and browse the stalls at the Cloth Hall.\\nEvening: Enjoy a traditional dinner at a local restaurant in the Old Town, savoring regional specialties. Consider a short evening walk to see the illuminated city." }\`
+    *   **\`dailyPlan\` (MANDATORY AND CRITICAL):** For EACH itinerary, provide a detailed, engaging day-by-day plan. This MUST be an array of objects, each with 'day' and 'activities'.
+        *   If 'availableActivities' were provided in the input, try to naturally incorporate 2-3 of the most relevant ones into your daily activity descriptions. Mention the activity name if you use it.
+        *   Otherwise, or in addition, suggest other plausible activities suitable for the destination, user persona, and mood.
+        *   Plan for the full inferred duration of the trip. Be specific and creative.
+        *   Example for one day: \`{ "day": "Day 1: Arrival & Old Town Charm", "activities": "Morning: Arrive at {{{destination}}} airport, transfer to hotel, and check in. Settle in and take a brief rest.\\nAfternoon: Begin with a leisurely stroll through the historic Old Town. Consider visiting the suggested 'Main Square Historical Walk' if time permits. Admire the architecture of St. Mary's Basilica, and browse the stalls at the Cloth Hall.\\nEvening: Enjoy a traditional dinner at a local restaurant in the Old Town, savoring regional specialties. Perhaps try the recommended 'Evening Food Market Experience'." }\`
     *   \`flightOptions\`: Your selected (real or conceptual) flight(s). Ensure the description field here comprehensively describes the full journey including return details if applicable.
     *   \`hotelOptions\`: Your selected (real or conceptual) hotel(s), with AI-written descriptions and room prompts.
 
@@ -116,6 +99,7 @@ Please generate 1 or 2 robust and appealing *conceptual* itineraries for the use
 Focus on common attractions and adaptable activities. Keep suggestions somewhat general if specific preferences like persona, mood, or risk context are complex.
 Briefly remind the user in the trip summary to check visa and current travel advisories for {{{destination}}}, and that sustainable travel choices are encouraged.
 Also, provide one general cultural tip for {{{destination}}} in the 'culturalTip' field.
+If 'availableActivities' were provided, try to mention 1-2 relevant ones in the daily plan.
 
 {{#if origin}}Origin: {{{origin}}}{{/if}}
 Travel Dates: {{{travelDates}}}
@@ -130,11 +114,17 @@ Desired Mood/Sensory Palette: {{desiredMood}} (Consider this if possible)
 {{#if riskContext~}}
 User Concerns (Risks/Accessibility): {{riskContext}} (Address briefly if straightforward)
 {{/if~}}
+{{#if availableActivities.length}}
+Suggested Activities for {{{destination}}}:
+{{#each availableActivities}}
+- {{this.name}} ({{this.category}}): {{this.description}}
+{{/each}}
+{{/if}}
 
 For each itinerary (aim for 1 to 2):
 1.  Provide a 'tripSummary': A concise summary of the trip.
 2.  **Provide a 'dailyPlan' (MANDATORY AND CRITICAL):** An array with 'day' and 'activities' for each day. Be descriptive and plan for the inferred duration.
-    *   Example for one day: \`{ "day": "Day 1: Arrival & Local Market Visit", "activities": "Morning: Arrive and settle into your accommodation.\\nAfternoon: Explore a vibrant local market to soak in the sights and sounds. Sample some street food.\\nEvening: Enjoy a relaxed dinner at a nearby restaurant." }\`
+    *   Example for one day: \`{ "day": "Day 1: Arrival & Local Market Visit", "activities": "Morning: Arrive and settle into your accommodation.\\nAfternoon: Explore a vibrant local market to soak in the sights and sounds. If 'Grand Bazaar Exploration' was suggested, this is a great time for it! Sample some street food.\\nEvening: Enjoy a relaxed dinner at a nearby restaurant." }\`
 3.  Detail 1-2 *conceptual* flight options (name, description including conceptual outbound and return details, price, airline_logo, total_duration, derived_stops_description, link - create plausible examples).
 4.  Detail 1-2 *conceptual* hotel options (name, description, price, rating, amenities, link, 1-2 rooms with name, features, roomImagePrompt - create plausible examples).
 5.  Provide an 'estimatedCost'.
@@ -285,6 +275,10 @@ const aiTripPlannerFlow = ai.defineFlow(
     if (realDataUsed && !wasBackupPlannerUsed) { // Only mention real data if primary planner used it
         fusionMessages.push("available real-time flight/hotel data");
     }
+
+    if (input.availableActivities && input.availableActivities.length > 0 && !wasBackupPlannerUsed) {
+        fusionMessages.push("suggested local activities");
+    }
     
     let guardianConsiderations: string[] = [];
     if (input.riskContext) { 
@@ -296,7 +290,7 @@ const aiTripPlannerFlow = ai.defineFlow(
     
     if (guardianConsiderations.length > 0) {
         fusionMessages.push(guardianConsiderations.join(' and '));
-    } else if (!realDataUsed && !wasBackupPlannerUsed) { 
+    } else if (!realDataUsed && !wasBackupPlannerUsed && !(input.availableActivities && input.availableActivities.length > 0)) { 
       fusionMessages.push("general travel factors (weather awareness, risk/visa/accessibility reminders, conceptual sustainability)");
     }
 

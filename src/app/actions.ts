@@ -49,7 +49,7 @@ import type { BundleSuggestion } from '@/ai/types/smart-bundle-types';
 
 import { ThingsToDoSearchInput as ThingsToDoSearchInputType, ThingsToDoOutput as ThingsToDoOutputType } from '@/ai/types/things-to-do-types'; // Renamed
 import { thingsToDoFlow as thingsToDoFlowOriginal } from '@/ai/flows/things-to-do-flow';
-import type { FlightOption, HotelOption } from '@/lib/types';
+import type { FlightOption, HotelOption, ActivitySuggestion } from '@/lib/types'; // Added ActivitySuggestion
 
 import { format, addDays, parseISO, differenceInDays, addMonths, isBefore, isValid, startOfMonth, startOfWeek, endOfMonth } from 'date-fns';
 
@@ -904,17 +904,26 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
 
 export async function generateSmartBundles(input: SmartBundleInputType): Promise<SmartBundleOutputType> {
   console.log('[Server Action - generateSmartBundles] Input:', JSON.stringify(input, null, 2));
-  const conceptualBundles = await smartBundleFlowOriginal(input);
+  // The output type of smartBundleFlowOriginal needs to align with what's expected.
+  // Let's assume smartBundleFlowOriginal returns an object with a 'suggestions' array,
+  // where each suggestion might or might not have 'activityKeywords'.
+  const conceptualBundlesOutput = await smartBundleFlowOriginal(input);
 
-  if (!conceptualBundles.suggestions || conceptualBundles.suggestions.length === 0) {
+  const conceptualBundles = conceptualBundlesOutput.suggestions;
+
+  if (!conceptualBundles || conceptualBundles.length === 0) {
     console.log('[Server Action - generateSmartBundles] No conceptual bundles from AI flow.');
     return { suggestions: [] };
   }
 
   const augmentedSuggestions: BundleSuggestion[] = [];
 
-  for (const conceptualSuggestion of conceptualBundles.suggestions) {
-    let augmentedSugg: BundleSuggestion = { ...conceptualSuggestion, userId: input.userId }; // Add userId
+  for (const conceptualSuggestion of conceptualBundles) {
+    let augmentedSugg: BundleSuggestion = { 
+        ...conceptualSuggestion, 
+        userId: input.userId,
+        suggestedActivities: [] // Initialize with empty array
+    };
     const { destination, travelDates, budget: conceptualBudget, origin: conceptualOrigin } = conceptualSuggestion.tripIdea;
     console.log(`[Server Action - generateSmartBundles] Augmenting bundle for: ${destination}, Dates: ${travelDates}, AI Budget: ${conceptualBudget}, Conceptual Origin: ${conceptualOrigin}`);
     
@@ -989,9 +998,20 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
         augmentedSugg.priceFeasibilityNote = "Could not determine real-time pricing from available options.";
       }
        console.log(`[Server Action - generateSmartBundles] Bundle for ${destination} - Feasibility: ${augmentedSugg.priceFeasibilityNote}`);
+      
+      // Fetch "Things to Do"
+      const activityInterest = (conceptualSuggestion as any).activityKeywords?.join(", ") || undefined;
+      const thingsToDoOutput = await getThingsToDoAction({ location: destination, interest: activityInterest });
+      if (thingsToDoOutput.activities && thingsToDoOutput.activities.length > 0) {
+        augmentedSugg.suggestedActivities = thingsToDoOutput.activities.slice(0, 3) as ActivitySuggestion[]; // Take top 3
+        console.log(`[Server Action - generateSmartBundles] Added ${augmentedSugg.suggestedActivities.length} activities for ${destination}.`);
+      } else {
+        console.log(`[Server Action - generateSmartBundles] No activities found for ${destination} with interest: ${activityInterest}.`);
+      }
+
 
     } catch (error: any) {
-        augmentedSugg.priceFeasibilityNote = "Error fetching real-time price context for this bundle.";
+        augmentedSugg.priceFeasibilityNote = "Error fetching real-time price context or activities for this bundle.";
         console.error(`[Server Action - generateSmartBundles] Error augmenting bundle for ${destination}:`, error.message, error);
     }
     augmentedSuggestions.push(augmentedSugg);

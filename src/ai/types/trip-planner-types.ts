@@ -3,6 +3,7 @@ import { z } from 'genkit';
 // Corrected imports: Zod schemas are runtime values, not just types.
 import { SerpApiFlightOptionSchema } from './serpapi-flight-search-types'; // For real flight options input
 import { SerpApiHotelSuggestionSchema } from './serpapi-hotel-search-types'; // For real hotel options input
+import { ActivitySuggestionSchema as ThingsToDoActivitySuggestionSchema } from './things-to-do-types'; // For available activities
 
 // Schema for User Persona, if passed into the planner
 export const UserPersonaSchema = z.object({
@@ -21,6 +22,8 @@ export const AITripPlannerInputSchema = z.object({
   riskContext: z.string().optional().describe("Optional: User-provided specific concerns, questions (e.g., about visas), or preferences (e.g., weather, accessibility, safety) for the trip."),
   realFlightOptions: z.array(SerpApiFlightOptionSchema).optional().describe("Optional: Array of real flight options fetched from SerpApi."),
   realHotelOptions: z.array(SerpApiHotelSuggestionSchema).optional().describe("Optional: Array of real hotel options fetched from SerpApi."),
+  availableActivities: z.array(ThingsToDoActivitySuggestionSchema).optional().describe("Optional: Array of AI-suggested activities for the destination, which the planner can incorporate."),
+  userId: z.string().optional().describe("User ID for context, if available"), // Added userId
 });
 export type AITripPlannerInput = z.infer<typeof AITripPlannerInputSchema>;
 
