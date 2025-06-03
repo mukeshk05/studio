@@ -63,7 +63,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
       )}
       role="button"
       onClick={() => {
-          console.log("CompactTripPackageCard clicked, package ID:", pkg.id);
+          console.log("CompactTripPackageCard clicked, package ID:", pkg.id); 
           if (typeof onViewPackageOnFullPage === 'function') {
             onViewPackageOnFullPage(pkg);
           } else {
@@ -150,8 +150,8 @@ type ChatMessageCardProps = {
   onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void;
 };
 
-export function ChatMessageCard(props: ChatMessageCardProps) { // Changed to use props object
-  const { message, onViewDetails, onViewPackageOnFullPage } = props; // Destructure here
+export function ChatMessageCard(props: ChatMessageCardProps) { 
+  const { message, onViewDetails } = props;
 
   const isUser = message.type === "user";
   const bubbleAlignment = isUser ? "justify-end" : "justify-start";
@@ -225,7 +225,7 @@ export function ChatMessageCard(props: ChatMessageCardProps) { // Changed to use
         );
       case "trip_package_suggestions":
         const packageData = message.payload as { packages: TripPackageSuggestion[], note: string, userInput: AITripPlannerInput };
-        console.log("[ChatMessageCard] Rendering trip_package_suggestions. onViewPackageOnFullPage received by ChatMessageCard:", typeof props.onViewPackageOnFullPage);
+        console.log("[ChatMessageCard] Rendering trip_package_suggestions. TYPEOF props.onViewPackageOnFullPage:", typeof props.onViewPackageOnFullPage);
         return (
           <Card className="shadow-none border-none p-0 bg-transparent text-sm">
             <CardHeader className="p-0 pb-2">
@@ -244,12 +244,11 @@ export function ChatMessageCard(props: ChatMessageCardProps) { // Changed to use
               {packageData.packages.length > 0 ? (
                 <div className="space-y-3">
                   {packageData.packages.map((pkg) => {
-                    console.log(`[ChatMessageCard] Passing onViewPackageOnFullPage to CompactTripPackageCard for ${pkg.id}. Type:`, typeof props.onViewPackageOnFullPage);
                     return (
                         <CompactTripPackageCard
                             key={pkg.id}
                             pkg={pkg}
-                            onViewPackageOnFullPage={props.onViewPackageOnFullPage} // Pass directly from props
+                            onViewPackageOnFullPage={props.onViewPackageOnFullPage} 
                         />
                     );
                    })}
@@ -310,3 +309,4 @@ export function ChatMessageCard(props: ChatMessageCardProps) { // Changed to use
   );
 }
 
+    
