@@ -904,15 +904,70 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
 
 export async function generateSmartBundles(input: SmartBundleInputType): Promise<SmartBundleOutputType> {
   console.log('[Server Action - generateSmartBundles] Input:', JSON.stringify(input, null, 2));
-  // The output type of smartBundleFlowOriginal needs to align with what's expected.
-  // Let's assume smartBundleFlowOriginal returns an object with a 'suggestions' array,
-  // where each suggestion might or might not have 'activityKeywords'.
-  const conceptualBundlesOutput = await smartBundleFlowOriginal(input);
+  
+  const userIdPart = normalizeCacheKeyPart(input.userId);
+  const availabilityPart = normalizeCacheKeyPart(input.upcomingAvailability);
+  const interestsPart = normalizeCacheKeyPart(input.travelInterests);
+  const cacheKey = `smartbundle_conceptual_${userIdPart}_${availabilityPart}_${interestsPart}`;
+  const cacheCollectionName = 'smartBundlesConceptualCache';
 
-  const conceptualBundles = conceptualBundlesOutput.suggestions;
+  let conceptualBundlesOutput: SmartBundleOutputType | null = null;
+
+  if (firestore) {
+    const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
+    console.log(`[Cache Read - SmartBundlesConceptual] Attempting to read from Firestore for key: ${cacheKey}`);
+    try {
+      const docSnap = await getDoc(cacheDocRef);
+      if (docSnap.exists()) {
+        const cacheData = docSnap.data();
+        const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
+        if (cachedAt) {
+          const now = new Date();
+          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+          console.log(`[Cache Read - SmartBundlesConceptual] Found cache entry. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API} days.`);
+          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
+            console.log(`[Cache HIT - SmartBundlesConceptual] Using cached conceptual bundles for key: ${cacheKey}`);
+            conceptualBundlesOutput = cacheData.data as SmartBundleOutputType;
+          } else {
+            console.log(`[Cache STALE - SmartBundlesConceptual] For key: ${cacheKey}. Will fetch fresh conceptual bundles.`);
+          }
+        } else {
+           console.log(`[Cache Read - SmartBundlesConceptual] Cache entry has no valid cachedAt for key: ${cacheKey}. Fetching fresh.`);
+        }
+      } else {
+        console.log(`[Cache MISS - SmartBundlesConceptual] For key: ${cacheKey}. Fetching fresh conceptual bundles.`);
+      }
+    } catch (cacheReadError: any) {
+      console.error(`[Cache Read Error - SmartBundlesConceptual] For key ${cacheKey}:`, cacheReadError.message, cacheReadError);
+    }
+  } else {
+    console.warn("[generateSmartBundles] Firestore instance is not available. Skipping conceptual cache check.");
+  }
+
+  if (!conceptualBundlesOutput) {
+    console.log(`[AI Flow - SmartBundlesConceptual] Calling smartBundleFlowOriginal for key ${cacheKey}`);
+    conceptualBundlesOutput = await smartBundleFlowOriginal(input);
+    if (firestore && conceptualBundlesOutput && conceptualBundlesOutput.suggestions && conceptualBundlesOutput.suggestions.length > 0) {
+      const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
+      const cleanedOutput = cleanDataForFirestore(conceptualBundlesOutput);
+      const dataToCache = { data: cleanedOutput, cachedAt: serverTimestamp(), queryKey: cacheKey };
+      console.log(`[Cache Write - SmartBundlesConceptual] Attempting to SAVE conceptual bundles to cache for key: ${cacheKey}.`);
+      try {
+        await setDoc(cacheDocRef, dataToCache, { merge: true });
+        console.log(`[Cache Write - SmartBundlesConceptual] Successfully SAVED conceptual bundles to cache for key: ${cacheKey}`);
+      } catch (cacheWriteError: any) {
+        console.error(`[Cache Write Error - SmartBundlesConceptual] For key ${cacheKey}:`, cacheWriteError.message, cacheWriteError);
+      }
+    } else if (firestore) {
+      console.log(`[Cache Write - SmartBundlesConceptual] SKIPPING save to cache for key: ${cacheKey} (no valid suggestions).`);
+    }
+  }
+
+
+  const conceptualBundles = conceptualBundlesOutput?.suggestions;
 
   if (!conceptualBundles || conceptualBundles.length === 0) {
-    console.log('[Server Action - generateSmartBundles] No conceptual bundles from AI flow.');
+    console.log('[Server Action - generateSmartBundles] No conceptual bundles from AI flow or cache.');
     return { suggestions: [] };
   }
 
@@ -1073,7 +1128,7 @@ export async function getThingsToDoAction(input: ThingsToDoSearchInputType): Pro
 
   if (firestore && result.activities && result.activities.length > 0) {
     const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-    const cleanedResult = cleanFirestoreData(result); // Ensure data is clean
+    const cleanedResult = cleanDataForFirestore(result); // Ensure data is clean
     const dataToCache = { data: cleanedResult, cachedAt: serverTimestamp(), queryKey: cacheKey };
     console.log(`[Cache Write - ThingsToDo] Attempting to SAVE to cache for key: ${cacheKey}. Data (first 500 chars): ${JSON.stringify(dataToCache,null,2).substring(0,500)}...`);
     try {
@@ -1117,7 +1172,7 @@ import type { TravelTipInput, TravelTipOutput } from '@/ai/flows/travel-tip-flow
 export async function getTravelTip(input?: TravelTipInput): Promise<TravelTipOutput> { return getTravelTipFlow(input || {}); }
 
 import { getSerendipitySuggestions as getSerendipitySuggestionsFlow } from '@/ai/flows/serendipity-engine-flow';
-import type { SerendipityInput, SerendipityOutput } from '@/ai/flows/serendipity-engine-flow';
+import type { SerendipityInput, SerendipityOutput } from '@/ai/flows/serendipity-engine-types';
 export async function getSerendipitySuggestions(input: SerendipityInput): Promise<SerendipityOutput> { return getSerendipitySuggestionsFlow(input); }
 
 import { getAuthenticityVerification as getAuthenticityVerificationFlow } from '@/ai/flows/authenticity-verifier-flow';
@@ -1155,5 +1210,3 @@ export async function narrateLocalLegend(input: LocalLegendNarratorInput): Promi
 import { synthesizePostTripFeedback as synthesizePostTripFeedbackFlow } from '@/ai/flows/post-trip-synthesizer-flow';
 import type { PostTripFeedbackInput, PostTripAnalysisOutput } from '@/ai/types/post-trip-synthesizer-flow';
 export async function synthesizePostTripFeedback(input: PostTripFeedbackInput): Promise<PostTripAnalysisOutput> { return synthesizePostTripFeedbackFlow(input); }
-
-
