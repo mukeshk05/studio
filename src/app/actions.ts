@@ -1027,7 +1027,66 @@ export async function generateTripSummary(input: TripSummaryInputType): Promise<
 export async function getPriceAdviceAction(input: PriceAdvisorInputType): Promise<PriceAdvisorOutputType> { return getPriceAdviceOriginal(input); }
 export async function getConceptualDateGridAction(input: ConceptualDateGridInputType): Promise<ConceptualDateGridOutputType> { return conceptualDateGridFlowOriginal(input); }
 export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphInputType): Promise<ConceptualPriceGraphOutputType> { return conceptualPriceGraphFlowOriginal(input); }
-export async function getThingsToDoAction(input: ThingsToDoSearchInputType): Promise<ThingsToDoOutputType> { return thingsToDoFlowOriginal(input); }
+
+export async function getThingsToDoAction(input: ThingsToDoSearchInputType): Promise<ThingsToDoOutputType> {
+  console.log('[Server Action - getThingsToDoAction] Input:', JSON.stringify(input, null, 2));
+  const locationKeyPart = normalizeCacheKeyPart(input.location);
+  const interestKeyPart = normalizeCacheKeyPart(input.interest);
+  const cacheKey = `thingsToDo_${locationKeyPart}_${interestKeyPart}`;
+  const cacheCollectionName = 'thingsToDoCache';
+
+  console.log(`[Cache Read - ThingsToDo] Attempting to read from Firestore. Cache Key: ${cacheKey}`);
+
+  if (firestore) {
+    const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
+    try {
+      const docSnap = await getDoc(cacheDocRef);
+      if (docSnap.exists()) {
+        const cacheData = docSnap.data();
+        const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
+        if (cachedAt) {
+          const now = new Date();
+          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+          console.log(`[Cache Read - ThingsToDo] Found cache entry for ${cacheKey}. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API} days.`);
+          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
+            console.log(`[Cache HIT - ThingsToDo] For key: ${cacheKey}. Returning cached data.`);
+            return cacheData.data as ThingsToDoOutputType;
+          }
+          console.log(`[Cache STALE - ThingsToDo] For key: ${cacheKey}. Will fetch fresh data.`);
+        } else {
+           console.log(`[Cache Read - ThingsToDo] Cache entry for ${cacheKey} has no valid cachedAt. Fetching fresh data.`);
+        }
+      } else {
+        console.log(`[Cache MISS - ThingsToDo] For key: ${cacheKey}. Fetching fresh data.`);
+      }
+    } catch (cacheError: any) {
+      console.error(`[Cache Read Error - ThingsToDo] For key ${cacheKey}:`, cacheError.message, cacheError);
+    }
+  } else {
+    console.warn("[Server Action - getThingsToDoAction] Firestore instance is not available. Skipping cache check.");
+  }
+
+  console.log(`[AI Flow - ThingsToDo] Calling thingsToDoFlowOriginal for key ${cacheKey}`);
+  const result = await thingsToDoFlowOriginal(input);
+  console.log(`[AI Flow - ThingsToDo] Result for key ${cacheKey} (first 500 chars):`, JSON.stringify(result,null,2).substring(0,500) + "...");
+
+
+  if (firestore && result.activities && result.activities.length > 0) {
+    const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
+    const cleanedResult = cleanFirestoreData(result); // Ensure data is clean
+    const dataToCache = { data: cleanedResult, cachedAt: serverTimestamp(), queryKey: cacheKey };
+    console.log(`[Cache Write - ThingsToDo] Attempting to SAVE to cache for key: ${cacheKey}. Data (first 500 chars): ${JSON.stringify(dataToCache,null,2).substring(0,500)}...`);
+    try {
+      await setDoc(cacheDocRef, dataToCache, { merge: true });
+      console.log(`[Cache Write - ThingsToDo] Successfully SAVED to cache for key: ${cacheKey}`);
+    } catch (cacheWriteError: any) {
+      console.error(`[Cache Write Error - ThingsToDo] For key ${cacheKey}:`, cacheWriteError.message, cacheWriteError);
+    }
+  } else if (firestore) {
+    console.log(`[Cache Write - ThingsToDo] SKIPPING save to cache for key: ${cacheKey} because no valid activities were processed to save.`);
+  }
+  return result;
+}
 
 import { getPackingList as getPackingListFlow } from '@/ai/flows/packing-list-flow';
 import type { PackingListInput, PackingListOutput } from '@/ai/flows/packing-list-flow';
@@ -1096,4 +1155,5 @@ export async function narrateLocalLegend(input: LocalLegendNarratorInput): Promi
 import { synthesizePostTripFeedback as synthesizePostTripFeedbackFlow } from '@/ai/flows/post-trip-synthesizer-flow';
 import type { PostTripFeedbackInput, PostTripAnalysisOutput } from '@/ai/types/post-trip-synthesizer-flow';
 export async function synthesizePostTripFeedback(input: PostTripFeedbackInput): Promise<PostTripAnalysisOutput> { return synthesizePostTripFeedbackFlow(input); }
+
 
