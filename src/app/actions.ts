@@ -68,51 +68,66 @@ const normalizeCacheKeyPart = (part?: string | number | null): string => {
   return strPart.substring(0, 50); // Limit length of individual parts
 };
 
-// Helper function to recursively remove undefined fields or handle nested arrays
-function cleanFirestoreData(obj: any): any {
-  if (obj === undefined) {
-    return undefined; // Explicitly return undefined to be filtered out by caller if it's a top-level property
-  }
-  if (obj === null || typeof obj !== 'object') {
-    return obj; // Primitives are returned as is
-  }
-
-  if (Array.isArray(obj)) {
-    const cleanedArray = obj
-      .map(item => {
-        if (Array.isArray(item)) {
-          // Firestore doesn't support nested arrays directly.
-          // Convert inner array to a string or an array of objects if structure is consistent.
-          // For now, stringify and log a warning.
-          console.warn(`[Cache Clean] Nested array found and converted to string: ${JSON.stringify(item)}`);
-          return JSON.stringify(item); // Or transform to array of objects: item.map(subItem => ({value: subItem}))
+// Moved function definition to actions.ts
+function cleanDataForFirestore(obj: any): any {
+  let sanitizedObj;
+  try {
+    // Initial pass to remove functions, top-level undefined from objects, and convert array undefineds to nulls
+    sanitizedObj = JSON.parse(JSON.stringify(obj));
+  } catch (e) {
+    console.warn("[Firestore Clean] Initial JSON.parse(JSON.stringify()) failed. Using structuredClone or shallow copy.", e);
+    if (typeof globalThis.structuredClone === 'function') {
+        try {
+            sanitizedObj = structuredClone(obj);
+        } catch (cloneError) {
+            console.warn("[Firestore Clean] structuredClone also failed. Falling back to shallow copy for root.", cloneError);
+            sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj };
         }
-        return cleanFirestoreData(item); // Recursively clean items in the array
-      })
-      .filter(item => item !== undefined); // Remove items that became undefined after cleaning
-
-    // If array elements were objects and all became empty, this might return an array of empty objects.
-    // Firestore handles arrays of empty objects.
-    return cleanedArray;
+    } else {
+        sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj }; // Fallback to shallow copy
+    }
   }
 
-  // Handling objects
-  const newObj: any = {};
-  let hasProperties = false;
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const value = obj[key];
-      if (value !== undefined) {
-        const cleanedValue = cleanFirestoreData(value);
-        if (cleanedValue !== undefined) {
-          newObj[key] = cleanedValue;
+  function deepClean(current: any): any {
+    if (current === undefined) {
+      return undefined; 
+    }
+    if (current === null || typeof current !== 'object') {
+      return current; 
+    }
+
+    if (Array.isArray(current)) {
+      const cleanedArray = current
+        .map(item => {
+          if (Array.isArray(item)) {
+            console.warn(`[Firestore Clean - Array] Nested array found and converted to string: ${JSON.stringify(item)}`);
+            return JSON.stringify(item); 
+          }
+          return deepClean(item); 
+        })
+        .filter(item => item !== undefined); // Filter out items that became undefined
+      // Return null for empty arrays to effectively remove them if set as a field, 
+      // or an empty array if that's preferred (Firestore handles both).
+      return cleanedArray.length > 0 ? cleanedArray : null; 
+    }
+
+    // Handling objects
+    const newObject: { [key: string]: any } = {};
+    let hasProperties = false; 
+    for (const key in current) {
+      if (Object.prototype.hasOwnProperty.call(current, key)) {
+        const value = current[key];
+        const cleanedValue = deepClean(value);
+        if (cleanedValue !== undefined) { 
+          newObject[key] = cleanedValue;
           hasProperties = true;
         }
       }
     }
+    // Return null for empty objects to effectively remove them if set as a field
+    return hasProperties ? newObject : null; 
   }
-  // Return the cleaned object. If it became empty, Firestore accepts empty maps.
-  return newObj;
+  return deepClean(sanitizedObj);
 }
 
 
@@ -212,7 +227,7 @@ export async function getLandingPageImagesWithFallback(
             const imageCacheKey = aiResult.id;
             if (aiResult.imageUri.length < MAX_IMAGE_URI_LENGTH) {
               const cacheDocRef = doc(firestore, cacheCollectionName, imageCacheKey);
-              const dataToCache = cleanFirestoreData({ // Use cleanFirestoreData
+              const dataToCache = cleanDataForFirestore({ 
                 imageUri: aiResult.imageUri,
                 promptUsed: originalRequest.promptText,
                 styleHint: originalRequest.styleHint,
@@ -382,7 +397,7 @@ export async function getIataCodeAction(placeName?: string): Promise<string | nu
 
   if (firestore) {
     const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-    const dataToCache = cleanFirestoreData({ iataCode: iataCode, cachedAt: serverTimestamp(), queryKey: cacheKey, originalQuery: placeName.trim() });
+    const dataToCache = cleanDataForFirestore({ iataCode: iataCode, cachedAt: serverTimestamp(), queryKey: cacheKey, originalQuery: placeName.trim() });
     console.log(`[Cache Write - IATA] Attempting to SAVE to cache. Key: ${cacheKey}, Data:`, JSON.stringify(dataToCache));
     try {
       await setDoc(cacheDocRef, dataToCache);
@@ -528,7 +543,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
 
     if (firestore && (output.best_flights || output.other_flights)) {
       const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-      const cleanedOutput = cleanFirestoreData(output);
+      const cleanedOutput = cleanDataForFirestore(output);
       const dataToCache = { data: cleanedOutput, cachedAt: serverTimestamp(), queryKey: cacheKey };
       console.log(`[Cache Write - Flights] Attempting to SAVE to cache for key: ${cacheKey}. Data being written (first 500 chars): ${JSON.stringify(dataToCache, null, 2).substring(0,500)}...`);
       console.log(`[Cache Write - Flights] Full data structure for Firestore (before setDoc):`, JSON.stringify(dataToCache, null, 2));
@@ -658,7 +673,7 @@ export async function getRealHotelsAction(input: SerpApiHotelSearchInput): Promi
 
     if (firestore && output.hotels && output.hotels.length > 0) {
       const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-      const cleanedOutput = cleanFirestoreData(output);
+      const cleanedOutput = cleanDataForFirestore(output);
       const dataToCache = { data: cleanedOutput, cachedAt: serverTimestamp(), queryKey: cacheKey };
       console.log(`[Cache Write - Hotels] Attempting to SAVE to cache for key: ${cacheKey}. Data being written (first 500 chars): ${JSON.stringify(dataToCache, null, 2).substring(0,500)}...`);
       console.log(`[Cache Write - Hotels] Full data structure for Firestore (before setDoc):`, JSON.stringify(dataToCache, null, 2));
@@ -756,7 +771,7 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
                   if (imageCacheKey && firestore) { // Check imageCacheKey again before writing
                       if (aiGeneratedItem.imageUri.length < MAX_IMAGE_URI_LENGTH) {
                         const cacheDocRef = doc(firestore, cacheCollectionName, imageCacheKey);
-                        const dataToCache = cleanFirestoreData({ // Use cleanFirestoreData
+                        const dataToCache = cleanDataForFirestore({ 
                             imageUri: aiGeneratedItem.imageUri,
                             promptUsed: item.prompt, // Cache the original concise prompt
                             styleHint: item.styleHint as string, // Cast as styleHint can be undefined
@@ -977,7 +992,7 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
     let augmentedSugg: BundleSuggestion = { 
         ...conceptualSuggestion, 
         userId: input.userId,
-        suggestedActivities: [] // Initialize with empty array
+        suggestedActivities: [] 
     };
     const { destination, travelDates, budget: conceptualBudget, origin: conceptualOrigin } = conceptualSuggestion.tripIdea;
     console.log(`[Server Action - generateSmartBundles] Augmenting bundle for: ${destination}, Dates: ${travelDates}, AI Budget: ${conceptualBudget}, Conceptual Origin: ${conceptualOrigin}`);
@@ -986,7 +1001,7 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
       const parsedDates = parseTravelDatesForSerpApi(travelDates);
       console.log(`[Server Action - generateSmartBundles] Parsed dates for SerpApi: Departure ${parsedDates.departureDate}, Return ${parsedDates.returnDate}, Duration ${parsedDates.durationDays} days`);
 
-      const originForFlight = conceptualSuggestion.tripIdea.origin || "NYC"; // Default if AI doesn't provide origin
+      const originForFlight = conceptualSuggestion.tripIdea.origin || "NYC"; 
       
       const flightResults = await getRealFlightsAction({ 
         origin: originForFlight, 
@@ -998,7 +1013,7 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
       const bestFlight = flightResults.best_flights?.[0] || flightResults.other_flights?.[0];
       
       if (bestFlight) {
-        augmentedSugg.realFlightExample = bestFlight as unknown as FlightOption; // Cast to your lib/types FlightOption
+        augmentedSugg.realFlightExample = bestFlight as unknown as FlightOption; 
         console.log(`[Server Action - generateSmartBundles] Found real flight example: ${bestFlight.airline} for $${bestFlight.price}`);
       } else {
         console.log(`[Server Action - generateSmartBundles] No real flight found for ${destination}.`);
@@ -1008,11 +1023,11 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
         destination: destination, 
         checkInDate: parsedDates.departureDate, 
         checkOutDate: parsedDates.returnDate || format(addDays(parseISO(parsedDates.departureDate), parsedDates.durationDays -1 ), "yyyy-MM-dd"), 
-        guests: "2" // Default guests for hotel search in bundles
+        guests: "2" 
       });
       const bestHotel = hotelResults.hotels?.[0];
       if (bestHotel) {
-        augmentedSugg.realHotelExample = bestHotel as unknown as HotelOption; // Cast to your lib/types HotelOption
+        augmentedSugg.realHotelExample = bestHotel as unknown as HotelOption; 
          console.log(`[Server Action - generateSmartBundles] Found real hotel example: ${bestHotel.name} for ~$${bestHotel.price_per_night}/night`);
       } else {
          console.log(`[Server Action - generateSmartBundles] No real hotel found for ${destination}.`);
@@ -1054,11 +1069,10 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
       }
        console.log(`[Server Action - generateSmartBundles] Bundle for ${destination} - Feasibility: ${augmentedSugg.priceFeasibilityNote}`);
       
-      // Fetch "Things to Do"
       const activityInterest = (conceptualSuggestion as any).activityKeywords?.join(", ") || undefined;
       const thingsToDoOutput = await getThingsToDoAction({ location: destination, interest: activityInterest });
       if (thingsToDoOutput.activities && thingsToDoOutput.activities.length > 0) {
-        augmentedSugg.suggestedActivities = thingsToDoOutput.activities.slice(0, 3) as ActivitySuggestion[]; // Take top 3
+        augmentedSugg.suggestedActivities = thingsToDoOutput.activities.slice(0, 3) as ActivitySuggestion[]; 
         console.log(`[Server Action - generateSmartBundles] Added ${augmentedSugg.suggestedActivities.length} activities for ${destination}.`);
       } else {
         console.log(`[Server Action - generateSmartBundles] No activities found for ${destination} with interest: ${activityInterest}.`);
@@ -1128,7 +1142,7 @@ export async function getThingsToDoAction(input: ThingsToDoSearchInputType): Pro
 
   if (firestore && result.activities && result.activities.length > 0) {
     const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-    const cleanedResult = cleanDataForFirestore(result); // Ensure data is clean
+    const cleanedResult = cleanDataForFirestore(result); 
     const dataToCache = { data: cleanedResult, cachedAt: serverTimestamp(), queryKey: cacheKey };
     console.log(`[Cache Write - ThingsToDo] Attempting to SAVE to cache for key: ${cacheKey}. Data (first 500 chars): ${JSON.stringify(dataToCache,null,2).substring(0,500)}...`);
     try {

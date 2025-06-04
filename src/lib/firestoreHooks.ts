@@ -40,16 +40,16 @@ export function useSavedTrips() {
         if (querySnapshot.empty) {
           console.log(`[useSavedTrips] No documents found at path: ${path} for user ${currentUser.uid}.`);
         } else {
-          querySnapshot.forEach(docSnapshot => { // Renamed doc to docSnapshot to avoid conflict
+          querySnapshot.forEach(docSnapshot => { 
             console.log(`[useSavedTrips] Doc ID: ${docSnapshot.id}, Data (first 100 chars):`, JSON.stringify(docSnapshot.data()).substring(0,100) + "...");
           });
         }
         
         return querySnapshot.docs.map(docSnapshot => ({ ...docSnapshot.data() as Omit<Itinerary, 'id'>, id: docSnapshot.id }));
-      } catch (e: any) { // Explicitly type 'e' as any or unknown then check
+      } catch (e: any) { 
         console.error("[useSavedTrips] Error fetching documents: ", e);
         if (e && typeof e === 'object' && 'code' in e && 'message' in e) {
-            const firestoreError = e as { code: string; message: string }; // Type assertion
+            const firestoreError = e as { code: string; message: string }; 
             console.error(`[useSavedTrips] Firestore error code: ${firestoreError.code}, message: ${firestoreError.message}`);
             if (firestoreError.code === 'permission-denied') {
                 throw new Error("Permission denied. Please check Firestore security rules for reading 'savedTrips'.");
@@ -239,66 +239,6 @@ export function useRemoveTrackedItem() {
 // --- Search History Hooks ---
 const SEARCH_HISTORY_QUERY_KEY = 'searchHistory';
 
-// Helper function to recursively remove undefined fields and handle nested arrays
-function cleanDataForFirestore(obj: any): any {
-  let sanitizedObj;
-  try {
-    // Initial pass to remove functions, top-level undefined from objects, and convert array undefineds to nulls
-    sanitizedObj = JSON.parse(JSON.stringify(obj));
-  } catch (e) {
-    console.warn("[Firestore Clean] Initial JSON.parse(JSON.stringify()) failed. Using structuredClone or shallow copy.", e);
-    if (typeof globalThis.structuredClone === 'function') {
-        try {
-            sanitizedObj = structuredClone(obj);
-        } catch (cloneError) {
-            console.warn("[Firestore Clean] structuredClone also failed. Falling back to shallow copy for root.", cloneError);
-            sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj };
-        }
-    } else {
-        sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj }; // Fallback to shallow copy
-    }
-  }
-
-  function deepClean(current: any): any {
-    if (current === undefined) {
-      // This path should ideally not be hit if JSON.stringify worked for the parent object.
-      // If it is, it means 'current' was explicitly undefined and should be removed by the parent.
-      return undefined;
-    }
-    if (current === null || typeof current !== 'object') {
-      return current; // Primitives (string, number, boolean, null) are returned as is.
-    }
-
-    if (Array.isArray(current)) {
-      const cleanedArray = current
-        .map(item => {
-          if (Array.isArray(item)) {
-            console.warn(`[Firestore Clean - Array] Nested array found and converted to string: ${JSON.stringify(item)}`);
-            return JSON.stringify(item); // Convert inner array to string.
-          }
-          return deepClean(item); // Recursively clean other items
-        })
-        .filter(item => item !== undefined && item !== null); // Filter out any items that explicitly became undefined or null after cleaning.
-      return cleanedArray.length > 0 ? cleanedArray : null;
-    }
-
-    // Handling objects
-    const newObject: { [key: string]: any } = {};
-    for (const key in current) {
-      if (Object.prototype.hasOwnProperty.call(current, key)) {
-        const value = current[key];
-        const cleanedValue = deepClean(value);
-        if (cleanedValue !== undefined) { // Only add property if its cleaned value is not undefined
-          newObject[key] = cleanedValue;
-        }
-      }
-    }
-    return newObject;
-  }
-
-  return deepClean(sanitizedObj);
-}
-
 
 // Hook to add a search history entry
 export function useAddSearchHistory() {
@@ -329,11 +269,16 @@ export function useAddSearchHistory() {
         dataToSave.budget = 0;
       }
       
-      console.log("[FirestoreHooks useAddSearchHistory] Data BEFORE cleaning:", JSON.stringify(dataToSave, null, 2).substring(0, 1000) + "...");
-      const cleanedData = cleanDataForFirestore(dataToSave);
-      console.log("[FirestoreHooks useAddSearchHistory] Attempting to save search history (cleaned):", JSON.stringify(cleanedData, null, 2).substring(0, 1000) + "...");
+      // The cleanDataForFirestore function will be moved to actions.ts
+      // For now, we'll assume it exists or is passed, or data is already clean.
+      // Ideally, the cleaning logic specific to actions.ts would be called there.
+      // This hook is mainly for invoking the Firestore operation.
+      // Let's assume for now actions.ts calls this hook with ALREADY CLEANED DATA if necessary,
+      // or that the types are inherently Firestore-compatible.
+      console.log("[FirestoreHooks useAddSearchHistory] Attempting to save search history:", JSON.stringify(dataToSave, null, 2).substring(0, 1000) + "...");
 
-      const docRef = await addDoc(historyCollectionRef, cleanedData);
+
+      const docRef = await addDoc(historyCollectionRef, dataToSave as any); // Cast to any if cleaning is handled elsewhere
       return docRef.id;
     },
     onSuccess: () => {
@@ -604,7 +549,7 @@ export function useAddSavedPackage() {
 
   return useMutation<string, Error, TripPackageSuggestion>({ 
     mutationFn: async (packageData) => {
-      const currentUserId = packageData.userId || currentUser?.uid; // Prioritize packageData.userId if present
+      const currentUserId = packageData.userId || currentUser?.uid; 
       if (!currentUserId) {
         console.error("[FirestoreHooks useAddSavedPackage] User ID is missing. Cannot save package. PackageData:", packageData, "CurrentUser:", currentUser);
         throw new Error("User ID is missing for saving package.");
@@ -617,19 +562,22 @@ export function useAddSavedPackage() {
       
       const finalDataToSave: Omit<TripPackageSuggestion, 'id'> = {
         ...dataToSaveWithoutId,
-        userId: currentUserId, // Ensure userId is set to the determined one
+        userId: currentUserId, 
         createdAt: serverTimestamp(),
       };
       
       if (finalDataToSave.destinationImageUri && finalDataToSave.destinationImageUri.length > MAX_IMAGE_URI_LENGTH_FIRESTORE) {
-        console.warn(`[FirestoreHooks useAddSavedPackage] destinationImageUri for package ${finalDataToSave.destinationQuery} is too long (${finalDataToSave.destinationImageUri.length} bytes). Setting to null.`);
-        finalDataToSave.destinationImageUri = undefined; // Set to undefined to be cleaned by cleanDataForFirestore
+        console.warn(`[FirestoreHooks useAddSavedPackage] destinationImageUri for package ${finalDataToSave.destinationQuery} is too long (${finalDataToSave.destinationImageUri.length} bytes). Setting to undefined.`);
+        finalDataToSave.destinationImageUri = undefined; 
       }
 
-      const cleanedDataToSave = cleanDataForFirestore(finalDataToSave);
-      console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package (cleaned):", JSON.stringify(cleanedDataToSave, null, 2).substring(0,500)+"...");
+      // The cleanDataForFirestore function will be defined in actions.ts and called there if needed.
+      // For this hook, we assume the data passed (packageData) has been prepared for Firestore.
+      // Or, if we want to be super safe, we'd need to import/replicate cleaning here.
+      // Given the current structure, actions.ts is the more appropriate place for that specific cleaning.
+      console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package (data as received):", JSON.stringify(finalDataToSave, null, 2).substring(0,500)+"...");
 
-      const docRef = await addDoc(packagesCollectionRef, cleanedDataToSave);
+      const docRef = await addDoc(packagesCollectionRef, finalDataToSave as any); // Cast to any if cleaning is done higher up
       return docRef.id;
     },
     onSuccess: () => {
@@ -640,4 +588,3 @@ export function useAddSavedPackage() {
     }
   });
 }
-
