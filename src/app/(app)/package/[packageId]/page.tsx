@@ -31,17 +31,23 @@ export default function FullPackageDetailPage() {
   useEffect(() => {
     if (params.packageId && typeof params.packageId === 'string') {
       try {
+        // Attempt to retrieve from localStorage first (for immediate display)
         const storedData = localStorage.getItem(`tripPackageData_${params.packageId}`);
         if (storedData) {
           const parsedData = JSON.parse(storedData);
           setPackageDetail(parsedData);
+          setIsLoading(false);
         } else {
-          setError("Package details not found. It might have expired or the link is incorrect.");
+          // If not in localStorage (e.g., direct link access or cleared cache),
+          // a real app might fetch this from a backend/DB using packageId.
+          // For this demo, we'll show an error if not found in localStorage.
+          console.warn(`Package with ID ${params.packageId} not found in localStorage.`);
+          setError("Package details not found. It might have expired, been cleared from cache, or the link is incorrect. Please try planning again.");
+          setIsLoading(false);
         }
       } catch (e) {
         console.error("Error reading package data from localStorage:", e);
         setError("Could not load package details. Please try again from the planner.");
-      } finally {
         setIsLoading(false);
       }
     } else {
@@ -132,6 +138,7 @@ export default function FullPackageDetailPage() {
         </CardHeader>
       </Card>
 
+      {/* Pass tripPackage to PackageDetailView */}
       <PackageDetailView tripPackage={packageDetail} />
 
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">

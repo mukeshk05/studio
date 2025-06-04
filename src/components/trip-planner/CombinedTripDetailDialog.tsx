@@ -111,30 +111,106 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const [resolvedOriginIata, setResolvedOriginIata] = useState<string | null>(null);
   const [isLoadingIata, setIsLoadingIata] = useState(false);
 
+  const [outboundLegs, setOutboundLegs] = useState<SerpApiFlightLeg[]>([]);
+  const [returnLegs, setReturnLegs] = useState<SerpApiFlightLeg[]>([]);
+  const [isRoundTripSuccessfullySplit, setIsRoundTripSuccessfullySplit] = useState(false);
+  
   useEffect(() => {
-    async function fetchIataCodes() {
+    async function fetchAndProcessFlightData() {
       if (isOpen && tripPackage) {
         setIsLoadingIata(true);
+        let destIata: string | null = null;
+        let origIata: string | null = null;
         try {
-          const destIata = await getIataCodeAction(tripPackage.destinationQuery);
+          console.log(`[Dialog] Fetching IATA for destination: ${tripPackage.destinationQuery}`);
+          destIata = await getIataCodeAction(tripPackage.destinationQuery);
           setResolvedDestinationIata(destIata);
+          console.log(`[Dialog] Resolved destination IATA: ${destIata}`);
           if (tripPackage.userInput.origin) {
-            const origIata = await getIataCodeAction(tripPackage.userInput.origin);
+            console.log(`[Dialog] Fetching IATA for origin: ${tripPackage.userInput.origin}`);
+            origIata = await getIataCodeAction(tripPackage.userInput.origin);
             setResolvedOriginIata(origIata);
+            console.log(`[Dialog] Resolved origin IATA: ${origIata}`);
           } else {
             setResolvedOriginIata(null);
           }
         } catch (error) {
           console.error("Error fetching IATA codes for dialog:", error);
-          setResolvedDestinationIata(null);
-          setResolvedOriginIata(null);
         } finally {
           setIsLoadingIata(false);
         }
+
+        // Process legs after IATA codes are fetched (or fetch failed)
+        const allFlightLegs = tripPackage.flight.flights || [];
+        let tempOutboundLegs: SerpApiFlightLeg[] = [];
+        let tempReturnLegs: SerpApiFlightLeg[] = [];
+        let tempIsSplitSuccess = false;
+
+        console.log(`[Dialog] Processing ${allFlightLegs.length} flight legs. Destination IATA: ${destIata}, Origin IATA: ${origIata}`);
+
+        if (tripPackage.flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 1 && destIata) {
+          let turnaroundIndex = -1;
+          for (let i = 0; i < allFlightLegs.length - 1; i++) {
+            const currentLeg = allFlightLegs[i];
+            const nextLeg = allFlightLegs[i + 1];
+            
+            const currentLegArrivalId = currentLeg.arrival_airport?.id?.toUpperCase();
+            const destIataUpper = destIata.toUpperCase();
+            const nextLegDepartureId = nextLeg.departure_airport?.id?.toUpperCase();
+
+            console.log(`[Dialog] Leg ${i}: ${currentLeg.departure_airport?.id} -> ${currentLegArrivalId}. Next leg: ${nextLegDepartureId} -> ${nextLeg.arrival_airport?.id}`);
+
+            const currentLegArrivalMatchesDest = currentLegArrivalId === destIataUpper;
+            const nextLegDepartureMatchesDest = nextLegDepartureId === destIataUpper;
+            
+            if (currentLegArrivalMatchesDest && nextLegDepartureMatchesDest) {
+              // This is a potential turnaround point.
+              // If origin is known, check if the overall journey likely returns to origin.
+              if (origIata) {
+                const finalArrivalLeg = allFlightLegs[allFlightLegs.length - 1];
+                const finalArrivalId = finalArrivalLeg.arrival_airport?.id?.toUpperCase();
+                const origIataUpper = origIata.toUpperCase();
+                if (finalArrivalId === origIataUpper) {
+                  turnaroundIndex = i;
+                  console.log(`[Dialog] Turnaround confirmed at index ${i} (matches origin ${origIataUpper}).`);
+                  break;
+                } else {
+                   console.log(`[Dialog] Potential turnaround at index ${i}, but final arrival ${finalArrivalId} doesn't match origin ${origIataUpper}. Continuing search.`);
+                }
+              } else { // No origin to confirm against, this is our best guess for turnaround
+                turnaroundIndex = i;
+                console.log(`[Dialog] Turnaround assumed at index ${i} (no origin IATA to verify).`);
+                break;
+              }
+            }
+          }
+
+          if (turnaroundIndex !== -1) {
+            tempOutboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
+            tempReturnLegs = allFlightLegs.slice(turnaroundIndex + 1);
+            if (tempReturnLegs.length > 0) {
+              tempIsSplitSuccess = true;
+              console.log(`[Dialog] Split successful: ${tempOutboundLegs.length} outbound, ${tempReturnLegs.length} return.`);
+            } else { 
+              tempOutboundLegs = [...allFlightLegs]; tempReturnLegs = [];
+              console.log(`[Dialog] Split resulted in empty return, showing all as outbound. Total: ${tempOutboundLegs.length}`);
+            }
+          } else { 
+            tempOutboundLegs = [...allFlightLegs];
+            console.log(`[Dialog] No clear turnaround found based on IATA codes. Showing all ${tempOutboundLegs.length} legs as one segment.`);
+          }
+        } else { 
+          tempOutboundLegs = [...allFlightLegs];
+          console.log(`[Dialog] Not a round trip or not enough legs/IATA for split. Showing all ${tempOutboundLegs.length} as one segment.`);
+        }
+        setOutboundLegs(tempOutboundLegs);
+        setReturnLegs(tempReturnLegs);
+        setIsRoundTripSuccessfullySplit(tempIsSplitSuccess);
       }
     }
-    fetchIataCodes();
-  }, [tripPackage, isOpen]);
+    fetchAndProcessFlightData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripPackage, isOpen]); // IATA codes are dependencies now through state updates
   
   if (!tripPackage) return null;
 
@@ -170,52 +246,6 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     if (durationDays === 1 && i === 0) return {day: "Day 1", activities: `Arrive in ${destinationQuery}, check into ${hotel.name || 'your accommodation'}, focus on key experiences, and prepare for departure.`};
     return { day: `Day ${i + 1}`, activities: `Explore key attractions, cultural experiences, and culinary delights specific to ${destinationQuery}. (Detailed activities will be AI-generated upon full planning).` };
   });
-
-  const allFlightLegs = flight.flights || [];
-  let outboundLegs: SerpApiFlightLeg[] = [];
-  let returnLegs: SerpApiFlightLeg[] = [];
-  let isRoundTripSuccessfullySplit = false;
-
-  if (flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 1 && resolvedDestinationIata) {
-    let turnaroundIndex = -1;
-    for (let i = 0; i < allFlightLegs.length - 1; i++) {
-        const currentLeg = allFlightLegs[i];
-        const nextLeg = allFlightLegs[i + 1];
-
-        const currentLegArrivalMatchesDest = currentLeg.arrival_airport?.id?.toLowerCase() === resolvedDestinationIata.toLowerCase();
-        const nextLegDepartureMatchesDest = nextLeg.departure_airport?.id?.toLowerCase() === resolvedDestinationIata.toLowerCase();
-
-        if (currentLegArrivalMatchesDest && nextLegDepartureMatchesDest) {
-            if (resolvedOriginIata) { // If origin is known, try to confirm return leg goes there
-                const potentialLastReturnLeg = allFlightLegs[allFlightLegs.length - 1];
-                const lastReturnArrivalMatchesOrigin = potentialLastReturnLeg.arrival_airport?.id?.toLowerCase() === resolvedOriginIata.toLowerCase();
-                if (lastReturnArrivalMatchesOrigin) {
-                    turnaroundIndex = i;
-                    break;
-                }
-                // If it doesn't match origin, it might be an open-jaw or multi-city, keep searching or default later
-            } else { // No origin to confirm against, this is our best guess for turnaround
-                turnaroundIndex = i;
-                break;
-            }
-        }
-    }
-
-    if (turnaroundIndex !== -1) {
-        outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
-        returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
-        if (returnLegs.length > 0) {
-            isRoundTripSuccessfullySplit = true;
-        } else {
-            outboundLegs = [...allFlightLegs]; returnLegs = [];
-        }
-    } else {
-        outboundLegs = [...allFlightLegs];
-    }
-  } else { 
-    outboundLegs = [...allFlightLegs];
-  }
-
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -285,14 +315,14 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                 </div>
                 
                 {isLoadingIata ? (
-                    <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin inline mr-2"/>Loading flight leg details...</div>
+                    <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin inline mr-2"/>Resolving airport details for leg separation...</div>
                 ) : (
                     <div className="mt-4 space-y-1.5">
                         {outboundLegs.length > 0 && (
                             <>
                                 <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-2 mb-1">Outbound Journey</p>
                                 {outboundLegs.map((leg, index) => {
-                                    const legOriginalIndexInAll = allFlightLegs.indexOf(leg);
+                                    const legOriginalIndexInAll = (flight.flights || []).indexOf(leg);
                                     const nextLegIsOutbound = index < outboundLegs.length - 1;
                                     const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndexInAll);
                                     return (
@@ -317,7 +347,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                              <>
                                 <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-3 mb-1">Return Journey</p>
                                 {returnLegs.map((leg, index) => {
-                                    const legOriginalIndexInAll = allFlightLegs.indexOf(leg);
+                                    const legOriginalIndexInAll = (flight.flights || []).indexOf(leg);
                                     const nextLegIsReturn = index < returnLegs.length - 1;
                                     const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndexInAll);
                                     return (
@@ -338,9 +368,9 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 })}
                             </>
                         )}
-                        {!isRoundTripSuccessfullySplit && flight.type?.toLowerCase() === 'round trip' && outboundLegs.length > 0 && (
-                            <p className="text-xs text-muted-foreground italic mt-2">Return journey details could not be automatically separated. All available flight segments are shown under "Outbound Journey".</p>
-                        )}
+                         {(!isRoundTripSuccessfullySplit && flight.type?.toLowerCase() === 'round trip' && outboundLegs.length > 0) && (
+                             <p className="text-xs text-muted-foreground italic mt-2">All available flight segments are shown. Return details could not be automatically separated with current info or this may be an open-jaw trip.</p>
+                         )}
                          {outboundLegs.length === 0 && returnLegs.length === 0 && (
                            <p className="text-xs text-muted-foreground italic mt-3">No detailed flight leg information available for this option.</p>
                          )}
@@ -368,7 +398,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                         <TabsTrigger value="gallery" disabled={!hotel.images || hotel.images.length === 0} className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Gallery</TabsTrigger>
                         <TabsTrigger value="map" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Location</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="overview" className={cn(glassCardClasses, "p-4 rounded-md")}>
+                    <TabsContent value="overview" className={cn("p-4 rounded-md", innerGlassEffectClasses)}>
                           <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3 shadow-md">
                           {hotel.thumbnail ? (
                               <NextImage src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
@@ -398,7 +428,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                           </Button>
                           )}
                     </TabsContent>
-                    <TabsContent value="gallery" className={cn(glassCardClasses, "p-4 rounded-md")}>
+                    <TabsContent value="gallery" className={cn("p-4 rounded-md", innerGlassEffectClasses)}>
                          {hotel.images && hotel.images.length > 0 ? (
                             <Carousel className="w-full max-w-full" opts={{ align: "start", loop: hotel.images.length > 1 }}>
                                 <CarouselContent className="-ml-2">
@@ -421,7 +451,7 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                             <p className="text-muted-foreground text-center py-4">No additional images available for this hotel.</p>
                         )}
                     </TabsContent>
-                    <TabsContent value="map" className={cn(glassCardClasses, "p-4 rounded-md")}>
+                    <TabsContent value="map" className={cn("p-4 rounded-md", innerGlassEffectClasses)}>
                          {mapsApiKey && (hotel.coordinates?.latitude && hotel.coordinates?.longitude || hotel.name) ? (
                             <div className="aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg">
                             <iframe
@@ -496,4 +526,3 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
     </Dialog>
   );
 }
-
