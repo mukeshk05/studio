@@ -56,7 +56,6 @@ export default function FullPackageDetailPage() {
       toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
       return;
     }
-    // Ensure userId is correctly set on the packageDetail before saving
     const packageToSave: TripPackageSuggestion = { ...packageDetail, userId: currentUser.uid, createdAt: new Date().toISOString() };
 
     try {
@@ -140,11 +139,11 @@ export default function FullPackageDetailPage() {
             onClick={handleSavePackage}
             variant="outline"
             size="lg" 
-            className="w-full glass-interactive border-accent/50 text-accent hover:bg-accent/10 text-lg py-3"
-            disabled={addSavedPackageMutation.isPending}
+            className={cn("w-full glass-interactive border-accent/50 text-accent hover:bg-accent/10 text-lg py-3", addSavedPackageMutation.isPending && "opacity-70 cursor-not-allowed")}
+            disabled={addSavedPackageMutation.isPending || !currentUser}
           >
             {addSavedPackageMutation.isPending ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-            {addSavedPackageMutation.isPending ? "Saving..." : "Save This Package"}
+            {addSavedPackageMutation.isPending ? "Saving..." : (currentUser ? "Save This Package" : "Log In to Save")}
         </Button>
         <Button onClick={handlePlanPackageWithAI} size="lg" className={cn("w-full", prominentButtonClasses)}>
             <Ticket className="mr-2" /> Continue Planning with AI

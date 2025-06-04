@@ -107,15 +107,34 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const mapRef = useRef<HTMLIFrameElement>(null);
   const addSavedPackageMutation = useAddSavedPackage();
   const { currentUser } = useAuth();
-  const [destinationAirportCode, setDestinationAirportCode] = useState<string | null>(null);
+  const [resolvedDestinationIata, setResolvedDestinationIata] = useState<string | null>(null);
+  const [resolvedOriginIata, setResolvedOriginIata] = useState<string | null>(null);
+  const [isLoadingIata, setIsLoadingIata] = useState(false);
 
   useEffect(() => {
-    if (tripPackage?.destinationQuery && isOpen) {
-      getIataCodeAction(tripPackage.destinationQuery)
-        .then(code => setDestinationAirportCode(code))
-        .catch(err => console.error("Failed to fetch destination IATA code:", err));
+    async function fetchIataCodes() {
+      if (isOpen && tripPackage) {
+        setIsLoadingIata(true);
+        try {
+          const destIata = await getIataCodeAction(tripPackage.destinationQuery);
+          setResolvedDestinationIata(destIata);
+          if (tripPackage.userInput.origin) {
+            const origIata = await getIataCodeAction(tripPackage.userInput.origin);
+            setResolvedOriginIata(origIata);
+          } else {
+            setResolvedOriginIata(null);
+          }
+        } catch (error) {
+          console.error("Error fetching IATA codes for dialog:", error);
+          setResolvedDestinationIata(null);
+          setResolvedOriginIata(null);
+        } finally {
+          setIsLoadingIata(false);
+        }
+      }
     }
-  }, [tripPackage?.destinationQuery, isOpen]);
+    fetchIataCodes();
+  }, [tripPackage, isOpen]);
   
   if (!tripPackage) return null;
 
@@ -133,18 +152,13 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const handleSavePackage = async () => {
     if (!tripPackage) return;
     if (!currentUser?.uid) {
-      // This case should ideally be handled by disabling the button if no user.
-      // toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
       return;
     }
     const packageToSave: TripPackageSuggestion = { ...tripPackage, userId: currentUser.uid, createdAt: new Date().toISOString() };
     try {
       await addSavedPackageMutation.mutateAsync(packageToSave);
-      // Toast for success is handled by the hook's onSuccess if configured, or here
-      // toast({ title: "Package Saved!", description: `Trip package to ${tripPackage.destinationQuery} saved to your dashboard.` });
     } catch (error: any) {
-      // Toast for error is handled by the hook's onError if configured, or here
-      // toast({ title: "Save Error", description: error.message || "Could not save the trip package.", variant: "destructive" });
+      // Error handling typically in the mutation's onError
     }
   };
   
@@ -160,52 +174,48 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
   const allFlightLegs = flight.flights || [];
   let outboundLegs: SerpApiFlightLeg[] = [];
   let returnLegs: SerpApiFlightLeg[] = [];
+  let isRoundTripSuccessfullySplit = false;
 
-  if (flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 0) {
+  if (flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 1 && resolvedDestinationIata) {
     let turnaroundIndex = -1;
-    const mainDestinationNamePart = destinationQuery.split(',')[0].trim().toLowerCase();
-    const originNamePart = userInput.origin ? userInput.origin.split(',')[0].trim().toLowerCase() : null;
+    for (let i = 0; i < allFlightLegs.length - 1; i++) {
+        const currentLeg = allFlightLegs[i];
+        const nextLeg = allFlightLegs[i + 1];
 
-    for (let i = 0; i < allFlightLegs.length; i++) {
-      const leg = allFlightLegs[i];
-      const arrivalAirportName = leg.arrival_airport?.name?.toLowerCase() || "";
-      const arrivalAirportId = leg.arrival_airport?.id?.toLowerCase();
+        const currentLegArrivalMatchesDest = currentLeg.arrival_airport?.id?.toLowerCase() === resolvedDestinationIata.toLowerCase();
+        const nextLegDepartureMatchesDest = nextLeg.departure_airport?.id?.toLowerCase() === resolvedDestinationIata.toLowerCase();
 
-      if ((destinationAirportCode && arrivalAirportId === destinationAirportCode.toLowerCase()) || 
-          arrivalAirportName.includes(mainDestinationNamePart)) {
-        turnaroundIndex = i;
-        if (i + 1 < allFlightLegs.length) {
-          const nextLeg = allFlightLegs[i+1];
-          const nextDepartureAirportName = nextLeg.departure_airport?.name?.toLowerCase() || "";
-          const nextDepartureAirportId = nextLeg.departure_airport?.id?.toLowerCase();
-          const nextArrivalAirportName = nextLeg.arrival_airport?.name?.toLowerCase() || "";
-          
-          const departsFromDest = (destinationAirportCode && nextDepartureAirportId === destinationAirportCode.toLowerCase()) ||
-                                  nextDepartureAirportName.includes(mainDestinationNamePart);
-          const arrivesAtOrigin = originNamePart && 
-                                 (nextArrivalAirportName.includes(originNamePart) || 
-                                  allFlightLegs[allFlightLegs.length -1].arrival_airport?.name?.toLowerCase().includes(originNamePart));
-          if (departsFromDest && (arrivesAtOrigin || returnLegs.length > 0) ) {
-            break; 
-          }
+        if (currentLegArrivalMatchesDest && nextLegDepartureMatchesDest) {
+            if (resolvedOriginIata) { // If origin is known, try to confirm return leg goes there
+                const potentialLastReturnLeg = allFlightLegs[allFlightLegs.length - 1];
+                const lastReturnArrivalMatchesOrigin = potentialLastReturnLeg.arrival_airport?.id?.toLowerCase() === resolvedOriginIata.toLowerCase();
+                if (lastReturnArrivalMatchesOrigin) {
+                    turnaroundIndex = i;
+                    break;
+                }
+                // If it doesn't match origin, it might be an open-jaw or multi-city, keep searching or default later
+            } else { // No origin to confirm against, this is our best guess for turnaround
+                turnaroundIndex = i;
+                break;
+            }
         }
-      }
     }
+
     if (turnaroundIndex !== -1) {
-      outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
-      returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
+        outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
+        returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
+        if (returnLegs.length > 0) {
+            isRoundTripSuccessfullySplit = true;
+        } else {
+            outboundLegs = [...allFlightLegs]; returnLegs = [];
+        }
     } else {
-      if (allFlightLegs.length > 1) {
-        const midPoint = Math.ceil(allFlightLegs.length / 2);
-        outboundLegs = allFlightLegs.slice(0, midPoint);
-        returnLegs = allFlightLegs.slice(midPoint);
-      } else {
-        outboundLegs = allFlightLegs;
-      }
+        outboundLegs = [...allFlightLegs];
     }
   } else { 
-    outboundLegs = allFlightLegs;
+    outboundLegs = [...allFlightLegs];
   }
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -274,15 +284,17 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                   <p><strong className="text-card-foreground/90">Overall Stops:</strong> {flight.derived_stops_description || "N/A"}</p>
                 </div>
                 
-                {(outboundLegs.length > 0 || returnLegs.length > 0) ? (
+                {isLoadingIata ? (
+                    <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin inline mr-2"/>Loading flight leg details...</div>
+                ) : (
                     <div className="mt-4 space-y-1.5">
                         {outboundLegs.length > 0 && (
                             <>
                                 <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-2 mb-1">Outbound Journey</p>
                                 {outboundLegs.map((leg, index) => {
-                                    const legOriginalIndex = allFlightLegs.indexOf(leg);
+                                    const legOriginalIndexInAll = allFlightLegs.indexOf(leg);
                                     const nextLegIsOutbound = index < outboundLegs.length - 1;
-                                    const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndex);
+                                    const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndexInAll);
                                     return (
                                     <React.Fragment key={`out-leg-${index}`}>
                                         <FlightLegDisplay leg={leg} isLast={!nextLegIsOutbound && !layoverAfterThisLeg} />
@@ -301,13 +313,13 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 })}
                             </>
                         )}
-                        {returnLegs.length > 0 && (
+                        {returnLegs.length > 0 && isRoundTripSuccessfullySplit && (
                              <>
                                 <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-3 mb-1">Return Journey</p>
                                 {returnLegs.map((leg, index) => {
-                                    const legOriginalIndex = allFlightLegs.indexOf(leg);
+                                    const legOriginalIndexInAll = allFlightLegs.indexOf(leg);
                                     const nextLegIsReturn = index < returnLegs.length - 1;
-                                    const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndex);
+                                    const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndexInAll);
                                     return (
                                     <React.Fragment key={`ret-leg-${index}`}>
                                         <FlightLegDisplay leg={leg} isLast={!nextLegIsReturn && !layoverAfterThisLeg}/>
@@ -326,12 +338,13 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
                                 })}
                             </>
                         )}
-                          {outboundLegs.length === allFlightLegs.length && returnLegs.length === 0 && flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 0 && (
-                           <p className="text-xs text-muted-foreground italic mt-2">This appears to be a round trip. All flight segments are displayed above under "Outbound Journey" as a clear return start point wasn't automatically identified for separate display.</p>
+                        {!isRoundTripSuccessfullySplit && flight.type?.toLowerCase() === 'round trip' && outboundLegs.length > 0 && (
+                            <p className="text-xs text-muted-foreground italic mt-2">Return journey details could not be automatically separated. All available flight segments are shown under "Outbound Journey".</p>
+                        )}
+                         {outboundLegs.length === 0 && returnLegs.length === 0 && (
+                           <p className="text-xs text-muted-foreground italic mt-3">No detailed flight leg information available for this option.</p>
                          )}
                     </div>
-                ) : (
-                     <p className="text-xs text-muted-foreground italic mt-3">No detailed flight leg information available for this option.</p>
                 )}
 
                 {flight.link && (
@@ -470,10 +483,10 @@ export function CombinedTripDetailDialog({ isOpen, onClose, tripPackage, onIniti
             variant="outline"
             size="lg" 
             className="w-full glass-interactive border-accent/50 text-accent hover:bg-accent/10"
-            disabled={addSavedPackageMutation.isPending}
+            disabled={addSavedPackageMutation.isPending || !currentUser}
           >
             {addSavedPackageMutation.isPending ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-            {addSavedPackageMutation.isPending ? "Saving..." : "Save Package"}
+            {addSavedPackageMutation.isPending ? "Saving..." : (currentUser ? "Save Package" : "Log in to Save")}
           </Button>
           <Button onClick={() => onInitiateBooking(tripPackage.destinationQuery, tripPackage.travelDatesQuery)} size="lg" className={cn("w-full", prominentButtonClasses)}>
             <Ticket className="mr-2" /> Plan This Package with AI

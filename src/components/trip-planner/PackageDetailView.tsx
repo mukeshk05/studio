@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import type { TripPackageSuggestion, ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover } from "@/lib/types";
-import { Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks, Save, Loader2, Eye } from "lucide-react";
+import type { TripPackageSuggestion, ConceptualDailyPlanItem, SerpApiFlightLeg, SerpApiLayover, ActivitySuggestion } from "@/lib/types";
+import { Plane, Hotel as HotelIcon, CalendarDays, DollarSign, Info, MapPin, ExternalLink, ImageOff, Clock, CheckSquare, Route, Briefcase, Star, Sparkles, Ticket, Users, Building, Palette, Utensils, Mountain, FerrisWheel, ListChecks, Save, Loader2, Eye, Map as LucideMap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -70,19 +70,59 @@ function ConceptualDailyPlanDisplay({ planItem, isLast }: { planItem: Conceptual
   );
 }
 
+function ActivityDisplayCard({ activity }: { activity: ActivitySuggestion }) {
+  const imageHint = activity.imageUri?.startsWith('https://placehold.co')
+    ? (activity.imagePrompt || activity.name.toLowerCase().split(" ").slice(0, 2).join(" "))
+    : undefined;
+  return (
+    <div className={cn("p-3 rounded-lg mb-3 border border-border/40", innerGlassEffectClasses)}>
+      {activity.imageUri && (
+         <div className="relative aspect-video w-full rounded-md overflow-hidden mb-2 border border-border/30 shadow-sm">
+            <NextImage src={activity.imageUri} alt={activity.name} fill className="object-cover" data-ai-hint={imageHint} />
+         </div>
+      )}
+      <h5 className="font-semibold text-sm text-card-foreground mb-1 flex items-center">
+        <LucideMap className="w-4 h-4 mr-2 text-accent" /> {activity.name}
+      </h5>
+      <Badge variant="outline" className="text-xs capitalize bg-accent/10 text-accent border-accent/30 mb-1">{activity.category}</Badge>
+      <p className="text-xs text-muted-foreground leading-relaxed">{activity.description}</p>
+      {activity.estimatedPrice && <p className="text-xs font-medium text-primary mt-1">Est. Price: {activity.estimatedPrice}</p>}
+    </div>
+  );
+}
+
 export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
-  const mapRef = useRef<HTMLIFrameElement>(null); // For the hotel map
-  const [destinationAirportCode, setDestinationAirportCode] = useState<string | null>(null);
+  const mapRef = useRef<HTMLIFrameElement>(null);
+  const [resolvedDestinationIata, setResolvedDestinationIata] = useState<string | null>(null);
+  const [resolvedOriginIata, setResolvedOriginIata] = useState<string | null>(null);
+  const [isLoadingIata, setIsLoadingIata] = useState(false);
 
   useEffect(() => {
-    if (tripPackage?.destinationQuery) {
-      getIataCodeAction(tripPackage.destinationQuery)
-        .then(code => setDestinationAirportCode(code))
-        .catch(err => console.error("Failed to fetch destination IATA code for PackageDetailView:", err));
+    async function fetchIataCodes() {
+      if (tripPackage) {
+        setIsLoadingIata(true);
+        try {
+          const destIata = await getIataCodeAction(tripPackage.destinationQuery);
+          setResolvedDestinationIata(destIata);
+          if (tripPackage.userInput.origin) {
+            const origIata = await getIataCodeAction(tripPackage.userInput.origin);
+            setResolvedOriginIata(origIata);
+          } else {
+            setResolvedOriginIata(null);
+          }
+        } catch (error) {
+          console.error("Error fetching IATA codes for PackageDetailView:", error);
+          setResolvedDestinationIata(null);
+          setResolvedOriginIata(null);
+        } finally {
+          setIsLoadingIata(false);
+        }
+      }
     }
-  }, [tripPackage?.destinationQuery]);
+    fetchIataCodes();
+  }, [tripPackage]);
 
-  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, userInput, destinationImageUri } = tripPackage;
+  const { flight, hotel, totalEstimatedCost, durationDays, destinationQuery, userInput, destinationImageUri, suggestedActivities } = tripPackage;
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   
   const hotelMapQuery = hotel.coordinates?.latitude && hotel.coordinates?.longitude
@@ -105,51 +145,45 @@ export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
   const allFlightLegs = flight.flights || [];
   let outboundLegs: SerpApiFlightLeg[] = [];
   let returnLegs: SerpApiFlightLeg[] = [];
+  let isRoundTripSuccessfullySplit = false;
 
-  if (flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 0) {
+  if (flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 1 && resolvedDestinationIata) {
     let turnaroundIndex = -1;
-    const mainDestinationNamePart = destinationQuery.split(',')[0].trim().toLowerCase();
-    const originNamePart = userInput.origin ? userInput.origin.split(',')[0].trim().toLowerCase() : null;
+    for (let i = 0; i < allFlightLegs.length - 1; i++) {
+        const currentLeg = allFlightLegs[i];
+        const nextLeg = allFlightLegs[i + 1];
 
-    for (let i = 0; i < allFlightLegs.length; i++) {
-      const leg = allFlightLegs[i];
-      const arrivalAirportName = leg.arrival_airport?.name?.toLowerCase() || "";
-      const arrivalAirportId = leg.arrival_airport?.id?.toLowerCase();
+        const currentLegArrivalMatchesDest = currentLeg.arrival_airport?.id?.toLowerCase() === resolvedDestinationIata.toLowerCase();
+        const nextLegDepartureMatchesDest = nextLeg.departure_airport?.id?.toLowerCase() === resolvedDestinationIata.toLowerCase();
 
-      if ((destinationAirportCode && arrivalAirportId === destinationAirportCode.toLowerCase()) || 
-          arrivalAirportName.includes(mainDestinationNamePart)) {
-        turnaroundIndex = i;
-        if (i + 1 < allFlightLegs.length) {
-          const nextLeg = allFlightLegs[i+1];
-          const nextDepartureAirportName = nextLeg.departure_airport?.name?.toLowerCase() || "";
-          const nextDepartureAirportId = nextLeg.departure_airport?.id?.toLowerCase();
-          const nextArrivalAirportName = nextLeg.arrival_airport?.name?.toLowerCase() || "";
-          
-          const departsFromDest = (destinationAirportCode && nextDepartureAirportId === destinationAirportCode.toLowerCase()) ||
-                                  nextDepartureAirportName.includes(mainDestinationNamePart);
-          const arrivesAtOrigin = originNamePart && 
-                                 (nextArrivalAirportName.includes(originNamePart) || 
-                                  allFlightLegs[allFlightLegs.length -1].arrival_airport?.name?.toLowerCase().includes(originNamePart));
-          if (departsFromDest && (arrivesAtOrigin || returnLegs.length > 0) ) {
-            break; 
-          }
+        if (currentLegArrivalMatchesDest && nextLegDepartureMatchesDest) {
+            if (resolvedOriginIata) { 
+                const potentialLastReturnLeg = allFlightLegs[allFlightLegs.length - 1];
+                const lastReturnArrivalMatchesOrigin = potentialLastReturnLeg.arrival_airport?.id?.toLowerCase() === resolvedOriginIata.toLowerCase();
+                if (lastReturnArrivalMatchesOrigin) {
+                    turnaroundIndex = i;
+                    break;
+                }
+            } else {
+                turnaroundIndex = i;
+                break;
+            }
         }
-      }
     }
+
     if (turnaroundIndex !== -1) {
-      outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
-      returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
+        outboundLegs = allFlightLegs.slice(0, turnaroundIndex + 1);
+        returnLegs = allFlightLegs.slice(turnaroundIndex + 1);
+        if (returnLegs.length > 0) {
+            isRoundTripSuccessfullySplit = true;
+        } else {
+            outboundLegs = [...allFlightLegs]; returnLegs = [];
+        }
     } else {
-      if (allFlightLegs.length > 1) {
-        const midPoint = Math.ceil(allFlightLegs.length / 2);
-        outboundLegs = allFlightLegs.slice(0, midPoint);
-        returnLegs = allFlightLegs.slice(midPoint);
-      } else {
-        outboundLegs = allFlightLegs;
-      }
+        outboundLegs = [...allFlightLegs];
     }
   } else { 
-    outboundLegs = allFlightLegs;
+    outboundLegs = [...allFlightLegs];
   }
 
   return (
@@ -190,15 +224,17 @@ export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
             <p><strong className="text-card-foreground/90">Overall Stops:</strong> {flight.derived_stops_description || "N/A"}</p>
           </div>
           
-          {(outboundLegs.length > 0 || returnLegs.length > 0) ? (
+          {isLoadingIata ? (
+              <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin inline mr-2"/>Loading flight leg details...</div>
+          ) : (
               <div className="mt-4 space-y-1.5">
                   {outboundLegs.length > 0 && (
                       <>
                           <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-2 mb-1">Outbound Journey</p>
                           {outboundLegs.map((leg, index) => {
-                              const legOriginalIndex = allFlightLegs.indexOf(leg);
+                              const legOriginalIndexInAll = allFlightLegs.indexOf(leg);
                               const nextLegIsOutbound = index < outboundLegs.length - 1;
-                              const layoverAfterThisLeg = flight.layovers && flight.layovers[legOriginalIndex];
+                              const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndexInAll);
                               return (
                               <React.Fragment key={`out-leg-${index}`}>
                                   <FlightLegDisplay leg={leg} isLast={!nextLegIsOutbound && !layoverAfterThisLeg} />
@@ -217,13 +253,13 @@ export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
                           })}
                       </>
                   )}
-                  {returnLegs.length > 0 && (
+                  {returnLegs.length > 0 && isRoundTripSuccessfullySplit && (
                        <>
                           <p className="text-xs font-medium text-primary/80 uppercase tracking-wider mt-3 mb-1">Return Journey</p>
                           {returnLegs.map((leg, index) => {
-                              const legOriginalIndex = allFlightLegs.indexOf(leg);
+                              const legOriginalIndexInAll = allFlightLegs.indexOf(leg);
                               const nextLegIsReturn = index < returnLegs.length - 1;
-                              const layoverAfterThisLeg = flight.layovers && flight.layovers[legOriginalIndex];
+                              const layoverAfterThisLeg = flight.layovers?.find((_, lIdx) => lIdx === legOriginalIndexInAll);
                               return (
                               <React.Fragment key={`ret-leg-${index}`}>
                                   <FlightLegDisplay leg={leg} isLast={!nextLegIsReturn && !layoverAfterThisLeg}/>
@@ -242,12 +278,13 @@ export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
                           })}
                       </>
                   )}
-                    {outboundLegs.length === allFlightLegs.length && returnLegs.length === 0 && flight.type?.toLowerCase() === 'round trip' && allFlightLegs.length > 0 && (
-                     <p className="text-xs text-muted-foreground italic mt-2">This appears to be a round trip. All flight segments are displayed above under "Outbound Journey" as a clear return start point wasn't automatically identified for separate display.</p>
+                  {!isRoundTripSuccessfullySplit && flight.type?.toLowerCase() === 'round trip' && outboundLegs.length > 0 && (
+                      <p className="text-xs text-muted-foreground italic mt-2">Return journey details could not be automatically separated. All available flight segments are shown under "Outbound Journey".</p>
+                  )}
+                   {outboundLegs.length === 0 && returnLegs.length === 0 && (
+                     <p className="text-xs text-muted-foreground italic mt-3">No detailed flight leg information available for this option.</p>
                    )}
               </div>
-          ) : (
-               <p className="text-xs text-muted-foreground italic mt-3">No detailed flight leg information available for this option.</p>
           )}
 
           {flight.link && (
@@ -271,7 +308,7 @@ export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
                   <TabsTrigger value="gallery" disabled={!hotel.images || hotel.images.length === 0} className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Gallery</TabsTrigger>
                   <TabsTrigger value="map" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Location</TabsTrigger>
               </TabsList>
-              <TabsContent value="overview" className={cn(glassCardClasses, "p-4 rounded-md")}>
+              <TabsContent value="overview" className={cn("p-4 rounded-md", innerGlassEffectClasses)}>
                     <div className="relative aspect-video w-full rounded-md overflow-hidden border border-border/30 group bg-muted/30 mb-3 shadow-md">
                     {hotel.thumbnail ? (
                         <NextImage src={hotel.thumbnail} alt={hotel.name || "Hotel image"} fill className="object-cover group-hover:scale-105 transition-transform" data-ai-hint={hotelMainImageHint} sizes="(max-width: 768px) 90vw, 400px" />
@@ -301,7 +338,7 @@ export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
                     </Button>
                     )}
               </TabsContent>
-              <TabsContent value="gallery" className={cn(glassCardClasses, "p-4 rounded-md")}>
+              <TabsContent value="gallery" className={cn("p-4 rounded-md", innerGlassEffectClasses)}>
                    {hotel.images && hotel.images.length > 0 ? (
                       <Carousel className="w-full max-w-full" opts={{ align: "start", loop: hotel.images.length > 1 }}>
                           <CarouselContent className="-ml-2">
@@ -324,7 +361,7 @@ export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
                       <p className="text-muted-foreground text-center py-4">No additional images available for this hotel.</p>
                   )}
               </TabsContent>
-              <TabsContent value="map" className={cn(glassCardClasses, "p-4 rounded-md")}>
+              <TabsContent value="map" className={cn("p-4 rounded-md", innerGlassEffectClasses)}>
                    {mapsApiKey && (hotel.coordinates?.latitude && hotel.coordinates?.longitude || hotel.name) ? (
                       <div className="aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg">
                       <iframe
@@ -353,21 +390,30 @@ export function PackageDetailView({ tripPackage }: PackageDetailViewProps) {
       <Card className={cn(innerGlassEffectClasses, "border-primary/20")}>
         <CardHeader className="pb-3 pt-4">
           <CardTitle className="text-lg font-semibold text-primary flex items-center">
-            <ListChecks className="w-5 h-5 mr-2" /> Conceptual Daily Activities Outline
+            <ListChecks className="w-5 h-5 mr-2" /> 
+            {suggestedActivities && suggestedActivities.length > 0 ? "Suggested Activities" : "Conceptual Daily Activities Outline"}
           </CardTitle>
            <CardDescription className="text-xs text-muted-foreground">
-            This is a high-level conceptual outline. A detailed, personalized day-by-day plan will be generated by Aura AI if you proceed to "Plan This Package".
+            {suggestedActivities && suggestedActivities.length > 0 
+              ? "Here are some AI-suggested activities for your trip:" 
+              : "This is a high-level conceptual outline. A detailed, personalized day-by-day plan will be generated by Aura AI if you proceed to \"Plan This Package\"."
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-1.5">
-          <div className="space-y-1 relative pl-2">
-            {conceptualDailyPlan.map((item, index) => (
-              <ConceptualDailyPlanDisplay key={`conceptual-day-${index}`} planItem={item} isLast={index === conceptualDailyPlan.length - 1} />
-            ))}
+          <div className="space-y-3 relative pl-2">
+            {suggestedActivities && suggestedActivities.length > 0 ? (
+                suggestedActivities.map((activity, index) => (
+                    <ActivityDisplayCard key={`activity-${index}`} activity={activity} />
+                ))
+            ) : (
+              conceptualDailyPlan.map((item, index) => (
+                <ConceptualDailyPlanDisplay key={`conceptual-day-${index}`} planItem={item} isLast={index === conceptualDailyPlan.length - 1} />
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
