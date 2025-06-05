@@ -1,17 +1,20 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, AlertTriangle, ArrowLeft, Ticket, Save, Info } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowLeft, Ticket, Save, Info, Compass as CompassIcon } from 'lucide-react';
 import { PackageDetailView } from '@/components/trip-planner/PackageDetailView';
 import type { TripPackageSuggestion } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAddSavedPackage } from '@/lib/firestoreHooks';
 import { useToast } from '@/hooks/use-toast';
+import { getLocalInsiderTips } from '@/app/actions';
+import type { LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-flow';
+import { LocalInsiderTipsDisplay } from '@/components/common/LocalInsiderTipsDisplay';
+import { Separator } from '@/components/ui/separator';
 
 const glassCardClasses = "glass-card";
 const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
@@ -27,22 +30,30 @@ export default function FullPackageDetailPage() {
   const [packageDetail, setPackageDetail] = useState<TripPackageSuggestion | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [localTips, setLocalTips] = useState<LocalInsiderTipsOutput | null>(null);
+  const [isLoadingTips, setIsLoadingTips] = useState(false);
 
   useEffect(() => {
     if (params.packageId && typeof params.packageId === 'string') {
       try {
-        // Attempt to retrieve from localStorage first (for immediate display)
         const storedData = localStorage.getItem(`tripPackageData_${params.packageId}`);
         if (storedData) {
           const parsedData = JSON.parse(storedData);
           setPackageDetail(parsedData);
           setIsLoading(false);
+
+          setIsLoadingTips(true);
+          getLocalInsiderTips({ destination: parsedData.destinationQuery })
+            .then(setLocalTips)
+            .catch(tipError => {
+              console.error("Failed to fetch local tips for package page:", tipError);
+              toast({ title: "Tips Error", description: "Could not load local insights for this package.", variant: "default" });
+            })
+            .finally(() => setIsLoadingTips(false));
+
         } else {
-          // If not in localStorage (e.g., direct link access or cleared cache),
-          // a real app might fetch this from a backend/DB using packageId.
-          // For this demo, we'll show an error if not found in localStorage.
           console.warn(`Package with ID ${params.packageId} not found in localStorage.`);
-          setError("Package details not found. It might have expired, been cleared from cache, or the link is incorrect. Please try planning again.");
+          setError("Package details not found. It might have expired or the link is incorrect. Please try planning again.");
           setIsLoading(false);
         }
       } catch (e) {
@@ -54,12 +65,12 @@ export default function FullPackageDetailPage() {
       setError("Invalid package identifier.");
       setIsLoading(false);
     }
-  }, [params.packageId]);
+  }, [params.packageId, toast]);
 
   const handleSavePackage = async () => {
     if (!packageDetail) return;
      if (!currentUser?.uid) {
-      toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
+      toast({ title: "Authentication Error", description: "Please log in to save this package.", variant = "destructive"});
       return;
     }
     const packageToSave: TripPackageSuggestion = { ...packageDetail, userId: currentUser.uid, createdAt: new Date().toISOString() };
@@ -68,7 +79,7 @@ export default function FullPackageDetailPage() {
       await addSavedPackageMutation.mutateAsync(packageToSave);
       toast({ title: "Package Saved!", description: `Trip package to ${packageDetail.destinationQuery} saved to your dashboard.` });
     } catch (err: any) {
-      toast({ title: "Save Error", description: err.message || "Could not save the trip package.", variant: "destructive" });
+      toast({ title: "Save Error", description: err.message || "Could not save the trip package.", variant = "destructive" });
     }
   };
 
@@ -138,8 +149,27 @@ export default function FullPackageDetailPage() {
         </CardHeader>
       </Card>
 
-      {/* Pass tripPackage to PackageDetailView */}
       <PackageDetailView tripPackage={packageDetail} />
+
+      {isLoadingTips && (
+        <div className="text-center py-6 text-muted-foreground mt-8">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-accent" />
+          <p>Fetching Local Insider Tips...</p>
+        </div>
+      )}
+      {!isLoadingTips && localTips && (
+        <div className="mt-8">
+          <Separator className="my-6 border-border/40" />
+          <LocalInsiderTipsDisplay tipsData={localTips} destinationName={packageDetail.destinationQuery} />
+        </div>
+      )}
+      {!isLoadingTips && !localTips && !isLoading && ( // Only show if not initial loading and no tips
+        <Card className={cn(glassCardClasses, "mt-8 p-6 text-center text-muted-foreground")}>
+          <CompassIcon className="w-10 h-10 mx-auto mb-2 opacity-70" />
+          Could not load local insider tips for {packageDetail.destinationQuery} at this moment.
+        </Card>
+      )}
+
 
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
          <Button
