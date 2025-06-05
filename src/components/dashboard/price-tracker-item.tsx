@@ -6,20 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plane, Hotel, DollarSign, Tag, Trash2, RefreshCw, Bell, Sparkles, Loader2, TrendingUp, LineChart, CalendarDays, MapPin, CheckCircle, Info } from "lucide-react";
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import { getPriceAdvice, PriceAdvisorInput as AIPAdInput } from "@/ai/flows/price-advisor-flow"; 
 import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow.ts";
-import React, { useState } from "react"; // Added useState
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { PriceForecastChart } from "./PriceForecastChart"; 
-import { Switch } from "@/components/ui/switch"; // Added Switch import
-import { Separator } from "@/components/ui/separator"; // Added Separator
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions";
+import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types";
 
 type PriceTrackerItemProps = {
   item: PriceTrackerEntry;
@@ -34,7 +36,7 @@ const glassEffectClasses = "glass-card";
 export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating, isRemoving }: PriceTrackerItemProps) {
   const { toast } = useToast();
   const [isRecheckingPriceAI, setIsRecheckingPriceAI] = React.useState(false);
-  const [newCurrentPrice, setNewCurrentPrice] = React.useState<string>(item.currentPrice.toString());
+  const [newCurrentPriceManualInput, setNewCurrentPriceManualInput] = React.useState<string>(item.currentPrice.toString());
   const [isRecheckDialogOpen, setIsRecheckDialogOpen] = React.useState(false);
   const [recheckDialogAiAlert, setRecheckDialogAiAlert] = React.useState<PriceTrackerOutput | null>(null);
   
@@ -44,7 +46,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   const [isForecastChartDialogOpen, setIsForecastChartDialogOpen] = React.useState(false);
   const [simulatedChartData, setSimulatedChartData] = React.useState<Array<{ time: string; price: number | null }>>([]);
 
-  const [enableAutoBook, setEnableAutoBook] = useState(false); // State for conceptual auto-book
+  const [enableAutoBook, setEnableAutoBook] = useState(false);
 
   const handleAutoBookToggle = (checked: boolean) => {
     setEnableAutoBook(checked);
@@ -57,27 +59,144 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     });
   };
 
-  const handleRecheckPriceSubmit = async () => {
-    const currentPriceNum = parseFloat(newCurrentPrice);
-    if (isNaN(currentPriceNum) || currentPriceNum <= 0) {
-      toast({ title: "Invalid Price", description: "Please enter a valid current price.", variant: "destructive" });
-      return;
+  const triggerClientSideNotification = (title: string, body: string) => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "granted") {
+        new Notification(title, { body });
+      } else if (Notification.permission !== "denied") {
+        // We could ask for permission here, but for now, we'll assume it's granted or user handles it via settings.
+        console.log("Notification permission not granted. Consider asking user to enable them.");
+      }
     }
+  };
+  
+  const parseFlexibleDatesForSerpApi = (dateString?: string): { departureDate: string; returnDate?: string } | null => {
+    if (!dateString) return null;
+    // Basic parsing, assuming "YYYY-MM-DD - YYYY-MM-DD" or "YYYY-MM-DD" for one-way
+    // Or descriptive like "Mid-December". For SerpApi, specific dates are better.
+    // This is a simplified parser. A robust one would be in utils.
+    const parts = dateString.split(' - ');
+    try {
+      if (parts.length === 2) {
+        return { departureDate: format(parseISO(parts[0]), "yyyy-MM-dd"), returnDate: format(parseISO(parts[1]), "yyyy-MM-dd") };
+      } else if (parts.length === 1 && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+         return { departureDate: format(parseISO(parts[0]), "yyyy-MM-dd") };
+      } else {
+        // Try to guess a date range if descriptive. Default to next month for 7 days.
+        // This part needs more robust date parsing logic for descriptive dates.
+        // For now, let's assume it's a specific date or we use a default.
+        const now = new Date();
+        const defaultStart = format(new Date(now.setMonth(now.getMonth() + 1)), "yyyy-MM-dd");
+        const defaultEnd = format(new Date(now.setDate(now.getDate() + 7)), "yyyy-MM-dd");
+        console.warn(`Could not parse travelDates "${dateString}" for SerpApi, using default future dates.`);
+        return { departureDate: defaultStart, returnDate: defaultEnd };
+      }
+    } catch (e) {
+      console.error("Error parsing travelDates for SerpApi:", e);
+      return null; // Or some default dates
+    }
+  };
 
+
+  const handleRecheckPriceSubmit = async (manualPriceInput?: string) => {
     setIsRecheckingPriceAI(true);
     setRecheckDialogAiAlert(null);
+    let latestPrice: number | undefined = undefined;
+    let priceSource = "manual input";
+
+    if (manualPriceInput) {
+        const parsedManualPrice = parseFloat(manualPriceInput);
+        if (!isNaN(parsedManualPrice) && parsedManualPrice > 0) {
+            latestPrice = parsedManualPrice;
+        } else {
+            toast({ title: "Invalid Price", description: "Please enter a valid current price for manual update.", variant: "destructive" });
+            setIsRecheckingPriceAI(false);
+            return;
+        }
+    } else { // Fetch from SerpApi
+        priceSource = "SerpApi";
+        const parsedDates = parseFlexibleDatesForSerpApi(item.travelDates);
+        if (!parsedDates) {
+            toast({ title: "Date Error", description: "Travel dates are unclear or missing for SerpApi re-check.", variant: "destructive" });
+            setIsRecheckingPriceAI(false);
+            return;
+        }
+
+        try {
+            if (item.itemType === "flight") {
+                if (!item.originCity || !item.destination) {
+                    toast({ title: "Flight Info Missing", description: "Origin/Destination needed for flight re-check.", variant: "destructive" });
+                    setIsRecheckingPriceAI(false); return;
+                }
+                const flightResults = await getRealFlightsAction({
+                    origin: item.originCity,
+                    destination: item.destination,
+                    departureDate: parsedDates.departureDate,
+                    returnDate: parsedDates.returnDate,
+                    tripType: parsedDates.returnDate ? "round-trip" : "one-way",
+                });
+                // Try to find a matching flight. This is complex.
+                // For simplicity, we'll take the cheapest best_flight or other_flight that seems to match.
+                // A more robust solution would involve storing specific flight identifiers if available.
+                const potentialFlights = (flightResults.best_flights || []).concat(flightResults.other_flights || []);
+                const foundFlight = potentialFlights.find(f => f.airline?.toLowerCase().includes(item.itemName.split(" ")[0].toLowerCase()) || f.derived_flight_numbers?.includes(item.itemName.split(" ")[1])); // Basic matching
+                if (foundFlight?.price) {
+                    latestPrice = foundFlight.price;
+                } else if (potentialFlights[0]?.price) {
+                    latestPrice = potentialFlights[0].price; // Fallback to cheapest if no good match
+                    toast({title: "Note", description: "Could not find exact flight, showing cheapest similar option.", variant: "default"});
+                }
+
+            } else if (item.itemType === "hotel") {
+                if (!item.destination) {
+                     toast({ title: "Hotel Info Missing", description: "Hotel location needed for re-check.", variant: "destructive" });
+                     setIsRecheckingPriceAI(false); return;
+                }
+                const hotelResults = await getRealHotelsAction({
+                    destination: item.destination,
+                    checkInDate: parsedDates.departureDate,
+                    checkOutDate: parsedDates.returnDate || format(new Date(new Date(parsedDates.departureDate).setDate(new Date(parsedDates.departureDate).getDate() + 1)), "yyyy-MM-dd"), // Default 1 night if no return
+                    guests: "2", // Assuming 2 guests for re-check simplicity
+                });
+                // Try to find matching hotel
+                const foundHotel = hotelResults.hotels?.find(h => h.name?.toLowerCase().includes(item.itemName.toLowerCase()));
+                if (foundHotel?.price_per_night) {
+                    // Assuming targetPrice for hotels could be per night or total.
+                    // For simplicity, if item.targetPrice seems like a per-night price, use price_per_night.
+                    // This logic needs to be robust based on how target prices are set.
+                    latestPrice = foundHotel.price_per_night; 
+                } else if (hotelResults.hotels?.[0]?.price_per_night) {
+                    latestPrice = hotelResults.hotels[0].price_per_night;
+                    toast({title: "Note", description: "Could not find exact hotel, showing cheapest similar option.", variant: "default"});
+                }
+            }
+        } catch (apiError: any) {
+            console.error("Error fetching latest price from SerpApi:", apiError);
+            toast({ title: "SerpApi Error", description: `Could not fetch latest price: ${apiError.message}`, variant: "destructive" });
+            setIsRecheckingPriceAI(false);
+            return;
+        }
+    }
+
+    if (latestPrice === undefined) {
+        toast({ title: "Re-check Failed", description: `Could not determine the new price for ${item.itemName} from ${priceSource}.`, variant: "destructive" });
+        setIsRecheckingPriceAI(false);
+        if (isRecheckDialogOpen) setIsRecheckDialogOpen(false);
+        return;
+    }
+
     try {
-      const input: PriceTrackerInput = {
+      const alertInput: PriceTrackerInput = {
         itemType: item.itemType,
         itemName: item.itemName,
         targetPrice: item.targetPrice,
-        currentPrice: currentPriceNum,
+        currentPrice: latestPrice,
       };
-      const alertResult = await trackPrice(input);
+      const alertResult = await trackPrice(alertInput);
       setRecheckDialogAiAlert(alertResult); 
       
       const dataToUpdate: Partial<Omit<PriceTrackerEntry, 'id'>> = {
-        currentPrice: currentPriceNum,
+        currentPrice: latestPrice,
         alertStatus: alertResult,
         lastChecked: new Date().toISOString(),
       };
@@ -85,22 +204,25 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
 
       toast({
         title: "Price Re-checked",
-        description: `Latest price for ${item.itemName} updated.`,
+        description: `Latest price for ${item.itemName} (${priceSource}) updated to $${latestPrice.toLocaleString()}.`,
       });
+
       if (alertResult.shouldAlert) {
-        toast({
-          title: "Price Alert!",
-          description: alertResult.alertMessage,
-          duration: 10000,
-        });
+        const alertTitle = `Price Alert for ${item.itemName}!`;
+        const alertBody = alertResult.alertMessage;
+        toast({ title: alertTitle, description: `${alertBody} (Email/Push would be sent in a full system.)`, duration: 10000 });
+        triggerClientSideNotification(alertTitle, alertBody);
       }
+      if (isRecheckDialogOpen && !manualPriceInput) setIsRecheckDialogOpen(false); // Close dialog if SerpApi check was successful
+
     } catch (error) {
-      console.error("Error re-checking price:", error);
-      toast({ title: "Error", description: "Could not re-check price.", variant: "destructive" });
+      console.error("Error processing price re-check:", error);
+      toast({ title: "Error", description: "Could not update price tracker item.", variant: "destructive" });
     } finally {
       setIsRecheckingPriceAI(false);
     }
   };
+
 
   const handleGetAiAdvice = async () => {
     setIsAiAdviceLoading(true);
@@ -187,7 +309,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   };
   
   const IconComponent = item.itemType === 'flight' ? Plane : Hotel;
-  const isCurrentlyUpdating = isUpdating || isRecheckingPriceAI || isAiAdviceLoading || isPriceForecastLoading;
+  const isCurrentlyUpdatingAnyAI = isUpdating || isRecheckingPriceAI || isAiAdviceLoading || isPriceForecastLoading;
 
   return (
     <>
@@ -220,11 +342,12 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
                   <AlertTitle className="text-xs font-semibold mb-0.5">{item.alertStatus.shouldAlert ? "Action Recommended!" : "Status"}</AlertTitle>
                   <AlertDescription className="text-xs">
                     {item.alertStatus.alertMessage}
+                    {item.alertStatus.shouldAlert && <span className="block mt-1 text-xs italic opacity-80">(Email/Push notification would be sent in a full system)</span>}
                   </AlertDescription>
                 </Alert>
           )}
 
-          {(isAiAdviceLoading || (isCurrentlyUpdating && !item.aiAdvice && !item.priceForecast)) && (
+          {(isCurrentlyUpdatingAnyAI && !item.aiAdvice && !item.priceForecast) && (
             <div className="flex items-center justify-center p-3 bg-muted/30 rounded-md">
               <Loader2 className="w-5 h-5 mr-2 animate-spin text-primary" />
               <span className="text-xs text-muted-foreground">AI is working...</span>
@@ -286,24 +409,24 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
 
         </CardContent>
         <CardFooter className="grid grid-cols-2 gap-2 pt-3">
-          <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
+          <Button onClick={handleGetAiAdvice} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdatingAnyAI}>
               {isAiAdviceLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
               Advice
           </Button>
-          <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
+          <Button onClick={handleGetPriceForecast} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdatingAnyAI}>
               {isPriceForecastLoading ? <Loader2 className="animate-spin" /> : <TrendingUp />}
               Forecast
           </Button>
           {simulatedChartData.length > 0 && item.priceForecast && (
-              <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive col-span-2" disabled={isCurrentlyUpdating}>
+              <Button onClick={() => setIsForecastChartDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive col-span-2" disabled={isCurrentlyUpdatingAnyAI}>
                   <LineChart />
                   View Trend Graph
               </Button>
           )}
-           <Button onClick={() => { setNewCurrentPrice(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdating}>
+           <Button onClick={() => { setNewCurrentPriceManualInput(item.currentPrice.toString()); setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(true); }} variant="outline" size="sm" className="w-full glass-interactive" disabled={isCurrentlyUpdatingAnyAI}>
             <RefreshCw className="mr-2 h-4 w-4" /> Re-check
           </Button>
-          <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive-foreground" disabled={isRemoving || isCurrentlyUpdating}>
+          <Button onClick={() => onRemoveItem(item.id)} variant="ghost" size="sm" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive-foreground" disabled={isRemoving || isCurrentlyUpdatingAnyAI}>
             {isRemoving ? <Loader2 className="animate-spin" /> : <Trash2 className="h-4 w-4" />}
              <span className="ml-2">Remove</span>
           </Button>
@@ -315,19 +438,19 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
           <DialogHeader>
             <DialogTitle className="text-card-foreground">Re-check Price for {item.itemName}</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Enter the new current price to get an updated AI analysis.
+              Enter the new current price manually OR let AI try to fetch it via SerpApi.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="newCurrentPrice" className="text-right col-span-1 text-card-foreground/90">
-                New Price
+              <Label htmlFor="newCurrentPriceManualInput" className="text-right col-span-1 text-card-foreground/90">
+                Manual Price
               </Label>
               <Input
-                id="newCurrentPrice"
+                id="newCurrentPriceManualInput"
                 type="number"
-                value={newCurrentPrice}
-                onChange={(e) => setNewCurrentPrice(e.target.value)}
+                value={newCurrentPriceManualInput}
+                onChange={(e) => setNewCurrentPriceManualInput(e.target.value)}
                 className="col-span-3 bg-background/70 dark:bg-input/50 border-border/70 focus:bg-input/90"
                 placeholder={item.currentPrice.toString()}
               />
@@ -338,18 +461,23 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
                 <AlertTitle className="text-card-foreground">{recheckDialogAiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
                 <AlertDescription className="text-muted-foreground">
                   {recheckDialogAiAlert.alertMessage}
+                  {recheckDialogAiAlert.shouldAlert && <span className="block mt-1 text-xs italic opacity-80">(Email/Push notification would be sent in a full system. Client notification was attempted.)</span>}
                 </AlertDescription>
               </Alert>
             )}
           </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline" onClick={() => {setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(false);}} className="glass-interactive bg-card/70 hover:bg-muted/20 border-border/70">Cancel</Button>
-            </DialogClose>
-            <Button onClick={handleRecheckPriceSubmit} disabled={isRecheckingPriceAI || isUpdating} className="shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
-              {isRecheckingPriceAI ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Check Now
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+             <Button variant="outline" onClick={() => handleRecheckPriceSubmit()} disabled={isRecheckingPriceAI || isUpdating} className="w-full sm:w-auto glass-interactive">
+              {isRecheckingPriceAI ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              Use SerpApi to Fetch
             </Button>
+            <Button onClick={() => handleRecheckPriceSubmit(newCurrentPriceManualInput)} disabled={isRecheckingPriceAI || isUpdating} className="w-full sm:w-auto shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
+              {isRecheckingPriceAI ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Update Manually
+            </Button>
+            <DialogClose asChild>
+                <Button variant="ghost" onClick={() => {setRecheckDialogAiAlert(null); setIsRecheckDialogOpen(false);}} className="w-full sm:w-auto glass-interactive bg-card/70 hover:bg-muted/20 border-border/70 mt-2 sm:mt-0">Cancel</Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
