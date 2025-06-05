@@ -41,6 +41,7 @@ import { DynamicItineraryOptimizerPlaceholder } from "@/components/dashboard/Dyn
 import { SmartBudgetingAssistantPlaceholder } from "@/components/dashboard/SmartBudgetingAssistantPlaceholder";
 import { AiRiskScenarioSimulatorCard } from "@/components/dashboard/AiRiskScenarioSimulatorCard";
 import { WhatIfPlanChangeCard } from "@/components/dashboard/WhatIfPlanChangeCard";
+import { ProactiveJourneySentinelCard } from "@/components/dashboard/ProactiveJourneySentinelCard";
 
 
 export default function DashboardPage() {
@@ -222,6 +223,10 @@ export default function DashboardPage() {
             </p>
           </CardFooter>
         </Card>
+
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.23s'}}>
+          <ProactiveJourneySentinelCard />
+        </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.25s'}}>
           <LocalInsiderTipsCard />
