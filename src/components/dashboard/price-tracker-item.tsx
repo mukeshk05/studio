@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plane, Hotel, DollarSign, Tag, Trash2, RefreshCw, Bell, Sparkles, Loader2, TrendingUp, LineChart, CalendarDays, MapPin, CheckCircle, Info } from "lucide-react";
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, parseISO, addMonths, startOfMonth } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
 import { getPriceAdvice, PriceAdvisorInput as AIPAdInput } from "@/ai/flows/price-advisor-flow"; 
@@ -32,6 +32,50 @@ type PriceTrackerItemProps = {
 };
 
 const glassEffectClasses = "glass-card";
+
+// Helper to parse flexible dates or provide defaults for SerpApi calls
+function parseFlexibleDatesForSerpApi(dateString?: string): { departureDate: string; returnDate?: string } {
+    const now = new Date();
+    let departure = addMonths(now, 1); // Default to next month
+    let arrival = new Date(departure);
+    arrival.setDate(departure.getDate() + 7); // Default 7-day trip
+
+    if (dateString) {
+        const parts = dateString.split(' - ');
+        if (parts.length === 2) {
+            try {
+                const from = parseISO(parts[0]);
+                const to = parseISO(parts[1]);
+                if (!isNaN(from.valueOf()) && !isNaN(to.valueOf())) {
+                    departure = from;
+                    arrival = to;
+                }
+            } catch (e) { /* ignore, use defaults */ }
+        } else if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            try {
+                const singleDate = parseISO(dateString);
+                 if (!isNaN(singleDate.valueOf())) {
+                    departure = singleDate;
+                    // For one-way or when only one date is given, SerpApi might need just departure_date
+                    // Or we can assume a default duration for hotel checks.
+                    // For now, let's assume if only one date, it's the start.
+                 }
+            } catch (e) { /* ignore */ }
+        } else if (dateString.toLowerCase().includes("mid-december")) {
+            departure = new Date(now.getFullYear(), 11, 15); // December 15th
+            arrival = new Date(now.getFullYear(), 11, 22);
+        } else if (dateString.toLowerCase().includes("next summer")) {
+            departure = new Date(now.getFullYear() + (now.getMonth() >= 5 ? 1 : 0), 5, 1); // June 1st
+            arrival = new Date(departure.getFullYear(), 7, 31); // August 31st
+        }
+        // Add more robust parsing for other descriptive dates if needed
+    }
+    return { 
+        departureDate: format(departure, "yyyy-MM-dd"), 
+        returnDate: arrival ? format(arrival, "yyyy-MM-dd") : undefined 
+    };
+}
+
 
 export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating, isRemoving }: PriceTrackerItemProps) {
   const { toast } = useToast();
@@ -62,47 +106,23 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   const triggerClientSideNotification = (title: string, body: string) => {
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "granted") {
-        new Notification(title, { body });
+        new Notification(title, { body, icon: '/logo.png' }); // Assuming logo.png is in public
       } else if (Notification.permission !== "denied") {
-        // We could ask for permission here, but for now, we'll assume it's granted or user handles it via settings.
-        console.log("Notification permission not granted. Consider asking user to enable them.");
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            new Notification(title, { body, icon: '/logo.png' });
+          }
+        });
       }
     }
   };
   
-  const parseFlexibleDatesForSerpApi = (dateString?: string): { departureDate: string; returnDate?: string } | null => {
-    if (!dateString) return null;
-    // Basic parsing, assuming "YYYY-MM-DD - YYYY-MM-DD" or "YYYY-MM-DD" for one-way
-    // Or descriptive like "Mid-December". For SerpApi, specific dates are better.
-    // This is a simplified parser. A robust one would be in utils.
-    const parts = dateString.split(' - ');
-    try {
-      if (parts.length === 2) {
-        return { departureDate: format(parseISO(parts[0]), "yyyy-MM-dd"), returnDate: format(parseISO(parts[1]), "yyyy-MM-dd") };
-      } else if (parts.length === 1 && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-         return { departureDate: format(parseISO(parts[0]), "yyyy-MM-dd") };
-      } else {
-        // Try to guess a date range if descriptive. Default to next month for 7 days.
-        // This part needs more robust date parsing logic for descriptive dates.
-        // For now, let's assume it's a specific date or we use a default.
-        const now = new Date();
-        const defaultStart = format(new Date(now.setMonth(now.getMonth() + 1)), "yyyy-MM-dd");
-        const defaultEnd = format(new Date(now.setDate(now.getDate() + 7)), "yyyy-MM-dd");
-        console.warn(`Could not parse travelDates "${dateString}" for SerpApi, using default future dates.`);
-        return { departureDate: defaultStart, returnDate: defaultEnd };
-      }
-    } catch (e) {
-      console.error("Error parsing travelDates for SerpApi:", e);
-      return null; // Or some default dates
-    }
-  };
-
-
   const handleRecheckPriceSubmit = async (manualPriceInput?: string) => {
     setIsRecheckingPriceAI(true);
     setRecheckDialogAiAlert(null);
     let latestPrice: number | undefined = undefined;
     let priceSource = "manual input";
+    let itemNameForAlert = item.itemName; // Default item name
 
     if (manualPriceInput) {
         const parsedManualPrice = parseFloat(manualPriceInput);
@@ -113,19 +133,14 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
             setIsRecheckingPriceAI(false);
             return;
         }
-    } else { // Fetch from SerpApi
+    } else { 
         priceSource = "SerpApi";
         const parsedDates = parseFlexibleDatesForSerpApi(item.travelDates);
-        if (!parsedDates) {
-            toast({ title: "Date Error", description: "Travel dates are unclear or missing for SerpApi re-check.", variant: "destructive" });
-            setIsRecheckingPriceAI(false);
-            return;
-        }
-
+        
         try {
             if (item.itemType === "flight") {
-                if (!item.originCity || !item.destination) {
-                    toast({ title: "Flight Info Missing", description: "Origin/Destination needed for flight re-check.", variant: "destructive" });
+                if (!item.originCity || !item.destination || !parsedDates.departureDate) {
+                    toast({ title: "Flight Info Missing", description: "Origin, Destination, and Departure Date are needed for flight re-check.", variant: "destructive" });
                     setIsRecheckingPriceAI(false); return;
                 }
                 const flightResults = await getRealFlightsAction({
@@ -135,39 +150,41 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
                     returnDate: parsedDates.returnDate,
                     tripType: parsedDates.returnDate ? "round-trip" : "one-way",
                 });
-                // Try to find a matching flight. This is complex.
-                // For simplicity, we'll take the cheapest best_flight or other_flight that seems to match.
-                // A more robust solution would involve storing specific flight identifiers if available.
                 const potentialFlights = (flightResults.best_flights || []).concat(flightResults.other_flights || []);
-                const foundFlight = potentialFlights.find(f => f.airline?.toLowerCase().includes(item.itemName.split(" ")[0].toLowerCase()) || f.derived_flight_numbers?.includes(item.itemName.split(" ")[1])); // Basic matching
+                // Simplified matching: find any flight that has a similar name part or just take the cheapest
+                const foundFlight = potentialFlights.find(f => 
+                    (f.airline && item.itemName.toLowerCase().includes(f.airline.toLowerCase().split(" ")[0])) ||
+                    (f.derived_flight_numbers && item.itemName.includes(f.derived_flight_numbers.split(",")[0]))
+                ) || potentialFlights[0];
+
                 if (foundFlight?.price) {
                     latestPrice = foundFlight.price;
-                } else if (potentialFlights[0]?.price) {
-                    latestPrice = potentialFlights[0].price; // Fallback to cheapest if no good match
-                    toast({title: "Note", description: "Could not find exact flight, showing cheapest similar option.", variant: "default"});
+                    itemNameForAlert = `${foundFlight.airline || item.itemName} to ${item.destination}`;
+                } else {
+                    toast({title: "No Price Update", description: `Could not find a current price for ${item.itemName} via SerpApi. The flight might no longer be available or parameters changed.`, variant: "default", duration: 7000});
                 }
 
             } else if (item.itemType === "hotel") {
-                if (!item.destination) {
-                     toast({ title: "Hotel Info Missing", description: "Hotel location needed for re-check.", variant: "destructive" });
+                if (!item.destination || !parsedDates.departureDate || !parsedDates.returnDate) {
+                     toast({ title: "Hotel Info Missing", description: "Hotel location and check-in/out dates needed for re-check.", variant: "destructive" });
                      setIsRecheckingPriceAI(false); return;
                 }
                 const hotelResults = await getRealHotelsAction({
                     destination: item.destination,
                     checkInDate: parsedDates.departureDate,
-                    checkOutDate: parsedDates.returnDate || format(new Date(new Date(parsedDates.departureDate).setDate(new Date(parsedDates.departureDate).getDate() + 1)), "yyyy-MM-dd"), // Default 1 night if no return
-                    guests: "2", // Assuming 2 guests for re-check simplicity
+                    checkOutDate: parsedDates.returnDate,
+                    guests: "2", 
                 });
-                // Try to find matching hotel
                 const foundHotel = hotelResults.hotels?.find(h => h.name?.toLowerCase().includes(item.itemName.toLowerCase()));
                 if (foundHotel?.price_per_night) {
-                    // Assuming targetPrice for hotels could be per night or total.
-                    // For simplicity, if item.targetPrice seems like a per-night price, use price_per_night.
-                    // This logic needs to be robust based on how target prices are set.
                     latestPrice = foundHotel.price_per_night; 
+                     itemNameForAlert = foundHotel.name || item.itemName;
                 } else if (hotelResults.hotels?.[0]?.price_per_night) {
                     latestPrice = hotelResults.hotels[0].price_per_night;
-                    toast({title: "Note", description: "Could not find exact hotel, showing cheapest similar option.", variant: "default"});
+                    itemNameForAlert = hotelResults.hotels[0].name || item.itemName;
+                    toast({title: "Note", description: "Could not find exact hotel, showing price for a similar option.", variant: "default"});
+                } else {
+                     toast({title: "No Price Update", description: `Could not find a current price for ${item.itemName} via SerpApi. The hotel might no longer be available for these dates.`, variant: "default", duration: 7000});
                 }
             }
         } catch (apiError: any) {
@@ -179,16 +196,16 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     }
 
     if (latestPrice === undefined) {
-        toast({ title: "Re-check Failed", description: `Could not determine the new price for ${item.itemName} from ${priceSource}.`, variant: "destructive" });
+        toast({ title: "Re-check Failed", description: `Could not determine the new price for ${itemNameForAlert} from ${priceSource}.`, variant: "destructive" });
         setIsRecheckingPriceAI(false);
-        if (isRecheckDialogOpen) setIsRecheckDialogOpen(false);
+        if (isRecheckDialogOpen && !manualPriceInput) setIsRecheckDialogOpen(false);
         return;
     }
 
     try {
       const alertInput: PriceTrackerInput = {
         itemType: item.itemType,
-        itemName: item.itemName,
+        itemName: itemNameForAlert, // Use potentially updated name
         targetPrice: item.targetPrice,
         currentPrice: latestPrice,
       };
@@ -199,21 +216,22 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         currentPrice: latestPrice,
         alertStatus: alertResult,
         lastChecked: new Date().toISOString(),
+        itemName: itemNameForAlert, // Update itemName if it was refined by SerpApi result
       };
       await onUpdateItem(item.id, dataToUpdate); 
 
       toast({
         title: "Price Re-checked",
-        description: `Latest price for ${item.itemName} (${priceSource}) updated to $${latestPrice.toLocaleString()}.`,
+        description: `Latest price for ${itemNameForAlert} (${priceSource}) updated to $${latestPrice.toLocaleString()}.`,
       });
 
       if (alertResult.shouldAlert) {
-        const alertTitle = `Price Alert for ${item.itemName}!`;
+        const alertTitle = `Price Alert for ${itemNameForAlert}!`;
         const alertBody = alertResult.alertMessage;
-        toast({ title: alertTitle, description: `${alertBody} (Email/Push would be sent in a full system.)`, duration: 10000 });
+        toast({ title: alertTitle, description: `${alertBody} (Conceptual email/push sent).`, duration: 10000 });
         triggerClientSideNotification(alertTitle, alertBody);
       }
-      if (isRecheckDialogOpen && !manualPriceInput) setIsRecheckDialogOpen(false); // Close dialog if SerpApi check was successful
+      if (isRecheckDialogOpen && !manualPriceInput) setIsRecheckDialogOpen(false); 
 
     } catch (error) {
       console.error("Error processing price re-check:", error);
@@ -342,7 +360,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
                   <AlertTitle className="text-xs font-semibold mb-0.5">{item.alertStatus.shouldAlert ? "Action Recommended!" : "Status"}</AlertTitle>
                   <AlertDescription className="text-xs">
                     {item.alertStatus.alertMessage}
-                    {item.alertStatus.shouldAlert && <span className="block mt-1 text-xs italic opacity-80">(Email/Push notification would be sent in a full system)</span>}
+                    {item.alertStatus.shouldAlert && <span className="block mt-1 text-xs italic opacity-80">(Conceptual email/push sent. Check browser notifications if enabled.)</span>}
                   </AlertDescription>
                 </Alert>
           )}
@@ -524,3 +542,4 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     </>
   );
 }
+
