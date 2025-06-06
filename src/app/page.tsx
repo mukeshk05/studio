@@ -220,7 +220,7 @@ export default function LandingPage() {
     
     if (isMapsApiLoaded && searchInputRef.current && !autocompleteRef.current) {
       autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-        types: ['(regions)', '(cities)'], // Bias towards regions and cities
+        types: ['(regions)'], // Use (regions) for broader destination search
         fields: ['name', 'formatted_address', 'geometry.location']
       });
       autocompleteRef.current.addListener('place_changed', () => {
@@ -247,7 +247,7 @@ export default function LandingPage() {
       });
     }
 
-  }, [isMapsApiLoaded, map, isMapInitializing, initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser]); // currentUser dependency for smart bundles
+  }, [isMapsApiLoaded, map, isMapInitializing, initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser, toast]); // Added toast
 
   const handleMapItemSelect = useCallback((item: MapDisplayItem) => {
     setSelectedMapItem(item);
@@ -543,5 +543,3 @@ export default function LandingPage() {
       />
     </div>
   );
-}
-
