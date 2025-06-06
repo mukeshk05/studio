@@ -2,10 +2,10 @@
 "use client";
 
 import Link from 'next/link';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react'; // Added useMemo
 import { AppLogo } from '@/components/layout/app-logo';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { HomePagePackageCard } from '@/components/landing/HomePagePackageCard';
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +34,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-xl";
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 
+
 const exploreCategories = [
   { name: "Flights", icon: <Plane className="w-5 h-5" />, href: "/flights" },
   { name: "Hotels", icon: <Hotel className="w-5 h-5" />, href: "/hotels" },
@@ -42,6 +43,39 @@ const exploreCategories = [
 ];
 
 interface UserLocation { latitude: number; longitude: number; }
+
+interface SearchInputPropsLanding {
+  initialSearchTerm?: string;
+  onSearch?: (term: string) => void;
+  placeholder?: string;
+}
+
+function SearchInputLanding({ initialSearchTerm = '', onSearch, placeholder = "Search destinations, hotels, flights..."}: SearchInputPropsLanding) {
+   const [term, setTerm] = useState(initialSearchTerm);
+   const { toast: shadcnToast } = useToast();
+   const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onSearch) onSearch(term);
+    shadcnToast({
+        title: "Search Submitted (Conceptual)",
+        description: `You searched for: ${term}. This would typically trigger a search or navigation to a results page.`,
+    });
+  };
+  return (
+    <form onSubmit={handleSubmit} className="relative w-full">
+      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+      <Input
+        type="search"
+        value={term}
+        onChange={(e) => setTerm(e.target.value)}
+        placeholder={placeholder}
+        className="w-full pl-11 pr-4 py-2.5 h-12 text-base bg-input/70 border-border/50 focus:bg-input/90 dark:bg-input/50 rounded-full shadow-inner focus:ring-2 focus:ring-primary/50"
+      />
+      <button type="submit" className="hidden">Search</button>
+    </form>
+  );
+}
+
 
 export default function LandingPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -204,16 +238,7 @@ export default function LandingPage() {
             Discover, plan, and book your next adventure with AI-powered insights and real-time data.
           </p>
           <div className={cn("max-w-xl mx-auto p-2 rounded-xl shadow-xl", glassCardClasses, "border-primary/20")}>
-            <form onSubmit={(e) => {e.preventDefault(); handleSearchSubmit(searchTerm);}} className="relative">
-                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
-                 <Input
-                    type="search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search for a destination (e.g., 'Paris', 'beaches in Thailand')"
-                    className="w-full pl-10 pr-4 py-2.5 h-12 text-base bg-input/70 border-border/50 focus:bg-input/90 dark:bg-input/50 rounded-full shadow-inner focus:ring-2 focus:ring-primary/50"
-                />
-            </form>
+            <SearchInputLanding initialSearchTerm={searchTerm} onSearch={handleSearchSubmit} placeholder="Search for a destination (e.g., 'Paris', 'beaches in Thailand')" />
           </div>
         </section>
 
