@@ -84,6 +84,8 @@ const smartBundlePrompt = ai.definePrompt({
         priceFeasibilityNote: true,
         suggestedActivities: true,
         bundleImageUri: true, 
+        destinationLatitude: true, // Parsed later
+        destinationLongitude: true, // Parsed later
     })).optional()
   })},
   tools: [getUserSearchHistoryTool, getUserTravelPersonaTool],
@@ -110,6 +112,8 @@ For each suggestion, you MUST provide:
     -   'budget': Suggest a realistic budget in USD. Infer from persona style, search history, typical costs for the destination/duration, or any budget mentioned in 'travelInterests'.
 -   'activityKeywords' (array of strings, optional): Based on the bundle theme and destination, suggest 2-3 keywords or types of activities that would be suitable. For example, for a cultural trip to Rome: ["historical sites", "museums", "local cuisine"]. For an adventure trip to Costa Rica: ["zip-lining", "rainforest hike", "wildlife spotting"]. These keywords will be used by the system to fetch specific activity suggestions.
 -   'bundleImagePrompt' (string, optional): A concise text prompt (4-7 words) suitable for an image generation AI to create an iconic, high-quality, and visually appealing travel photograph for this entire bundle's theme and destination (e.g., "Kyoto temples cherry blossoms spring", "Patagonia mountains trekking adventure").
+-   'destinationLatitudeString': (Optional) Approximate latitude of the bundle's primary destination as a STRING (e.g., "48.8566" for Paris). Provide this if you can determine a main location.
+-   'destinationLongitudeString': (Optional) Approximate longitude of the bundle's primary destination as a STRING (e.g., "2.3522" for Paris). Provide this if you can determine a main location.
 
 Example Output for a single suggestion (ensure 'suggestions' is an array):
 {
@@ -123,7 +127,9 @@ Example Output for a single suggestion (ensure 'suggestions' is an array):
         "budget": 2200
       },
       "activityKeywords": ["yoga retreats", "beach relaxation", "spa treatments", "healthy cafes"],
-      "bundleImagePrompt": "Bali serene beach yoga sunset"
+      "bundleImagePrompt": "Bali serene beach yoga sunset",
+      "destinationLatitudeString": "-8.3405",
+      "destinationLongitudeString": "115.0919"
     }
   ]
 }
@@ -148,6 +154,8 @@ export const smartBundleFlow = ai.defineFlow(
             priceFeasibilityNote: true,
             suggestedActivities: true,
             bundleImageUri: true, 
+            destinationLatitude: true,
+            destinationLongitude: true,
         })).optional()
     }),
   },
@@ -167,7 +175,9 @@ export const smartBundleFlow = ai.defineFlow(
                     budget: 1500,
                 },
                 activityKeywords: ["city walk", "tapas", "museums"],
-                bundleImagePrompt: "Barcelona city exploring tapas"
+                bundleImagePrompt: "Barcelona city exploring tapas",
+                destinationLatitudeString: "41.3851",
+                destinationLongitudeString: "2.1734"
             }]
         };
     }

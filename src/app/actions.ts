@@ -1038,7 +1038,7 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
   const userIdPart = normalizeCacheKeyPart(input.userId);
   const availabilityPart = normalizeCacheKeyPart(input.upcomingAvailability);
   const interestsPart = normalizeCacheKeyPart(input.travelInterests);
-  const cacheKey = `smartbundle_conceptual_${userIdPart}_${availabilityPart}_${interestsPart}`;
+  const cacheKey = `smartbundle_conceptual_v2_${userIdPart}_${availabilityPart}_${interestsPart}`;
   const cacheCollectionName = 'smartBundlesConceptualCache';
 
   let conceptualBundlesOutput: SmartBundleOutputType | null = null;
@@ -1103,11 +1103,25 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
   const augmentedSuggestions: BundleSuggestion[] = [];
 
   for (const conceptualSuggestion of conceptualBundles) {
+    let destinationLatitude: number | undefined = undefined;
+    let destinationLongitude: number | undefined = undefined;
+
+    if (conceptualSuggestion.destinationLatitudeString) {
+        const latNum = parseFloat(conceptualSuggestion.destinationLatitudeString);
+        if (!isNaN(latNum) && latNum >= -90 && latNum <= 90) destinationLatitude = latNum;
+    }
+    if (conceptualSuggestion.destinationLongitudeString) {
+        const lonNum = parseFloat(conceptualSuggestion.destinationLongitudeString);
+        if (!isNaN(lonNum) && lonNum >= -180 && lonNum <= 180) destinationLongitude = lonNum;
+    }
+
     let augmentedSugg: BundleSuggestion = { 
         ...conceptualSuggestion, 
         userId: input.userId,
         suggestedActivities: [], // Initialize
         bundleImageUri: undefined, // Initialize
+        destinationLatitude: destinationLatitude,
+        destinationLongitude: destinationLongitude,
     };
     const { destination, travelDates, budget: conceptualBudget, origin: conceptualOrigin } = conceptualSuggestion.tripIdea;
     console.log(`[Server Action - generateSmartBundles] Augmenting bundle for: ${destination}, Dates: ${travelDates}, AI Budget: ${conceptualBudget}, Conceptual Origin: ${conceptualOrigin}`);
@@ -1354,3 +1368,4 @@ import type { PostTripFeedbackInput, PostTripAnalysisOutput } from '@/ai/types/p
 export async function synthesizePostTripFeedback(input: PostTripFeedbackInput): Promise<PostTripAnalysisOutput> { return synthesizePostTripFeedbackFlow(input); }
 
     
+

@@ -29,7 +29,11 @@ export const BundleSuggestionSchema = z.object({
   suggestedActivities: z.array(ThingsToDoActivitySuggestionSchema).optional().describe("An array of AI-suggested activities relevant to this bundle. Populated by the server action after the AI flow."),
   bundleImagePrompt: z.string().optional().describe("A concise text prompt for an image generation AI to create an inspiring photo for this bundle's theme and destination."),
   bundleImageUri: z.string().optional().describe("Data URI of the AI-generated image for the bundle. Populated by the server action."),
-  activityKeywords: z.array(z.string()).optional().describe("2-3 keywords or types of activities that would suit this bundle's theme and destination (e.g., 'historical sites', 'street food', 'hiking trails').")
+  activityKeywords: z.array(z.string()).optional().describe("2-3 keywords or types of activities that would suit this bundle's theme and destination (e.g., 'historical sites', 'street food', 'hiking trails')."),
+  destinationLatitudeString: z.string().optional().describe("Approximate latitude of the bundle's primary destination as a STRING (e.g., \"48.8566\"). For map display."),
+  destinationLongitudeString: z.string().optional().describe("Approximate longitude of the bundle's primary destination as a STRING (e.g., \"2.3522\"). For map display."),
+  destinationLatitude: z.number().optional().describe("Parsed latitude of the bundle's primary destination. Populated by server action."),
+  destinationLongitude: z.number().optional().describe("Parsed longitude of the bundle's primary destination. Populated by server action."),
 });
 export type BundleSuggestion = z.infer<typeof BundleSuggestionSchema>;
 
