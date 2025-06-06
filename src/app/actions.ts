@@ -489,13 +489,12 @@ async function fetchAndMergeReturnJourney(
             return outboundOption; // Return original if token fetch fails
         }
 
-        // Process the flights returned by the token call. These are typically return journey options.
         const potentialReturnJourneys = processFlights(returnResponse.best_flights)
             .concat(processFlights(returnResponse.other_flights))
-            .concat(processFlights(returnResponse.flights)); // Check .flights as well
+            .concat(processFlights(returnResponse.flights)); 
 
         if (potentialReturnJourneys.length > 0) {
-            const chosenReturnJourney = potentialReturnJourneys[0]; // Select the first one for simplicity
+            const chosenReturnJourney = potentialReturnJourneys[0]; 
 
             const mergedFlights = (outboundOption.flights || []).concat(chosenReturnJourney.flights || []);
             const mergedLayovers = (outboundOption.layovers || []).concat(chosenReturnJourney.layovers || []);
@@ -511,18 +510,18 @@ async function fetchAndMergeReturnJourney(
                 flights: mergedFlights,
                 layovers: mergedLayovers,
                 total_duration: newTotalDuration,
-                type: "Round trip", // Explicitly set
+                type: "Round trip", 
                 derived_arrival_time: finalArrivalLeg?.arrival_airport?.time,
                 derived_arrival_airport_name: finalArrivalLeg?.arrival_airport?.name,
                 derived_stops_description: deriveStopsDescription({ flights: mergedFlights, layovers: mergedLayovers, type: "Round trip" }),
-                departure_token: undefined, // Token has been used
+                departure_token: undefined, 
             };
         }
         console.warn(`[SerpApi - Helper] Token ${outboundOption.departure_token} did not yield usable return flights.`);
-        return outboundOption; // Return original if no valid return journey found
+        return outboundOption; 
     } catch (tokenError: any) {
         console.error(`[SerpApi - Helper] Error during token fetch:`, tokenError.message);
-        return outboundOption; // Return original on error
+        return outboundOption; 
     }
 }
 
@@ -544,7 +543,7 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
   const retDateKeyPart = input.returnDate ? normalizeCacheKeyPart(input.returnDate) : 'ow';
   const tripTypeKeyPart = normalizeCacheKeyPart(input.tripType || 'rt');
   
-  const cacheKey = `flights_v2_${originKeyPart}_${destinationKeyPart}_${depDateKeyPart}_${retDateKeyPart}_${tripTypeKeyPart}`; // Added v2 to key
+  const cacheKey = `flights_v2_${originKeyPart}_${destinationKeyPart}_${depDateKeyPart}_${retDateKeyPart}_${tripTypeKeyPart}`; 
   const cacheCollectionName = 'serpApiFlightsCache';
   
   console.log(`[Cache Read - Flights] Attempting to read from Firestore. Cache Key: ${cacheKey}`);
@@ -627,7 +626,6 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
     });
     const allUniqueEnrichedFlights = Array.from(uniqueFlightMap.values());
 
-    // Attempt to repopulate best_flights if initialResponse had them, by matching
     const finalBestFlights: SerpApiFlightOption[] = [];
     const finalOtherFlights: SerpApiFlightOption[] = [];
 
@@ -647,13 +645,11 @@ export async function getRealFlightsAction(input: SerpApiFlightSearchInput): Pro
         finalOtherFlights.push(...allUniqueEnrichedFlights);
     }
     
-    // Sort finalOtherFlights by price if it's populated
     if (finalOtherFlights.length > 0) {
       finalOtherFlights.sort((a, b) => (a.price || Infinity) - (b.price || Infinity));
     }
-    // If finalBestFlights is empty but finalOtherFlights has content, move some to best_flights
     if (finalBestFlights.length === 0 && finalOtherFlights.length > 0) {
-        finalBestFlights.push(...finalOtherFlights.splice(0, Math.min(3, finalOtherFlights.length))); // Move up to 3 cheapest to best_flights
+        finalBestFlights.push(...finalOtherFlights.splice(0, Math.min(3, finalOtherFlights.length))); 
     }
 
 
@@ -892,7 +888,7 @@ export async function generateMultipleImagesAction(input: MultipleImagesInput): 
                         const cacheDocRef = doc(firestore, cacheCollectionName, imageCacheKey);
                         const dataToCache = cleanDataForFirestore({ 
                             imageUri: aiGeneratedItem.imageUri,
-                            promptUsed: item.prompt,
+                            promptUsed: item.prompt, // Store original user prompt for comparison
                             styleHint: item.styleHint as string,
                             cachedAt: serverTimestamp()
                         });
@@ -1110,11 +1106,28 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
     let augmentedSugg: BundleSuggestion = { 
         ...conceptualSuggestion, 
         userId: input.userId,
-        suggestedActivities: [] 
+        suggestedActivities: [], // Initialize
+        bundleImageUri: undefined, // Initialize
     };
     const { destination, travelDates, budget: conceptualBudget, origin: conceptualOrigin } = conceptualSuggestion.tripIdea;
     console.log(`[Server Action - generateSmartBundles] Augmenting bundle for: ${destination}, Dates: ${travelDates}, AI Budget: ${conceptualBudget}, Conceptual Origin: ${conceptualOrigin}`);
     
+    // Fetch Bundle Image
+    if (conceptualSuggestion.bundleImagePrompt) {
+        try {
+            const imageResult = await generateMultipleImagesAction({
+                prompts: [{ id: `bundle_${normalizeCacheKeyPart(destination)}_${normalizeCacheKeyPart(conceptualSuggestion.bundleName)}`, prompt: conceptualSuggestion.bundleImagePrompt, styleHint: 'destination' }]
+            });
+            if (imageResult.results[0]?.imageUri) {
+                augmentedSugg.bundleImageUri = imageResult.results[0].imageUri;
+                console.log(`[Server Action - generateSmartBundles] Fetched bundle image for ${destination}.`);
+            }
+        } catch (imgError) {
+            console.error(`[Server Action - generateSmartBundles] Error fetching bundle image for ${destination}:`, imgError);
+        }
+    }
+
+
     try {
       const parsedDates = parseTravelDatesForSerpApi(travelDates);
       console.log(`[Server Action - generateSmartBundles] Parsed dates for SerpApi: Departure ${parsedDates.departureDate}, Return ${parsedDates.returnDate}, Duration ${parsedDates.durationDays} days`);

@@ -27,6 +27,9 @@ export const BundleSuggestionSchema = z.object({
   estimatedRealPriceRange: z.string().optional().describe("A price range string based on the sum of the real flight and hotel examples (e.g., '$1800 - $2500')."),
   priceFeasibilityNote: z.string().optional().describe("A note comparing AI's conceptual budget with findings from real-time checks."),
   suggestedActivities: z.array(ThingsToDoActivitySuggestionSchema).optional().describe("An array of AI-suggested activities relevant to this bundle. Populated by the server action after the AI flow."),
+  bundleImagePrompt: z.string().optional().describe("A concise text prompt for an image generation AI to create an inspiring photo for this bundle's theme and destination."),
+  bundleImageUri: z.string().optional().describe("Data URI of the AI-generated image for the bundle. Populated by the server action."),
+  activityKeywords: z.array(z.string()).optional().describe("2-3 keywords or types of activities that would suit this bundle's theme and destination (e.g., 'historical sites', 'street food', 'hiking trails').")
 });
 export type BundleSuggestion = z.infer<typeof BundleSuggestionSchema>;
 

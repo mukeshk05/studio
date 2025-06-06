@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     // Forcing dark theme to match reference site. Remove "dark" for OS preference.
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-background text-foreground`}>
         <Providers>
           {children}
         </Providers>
@@ -36,3 +36,4 @@ export default function RootLayout({
     </html>
   );
 }
+

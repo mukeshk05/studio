@@ -15,10 +15,10 @@ import {
   type SmartBundleInput,
   SmartBundleOutputSchema,
   type SmartBundleOutput,
-  BundleSuggestionSchema, // Ensure this is imported if used directly
+  BundleSuggestionSchema, 
 } from '@/ai/types/smart-bundle-types';
 import type { UserTravelPersona } from '@/lib/types';
-import type { ActivitySuggestion } from '@/ai/types/things-to-do-types'; // For suggestedActivities
+import type { ActivitySuggestion } from '@/ai/types/things-to-do-types'; 
 
 
 // Define the Genkit tool for fetching user search history
@@ -77,9 +77,13 @@ const smartBundlePrompt = ai.definePrompt({
   name: 'smartBundlePrompt',
   input: {schema: SmartBundleInputSchema},
   output: {schema: SmartBundleOutputSchema.extend({
-    // Extend the output schema to include a field for activity keywords if the AI is to generate them
-    suggestions: z.array(BundleSuggestionSchema.extend({
-        activityKeywords: z.array(z.string()).optional().describe("2-3 keywords or types of activities that would suit this bundle's theme and destination (e.g., 'historical sites', 'street food', 'hiking trails').")
+    suggestions: z.array(BundleSuggestionSchema.omit({ // AI doesn't generate these fields
+        realFlightExample: true, 
+        realHotelExample: true, 
+        estimatedRealPriceRange: true, 
+        priceFeasibilityNote: true,
+        suggestedActivities: true,
+        bundleImageUri: true, 
     })).optional()
   })},
   tools: [getUserSearchHistoryTool, getUserTravelPersonaTool],
@@ -104,7 +108,8 @@ For each suggestion, you MUST provide:
     -   'destination': Be specific (e.g., "Paris, France", "Kyoto, Japan", "Banff National Park, Canada").
     -   'travelDates': Suggest plausible dates (e.g., "April 5-10, 2025", "Mid-July 2025 for 1 week", "Next available long weekend (e.g., Nov 8-10, 2024)"). If availability is given, use it. Be creative if dates are not specified in 'travelInterests'.
     -   'budget': Suggest a realistic budget in USD. Infer from persona style, search history, typical costs for the destination/duration, or any budget mentioned in 'travelInterests'.
--   **'activityKeywords' (array of strings, optional):** Based on the bundle theme and destination, suggest 2-3 keywords or types of activities that would be suitable. For example, for a cultural trip to Rome: ["historical sites", "museums", "local cuisine"]. For an adventure trip to Costa Rica: ["zip-lining", "rainforest hike", "wildlife spotting"]. These keywords will be used by the system to fetch specific activity suggestions.
+-   'activityKeywords' (array of strings, optional): Based on the bundle theme and destination, suggest 2-3 keywords or types of activities that would be suitable. For example, for a cultural trip to Rome: ["historical sites", "museums", "local cuisine"]. For an adventure trip to Costa Rica: ["zip-lining", "rainforest hike", "wildlife spotting"]. These keywords will be used by the system to fetch specific activity suggestions.
+-   'bundleImagePrompt' (string, optional): A concise text prompt (4-7 words) suitable for an image generation AI to create an iconic, high-quality, and visually appealing travel photograph for this entire bundle's theme and destination (e.g., "Kyoto temples cherry blossoms spring", "Patagonia mountains trekking adventure").
 
 Example Output for a single suggestion (ensure 'suggestions' is an array):
 {
@@ -117,12 +122,13 @@ Example Output for a single suggestion (ensure 'suggestions' is an array):
         "travelDates": "July 10-20, 2025",
         "budget": 2200
       },
-      "activityKeywords": ["yoga retreats", "beach relaxation", "spa treatments", "healthy cafes"]
+      "activityKeywords": ["yoga retreats", "beach relaxation", "spa treatments", "healthy cafes"],
+      "bundleImagePrompt": "Bali serene beach yoga sunset"
     }
   ]
 }
 
-Prioritize variety if suggesting two bundles. Ensure the output strictly follows the defined JSON schema.
+Prioritize variety if suggesting two bundles. Ensure the output strictly follows the defined JSON schema (omitting fields like realFlightExample, realHotelExample, etc., as those are added later by the system).
 If the Travel Persona is very specific and 'travelInterests' is empty, one highly relevant suggestion based on the persona is excellent.
 If no persona or search history is available, rely heavily on the provided 'travelInterests' and 'upcomingAvailability'.
 If no inputs at all are available (empty 'travelInterests', no persona, no history, no availability), suggest 1-2 broadly appealing, distinct trips (e.g., one city break, one nature escape) explaining Aura AI is offering general inspiration.
@@ -134,15 +140,18 @@ export const smartBundleFlow = ai.defineFlow(
   {
     name: 'smartBundleFlow',
     inputSchema: SmartBundleInputSchema,
-    // The output schema here should match what the prompt is asked to produce for the flow
     outputSchema: SmartBundleOutputSchema.extend({
-        suggestions: z.array(BundleSuggestionSchema.extend({
-            activityKeywords: z.array(z.string()).optional()
+        suggestions: z.array(BundleSuggestionSchema.omit({
+            realFlightExample: true, 
+            realHotelExample: true, 
+            estimatedRealPriceRange: true, 
+            priceFeasibilityNote: true,
+            suggestedActivities: true,
+            bundleImageUri: true, 
         })).optional()
     }),
   },
   async (input) => {
-    // Add a log to see the exact input received by the flow
     console.log('Aura AI (SmartBundleFlow) received input:', JSON.stringify(input, null, 2));
 
     const { output } = await smartBundlePrompt(input);
@@ -157,7 +166,8 @@ export const smartBundleFlow = ai.defineFlow(
                     travelDates: "Next month for 5 days",
                     budget: 1500,
                 },
-                activityKeywords: ["city walk", "tapas", "museums"]
+                activityKeywords: ["city walk", "tapas", "museums"],
+                bundleImagePrompt: "Barcelona city exploring tapas"
             }]
         };
     }
@@ -165,9 +175,6 @@ export const smartBundleFlow = ai.defineFlow(
   }
 );
 
-// This is the wrapper function exported to actions.ts.
-// It will remain largely the same, but now the 'suggestions' from smartBundleFlow 
-// might contain 'activityKeywords'.
 export async function generateSmartBundles(input: SmartBundleInput): Promise<SmartBundleOutput> {
   return smartBundleFlow(input);
 }
