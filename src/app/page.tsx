@@ -14,7 +14,7 @@ import {
   Search, Plane, Hotel, Compass, Briefcase, LogIn, UserPlus, User, LogOut, Sparkles, MapPin, Loader2, AlertTriangle, Info, ListChecks, LocateFixed, ExternalLink, X, Building, Route
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
-import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction } from './actions';
+import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction } from '@/app/actions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { SmartBundleOutput, BundleSuggestion, SmartBundleInput } from '@/ai/types/smart-bundle-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from '@/components/ui/skeleton';
 import { LandingMapItemDialog } from '@/components/landing/LandingMapItemDialog';
-import Image from 'next/image'; // Ensure Image is imported from next/image
+import Image from 'next/image';
 
 const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-xl";
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
@@ -80,12 +80,12 @@ export default function LandingPage() {
   const router = useRouter();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false); // Changed initial to false
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
   const [searchedLocationDetails, setSearchedLocationDetails] = useState<SearchedLocation | null>(null);
 
   const [popularDestinations, setPopularDestinations] = useState<AiDestinationSuggestion[]>([]);
-  const [isLoadingPopular, setIsLoadingPopular] = useState(false); // Start false, fetch on demand/effect
+  const [isLoadingPopular, setIsLoadingPopular] = useState(false);
   const [popularError, setPopularError] = useState<string | null>(null);
   const [popularContextualNote, setPopularContextualNote] = useState<string | null>(null);
 
@@ -96,7 +96,7 @@ export default function LandingPage() {
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null); // Ref for the search input
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const markersRef = useRef<(google.maps.Marker | google.maps.OverlayView)[]>([]);
   const [selectedMapItem, setSelectedMapItem] = useState<MapDisplayItem | null>(null);
@@ -185,42 +185,55 @@ export default function LandingPage() {
     finally { setIsLoadingSmartBundles(false); }
   }, [currentUser?.uid]);
 
-  // Autocomplete and initial data fetch logic
-  useEffect(() => {
-    if (isMapsApiLoaded && mapRef.current && !map && !isMapInitializing) { // Ensure map isn't already initialized
-      setIsMapInitializing(true);
-      setIsFetchingLocation(true);
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-            setUserLocation(loc);
-            initializeMap({ lat: loc.latitude, lng: loc.longitude }, 5);
-            await fetchPopularDestinations({ userLatitude: loc.latitude, userLongitude: loc.longitude }, "nearby");
-            if (currentUser) await fetchSmartBundles(); // Fetch general smart bundles
-            setIsFetchingLocation(false);
-          },
-          async (error) => {
-            setGeolocationError(`Could not get location: ${error.message}. Showing global suggestions.`);
-            initializeMap({ lat: 20, lng: 0 }, 2);
-            await fetchPopularDestinations({}, "top_destinations_fallback");
-            if (currentUser) await fetchSmartBundles(); // Fetch general smart bundles
-            setIsFetchingLocation(false);
-          }, { timeout: 8000 }
-        );
-      } else {
-        setGeolocationError("Geolocation is not supported. Showing global suggestions.");
-        initializeMap({ lat: 20, lng: 0 }, 2);
-        fetchPopularDestinations({}, "top_destinations_no_geo").then(() => {
-           if (currentUser) fetchSmartBundles();
-        });
-        setIsFetchingLocation(false);
-      }
+  const fetchInitialLocationAndData = useCallback(async () => {
+    console.log("[LandingPage] fetchInitialLocationAndData called.");
+    setIsFetchingLocation(true);
+    setGeolocationError(null);
+
+    if (navigator.geolocation) {
+      console.log("[LandingPage] Geolocation API available. Requesting current position...");
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+          console.log("[LandingPage] User location fetched for map:", loc);
+          setUserLocation(loc);
+          initializeMap({ lat: loc.latitude, lng: loc.longitude }, 5);
+          await fetchPopularDestinations({ userLatitude: loc.latitude, userLongitude: loc.longitude }, "nearby");
+          if (currentUser) await fetchSmartBundles();
+          setIsFetchingLocation(false);
+        },
+        async (error) => {
+          console.warn("[LandingPage] Geolocation error for map:", error);
+          setGeolocationError(`Could not get location: ${error.message}. Showing global suggestions.`);
+          setUserLocation(null);
+          initializeMap({ lat: 20, lng: 0 }, 2);
+          await fetchPopularDestinations({}, "top_destinations_fallback");
+          if (currentUser) await fetchSmartBundles();
+          setIsFetchingLocation(false);
+        }, { timeout: 8000 }
+      );
+    } else {
+      console.warn("[LandingPage] Geolocation not supported by this browser for map.");
+      setGeolocationError("Geolocation is not supported. Showing global suggestions.");
+      setUserLocation(null);
+      initializeMap({ lat: 20, lng: 0 }, 2);
+      await fetchPopularDestinations({}, "top_destinations_no_geo");
+      if (currentUser) fetchSmartBundles();
+      setIsFetchingLocation(false);
     }
-    
-    if (isMapsApiLoaded && searchInputRef.current && !autocompleteRef.current) {
+  }, [initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser]);
+
+  useEffect(() => {
+    if (isMapsApiLoaded && mapRef.current && !map && !isMapInitializing) {
+      setIsMapInitializing(true);
+      fetchInitialLocationAndData();
+    }
+  }, [isMapsApiLoaded, map, isMapInitializing, fetchInitialLocationAndData]);
+  
+  useEffect(() => {
+    if (isMapsApiLoaded && searchInputRef.current && !autocompleteRef.current && window.google && window.google.maps && window.google.maps.places) {
       autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-        types: ['(regions)'], // Use (regions) for broader destination search
+        types: ['(regions)'],
         fields: ['name', 'formatted_address', 'geometry.location']
       });
       autocompleteRef.current.addListener('place_changed', () => {
@@ -229,13 +242,12 @@ export default function LandingPage() {
           const newLat = place.geometry.location.lat();
           const newLng = place.geometry.location.lng();
           const placeName = place.name || place.formatted_address || "Selected Location";
-          setSearchTerm(placeName); // Update search term display
+          setSearchTerm(placeName);
           setSearchedLocationDetails({ name: placeName, lat: newLat, lng: newLng });
           if (map) {
             map.setCenter({ lat: newLat, lng: newLng });
-            map.setZoom(9); // Zoom in a bit more for searched location
+            map.setZoom(9);
           }
-          // Re-fetch data based on new location
           fetchPopularDestinations({ userLatitude: newLat, userLongitude: newLng }, `around ${placeName}`);
           if (currentUser) {
             fetchSmartBundles(`Trips related to ${placeName}`);
@@ -246,8 +258,8 @@ export default function LandingPage() {
         }
       });
     }
+  }, [isMapsApiLoaded, map, currentUser, fetchPopularDestinations, fetchSmartBundles, toast]);
 
-  }, [isMapsApiLoaded, map, isMapInitializing, initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser, toast]); // Added toast
 
   const handleMapItemSelect = useCallback((item: MapDisplayItem) => {
     setSelectedMapItem(item);
@@ -318,7 +330,7 @@ export default function LandingPage() {
     if (newMarkers.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
       newMarkers.forEach(marker => { if (marker.getPosition) bounds.extend(marker.getPosition()!); });
-      if (!bounds.isEmpty() && !searchedLocationDetails) { // Only fit bounds if not specifically searched
+      if (!bounds.isEmpty() && !searchedLocationDetails) { 
         map.fitBounds(bounds, 100); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
             let currentZoom = map.getZoom() || 0;
@@ -398,7 +410,7 @@ export default function LandingPage() {
             Discover, plan, and book your next adventure with AI-powered insights and real-time data.
           </p>
           <div className={cn("max-w-xl mx-auto p-2 rounded-xl shadow-xl", glassCardClasses, "border-primary/20")}>
-            <form onSubmit={(e) => e.preventDefault()} className="relative w-full"> {/* Prevent default form submission */}
+            <form onSubmit={(e) => { e.preventDefault(); if (searchInputRef.current) searchInputRef.current.blur(); }} className="relative w-full">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <Input
                 ref={searchInputRef}
@@ -413,7 +425,7 @@ export default function LandingPage() {
         </section>
 
         <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-3 rounded-xl", glassCardClasses, "border-primary/10")}>
+           <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-3 rounded-xl", glassCardClasses, "border-primary/10")}>
             {exploreCategories.map((category) => (
               <Link key={category.name} href={category.href} passHref>
                 <Button
@@ -543,3 +555,4 @@ export default function LandingPage() {
       />
     </div>
   );
+}
