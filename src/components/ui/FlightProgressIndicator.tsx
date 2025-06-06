@@ -27,28 +27,34 @@ export function FlightProgressIndicator({
         {/* Plane Icon */}
         <div
           className={cn(
-            "absolute top-1/2 transform -translate-y-1/2 transition-all duration-300 ease-linear",
-            isDeterminate ? "" : "animate-flight-indeterminate" 
+            "absolute top-1/2 transform -translate-y-1/2 transition-all duration-300 ease-linear"
+            // Removed: isDeterminate ? "" : "animate-flight-indeterminate" 
           )}
-          style={isDeterminate ? { left: `calc(${Math.max(0, Math.min(100, progress!))}% - 12px)` } : { left: 'calc(50% - 12px)' }} // Center for indeterminate
+          style={isDeterminate ? { left: `calc(${Math.max(0, Math.min(100, progress!))}% - 12px)` } : { left: 'calc(50% - 12px)' }} 
         >
-          <Plane className="w-6 h-6 text-primary transform -rotate-45" />
+          {/* If not determinate, show Loader2 for animation, otherwise show Plane */}
+          {!isDeterminate ? (
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+          ) : (
+            <Plane className="w-6 h-6 text-primary transform -rotate-45" />
+          )}
         </div>
       </div>
       
       {message && <p className="text-sm text-center text-muted-foreground mt-2">{message}</p>}
-      {!isDeterminate && !message && <Loader2 className="w-6 h-6 animate-spin text-primary" />}
-
-      <style jsx global>{`
+      
+      {/* 
+        The <style jsx global> block has been removed.
+        If the indeterminate animation is desired, these styles should be moved to globals.css:
         @keyframes flight-indeterminate-keyframes {
           0% { transform: translateX(-30px) translateY(-50%) rotate(-45deg) scale(0.9); opacity: 0.7; }
           50% { transform: translateX(30px) translateY(-50%) rotate(-45deg) scale(1.1); opacity: 1; }
           100% { transform: translateX(-30px) translateY(-50%) rotate(-45deg) scale(0.9); opacity: 0.7; }
         }
-        .animate-flight-indeterminate > svg { /* Apply animation to the SVG within the div */
+        .animate-flight-indeterminate > svg { // Or apply directly to the Plane icon's wrapper if it's always a specific div
           animation: flight-indeterminate-keyframes 2s ease-in-out infinite;
         }
-      `}</style>
+      */}
     </div>
   );
 }
