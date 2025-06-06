@@ -11,8 +11,9 @@ import { HomePagePackageCard } from '@/components/landing/HomePagePackageCard';
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import {
-  Search, Plane, Hotel, Compass, Briefcase, LogIn, UserPlus, User, LogOut, Sparkles, MapPin, Loader2, AlertTriangle, Info, ListChecks, LocateFixed, ExternalLink, X
+  Search, Plane, Hotel, Compass, Briefcase, LogIn, UserPlus, User, LogOut, Sparkles, MapPin, Loader2, AlertTriangle, Info, ListChecks, LocateFixed, ExternalLink, X, Building, Route
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction } from './actions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { SmartBundleOutput, BundleSuggestion, SmartBundleInput } from '@/ai/types/smart-bundle-types';
@@ -32,8 +33,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from '@/components/ui/skeleton';
-import { LandingMapItemDialog } from '@/components/landing/LandingMapItemDialog'; // New Dialog
-
+import { LandingMapItemDialog } from '@/components/landing/LandingMapItemDialog';
+import Image from 'next/image'; // Ensure Image is imported from next/image
 
 const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-xl";
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
@@ -46,38 +47,7 @@ const exploreCategories = [
 ];
 
 interface UserLocation { latitude: number; longitude: number; }
-
-interface SearchInputPropsLanding {
-  initialSearchTerm?: string;
-  onSearch?: (term: string) => void;
-  placeholder?: string;
-}
-
-function SearchInputLanding({ initialSearchTerm = '', onSearch, placeholder = "Search destinations, hotels, flights..."}: SearchInputPropsLanding) {
-   const [term, setTerm] = useState(initialSearchTerm);
-   const { toast: shadcnToast } = useToast();
-   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (onSearch) onSearch(term);
-    shadcnToast({
-        title: "Search Submitted (Conceptual)",
-        description: `You searched for: ${term}. This would typically trigger a search or navigation to a results page.`,
-    });
-  };
-  return (
-    <form onSubmit={handleSubmit} className="relative w-full">
-      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
-      <Input
-        type="search"
-        value={term}
-        onChange={(e) => setTerm(e.target.value)}
-        placeholder={placeholder}
-        className="w-full pl-11 pr-4 py-2.5 h-12 text-base bg-input/70 border-border/50 focus:bg-input/90 dark:bg-input/50 rounded-full shadow-inner focus:ring-2 focus:ring-primary/50"
-      />
-      <button type="submit" className="hidden">Search</button>
-    </form>
-  );
-}
+interface SearchedLocation { name: string; lat: number; lng: number; }
 
 const modernMapStyle: google.maps.MapTypeStyle[] = [
     { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
@@ -110,11 +80,12 @@ export default function LandingPage() {
   const router = useRouter();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false); // Changed initial to false
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
+  const [searchedLocationDetails, setSearchedLocationDetails] = useState<SearchedLocation | null>(null);
 
   const [popularDestinations, setPopularDestinations] = useState<AiDestinationSuggestion[]>([]);
-  const [isLoadingPopular, setIsLoadingPopular] = useState(true);
+  const [isLoadingPopular, setIsLoadingPopular] = useState(false); // Start false, fetch on demand/effect
   const [popularError, setPopularError] = useState<string | null>(null);
   const [popularContextualNote, setPopularContextualNote] = useState<string | null>(null);
 
@@ -123,9 +94,10 @@ export default function LandingPage() {
   const [smartBundlesError, setSmartBundlesError] = useState<string | null>(null);
   const [smartBundlesContextualNote, setSmartBundlesContextualNote] = useState<string | null>(null);
 
-  // Map state
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null); // Ref for the search input
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const markersRef = useRef<(google.maps.Marker | google.maps.OverlayView)[]>([]);
   const [selectedMapItem, setSelectedMapItem] = useState<MapDisplayItem | null>(null);
   const [isMapDialogOpen, setIsMapDialogOpen] = useState(false);
@@ -147,18 +119,18 @@ export default function LandingPage() {
       setIsMapInitializing(false); setIsFetchingLocation(false);
       return;
     }
-    if (typeof window !== 'undefined' && window.google && window.google.maps) {
+    if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
       if (!isMapsApiLoaded) setIsMapsApiLoaded(true); return;
     }
     const scriptId = 'google-maps-landing-page-script';
     if (document.getElementById(scriptId)) {
-      if (typeof window !== 'undefined' && window.google && window.google.maps && !isMapsApiLoaded) setIsMapsApiLoaded(true);
+      if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places && !isMapsApiLoaded) setIsMapsApiLoaded(true);
       return;
     }
     console.log("[LandingPage] Attempting to load Google Maps API script...");
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiLandingPage&libraries=marker`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initGoogleMapsApiLandingPage&libraries=marker,places`;
     script.async = true; script.defer = true;
     script.onerror = () => {
       console.error("[LandingPage] Failed to load Google Maps API script.");
@@ -188,69 +160,94 @@ export default function LandingPage() {
     finally { setIsMapInitializing(false); }
   }, []);
 
-
-  const fetchPopularDestinations = useCallback(async (loc?: UserLocation) => {
+  const fetchPopularDestinations = useCallback(async (locInput?: PopularDestinationsInput, context?: string) => {
     setIsLoadingPopular(true); setPopularError(null);
+    const noteContext = context || (locInput?.userLatitude ? "ideas near your location" : "popular global ideas");
+    setPopularContextualNote(`Fetching ${noteContext}...`);
     try {
-      const input: PopularDestinationsInput = loc ? { userLatitude: loc.latitude, userLongitude: loc.longitude } : {};
-      const result = await getPopularDestinations(input);
+      const result = await getPopularDestinations(locInput || {});
       setPopularDestinations(result.destinations || []);
-      setPopularContextualNote(result.contextualNote || (result.destinations?.length === 0 ? "No popular destinations found." : "Explore these popular spots!"));
-    } catch (error: any) { setPopularError(`Failed to load popular destinations: ${error.message}`); setPopularContextualNote(`Error: ${error.message}`); }
+      setPopularContextualNote(result.contextualNote || (result.destinations?.length === 0 ? `No ${noteContext} found.` : `Explore these ${noteContext}!`));
+    } catch (error: any) { setPopularError(`Failed to load ${noteContext}: ${error.message}`); setPopularContextualNote(`Error: ${error.message}`); }
     finally { setIsLoadingPopular(false); }
   }, []);
 
-  const fetchSmartBundles = useCallback(async () => {
+  const fetchSmartBundles = useCallback(async (interestHint?: string) => {
     if (!currentUser?.uid) { setSmartBundles([]); setSmartBundlesContextualNote("Log in to see personalized trip ideas!"); return; }
     setIsLoadingSmartBundles(true); setSmartBundlesError(null);
+    setSmartBundlesContextualNote(interestHint ? `Finding smart bundles related to ${interestHint}...` : "Fetching your personalized smart bundles...");
     try {
-      const input: SmartBundleInput = { userId: currentUser.uid };
+      const input: SmartBundleInput = { userId: currentUser.uid, travelInterests: interestHint };
       const result = await generateSmartBundlesAction(input);
       setSmartBundles(result.suggestions || []);
-      setSmartBundlesContextualNote(result.suggestions?.length === 0 ? "No personalized bundles found yet." : "Here are some smart ideas tailored for you!");
+      setSmartBundlesContextualNote(result.suggestions?.length === 0 ? `No specific bundles found ${interestHint ? `for ${interestHint}` : 'yet'}.` : `Here are some smart ideas ${interestHint ? `for ${interestHint}` : 'tailored for you'}!`);
     } catch (error: any) { setSmartBundlesError(`Failed to load smart bundles: ${error.message}`); setSmartBundlesContextualNote(`Error: ${error.message}`); }
     finally { setIsLoadingSmartBundles(false); }
   }, [currentUser?.uid]);
 
-  const fetchInitialLocationAndData = useCallback(async () => {
-    setIsFetchingLocation(true); setGeolocationError(null);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-          setUserLocation(loc);
-          initializeMap({ lat: loc.latitude, lng: loc.longitude }, 5);
-          await fetchPopularDestinations(loc);
-          setIsFetchingLocation(false);
-        },
-        async (error) => {
-          setGeolocationError(`Could not get location: ${error.message}. Showing global suggestions.`);
-          initializeMap({ lat: 20, lng: 0 }, 2);
-          await fetchPopularDestinations();
-          setIsFetchingLocation(false);
-        }, { timeout: 8000 }
-      );
-    } else {
-      setGeolocationError("Geolocation is not supported. Showing global suggestions.");
-      initializeMap({ lat: 20, lng: 0 }, 2);
-      await fetchPopularDestinations();
-      setIsFetchingLocation(false);
-    }
-  }, [initializeMap, fetchPopularDestinations]);
-
+  // Autocomplete and initial data fetch logic
   useEffect(() => {
-    if (isMapsApiLoaded && mapRef.current && !map && !isMapInitializing) {
+    if (isMapsApiLoaded && mapRef.current && !map && !isMapInitializing) { // Ensure map isn't already initialized
       setIsMapInitializing(true);
-      fetchInitialLocationAndData();
+      setIsFetchingLocation(true);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+            setUserLocation(loc);
+            initializeMap({ lat: loc.latitude, lng: loc.longitude }, 5);
+            await fetchPopularDestinations({ userLatitude: loc.latitude, userLongitude: loc.longitude }, "nearby");
+            if (currentUser) await fetchSmartBundles(); // Fetch general smart bundles
+            setIsFetchingLocation(false);
+          },
+          async (error) => {
+            setGeolocationError(`Could not get location: ${error.message}. Showing global suggestions.`);
+            initializeMap({ lat: 20, lng: 0 }, 2);
+            await fetchPopularDestinations({}, "top_destinations_fallback");
+            if (currentUser) await fetchSmartBundles(); // Fetch general smart bundles
+            setIsFetchingLocation(false);
+          }, { timeout: 8000 }
+        );
+      } else {
+        setGeolocationError("Geolocation is not supported. Showing global suggestions.");
+        initializeMap({ lat: 20, lng: 0 }, 2);
+        fetchPopularDestinations({}, "top_destinations_no_geo").then(() => {
+           if (currentUser) fetchSmartBundles();
+        });
+        setIsFetchingLocation(false);
+      }
     }
-  }, [isMapsApiLoaded, map, isMapInitializing, fetchInitialLocationAndData]);
-
-  useEffect(() => {
-    if (currentUser && smartBundles.length === 0 && !isLoadingSmartBundles && !smartBundlesError) {
-      fetchSmartBundles();
+    
+    if (isMapsApiLoaded && searchInputRef.current && !autocompleteRef.current) {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
+        types: ['(regions)', '(cities)'], // Bias towards regions and cities
+        fields: ['name', 'formatted_address', 'geometry.location']
+      });
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current?.getPlace();
+        if (place?.geometry?.location) {
+          const newLat = place.geometry.location.lat();
+          const newLng = place.geometry.location.lng();
+          const placeName = place.name || place.formatted_address || "Selected Location";
+          setSearchTerm(placeName); // Update search term display
+          setSearchedLocationDetails({ name: placeName, lat: newLat, lng: newLng });
+          if (map) {
+            map.setCenter({ lat: newLat, lng: newLng });
+            map.setZoom(9); // Zoom in a bit more for searched location
+          }
+          // Re-fetch data based on new location
+          fetchPopularDestinations({ userLatitude: newLat, userLongitude: newLng }, `around ${placeName}`);
+          if (currentUser) {
+            fetchSmartBundles(`Trips related to ${placeName}`);
+          }
+          toast({ title: "Location Updated", description: `Showing suggestions for ${placeName}.`});
+        } else {
+          toast({ title: "Location Not Found", description: "Could not get specific coordinates for this place.", variant: "destructive"});
+        }
+      });
     }
-  }, [currentUser, fetchSmartBundles, smartBundles.length, isLoadingSmartBundles, smartBundlesError]);
 
+  }, [isMapsApiLoaded, map, isMapInitializing, initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser]); // currentUser dependency for smart bundles
 
   const handleMapItemSelect = useCallback((item: MapDisplayItem) => {
     setSelectedMapItem(item);
@@ -266,7 +263,7 @@ export default function LandingPage() {
         });
         setTimeout(() => { 
           if (map && (map.getZoom() || 0) < 10) map.setZoom(10); 
-          if (listener) window.google.maps.event.removeListener(listener);
+          if (listener && (window as any).google?.maps?.event) window.google.maps.event.removeListener(listener);
         }, 800);
       }
     }
@@ -321,29 +318,30 @@ export default function LandingPage() {
     if (newMarkers.length > 0 && window.google && window.google.maps) {
       const bounds = new window.google.maps.LatLngBounds();
       newMarkers.forEach(marker => { if (marker.getPosition) bounds.extend(marker.getPosition()!); });
-      if (!bounds.isEmpty()) { map.fitBounds(bounds, 100); 
+      if (!bounds.isEmpty() && !searchedLocationDetails) { // Only fit bounds if not specifically searched
+        map.fitBounds(bounds, 100); 
         const listenerId = window.google.maps.event.addListenerOnce(map, 'idle', () => {
             let currentZoom = map.getZoom() || 0;
             if (newMarkers.length === 1 && currentZoom > 10) map.setZoom(10);
             else if (currentZoom > 15) map.setZoom(15);
         });
       }
-    } else if (userLocation && newMarkers.length === 0) {
+    } else if (userLocation && newMarkers.length === 0 && !searchedLocationDetails) {
         map.panTo({ lat: userLocation.latitude, lng: userLocation.longitude }); map.setZoom(5);
+    } else if (searchedLocationDetails) {
+        map.setCenter({lat: searchedLocationDetails.lat, lng: searchedLocationDetails.lng});
+        map.setZoom(9);
     }
-  }, [map, isMapsApiLoaded, popularDestinations, smartBundles, handleMapItemSelect, userLocation]);
+  }, [map, isMapsApiLoaded, popularDestinations, smartBundles, handleMapItemSelect, userLocation, searchedLocationDetails]);
   
   const handlePlanTrip = (tripIdea: AITripPlannerInput) => {
     localStorage.setItem('tripBundleToPlan', JSON.stringify(tripIdea));
-    window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan'));
+    window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan')); 
     router.push('/planner');
   };
-
-  const handleSearchSubmit = (term: string) => {
-    router.push(`/explore?q=${encodeURIComponent(term)}`);
-    toast({ title: "Navigating to Explore", description: `Searching for: ${term}` });
-  };
   
+  const prominentButtonClasses = "text-lg py-3 group transform transition-all duration-300 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40";
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className={cn("sticky top-0 z-40 w-full border-b border-border/30", glassPaneClasses)}>
@@ -400,7 +398,17 @@ export default function LandingPage() {
             Discover, plan, and book your next adventure with AI-powered insights and real-time data.
           </p>
           <div className={cn("max-w-xl mx-auto p-2 rounded-xl shadow-xl", glassCardClasses, "border-primary/20")}>
-            <SearchInputLanding initialSearchTerm={searchTerm} onSearch={handleSearchSubmit} placeholder="Search for a destination (e.g., 'Paris', 'beaches in Thailand')" />
+            <form onSubmit={(e) => e.preventDefault()} className="relative w-full"> {/* Prevent default form submission */}
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+              <Input
+                ref={searchInputRef}
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search for a destination (e.g., 'Paris', 'beaches in Thailand')"
+                className="w-full pl-11 pr-4 py-2.5 h-12 text-base bg-input/70 border-border/50 focus:bg-input/90 dark:bg-input/50 rounded-full shadow-inner focus:ring-2 focus:ring-primary/50"
+              />
+            </form>
           </div>
         </section>
 
@@ -450,14 +458,18 @@ export default function LandingPage() {
         <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground flex items-center">
-              <MapPin className="w-7 h-7 mr-2 text-primary" /> Popular Destinations
+              <MapPin className="w-7 h-7 mr-2 text-primary" /> 
+              {searchedLocationDetails ? `Popular Destinations for ${searchedLocationDetails.name}` : popularContextualNote?.toLowerCase().includes("near you") ? "Popular Destinations Near You" : "Popular Global Destinations"}
             </h2>
-            <Button onClick={fetchInitialLocationAndData} disabled={isFetchingLocation || isLoadingPopular} variant="outline" className="glass-interactive">
-              {(isFetchingLocation || isLoadingPopular) ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
-              {(isFetchingLocation || isLoadingPopular) ? "Updating..." : "Refresh with Location"}
+             <Button 
+                onClick={() => fetchPopularDestinations(userLocation ? { userLatitude: userLocation.latitude, userLongitude: userLocation.longitude } : {}, userLocation ? "nearby_refresh" : "top_destinations_refresh")} 
+                disabled={isLoadingPopular || isFetchingLocation} 
+                variant="outline" className="glass-interactive">
+              {(isLoadingPopular || isFetchingLocation ) ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
+              {(isLoadingPopular || isFetchingLocation ) ? "Updating..." : userLocation ? "Refresh Nearby" : "Refresh Global"}
             </Button>
           </div>
-          {geolocationError && <p className="text-xs text-center text-amber-500 mb-3"><Info className="inline w-3 h-3 mr-1"/>{geolocationError}</p>}
+          {geolocationError && !searchedLocationDetails && <p className="text-xs text-center text-amber-500 mb-3"><Info className="inline w-3 h-3 mr-1"/>{geolocationError}</p>}
           {popularContextualNote && !isLoadingPopular && <p className="text-sm text-muted-foreground italic mb-4 text-center sm:text-left">{popularContextualNote}</p>}
 
           {isLoadingPopular && (
@@ -483,9 +495,12 @@ export default function LandingPage() {
             <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
               <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
                 <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground flex items-center">
-                  <Sparkles className="w-7 h-7 mr-2 text-accent" /> Smart Trip Ideas For You
+                  <Sparkles className="w-7 h-7 mr-2 text-accent" /> 
+                  {searchedLocationDetails ? `Smart Trip Ideas For ${searchedLocationDetails.name}` : "Smart Trip Ideas For You"}
                 </h2>
-                 <Button onClick={fetchSmartBundles} disabled={isLoadingSmartBundles} variant="outline" className="glass-interactive">
+                 <Button 
+                    onClick={() => fetchSmartBundles(searchedLocationDetails ? `Trips related to ${searchedLocationDetails.name}` : undefined)} 
+                    disabled={isLoadingSmartBundles} variant="outline" className="glass-interactive">
                     {isLoadingSmartBundles ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
                     {isLoadingSmartBundles ? "Thinking..." : "Refresh My Ideas"}
                 </Button>
@@ -529,3 +544,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
