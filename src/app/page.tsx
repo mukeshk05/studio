@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
+import { FlightProgressIndicator } from "@/components/ui/FlightProgressIndicator"; 
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import {
@@ -91,7 +91,7 @@ import {
   Zap,
   ImageOff,
   Loader2,
-  ActivityIcon, // Added Loader2 for loading states if needed elsewhere
+  ActivityIcon, 
 } from 'lucide-react';
 import { getLandingPageImagesWithFallback, type ImageRequest } from './actions';
 import { useToast } from '@/hooks/use-toast';
@@ -303,7 +303,7 @@ const features = [
       title: "Dynamic AI Travel Budget Re-balancer & Forecaster",
       description: "Users set an overall trip budget. As they make bookings or the AI suggests options, the AI tracks spending against categories in real-time. If a user overspends on a luxury hotel, the AI might proactively suggest more budget-friendly (but still persona-aligned) dining options or highlight free activities. It could also forecast if you're on track to meet your budget and offer re-balancing scenarios. Novelty: Real-time, intelligent budget tracking and dynamic re-allocation advice based on actual and planned spending, with forecasting.",
       imgSrc: "https://placehold.co/600x400.png?text=Budget+AI",
-      dataAiHint: "ai budget travel forecast"
+      dataAiHint: "ai budget travel forecast savings"
     },
     {
       id: "feature-itinerary-assistance",
@@ -332,7 +332,7 @@ const features = [
   ];
 
 interface LoadingScreenProps {
-  progress: number;
+  progress?: number; // Made optional for indeterminate state
   message: string;
 }
 
@@ -341,8 +341,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress, message }) => {
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 backdrop-blur-lg">
       <div className="text-center space-y-6 p-8 rounded-xl glass-card border-primary/30 shadow-2xl">
         <AppLogo />
-        <Progress value={progress} className="w-64 sm:w-80 mx-auto [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent" />
-        <p className="text-lg font-medium text-foreground">{message}</p>
+        <FlightProgressIndicator progress={progress} message={message} className="w-64 sm:w-80 mx-auto"/>
         <p className="text-sm text-muted-foreground">BudgetRoam AI is preparing your enhanced experience...</p>
       </div>
     </div>
@@ -366,7 +365,7 @@ function useStaggeredAnimation(count: number, delayIncrement: number, trigger: b
       return () => timers.forEach(clearTimeout);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trigger, count, delayIncrement]); // Removed visibility from deps
+  }, [trigger, count, delayIncrement]); 
 
   return visibility;
 }
@@ -382,7 +381,7 @@ export default function LandingPage() {
   const { toast } = useToast();
 
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadProgress, setLoadProgress] = useState<number | undefined>(10); 
   const [loadingMessage, setLoadingMessage] = useState("Warming up Aura AI...");
 
   const [heroImageUris, setHeroImageUris] = useState<Record<string, string | null | '__error__'>>({});
@@ -414,14 +413,7 @@ export default function LandingPage() {
         styleHint: 'hero',
       }));
       
-      // For feature cards, we will now use static images, so no AI requests for them here.
-      // const featureCardImageRequests: ImageRequest[] = features.map((feature) => ({
-      //   id: feature.id, 
-      //   promptText: feature.dataAiHint,
-      //   styleHint: 'featureCard',
-      // }));
-      
-      const allImageRequests = [...heroImageRequests]; // Only hero images for AI now
+      const allImageRequests = [...heroImageRequests]; 
       console.log("[LandingPage] All AI Image Requests Prepared (Hero Only):", allImageRequests);
 
       if (allImageRequests.length === 0) {
@@ -434,7 +426,7 @@ export default function LandingPage() {
           setFeaturesSectionVisible(true);
           setWhyChooseUsSectionVisible(true);
           setFinalCtaVisible(true);
-        }, 300); // Reduced delay as no AI calls
+        }, 300); 
         return;
       }
       
@@ -450,8 +442,7 @@ export default function LandingPage() {
         setLoadingMessage("Applying hero visuals...");
 
         const newHeroUris: Record<string, string | null | '__error__'> = {};
-        // No need for newFeatureUris if we are not fetching them via AI
-
+        
         allImageRequests.forEach(req => {
           if (req.id.startsWith('hero-')) {
             newHeroUris[req.id] = fetchedUris[req.id] === undefined ? null : fetchedUris[req.id];
@@ -460,8 +451,7 @@ export default function LandingPage() {
         
         console.log("[LandingPage] Setting hero URIs:", newHeroUris);
         setHeroImageUris(newHeroUris);
-        // Feature URIs will rely on static imgSrc
-
+        
         setLoadProgress(100);
         setLoadingMessage("Visuals ready!");
       } catch (error: any) {
@@ -477,7 +467,7 @@ export default function LandingPage() {
           if (req.id.startsWith('hero-')) errorHeroUris[req.id] = null;
         });
         setHeroImageUris(errorHeroUris);
-        setLoadProgress(100);
+        setLoadProgress(undefined); // Indicate error/indeterminate state
       } finally {
         setTimeout(() => {
           setIsPageLoading(false);
@@ -495,7 +485,7 @@ export default function LandingPage() {
 
     fetchAllImagesAndLoadContent();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // toast dependency removed as it's stable from useToast
+  }, []); 
 
 
   const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50";
@@ -676,12 +666,12 @@ export default function LandingPage() {
                       {features.slice(0, 3).map((feature, index) => {
                         const heroImageId = `hero-${feature.id}`;
                         const currentHeroImageUri = heroImageUris[heroImageId];
-                        const fallbackSrc = feature.imgSrc; // Using feature.imgSrc as the ultimate fallback
+                        const fallbackSrc = feature.imgSrc; 
 
                         return (
                           <CarouselItem key={heroImageId}>
                             <div className="relative w-full aspect-square group">
-                              {isPageLoading && heroImageUris[heroImageId] === undefined ? ( // Still in initial page load & this specific image not processed
+                              {isPageLoading && heroImageUris[heroImageId] === undefined ? ( 
                                 <Skeleton className="w-full h-full rounded-lg" />
                               ) : currentHeroImageUri && currentHeroImageUri !== '__error__' ? (
                                 <Image
@@ -692,16 +682,16 @@ export default function LandingPage() {
                                   onError={() => handleImageError(heroImageId, 'hero')}
                                   sizes="100vw"
                                 />
-                              ) : fallbackSrc ? ( // Fallback to static imgSrc
+                              ) : fallbackSrc ? ( 
                                 <Image
                                   src={fallbackSrc}
                                   alt={feature.title}
                                   fill
                                   className="object-cover rounded-lg"
-                                  onError={() => handleImageError(heroImageId, 'hero')} // Even static might fail, so handle error to show ImageOff
+                                  onError={() => handleImageError(heroImageId, 'hero')} 
                                   sizes="100vw"
                                 />
-                              ) : ( // Final fallback if no AI, no static, or all failed
+                              ) : ( 
                                 <div className="w-full h-full bg-muted/30 flex items-center justify-center rounded-lg">
                                   <ImageOff className="w-16 h-16 text-muted-foreground" />
                                 </div>
@@ -737,8 +727,8 @@ export default function LandingPage() {
                 >
                   <CarouselContent className="-ml-2 md:-ml-4">
                     {features.map((feature, index) => {
-                        // Feature cards will now use static images directly
-                        const currentFeatureImageUri = featureImageUris[feature.id]; // Check if AI tried and failed
+                        
+                        const currentFeatureImageUri = featureImageUris[feature.id]; 
                         const fallbackSrc = feature.imgSrc;
                         
                         return (
@@ -761,7 +751,7 @@ export default function LandingPage() {
                                 </CardHeader>
                                 <CardContent className="flex-grow px-6 pb-6 text-left">
                                   <div className="relative aspect-video w-full rounded-md overflow-hidden mb-4 border border-border/30 group">
-                                      {isPageLoading && currentFeatureImageUri === undefined && !fallbackSrc ? ( // Show skeleton if page is loading and no static fallback yet
+                                      {isPageLoading && currentFeatureImageUri === undefined && !fallbackSrc ? ( 
                                           <Skeleton className="w-full h-full rounded-md" />
                                       ) : currentFeatureImageUri && currentFeatureImageUri !== '__error__' ? (
                                         <Image
@@ -778,8 +768,8 @@ export default function LandingPage() {
                                             alt={feature.title}
                                             fill
                                             className="object-cover rounded-md group-hover:scale-105 transition-transform duration-300"
-                                            data-ai-hint={feature.dataAiHint} // Keep hint for future use or manual generation
-                                            onError={() => handleImageError(feature.id, 'feature')} // Fallback to ImageOff if static fails
+                                            data-ai-hint={feature.dataAiHint} 
+                                            onError={() => handleImageError(feature.id, 'feature')} 
                                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                           />
                                       ) : (
@@ -882,15 +872,3 @@ export default function LandingPage() {
         </div>
   );
 }
-
-// Helper function to generate slugs (optional, if features don't have pre-defined IDs)
-// function slugify(text: string): string {
-//   return text
-//     .toString()
-//     .toLowerCase()
-//     .replace(/\s+/g, '-')           // Replace spaces with -
-//     .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
-//     .replace(/\-\-+/g, '-')         // Replace multiple - with single -
-//     .replace(/^-+/, '')             // Trim - from start of text
-//     .replace(/-+$/, '');            // Trim - from end of text
-// }

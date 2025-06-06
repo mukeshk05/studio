@@ -32,6 +32,7 @@ import {
   ChartConfig,
 } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { FlightProgressIndicator } from '@/components/ui/FlightProgressIndicator';
 
 
 import { cn } from '@/lib/utils';
@@ -75,7 +76,7 @@ import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
 import { 
   getPopularDestinations, 
-  getRealFlightsAction, // Changed from getConceptualFlightsAction
+  getRealFlightsAction, 
   getAiFlightMapDealsAction, 
   getPriceAdviceAction,
   getConceptualDateGridAction,
@@ -83,7 +84,7 @@ import {
 } from '@/app/actions';
 import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
 import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
-import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types'; // Changed from Conceptual types
+import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types'; 
 import type { PriceAdvisorInput, PriceAdvisorOutput } from '@/ai/flows/price-advisor-flow';
 import type { ConceptualDateGridInput, ConceptualDateGridOutput, DatePricePoint } from '@/ai/types/ai-conceptual-date-grid-types';
 import type { ConceptualPriceGraphInput, ConceptualPriceGraphOutput, ConceptualDataPoint } from '@/ai/types/ai-conceptual-price-graph-types';
@@ -113,7 +114,7 @@ function RealFlightResultCard({ flightOption, onViewDetails }: RealFlightResultC
   const airlinePlaceholderText = airlineName.split(' ')[0];
   
   useEffect(() => {
-    setLogoError(false); // Reset error if the flightOption (and thus airlineLogoSrc) changes
+    setLogoError(false); 
   }, [airlineLogoSrc]);
 
   const formatDuration = (minutes?: number) => {
@@ -376,7 +377,7 @@ function RealFlightDetailsDialog({ isOpen, onClose, flight }: RealFlightDetailsD
             Airline: {flight.airline || "Multiple Airlines"} - Total Price: ${flight.price?.toLocaleString() || 'N/A'}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[calc(80vh-160px)]"> {/* Adjusted max-height */}
+        <ScrollArea className="max-h-[calc(80vh-160px)]"> 
           <div className="p-4 sm:p-6 space-y-4 text-sm">
             <div className="flex items-center justify-between">
               <p className="font-medium text-card-foreground">Total Price:</p>
@@ -478,14 +479,14 @@ const priceIndicatorToNumericForGraph = (indicator: string): number => {
       return priceLevelMapping[key];
     }
   }
-  return 3; // Default to Average (3) if no keyword found
+  return 3; 
 };
 
 const yAxisTickFormatter = (value: number): string => {
   const mapping: Record<number, string> = {
     1: "V.Low", 2: "Low", 3: "Avg", 4: "S.High", 5: "High", 6: "Peak", 7: "V.High"
   };
-  return mapping[value] || value.toString(); // Fallback to number if not in mapping
+  return mapping[value] || value.toString(); 
 };
 
 const priceGraphChartConfig = {
@@ -497,7 +498,7 @@ const priceGraphChartConfig = {
 
 
 export default function FlightsPage() {
-  const [tripType, setTripType] = useState<"round-trip" | "one-way">("round-trip"); // Multi-city not supported by current SerpApi simple params
+  const [tripType, setTripType] = useState<"round-trip" | "one-way">("round-trip"); 
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [dates, setDates] = useState<DateRange | undefined>(undefined);
@@ -513,8 +514,8 @@ export default function FlightsPage() {
   const priceGraphDestinationInputRef = useRef<HTMLInputElement>(null);
 
 
-  const [passengers, setPassengers] = useState("1 adult"); // Keep for UI, but SerpApi uses different format
-  const [cabinClass, setCabinClass] = useState("economy"); // Keep for UI, SerpApi uses different format
+  const [passengers, setPassengers] = useState("1 adult"); 
+  const [cabinClass, setCabinClass] = useState("economy"); 
 
 
   const [isLoadingRealFlights, setIsLoadingRealFlights] = useState(false);
@@ -804,11 +805,10 @@ export default function FlightsPage() {
 
   useEffect(() => {
     fetchGeneralPopularFlightDests();
-    if (userLocation && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) { // Check if userLocation exists before calling
+    if (userLocation && locationAiDestinations.length === 0 && !isFetchingLocationDests && !locationDestsError) { 
       handleFetchLocationAndDests();
     } else if (!userLocation && !geolocationMapError && isFetchingUserLocationForMap === false && locationAiDestinations.length === 0 && !isFetchingLocationDests) {
-        // If initial geo failed or was never available, and no location-based suggestions loaded yet,
-        // we can set a note indicating that.
+        
         setLocationContextualNote("Enable location or search to see relevant flight ideas.");
     }
   }, [userLocation, geolocationMapError, fetchGeneralPopularFlightDests, handleFetchLocationAndDests, locationAiDestinations.length, isFetchingLocationDests, locationDestsError, isFetchingUserLocationForMap]);
@@ -1093,7 +1093,7 @@ export default function FlightsPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearchFlights} className="space-y-6">
-            <RadioGroup value={tripType} onValueChange={(value: "round-trip" | "one-way") => setTripType(value)} className="grid grid-cols-2 sm:grid-cols-2 gap-2 mb-4"> {/* Simplified to two options */}
+            <RadioGroup value={tripType} onValueChange={(value: "round-trip" | "one-way") => setTripType(value)} className="grid grid-cols-2 sm:grid-cols-2 gap-2 mb-4"> 
               {["round-trip", "one-way"].map((type) => (<FormItem key={type} className="flex-1"><RadioGroupItem value={type} id={type} className="sr-only peer" /><Label htmlFor={type} className={cn("flex items-center justify-center p-3 text-sm font-medium rounded-md border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary", "transition-all cursor-pointer glass-pane")}>{type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</Label></FormItem>))}
             </RadioGroup>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -1115,7 +1115,7 @@ export default function FlightsPage() {
                 {tripType === 'round-trip' && (<div><Label htmlFor="return-date" className="text-sm font-medium text-card-foreground/90">Return</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.to && "text-muted-foreground")} disabled={!dates?.from}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.to && isValid(dates.to) ? format(dates.to, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={2} disabled={{ before: dates?.from || new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>)}
                 {tripType === 'one-way' && (<div><Label htmlFor="one-way-date" className="text-sm font-medium text-card-foreground/90 opacity-0 md:opacity-100">.</Label></div>)}
               </div>
-              <div className="grid grid-cols-2 gap-2"> {/* These are UI only for now, not passed to SerpApi basic search */}
+              <div className="grid grid-cols-2 gap-2"> 
                 <div><Label htmlFor="passengers" className="text-sm font-medium text-card-foreground/90 flex items-center"><Users className="w-4 h-4 mr-1.5" /> Passengers</Label><Select value={passengers} onValueChange={setPassengers}><SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="1 adult">1 adult</SelectItem><SelectItem value="2 adults">2 adults</SelectItem><SelectItem value="3 adults">3 adults</SelectItem><SelectItem value="custom">Custom...</SelectItem></SelectContent></Select></div>
                 <div><Label htmlFor="cabin-class" className="text-sm font-medium text-card-foreground/90 flex items-center"><Briefcase className="w-4 h-4 mr-1.5" /> Cabin Class</Label><Select value={cabinClass} onValueChange={setCabinClass}><SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="economy">Economy</SelectItem><SelectItem value="premium-economy">Premium Economy</SelectItem><SelectItem value="business">Business</SelectItem><SelectItem value="first">First</SelectItem></SelectContent></Select></div>
               </div>
@@ -1125,7 +1125,7 @@ export default function FlightsPage() {
         </CardContent>
       </Card>
 
-      {isLoadingRealFlights && (<div className="text-center py-10 text-muted-foreground"><Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" /><p className="text-lg">SerpApi is searching for flight options...</p></div>)}
+      {isLoadingRealFlights && (<FlightProgressIndicator message="SerpApi is searching for flight options..." className="my-10" />)}
 
       {realFlightData && (realFlightData.best_flights?.length || realFlightData.other_flights?.length) && !isLoadingRealFlights && (
         <div className="mt-8 animate-fade-in-up">
@@ -1169,7 +1169,7 @@ export default function FlightsPage() {
 
       <Separator className="my-12 border-border/40" />
 
-      {/* AI Flight Deal Explorer Map Section */}
+      
       <section className="animate-fade-in-up" style={{animationDelay: '0.2s'}}>
         <Card className={cn(glassCardClasses, "border-primary/30")}>
           <CardHeader>
@@ -1201,13 +1201,13 @@ export default function FlightsPage() {
 
             <div className={cn("h-[450px] p-1 rounded-lg shadow-inner", innerGlassEffectClasses, "border-primary/20")}>
               {mapsApiError && <div className="w-full h-full flex flex-col items-center justify-center bg-destructive/10 text-destructive-foreground p-3 rounded-md"><AlertTriangle className="w-10 h-10 mb-2"/><p className="font-semibold">Map Error</p><p className="text-xs text-center">{mapsApiError}</p></div>}
-              {(!mapsApiError && (isMapInitializing || isFetchingUserLocationForMap)) && <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mb-2 text-primary"/><p className="text-xs">{isFetchingUserLocationForMap ? "Getting your location for map..." : "Initializing Map..."}</p></div>}
+              {(!mapsApiError && (isMapInitializing || isFetchingUserLocationForMap)) && <FlightProgressIndicator message={isFetchingUserLocationForMap ? "Getting your location for map..." : "Initializing Map..."} className="h-full" />}
               <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing || isFetchingUserLocationForMap) ? "hidden" : "")} />
             </div>
             {geolocationMapError && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>{geolocationMapError}</p>}
 
 
-            {isFetchingMapDeals && mapDealSuggestions.length === 0 && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary"/><p className="text-sm">Aura AI is searching for flight deal ideas to {mapDealTargetDestinationCity} from your location...</p></div>}
+            {isFetchingMapDeals && mapDealSuggestions.length === 0 && <FlightProgressIndicator message={`Aura AI is searching for flight deal ideas to ${mapDealTargetDestinationCity} from your location...`} className="py-4" />}
             {mapDealError && !isFetchingMapDeals && <div className="text-center py-3 text-sm text-destructive"><AlertTriangle className="inline w-4 h-4 mr-1.5"/>{mapDealError}</div>}
             {!isFetchingMapDeals && mapDealSuggestions.length === 0 && mapDealTargetDestinationCity && !mapDealError && <div className="text-center py-3 text-sm text-muted-foreground">No specific AI deal suggestions found for {mapDealTargetDestinationCity} from your location. Try another destination.</div>}
           </CardContent>
@@ -1255,11 +1255,11 @@ export default function FlightsPage() {
 
       <Separator className="my-12 border-border/40" />
 
-      {/* Useful Tools Section */}
+      
       <section className="animate-fade-in-up" style={{animationDelay: '0.6s'}}>
         <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-6">Useful tools to help you find the best flight deals</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Track Prices Tool */}
+          
           <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3"><TrendingUp className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Track Prices & Get AI Advice</CardTitle></div>
@@ -1289,7 +1289,7 @@ export default function FlightsPage() {
             </CardFooter>
           </Card>
 
-          {/* Date Grid Tool */}
+          
           <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3"><Grid2X2 className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Date Grid</CardTitle></div>
@@ -1327,7 +1327,7 @@ export default function FlightsPage() {
             </CardFooter>
           </Card>
 
-          {/* Price Graph Tool */}
+          
           <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3"><PieChart className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Price Graph</CardTitle></div>
@@ -1390,7 +1390,7 @@ export default function FlightsPage() {
 
       <Separator className="my-12 border-border/40" />
 
-      {/* Popular from User Location Section */}
+      
       <section className="animate-fade-in-up" style={{animationDelay: '0.8s'}}>
          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center"><LocateFixed className="w-7 h-7 mr-3 text-accent" />Popular flight destinations {userLocation ? 'from your area' : ' (Location N/A)'}</h2>
@@ -1398,7 +1398,7 @@ export default function FlightsPage() {
             {(isFetchingUserLocationForSuggestions || isFetchingLocationDests) ? <Loader2 className="animate-spin" /> : <Sparkles />}{(isFetchingUserLocationForSuggestions || isFetchingLocationDests) ? "Finding Ideas..." : "Refresh Nearby Ideas"}
           </Button>
         </div>
-        {(isFetchingUserLocationForSuggestions && !userLocation) && <div className="text-center py-4 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2 inline-block" />Fetching your location to find relevant flights...</div>}
+        {(isFetchingUserLocationForSuggestions && !userLocation) && <FlightProgressIndicator message="Fetching your location to find relevant flights..." className="my-4" />}
 
         {!isFetchingUserLocationForSuggestions && geolocationSuggestionsError && (
             <Alert variant="default" className={cn("mb-4 bg-amber-500/10 border-amber-500/30 text-amber-300")}>

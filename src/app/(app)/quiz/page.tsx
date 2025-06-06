@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useSaveUserTravelPersona } from "@/lib/firestoreHooks";
 import { useAuth } from "@/contexts/AuthContext";
+import { FlightProgressIndicator } from "@/components/ui/FlightProgressIndicator";
 
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -64,7 +65,7 @@ export default function AdventureQuizPage() {
           description: "We couldn't find a perfect match this time. Feel free to adjust your answers or explore general planning options!",
           variant: "default"
         });
-        setAiSuggestions([]); // Set to empty array to show "Take quiz again"
+        setAiSuggestions([]); 
       }
     } catch (error) {
       console.error("Error matching adventure:", error);
@@ -105,11 +106,10 @@ export default function AdventureQuizPage() {
           )}
 
           {isLoading && (
-            <div className="text-center py-10 text-muted-foreground">
-              <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-              <p className="text-lg">Our AI is discovering your travel style...</p>
-              <p className="text-sm">This might take a moment.</p>
-            </div>
+            <FlightProgressIndicator 
+              message="Our AI is discovering your travel style... This might take a moment." 
+              className="py-10"
+            />
           )}
 
           {aiSuggestions && !isLoading && (

@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Sparkles, Info, ExternalLink, Wand2, Plane, Hotel as HotelIcon, AlertTriangle, DollarSign } from 'lucide-react'; // Added HotelIcon alias
-import { generateSmartBundles } from '@/app/actions'; // Updated to use the action
+import { Loader2, Sparkles, Info, ExternalLink, Wand2, Plane, Hotel as HotelIcon, AlertTriangle, DollarSign } from 'lucide-react'; 
+import { generateSmartBundles } from '@/app/actions'; 
 import type { SmartBundleInput, SmartBundleOutput, BundleSuggestion } from '@/ai/types/smart-bundle-types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import type { AITripPlannerInput, FlightOption, HotelOption } from '@/ai/types/trip-planner-types';
 import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
+import { FlightProgressIndicator } from '../ui/FlightProgressIndicator';
 
 
 type SmartBundleGeneratorProps = {
@@ -52,12 +53,12 @@ function RealDataSnippet({ flight, hotel }: { flight?: FlightOption; hotel?: Hot
 export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGeneratorProps) {
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  // const router = useRouter(); // Not directly used for navigation here, onPlanTripFromBundle handles it
+  
 
   const [availability, setAvailability] = useState('');
   const [interests, setInterests] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<BundleSuggestion[] | null>(null); // Updated type
+  const [suggestions, setSuggestions] = useState<BundleSuggestion[] | null>(null); 
 
   const handleGenerateBundle = async () => {
     if (!currentUser) {
@@ -72,7 +73,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
         upcomingAvailability: availability || undefined,
         travelInterests: interests || undefined,
       };
-      const result = await generateSmartBundles(input); // Calls the action
+      const result = await generateSmartBundles(input); 
       setSuggestions(result.suggestions);
       if (!result.suggestions || result.suggestions.length === 0) {
         toast({ title: "No Suggestions", description: "Aura AI couldn't generate specific bundles at this time. Try broadening your inputs or describe your ideal trip in the 'Travel Interests' field." });
@@ -128,10 +129,7 @@ export function SmartBundleGenerator({ onPlanTripFromBundle }: SmartBundleGenera
         </Button>
 
         {isLoading && !suggestions && (
-          <div className="text-center py-4 text-muted-foreground">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
-            <p>Aura AI is fusing preferences, checking real-time data, and crafting ideas...</p>
-          </div>
+          <FlightProgressIndicator message="Aura AI is fusing preferences, checking real-time data, and crafting ideas..." className="py-4"/>
         )}
 
         {suggestions && suggestions.length > 0 && (

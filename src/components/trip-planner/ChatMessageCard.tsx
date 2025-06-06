@@ -4,17 +4,18 @@
 import React from 'react';
 import type { ChatMessage } from "@/app/(app)/planner/page";
 import type { AITripPlannerOutput, AITripPlannerInput } from "@/ai/types/trip-planner-types";
-import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion, ActivitySuggestion } from "@/lib/types";
+import type { Itinerary, TripPackageSuggestion, SerpApiFlightOption, SerpApiHotelSuggestion, ActivitySuggestion } from "@/lib/types"; 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CompactItineraryCard } from "./CompactItineraryCard";
-import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff, Route, MapPin as ActivityIconPin } from "lucide-react"; // Renamed MapPin
+import { Bot, User, AlertTriangle, Sparkles, Loader2, Info, Send, MessageSquare, Plane as PlaneIcon, Hotel as HotelIcon, Briefcase, Star, Eye, ExternalLink, ImageOff, Route, MapPin as ActivityIconPin } from "lucide-react"; 
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import NextImage from 'next/image';
 import { Button, buttonVariants } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { FlightProgressIndicator } from '../ui/FlightProgressIndicator';
 
 
 const renderMarkdownLinks = (text: string) => {
@@ -154,7 +155,7 @@ function CompactTripPackageCard({ pkg, onViewPackageOnFullPage }: CompactTripPac
 type ChatMessageCardProps = {
   message: ChatMessage;
   onViewDetails: (itinerary: Itinerary) => void;
-  onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void; // This prop comes from TripPlannerPage
+  onViewPackageOnFullPage: (pkg: TripPackageSuggestion) => void; 
 };
 
 export function ChatMessageCard(props: ChatMessageCardProps) { 
@@ -218,11 +219,7 @@ export function ChatMessageCard(props: ChatMessageCardProps) {
       case "system":
         return <div className="text-sm text-muted-foreground italic py-2 animate-fade-in whitespace-pre-line">{message.payload as string}</div>;
       case "loading":
-        return (
-          <div className="flex items-center text-card-foreground">
-            <Sparkles className="w-5 h-5 mr-3 animate-pulse text-primary" /> <span>{message.payload as string || "BudgetRoam AI is thinking..."}</span>
-          </div>
-        );
+        return <FlightProgressIndicator message={message.payload as string || "BudgetRoam AI is thinking..."} />;
       case "booking_guidance":
         return (
           <Card className={cn("shadow-none border-none p-0 bg-transparent")}>
@@ -232,7 +229,7 @@ export function ChatMessageCard(props: ChatMessageCardProps) {
         );
       case "trip_package_suggestions":
         const packageData = message.payload as { packages: TripPackageSuggestion[], note: string, userInput: AITripPlannerInput };
-        console.log("[ChatMessageCard] Rendering trip_package_suggestions. TYPEOF props.onViewPackageOnFullPage:", typeof props.onViewPackageOnFullPage);
+        console.log("[ChatMessageCard] Rendering trip_package_suggestions. Prop 'onViewPackageOnFullPage' in ChatMessageCard:", typeof props.onViewPackageOnFullPage);
         return (
           <Card className="shadow-none border-none p-0 bg-transparent text-sm">
             <CardHeader className="p-0 pb-2">
@@ -274,7 +271,7 @@ export function ChatMessageCard(props: ChatMessageCardProps) {
   let IconToUse = isUser ? User : Bot;
   let iconBgClass = isUser ? "bg-muted/50" : "bg-primary/20 text-primary";
 
-  if (message.type === 'loading') IconToUse = Loader2;
+  if (message.type === 'loading') IconToUse = Sparkles; 
   else if (message.type === 'booking_guidance') { IconToUse = Send; iconBgClass = "bg-accent/20 text-accent"; }
   else if (message.type === 'ai_text_response') { IconToUse = MessageSquare; iconBgClass = "bg-teal-500/20 text-teal-500"; }
   else if (message.type === 'trip_package_suggestions') { IconToUse = Briefcase; iconBgClass = "bg-blue-500/20 text-blue-500"; }
@@ -295,12 +292,12 @@ export function ChatMessageCard(props: ChatMessageCardProps) {
 
   return (
     <div className={cn("flex items-end gap-3 animate-fade-in", bubbleAlignment)}>
-      {!isUser && (<Avatar className="w-8 h-8 shrink-0 border border-primary/50"><AvatarFallback className={cn(iconBgClass)}><IconToUse className={message.type === 'loading' ? 'animate-spin' : ''} /></AvatarFallback></Avatar>)}
+      {!isUser && message.type !== 'loading' && (<Avatar className="w-8 h-8 shrink-0 border border-primary/50"><AvatarFallback className={cn(iconBgClass)}><IconToUse className={message.type === 'loading' ? 'animate-pulse text-primary' : ''} /></AvatarFallback></Avatar>)}
       <div className={cn("max-w-[85%] sm:max-w-[75%] p-0")}>
         <CardContent className={cn(
             "p-3 rounded-xl text-sm", 
             bubbleClasses, 
-            message.type === 'loading' && "py-4", 
+            message.type === 'loading' && "py-2 px-3 bg-transparent border-none shadow-none", 
             message.type === 'ai_text_response' && "bg-card/80 dark:bg-card/60 border-teal-500/40", 
             message.type === 'trip_package_suggestions' && "bg-card/80 dark:bg-card/60 border-blue-500/40", 
             "whitespace-pre-line"
@@ -308,7 +305,7 @@ export function ChatMessageCard(props: ChatMessageCardProps) {
             {renderPayload()}
         </CardContent>
         <p className={cn("text-xs text-muted-foreground mt-1 px-1", isUser ? 'text-right' : 'text-left')}>
-            {message.type !== 'loading' ? format(message.timestamp, "p") : (message.payload as string || "Thinking...")}
+            {message.type !== 'loading' ? format(message.timestamp, "p") : ""}
         </p>
       </div>
       {isUser && (<Avatar className="w-8 h-8 shrink-0 border border-primary/50"><AvatarFallback className="bg-muted/50"><User /></AvatarFallback></Avatar>)}
