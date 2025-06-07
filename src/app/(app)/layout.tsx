@@ -1,5 +1,6 @@
 
 import { Header } from "@/components/layout/header";
+import Breadcrumbs from "@/components/layout/Breadcrumbs"; // Import the new Breadcrumbs component
 import { cn } from "@/lib/utils";
 
 export default function AppLayout({
@@ -10,6 +11,7 @@ export default function AppLayout({
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <Breadcrumbs /> {/* Add Breadcrumbs here */}
       <main className={cn("flex-1 bg-background")}> {/* Ensure background is consistent */}
         {children}
       </main>
