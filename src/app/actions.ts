@@ -52,6 +52,23 @@ import { thingsToDoFlow as thingsToDoFlowOriginal } from '@/ai/flows/things-to-d
 import type { FlightOption, HotelOption, ActivitySuggestion } from '@/lib/types';
 
 import { format, addDays, parseISO, differenceInDays, addMonths, isBefore, isValid, startOfMonth, startOfWeek, endOfMonth } from 'date-fns';
+import { getPackingList as getPackingListOriginal } from '@/ai/flows/packing-list-flow';
+import type { PackingListInput, PackingListOutput } from '@/ai/flows/packing-list-flow';
+import { getDestinationFact as getDestinationFactOriginal } from '@/ai/flows/destination-fact-flow';
+import type { DestinationFactInput, DestinationFactOutput } from '@/ai/flows/destination-fact-flow';
+import { generateTripMemory as generateTripMemoryOriginal } from '@/ai/flows/generate-trip-memory-flow';
+import type { GenerateTripMemoryInput, GenerateTripMemoryOutput } from '@/ai/flows/generate-trip-memory-flow';
+import { generateGroupSyncReport as generateGroupSyncReportOriginal } from '@/ai/flows/group-sync-flow';
+import type { GroupSyncInput, GroupSyncOutput } from '@/ai/flows/group-sync-flow';
+import { trackPrice as trackPriceOriginal } from '@/ai/flows/price-tracker';
+import type { PriceTrackerInput, PriceTrackerOutput } from '@/ai/flows/price-tracker';
+import { getPriceForecast as getPriceForecastOriginal } from '@/ai/flows/price-forecast-flow';
+import type { PriceForecastInput, PriceForecastOutput } from '@/ai/flows/price-forecast-flow';
+import { getTravelTip as getTravelTipOriginal } from '@/ai/flows/travel-tip-flow';
+import type { TravelTipInput, TravelTipOutput } from '@/ai/flows/travel-tip-flow';
+import { getLocalInsiderTips as getLocalInsiderTipsOriginal } from '@/ai/flows/local-insider-tips-flow';
+import type { LocalInsiderTipsInput, LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-flow';
+
 
 const CACHE_EXPIRY_DAYS_API = 30;
 const CACHE_EXPIRY_DAYS_IMAGE = 30;
@@ -1033,50 +1050,50 @@ function parseTravelDatesForSerpApi(travelDates: string): { departureDate: strin
 }
 
 export async function generateSmartBundles(input: SmartBundleInputType): Promise<SmartBundleOutputType> {
-  console.log('[Server Action - generateSmartBundles] Input:', JSON.stringify(input, null, 2));
-  
-  const userIdPart = normalizeCacheKeyPart(input.userId);
-  const availabilityPart = normalizeCacheKeyPart(input.upcomingAvailability);
-  const interestsPart = normalizeCacheKeyPart(input.travelInterests);
-  const cacheKey = `smartbundle_conceptual_v2_${userIdPart}_${availabilityPart}_${interestsPart}`;
-  const cacheCollectionName = 'smartBundlesConceptualCache';
+  try {
+    console.log('[Server Action - generateSmartBundles] Input:', JSON.stringify(input, null, 2));
+    
+    const userIdPart = normalizeCacheKeyPart(input.userId);
+    const availabilityPart = normalizeCacheKeyPart(input.upcomingAvailability);
+    const interestsPart = normalizeCacheKeyPart(input.travelInterests);
+    const cacheKey = `smartbundle_conceptual_v2_${userIdPart}_${availabilityPart}_${interestsPart}`;
+    const cacheCollectionName = 'smartBundlesConceptualCache';
 
-  let conceptualBundlesOutput: SmartBundleOutputType | null = null;
+    let conceptualBundlesOutput: SmartBundleOutputType | null = null;
 
-  if (firestore) {
-    const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-    console.log(`[Cache Read - SmartBundlesConceptual] Attempting to read from Firestore for key: ${cacheKey}`);
-    try {
-      const docSnap = await getDoc(cacheDocRef);
-      if (docSnap.exists()) {
-        const cacheData = docSnap.data();
-        const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
-        if (cachedAt) {
-          const now = new Date();
-          const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
-          console.log(`[Cache Read - SmartBundlesConceptual] Found cache entry. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API} days.`);
-          if (daysDiff < CACHE_EXPIRY_DAYS_API) {
-            console.log(`[Cache HIT - SmartBundlesConceptual] Using cached conceptual bundles for key: ${cacheKey}`);
-            conceptualBundlesOutput = cacheData.data as SmartBundleOutputType;
+    if (firestore) {
+      const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
+      console.log(`[Cache Read - SmartBundlesConceptual] Attempting to read from Firestore for key: ${cacheKey}`);
+      try {
+        const docSnap = await getDoc(cacheDocRef);
+        if (docSnap.exists()) {
+          const cacheData = docSnap.data();
+          const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
+          if (cachedAt) {
+            const now = new Date();
+            const daysDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60 * 24);
+            console.log(`[Cache Read - SmartBundlesConceptual] Found cache entry. Age: ${daysDiff.toFixed(1)} days. Max age: ${CACHE_EXPIRY_DAYS_API} days.`);
+            if (daysDiff < CACHE_EXPIRY_DAYS_API) {
+              console.log(`[Cache HIT - SmartBundlesConceptual] Using cached conceptual bundles for key: ${cacheKey}`);
+              conceptualBundlesOutput = cacheData.data as SmartBundleOutputType;
+            } else {
+              console.log(`[Cache STALE - SmartBundlesConceptual] For key: ${cacheKey}. Will fetch fresh conceptual bundles.`);
+            }
           } else {
-            console.log(`[Cache STALE - SmartBundlesConceptual] For key: ${cacheKey}. Will fetch fresh conceptual bundles.`);
+             console.log(`[Cache Read - SmartBundlesConceptual] Cache entry has no valid cachedAt for key: ${cacheKey}. Fetching fresh.`);
           }
         } else {
-           console.log(`[Cache Read - SmartBundlesConceptual] Cache entry has no valid cachedAt for key: ${cacheKey}. Fetching fresh.`);
+          console.log(`[Cache MISS - SmartBundlesConceptual] For key: ${cacheKey}. Fetching fresh conceptual bundles.`);
         }
-      } else {
-        console.log(`[Cache MISS - SmartBundlesConceptual] For key: ${cacheKey}. Fetching fresh conceptual bundles.`);
+      } catch (cacheReadError: any) {
+        console.error(`[Cache Read Error - SmartBundlesConceptual] For key ${cacheKey}:`, cacheReadError.message, cacheReadError);
       }
-    } catch (cacheReadError: any) {
-      console.error(`[Cache Read Error - SmartBundlesConceptual] For key ${cacheKey}:`, cacheReadError.message, cacheReadError);
+    } else {
+      console.warn("[generateSmartBundles] Firestore instance is not available. Skipping conceptual cache check.");
     }
-  } else {
-    console.warn("[generateSmartBundles] Firestore instance is not available. Skipping conceptual cache check.");
-  }
 
-  if (!conceptualBundlesOutput) {
-    console.log(`[AI Flow - SmartBundlesConceptual] Calling smartBundleFlowOriginal for key ${cacheKey}`);
-    try {
+    if (!conceptualBundlesOutput) {
+      console.log(`[AI Flow - SmartBundlesConceptual] Calling smartBundleFlowOriginal for key ${cacheKey}`);
       conceptualBundlesOutput = await smartBundleFlowOriginal(input);
       if (firestore && conceptualBundlesOutput && conceptualBundlesOutput.suggestions && conceptualBundlesOutput.suggestions.length > 0) {
         const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
@@ -1092,150 +1109,148 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
       } else if (firestore) {
         console.log(`[Cache Write - SmartBundlesConceptual] SKIPPING save to cache for key: ${cacheKey} (no valid suggestions).`);
       }
-    } catch (flowError: any) {
-      console.error(`[AI Flow - SmartBundlesConceptual] Error during smartBundleFlowOriginal for key ${cacheKey}:`, flowError.message, flowError);
-      return { suggestions: [] }; // Return empty suggestions if the flow itself fails
-    }
-  }
-
-  const conceptualBundles = conceptualBundlesOutput?.suggestions;
-
-  if (!conceptualBundles || conceptualBundles.length === 0) {
-    console.log('[Server Action - generateSmartBundles] No conceptual bundles from AI flow or cache.');
-    return { suggestions: [] };
-  }
-
-  const augmentedSuggestions: BundleSuggestion[] = [];
-
-  for (const conceptualSuggestion of conceptualBundles) {
-    let destinationLatitude: number | undefined = undefined;
-    let destinationLongitude: number | undefined = undefined;
-
-    if (conceptualSuggestion.destinationLatitudeString) {
-        const latNum = parseFloat(conceptualSuggestion.destinationLatitudeString);
-        if (!isNaN(latNum) && latNum >= -90 && latNum <= 90) destinationLatitude = latNum;
-    }
-    if (conceptualSuggestion.destinationLongitudeString) {
-        const lonNum = parseFloat(conceptualSuggestion.destinationLongitudeString);
-        if (!isNaN(lonNum) && lonNum >= -180 && lonNum <= 180) destinationLongitude = lonNum;
     }
 
-    let augmentedSugg: BundleSuggestion = { 
-        ...conceptualSuggestion, 
-        userId: input.userId,
-        suggestedActivities: [], // Initialize
-        bundleImageUri: undefined, // Initialize
-        destinationLatitude: destinationLatitude,
-        destinationLongitude: destinationLongitude,
-    };
-    const { destination, travelDates, budget: conceptualBudget, origin: conceptualOrigin } = conceptualSuggestion.tripIdea;
-    console.log(`[Server Action - generateSmartBundles] Augmenting bundle for: ${destination}, Dates: ${travelDates}, AI Budget: ${conceptualBudget}, Conceptual Origin: ${conceptualOrigin}`);
-    
-    // Fetch Bundle Image
-    if (conceptualSuggestion.bundleImagePrompt) {
-        try {
-            const imageResult = await generateMultipleImagesAction({
-                prompts: [{ id: `bundle_${normalizeCacheKeyPart(destination)}_${normalizeCacheKeyPart(conceptualSuggestion.bundleName)}`, prompt: conceptualSuggestion.bundleImagePrompt, styleHint: 'destination' }]
-            });
-            if (imageResult.results[0]?.imageUri) {
-                augmentedSugg.bundleImageUri = imageResult.results[0].imageUri;
-                console.log(`[Server Action - generateSmartBundles] Fetched bundle image for ${destination}.`);
-            }
-        } catch (imgError) {
-            console.error(`[Server Action - generateSmartBundles] Error fetching bundle image for ${destination}:`, imgError);
-        }
+    const conceptualBundles = conceptualBundlesOutput?.suggestions;
+
+    if (!conceptualBundles || conceptualBundles.length === 0) {
+      console.log('[Server Action - generateSmartBundles] No conceptual bundles from AI flow or cache.');
+      return { suggestions: [] };
     }
 
+    const augmentedSuggestions: BundleSuggestion[] = [];
 
-    try {
-      const parsedDates = parseTravelDatesForSerpApi(travelDates);
-      console.log(`[Server Action - generateSmartBundles] Parsed dates for SerpApi: Departure ${parsedDates.departureDate}, Return ${parsedDates.returnDate}, Duration ${parsedDates.durationDays} days`);
+    for (const conceptualSuggestion of conceptualBundles) {
+      let destinationLatitude: number | undefined = undefined;
+      let destinationLongitude: number | undefined = undefined;
 
-      const originForFlight = conceptualSuggestion.tripIdea.origin || "NYC"; 
+      if (conceptualSuggestion.destinationLatitudeString) {
+          const latNum = parseFloat(conceptualSuggestion.destinationLatitudeString);
+          if (!isNaN(latNum) && latNum >= -90 && latNum <= 90) destinationLatitude = latNum;
+      }
+      if (conceptualSuggestion.destinationLongitudeString) {
+          const lonNum = parseFloat(conceptualSuggestion.destinationLongitudeString);
+          if (!isNaN(lonNum) && lonNum >= -180 && lonNum <= 180) destinationLongitude = lonNum;
+      }
+
+      let augmentedSugg: BundleSuggestion = { 
+          ...conceptualSuggestion, 
+          userId: input.userId,
+          suggestedActivities: [], 
+          bundleImageUri: undefined, 
+          destinationLatitude: destinationLatitude,
+          destinationLongitude: destinationLongitude,
+      };
+      const { destination, travelDates, budget: conceptualBudget, origin: conceptualOrigin } = conceptualSuggestion.tripIdea;
+      console.log(`[Server Action - generateSmartBundles] Augmenting bundle for: ${destination}, Dates: ${travelDates}, AI Budget: ${conceptualBudget}, Conceptual Origin: ${conceptualOrigin}`);
       
-      const flightResults = await getRealFlightsAction({ 
-        origin: originForFlight, 
-        destination: destination, 
-        departureDate: parsedDates.departureDate, 
-        returnDate: parsedDates.returnDate, 
-        tripType: parsedDates.returnDate ? "round-trip" : "one-way"
-      });
-      const bestFlight = flightResults.best_flights?.[0] || flightResults.other_flights?.[0];
-      
-      if (bestFlight) {
-        augmentedSugg.realFlightExample = bestFlight as unknown as FlightOption; 
-        console.log(`[Server Action - generateSmartBundles] Found real flight example: ${bestFlight.airline} for $${bestFlight.price}`);
-      } else {
-        console.log(`[Server Action - generateSmartBundles] No real flight found for ${destination}.`);
+      if (conceptualSuggestion.bundleImagePrompt) {
+          try {
+              const imageResult = await generateMultipleImagesAction({
+                  prompts: [{ id: `bundle_${normalizeCacheKeyPart(destination)}_${normalizeCacheKeyPart(conceptualSuggestion.bundleName)}`, prompt: conceptualSuggestion.bundleImagePrompt, styleHint: 'destination' }]
+              });
+              if (imageResult.results[0]?.imageUri) {
+                  augmentedSugg.bundleImageUri = imageResult.results[0].imageUri;
+                  console.log(`[Server Action - generateSmartBundles] Fetched bundle image for ${destination}.`);
+              }
+          } catch (imgError) {
+              console.error(`[Server Action - generateSmartBundles] Error fetching bundle image for ${destination}:`, imgError);
+          }
       }
 
-      const hotelResults = await getRealHotelsAction({ 
-        destination: destination, 
-        checkInDate: parsedDates.departureDate, 
-        checkOutDate: parsedDates.returnDate || format(addDays(parseISO(parsedDates.departureDate), parsedDates.durationDays -1 ), "yyyy-MM-dd"), 
-        guests: "2" 
-      });
-      const bestHotel = hotelResults.hotels?.[0];
-      if (bestHotel) {
-        augmentedSugg.realHotelExample = bestHotel as unknown as HotelOption; 
-         console.log(`[Server Action - generateSmartBundles] Found real hotel example: ${bestHotel.name} for ~$${bestHotel.price_per_night}/night`);
-      } else {
-         console.log(`[Server Action - generateSmartBundles] No real hotel found for ${destination}.`);
-      }
+      try {
+        const parsedDates = parseTravelDatesForSerpApi(travelDates);
+        console.log(`[Server Action - generateSmartBundles] Parsed dates for SerpApi: Departure ${parsedDates.departureDate}, Return ${parsedDates.returnDate}, Duration ${parsedDates.durationDays} days`);
 
-      let realPriceMin = 0;
-      let priceNoteParts: string[] = [];
-
-      if (bestFlight?.price) {
-        realPriceMin += bestFlight.price;
-        priceNoteParts.push(`Flight ~\$${bestFlight.price.toLocaleString()}`);
-      } else {
-        priceNoteParts.push("No specific flight price found.");
-      }
-
-      const hotelCostForStay = bestHotel?.price_per_night ? bestHotel.price_per_night * parsedDates.durationDays : (bestHotel?.total_price || 0);
-      if (hotelCostForStay > 0) {
-          realPriceMin += hotelCostForStay;
-          priceNoteParts.push(`Hotel ~\$${hotelCostForStay.toLocaleString()}${bestHotel?.price_per_night ? ` for ${parsedDates.durationDays} nights` : ' total'}`);
-      } else {
-          priceNoteParts.push("No specific hotel price found.");
-      }
-
-      if (realPriceMin > 0) {
-        augmentedSugg.estimatedRealPriceRange = `Around \$${realPriceMin.toLocaleString()}`;
-        if (conceptualBudget) {
-            if (realPriceMin > conceptualBudget * 1.2) {
-                augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()}. Total closer to ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
-            } else if (realPriceMin < conceptualBudget * 0.8) {
-                augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()}. Good news! Total could be ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
-            } else {
-                augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()} seems reasonable. Estimated ~${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
-            }
+        const originForFlight = conceptualSuggestion.tripIdea.origin || "NYC"; 
+        
+        const flightResults = await getRealFlightsAction({ 
+          origin: originForFlight, 
+          destination: destination, 
+          departureDate: parsedDates.departureDate, 
+          returnDate: parsedDates.returnDate, 
+          tripType: parsedDates.returnDate ? "round-trip" : "one-way"
+        });
+        const bestFlight = flightResults.best_flights?.[0] || flightResults.other_flights?.[0];
+        
+        if (bestFlight) {
+          augmentedSugg.realFlightExample = bestFlight as unknown as FlightOption; 
+          console.log(`[Server Action - generateSmartBundles] Found real flight example: ${bestFlight.airline} for $${bestFlight.price}`);
         } else {
-            augmentedSugg.priceFeasibilityNote = `Est. real price: ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+          console.log(`[Server Action - generateSmartBundles] No real flight found for ${destination}.`);
         }
-      } else {
-        augmentedSugg.priceFeasibilityNote = "Could not determine real-time pricing from available options.";
-      }
-       console.log(`[Server Action - generateSmartBundles] Bundle for ${destination} - Feasibility: ${augmentedSugg.priceFeasibilityNote}`);
-      
-      const activityInterest = (conceptualSuggestion as any).activityKeywords?.join(", ") || undefined;
-      const thingsToDoOutput = await getThingsToDoAction({ location: destination, interest: activityInterest });
-      if (thingsToDoOutput.activities && thingsToDoOutput.activities.length > 0) {
-        augmentedSugg.suggestedActivities = thingsToDoOutput.activities.slice(0, 3) as ActivitySuggestion[]; 
-        console.log(`[Server Action - generateSmartBundles] Added ${augmentedSugg.suggestedActivities.length} activities for ${destination}.`);
-      } else {
-        console.log(`[Server Action - generateSmartBundles] No activities found for ${destination} with interest: ${activityInterest}.`);
-      }
 
-    } catch (error: any) {
-        augmentedSugg.priceFeasibilityNote = "Error fetching real-time price context or activities for this bundle.";
-        console.error(`[Server Action - generateSmartBundles] Error augmenting bundle for ${destination}:`, error.message, error);
+        const hotelResults = await getRealHotelsAction({ 
+          destination: destination, 
+          checkInDate: parsedDates.departureDate, 
+          checkOutDate: parsedDates.returnDate || format(addDays(parseISO(parsedDates.departureDate), parsedDates.durationDays -1 ), "yyyy-MM-dd"), 
+          guests: "2" 
+        });
+        const bestHotel = hotelResults.hotels?.[0];
+        if (bestHotel) {
+          augmentedSugg.realHotelExample = bestHotel as unknown as HotelOption; 
+           console.log(`[Server Action - generateSmartBundles] Found real hotel example: ${bestHotel.name} for ~$${bestHotel.price_per_night}/night`);
+        } else {
+           console.log(`[Server Action - generateSmartBundles] No real hotel found for ${destination}.`);
+        }
+
+        let realPriceMin = 0;
+        let priceNoteParts: string[] = [];
+
+        if (bestFlight?.price) {
+          realPriceMin += bestFlight.price;
+          priceNoteParts.push(`Flight ~\$${bestFlight.price.toLocaleString()}`);
+        } else {
+          priceNoteParts.push("No specific flight price found.");
+        }
+
+        const hotelCostForStay = bestHotel?.price_per_night ? bestHotel.price_per_night * parsedDates.durationDays : (bestHotel?.total_price || 0);
+        if (hotelCostForStay > 0) {
+            realPriceMin += hotelCostForStay;
+            priceNoteParts.push(`Hotel ~\$${hotelCostForStay.toLocaleString()}${bestHotel?.price_per_night ? ` for ${parsedDates.durationDays} nights` : ' total'}`);
+        } else {
+            priceNoteParts.push("No specific hotel price found.");
+        }
+
+        if (realPriceMin > 0) {
+          augmentedSugg.estimatedRealPriceRange = `Around \$${realPriceMin.toLocaleString()}`;
+          if (conceptualBudget) {
+              if (realPriceMin > conceptualBudget * 1.2) {
+                  augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()}. Total closer to ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+              } else if (realPriceMin < conceptualBudget * 0.8) {
+                  augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()}. Good news! Total could be ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+              } else {
+                  augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()} seems reasonable. Estimated ~${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+              }
+          } else {
+              augmentedSugg.priceFeasibilityNote = `Est. real price: ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+          }
+        } else {
+          augmentedSugg.priceFeasibilityNote = "Could not determine real-time pricing from available options.";
+        }
+         console.log(`[Server Action - generateSmartBundles] Bundle for ${destination} - Feasibility: ${augmentedSugg.priceFeasibilityNote}`);
+        
+        const activityInterest = (conceptualSuggestion as any).activityKeywords?.join(", ") || undefined;
+        const thingsToDoOutput = await getThingsToDoAction({ location: destination, interest: activityInterest });
+        if (thingsToDoOutput.activities && thingsToDoOutput.activities.length > 0) {
+          augmentedSugg.suggestedActivities = thingsToDoOutput.activities.slice(0, 3) as ActivitySuggestion[]; 
+          console.log(`[Server Action - generateSmartBundles] Added ${augmentedSugg.suggestedActivities.length} activities for ${destination}.`);
+        } else {
+          console.log(`[Server Action - generateSmartBundles] No activities found for ${destination} with interest: ${activityInterest}.`);
+        }
+
+      } catch (error: any) {
+          augmentedSugg.priceFeasibilityNote = "Error fetching real-time price context or activities for this bundle.";
+          console.error(`[Server Action - generateSmartBundles] Error augmenting bundle for ${destination}:`, error.message, error);
+      }
+      augmentedSuggestions.push(augmentedSugg);
     }
-    augmentedSuggestions.push(augmentedSugg);
+    console.log('[Server Action - generateSmartBundles] Returning augmented suggestions:', augmentedSuggestions.length);
+    return { suggestions: augmentedSuggestions };
+  } catch (flowError: any) {
+    console.error(`[Server Action - generateSmartBundles] Critical error in outer try-catch:`, flowError.message, flowError);
+    return { suggestions: [] }; // Return empty suggestions if the flow itself fails
   }
-  console.log('[Server Action - generateSmartBundles] Returning augmented suggestions:', augmentedSuggestions.length);
-  return { suggestions: augmentedSuggestions };
 }
 
 export async function getCoTravelAgentResponse(input: CoTravelAgentInputType): Promise<CoTravelAgentOutputType> { return getCoTravelAgentResponseOriginal(input); }
@@ -1304,33 +1319,15 @@ export async function getThingsToDoAction(input: ThingsToDoSearchInputType): Pro
   return result;
 }
 
-import { getPackingList as getPackingListFlow } from '@/ai/flows/packing-list-flow';
-import type { PackingListInput, PackingListOutput } from '@/ai/flows/packing-list-flow';
-export async function getPackingList(input: PackingListInput): Promise<PackingListOutput> { return getPackingListFlow(input); }
 
-import { getDestinationFact as getDestinationFactFlow } from '@/ai/flows/destination-fact-flow';
-import type { DestinationFactInput, DestinationFactOutput } from '@/ai/flows/destination-fact-flow';
-export async function getDestinationFact(input: DestinationFactInput): Promise<DestinationFactOutput> { return getDestinationFactFlow(input); }
-
-import { generateTripMemory as generateTripMemoryFlow } from '@/ai/flows/generate-trip-memory-flow';
-import type { GenerateTripMemoryInput, GenerateTripMemoryOutput } from '@/ai/flows/generate-trip-memory-flow';
-export async function generateTripMemory(input: GenerateTripMemoryInput): Promise<GenerateTripMemoryOutput> { return generateTripMemoryFlow(input); }
-
-import { generateGroupSyncReport as generateGroupSyncReportFlow } from '@/ai/flows/group-sync-flow';
-import type { GroupSyncInput, GroupSyncOutput } from '@/ai/flows/group-sync-flow';
-export async function generateGroupSyncReport(input: GroupSyncInput): Promise<GroupSyncOutput> { return generateGroupSyncReportFlow(input); }
-
-import { trackPrice as trackPriceFlow } from '@/ai/flows/price-tracker';
-import type { PriceTrackerInput, PriceTrackerOutput } from '@/ai/flows/price-tracker';
-export async function trackPrice(input: PriceTrackerInput): Promise<PriceTrackerOutput> { return trackPriceFlow(input); }
-
-import { getPriceForecast as getPriceForecastFlow } from '@/ai/flows/price-forecast-flow';
-import type { PriceForecastInput, PriceForecastOutput } from '@/ai/flows/price-forecast-flow';
-export async function getPriceForecast(input: PriceForecastInput): Promise<PriceForecastOutput> { return getPriceForecastFlow(input); }
-
-import { getTravelTip as getTravelTipFlow } from '@/ai/flows/travel-tip-flow';
-import type { TravelTipInput, TravelTipOutput } from '@/ai/flows/travel-tip-flow';
-export async function getTravelTip(input?: TravelTipInput): Promise<TravelTipOutput> { return getTravelTipFlow(input || {}); }
+export async function getPackingList(input: PackingListInput): Promise<PackingListOutput> { return getPackingListOriginal(input); }
+export async function getDestinationFact(input: DestinationFactInput): Promise<DestinationFactOutput> { return getDestinationFactOriginal(input); }
+export async function generateTripMemory(input: GenerateTripMemoryInput): Promise<GenerateTripMemoryOutput> { return generateTripMemoryOriginal(input); }
+export async function generateGroupSyncReport(input: GroupSyncInput): Promise<GroupSyncOutput> { return generateGroupSyncReportOriginal(input); }
+export async function trackPrice(input: PriceTrackerInput): Promise<PriceTrackerOutput> { return trackPriceOriginal(input); }
+export async function getPriceForecast(input: PriceForecastInput): Promise<PriceForecastOutput> { return getPriceForecastOriginal(input); }
+export async function getTravelTip(input?: TravelTipInput): Promise<TravelTipOutput> { return getTravelTipOriginal(input || {}); }
+export async function getLocalInsiderTips(input: LocalInsiderTipsInput): Promise<LocalInsiderTipsOutput> { return getLocalInsiderTipsOriginal(input); }
 
 import { getSerendipitySuggestions as getSerendipitySuggestionsFlow } from '@/ai/flows/serendipity-engine-flow';
 import type { SerendipityInput, SerendipityOutput } from '@/ai/types/serendipity-engine-types';
@@ -1340,9 +1337,6 @@ import { getAuthenticityVerification as getAuthenticityVerificationFlow } from '
 import type { AuthenticityVerifierInput, AuthenticityVerifierOutput } from '@/ai/flows/authenticity-verifier-flow';
 export async function getAuthenticityVerification(input: AuthenticityVerifierInput): Promise<AuthenticityVerifierOutput> { return getAuthenticityVerificationFlow(input); }
 
-import { getLocalInsiderTips as getLocalInsiderTipsFlow } from '@/ai/flows/local-insider-tips-flow';
-import type { LocalInsiderTipsInput, LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-flow';
-export async function getLocalInsiderTips(input: LocalInsiderTipsInput): Promise<LocalInsiderTipsOutput> { return getLocalInsiderTipsFlow(input); }
 
 import { generateSmartMapConcept as generateSmartMapConceptFlow } from '@/ai/flows/smart-map-concept-flow';
 import type { SmartMapConceptInput, SmartMapConceptOutput } from '@/ai/flows/smart-map-concept-flow';

@@ -11,6 +11,7 @@ import { getLocalInsiderTips, LocalInsiderTipsInput, LocalInsiderTipsOutput } fr
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
+import { LocalInsiderTipsDisplay } from '@/components/common/LocalInsiderTipsDisplay';
 
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -100,52 +101,9 @@ export function LocalInsiderTipsCard() {
         )}
 
         {tipsData && !isLoading && lastFetchedDestination && (
-          <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
-            <CardHeader className="p-0 pb-3">
-                <CardTitle className="text-lg text-accent flex items-center">
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Insider Scoop for {lastFetchedDestination}
-                </CardTitle>
-                 <CardDescription className="text-xs text-muted-foreground">
-                    (Simulated for a "{demoMood}" mood & "{demoWeather}")
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 space-y-3 text-sm">
-              <div>
-                <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                  <TrendingUp className="w-4 h-4 mr-2 text-primary" />
-                  Trending Spots Summary:
-                </h4>
-                <p className="text-muted-foreground pl-6 text-xs italic">{tipsData.trendingSpotsSummary}</p>
-              </div>
-              <Separator className="bg-border/40"/>
-              <div>
-                <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                  <Search className="w-4 h-4 mr-2 text-primary" />
-                  Hidden Gem Pick: {tipsData.hiddenGemPick.name}
-                </h4>
-                <p className="text-muted-foreground pl-6 text-xs">{tipsData.hiddenGemPick.description}</p>
-                <p className="text-muted-foreground pl-6 text-xs mt-0.5"><span className="font-medium text-primary/80">Why it fits:</span> {tipsData.hiddenGemPick.reason}</p>
-              </div>
-              <Separator className="bg-border/40"/>
-              <div>
-                <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                  <Lightbulb className="w-4 h-4 mr-2 text-primary" />
-                  Daily Activity Pick: {tipsData.dailyActivityPick.name}
-                </h4>
-                <p className="text-muted-foreground pl-6 text-xs">{tipsData.dailyActivityPick.description}</p>
-                <p className="text-muted-foreground pl-6 text-xs mt-0.5"><span className="font-medium text-primary/80">Why it fits:</span> {tipsData.dailyActivityPick.reason}</p>
-              </div>
-              <Separator className="bg-border/40"/>
-              <div>
-                <h4 className="font-semibold text-card-foreground mb-1 flex items-center">
-                  <Clock className="w-4 h-4 mr-2 text-primary" />
-                  Availability Notes:
-                </h4>
-                <p className="text-muted-foreground pl-6 text-xs italic">{tipsData.availabilityNotes}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="mt-4 animate-fade-in">
+            <LocalInsiderTipsDisplay tipsData={tipsData} destinationName={lastFetchedDestination}/>
+          </div>
         )}
       </CardContent>
       <CardFooter className="flex-col gap-2">

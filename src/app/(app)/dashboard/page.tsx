@@ -22,6 +22,7 @@ import { NotificationSettings } from "@/components/dashboard/NotificationSetting
 import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder";
 import { AuthenticityVerifierPlaceholder } from "@/components/dashboard/AuthenticityVerifierPlaceholder";
 import { LocalInsiderTipsCard } from "@/components/dashboard/LocalInsiderTipsCard";
+import { SmartPackingListCard } from "@/components/dashboard/SmartPackingListCard"; // New Import
 import { InteractiveMapPlaceholder } from "@/components/dashboard/InteractiveMapPlaceholder";
 import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulatorPlaceholder";
 import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder"; 
@@ -226,6 +227,10 @@ export default function DashboardPage() {
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.23s'}}>
           <ProactiveJourneySentinelCard />
         </div>
+        
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.24s'}}>
+          <SmartPackingListCard />
+        </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.25s'}}>
           <LocalInsiderTipsCard />
@@ -367,4 +372,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

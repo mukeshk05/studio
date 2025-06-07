@@ -33,14 +33,21 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
 **Your Task:**
 
 1.  **Analyze User Input:**
+    *   {{#if userId}}User ID: {{{userId}}} (Context for potential deeper personalization in future, do not output directly){{/if}}
     *   {{#if origin}}Origin: {{{origin}}}{{/if}}
     *   Destination: {{{destination}}}
     *   Travel Dates: {{{travelDates}}} (Interpret this flexibly, e.g., "next month for 7 days" to infer duration and approximate timing)
     *   Budget (USD): {{{budget}}}
-    *   {{#if userPersona}}User Persona: {{{userPersona.name}}} - {{{userPersona.description}}}{{/if}}
-    *   {{#if desiredMood}}Desired Mood/Vibe: {{{desiredMood}}}{{/if}}
-    *   {{#if weatherContext}}Weather Context: {{{weatherContext}}}{{/if}}
-    *   {{#if riskContext}}Risk/Accessibility Context: {{{riskContext}}}{{/if}}
+    *   {{#if userPersona}}User Persona: {{{userPersona.name}}} - {{{userPersona.description}}}. This is a strong indicator of their general preferences. Try to align the overall trip style, activity types, and even hotel vibes with this persona.{{/if}}
+    *   {{#if desiredMood}}Desired Mood/Vibe: {{{desiredMood}}}. This should influence the atmosphere of suggested activities and accommodations.{{/if}}
+    *   {{#if weatherContext}}Weather Context: {{{weatherContext}}}. Take this into account for activity suggestions (e.g., indoor if rainy, outdoor if sunny).{{/if}}
+    *   {{#if riskContext}}Risk/Accessibility Context: {{{riskContext}}}. Address any specific concerns mentioned here in your 'personalizationNote' and ensure suggestions are appropriate. For example, if user mentions mobility issues, suggest accessible options. If they mention visa concerns, add a reminder to check official sources.{{/if}}
+    *   {{#if availableActivities.length}}Pre-suggested Activities for {{{destination}}}: Consider incorporating 1-2 of these if they fit the overall plan:
+        {{#each availableActivities}}
+        - {{this.name}} ({{this.category}}): {{this.description}} (Lat:{{this.latitude}}, Lon:{{this.longitude}})
+        {{/each}}
+    {{/if}}
+
 
 2.  **Process Real-Time Options (CRITICAL):**
     *   **Real Flights (realFlightOptions):** You MAY receive an array of real flight options. Each option typically represents a full journey (e.g., a round trip) and might look like:
@@ -82,7 +89,7 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
 3.  **Fallback Strategy (VERY IMPORTANT):**
     *   If no realFlightOptions or realHotelOptions arrays are provided, OR if, after careful review, NONE of the provided real options are a reasonable fit for the user's request (e.g., all options are drastically over budget, wrong location type, or completely unavailable for the dates/destination), you MUST then create 1-2 *conceptual* itineraries.
     *   For conceptual itineraries:
-        *   You MUST clearly state this in the 'tripSummary' (e.g., "No suitable real-time flights/hotels found within budget, so here are some conceptual ideas..." or "Using conceptual examples for flights and hotels for this creative itinerary...").
+        *   You MUST clearly state this in the 'personalizationNote' or 'tripSummary' (e.g., "No suitable real-time flights/hotels found within budget, so here are some conceptual ideas..." or "Using conceptual examples for flights and hotels for this creative itinerary...").
         *   Generate plausible, conceptual 'flightOptions' and 'hotelOptions' that align with the user's request and budget. Ensure flight descriptions for conceptual round trips also detail outbound and return.
     *   **You MUST always aim to return 1 to 3 itineraries.** Do not return an empty 'itineraries' array unless the user's core request is impossible to fulfill (e.g. destination doesn't exist).
 
@@ -95,14 +102,16 @@ const aiTripPlannerTextPrompt = ai.definePrompt({
     *   \`destination\`, \`travelDates\`: From user input.
     *   \`estimatedCost\`: Sum of your selected flight and hotel prices (real or conceptual).
     *   \`tripSummary\`: Engaging summary, including any necessary risk/visa/accessibility reminders, sustainability notes, and clear indication if using real vs. conceptual options.
-    *   **\`dailyPlan\` (MANDATORY AND CRITICAL):** For EACH itinerary, you MUST provide a detailed, engaging day-by-day plan of activities. This MUST be an array of objects, each with 'day' (e.g., "Day 1: Arrival & City Exploration") and 'activities' (string describing morning, afternoon, and evening plans for that day). Plan for the full inferred duration of the trip (e.g., if 'travelDates' suggests 7 days, provide 7 days of plans). Be specific and creative.
-        *   Example for one day: \`{ "day": "Day 1: Arrival & Old Town Charm", "activities": "Morning: Arrive at {{{destination}}} airport, transfer to hotel, and check in. Settle in and take a brief rest.\\nAfternoon: Begin with a leisurely stroll through the historic Old Town. Visit the Main Square, admire the architecture of St. Mary's Basilica, and browse the stalls at the Cloth Hall.\\nEvening: Enjoy a traditional dinner at a local restaurant in the Old Town, savoring regional specialties. Consider a short evening walk to see the illuminated city." }\`
+    *   **\`dailyPlan\` (MANDATORY AND CRITICAL):** For EACH itinerary, you MUST provide a detailed, engaging day-by-day plan of activities. This MUST be an array of objects, each with 'day' (e.g., "Day 1: Arrival & City Exploration") and 'activities' (string describing morning, afternoon, and evening plans for that day). Plan for the full inferred duration of the trip (e.g., if 'travelDates' suggests 7 days, provide 7 days of plans). Be specific and creative. If 'availableActivities' were provided, try to naturally weave relevant ones into the daily plan if they fit the itinerary's theme and persona.
+        *   Example for one day: \`{ "day": "Day 1: Arrival & Old Town Charm", "activities": "Morning: Arrive at {{{destination}}} airport, transfer to hotel, and check in. Settle in and take a brief rest.\\nAfternoon: Begin with a leisurely stroll through the historic Old Town. Visit the Main Square, admire the architecture of St. Mary's Basilica, and browse the stalls at the Cloth Hall. If 'Old Town Walking Tour' was among suggested activities, this is a great time to mention joining it.\\nEvening: Enjoy a traditional dinner at a local restaurant in the Old Town, savoring regional specialties. Consider a short evening walk to see the illuminated city." }\`
     *   \`flightOptions\`: Your selected (real or conceptual) flight(s). Ensure the description field here comprehensively describes the full journey including return details if applicable.
     *   \`hotelOptions\`: Your selected (real or conceptual) hotel(s), with AI-written descriptions and room prompts.
 
-6.  **Cultural Tip:** Provide one concise cultural tip for the main destination in the 'culturalTip' field.
+6.  **Personalization Note:** Provide a concise 'personalizationNote' that explains *how* Aura AI fused various inputs (persona, mood, weather, risks, real-time data, pre-suggested activities) to craft these specific itineraries. Be explicit if you had to make trade-offs or if some preferences were prioritized. Example: "Aura AI crafted these plans by blending your 'Adventure Seeker' persona with the desire for a 'relaxing' mood, using available real-time flight data and focusing on outdoor activities suggested. We also incorporated the 'local market visit' activity and prioritized hotels with good reviews within your budget."
 
-Return the itineraries (1 to 3 options) and the culturalTip in JSON format according to the defined output schema. Ensure all mandatory fields are populated, especially the 'dailyPlan' for every itinerary.
+7.  **Cultural Tip:** Provide one concise cultural tip for the main destination in the 'culturalTip' field.
+
+Return the itineraries (1 to 3 options), the culturalTip, and the personalizationNote in JSON format according to the defined output schema. Ensure all mandatory fields are populated, especially the 'dailyPlan' for every itinerary.
 Focus on seamlessly integrating the real-time data when available and clearly communicating your choices.
 `,
 });
@@ -146,6 +155,7 @@ For each itinerary (aim for 1 to 2):
 4.  Detail 1-2 *conceptual* hotel options (name, description, price, rating, amenities, link, 1-2 rooms with name, features, roomImagePrompt - create plausible examples).
 5.  Provide an 'estimatedCost'.
 6.  Include the 'origin' field if provided in input.
+7.  Provide a 'personalizationNote' explaining this is a backup conceptual plan.
 
 Return in the specified JSON format, including the 'culturalTip'.
 `,
@@ -221,7 +231,7 @@ const aiTripPlannerFlow = ai.defineFlow(
       return { itineraries: [], personalizationNote: wasBackupPlannerUsed ? "Our backup planner couldn't generate suggestions for this request. Please try again." : "No itineraries could be generated for your request. Please try different criteria." };
     }
 
-    const { itineraries: textItineraries, culturalTip } = textOutput;
+    const { itineraries: textItineraries, culturalTip, personalizationNote: textPersonalizationNote } = textOutput;
 
     if (textItineraries.some(it => !it.dailyPlan || it.dailyPlan.length === 0)) {
       console.warn("Some itineraries are still missing daily plans after prompt attempts. This indicates an issue with the AI's adherence to prompt instructions or schema output.", textItineraries);
@@ -274,60 +284,12 @@ const aiTripPlannerFlow = ai.defineFlow(
         };
       })
     );
-
-    let personalizationNoteParts: string[] = [];
-    if (wasBackupPlannerUsed) {
-        personalizationNoteParts.push("Suggestions provided by our backup planner.");
-    }
     
-    let fusionMessages: string[] = [];
-    if (input.userPersona?.name) {
-      fusionMessages.push(`your '${input.userPersona.name}' persona`);
-    }
-    if (input.desiredMood) {
-        fusionMessages.push(`your desire for a '${input.desiredMood}' vibe/sensory experience`);
-    }
-    
-    const realDataUsed = (input.realFlightOptions && input.realFlightOptions.length > 0) || (input.realHotelOptions && input.realHotelOptions.length > 0);
-    if (realDataUsed && !wasBackupPlannerUsed) { // Only mention real data if primary planner used it
-        fusionMessages.push("available real-time flight/hotel data");
-    }
-
-    if (input.availableActivities && input.availableActivities.length > 0 && !wasBackupPlannerUsed) {
-        fusionMessages.push("suggested local activities");
-    }
-    
-    let guardianConsiderations: string[] = [];
-    if (input.riskContext) { 
-        guardianConsiderations.push("your specific concerns/preferences (" + input.riskContext.substring(0, 30) + (input.riskContext.length > 30 ? "...)" : ")"));
-    }
-    if (input.weatherContext) {
-        guardianConsiderations.push("the weather context you provided (" + input.weatherContext.substring(0,30) + (input.weatherContext.length > 30 ? "...)" : ")"));
-    }
-    
-    if (guardianConsiderations.length > 0) {
-        fusionMessages.push(guardianConsiderations.join(' and '));
-    } else if (!realDataUsed && !wasBackupPlannerUsed && !(input.availableActivities && input.availableActivities.length > 0)) { 
-      fusionMessages.push("general travel factors (weather awareness, risk/visa/accessibility reminders, conceptual sustainability)");
-    }
-
-
-    if (fusionMessages.length > 0) {
-        personalizationNoteParts.push(`Plans for ${input.destination} ${input.origin ? `from ${input.origin}` : ''} were crafted by fusing ${fusionMessages.join(', ')} with your core request.`);
-    } else {
-        personalizationNoteParts.push(`Plans for ${input.destination} ${input.origin ? `from ${input.origin}` : ''} were generated based on your core request, including conceptual sustainability considerations.`);
-    }
-    
-    if (itinerariesWithImages.some(it => it.tripSummary && it.tripSummary.toLowerCase().includes("alternative suggestion:"))) {
-        personalizationNoteParts.push("An alternative destination was suggested due to potential issues with your original choice.");
-    }
-    
-    const personalizationNote = personalizationNoteParts.join(' ');
+    const finalPersonalizationNote = textPersonalizationNote || (wasBackupPlannerUsed ? "Suggestions provided by our backup planner." : `Plans for ${input.destination} were generated based on your core request, including conceptual sustainability considerations.`);
 
     return {
       itineraries: itinerariesWithImages,
-      personalizationNote: personalizationNote
+      personalizationNote: finalPersonalizationNote
     };
   }
 );
-

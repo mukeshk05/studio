@@ -12,6 +12,7 @@ export const UserPersonaSchema = z.object({
 }).optional();
 
 export const AITripPlannerInputSchema = z.object({
+  userId: z.string().optional().describe("User ID for context, if available"), // Added userId
   origin: z.string().optional().describe("The origin of the trip (e.g., city or airport)."),
   travelDates: z.string().describe('The desired travel dates (e.g., MM/DD/YYYY-MM/DD/YYYY, or descriptive like "next summer for 2 weeks").'),
   destination: z.string().describe('The destination for the trip.'),
@@ -23,7 +24,6 @@ export const AITripPlannerInputSchema = z.object({
   realFlightOptions: z.array(SerpApiFlightOptionSchema).optional().describe("Optional: Array of real flight options fetched from SerpApi."),
   realHotelOptions: z.array(SerpApiHotelSuggestionSchema).optional().describe("Optional: Array of real hotel options fetched from SerpApi."),
   availableActivities: z.array(ThingsToDoActivitySuggestionSchema).optional().describe("Optional: Array of AI-suggested activities for the destination, which the planner can incorporate."),
-  userId: z.string().optional().describe("User ID for context, if available"), // Added userId
 });
 export type AITripPlannerInput = z.infer<typeof AITripPlannerInputSchema>;
 
@@ -106,8 +106,8 @@ export const ItineraryTextOnlySchema = ItineraryItemSchema.omit({ destinationIma
 
 export const AITripPlannerTextOutputSchema = z.object({
  itineraries: z.array(ItineraryTextOnlySchema).describe("Text-only itinerary details before image generation."),
- culturalTip: z.string().optional().describe("A single, concise cultural tip relevant to the destination, generated alongside text itineraries.")
+ culturalTip: z.string().optional().describe("A single, concise cultural tip relevant to the destination, generated alongside text itineraries."),
+ personalizationNote: z.string().optional().describe("A textual note about personalization factors, generated alongside text itineraries.")
 });
 
 export type TextPlannerOutput = z.infer<typeof AITripPlannerTextOutputSchema>;
-
