@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles, Briefcase, DollarSign } from 'lucide-react';
+import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles, Briefcase, DollarSign, MessageCircleQuestion, ConciergeBell, Bot } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +25,7 @@ import { LocalInsiderTipsCard } from "@/components/dashboard/LocalInsiderTipsCar
 import { InteractiveMapPlaceholder } from "@/components/dashboard/InteractiveMapPlaceholder";
 import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulatorPlaceholder";
 import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder"; 
-import { AiCoTravelAgentCard } from "@/components/dashboard/AiCoTravelAgentPlaceholder"; 
+import { AiChatInteractionCard } from "@/components/dashboard/AiChatInteractionCard"; 
 import { MoodEnergyOptimizerCard } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
 import { AiCalendarSyncCard } from "@/components/dashboard/AiCalendarSyncPlaceholder";
 import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/HyperLocalLanguageCoachPlaceholder";
@@ -191,7 +191,6 @@ export default function DashboardPage() {
             <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
         </div>
         
-        {/* New Premium Plan Placeholder Card */}
         <Card className={cn("lg:col-span-3", "glass-card", "animate-fade-in-up", "border-amber-500/30 hover:border-amber-400/50 transition-all")} style={{animationDelay: '0.22s'}}>
           <CardHeader>
             <CardTitle className="flex items-center text-lg text-card-foreground">
@@ -208,7 +207,7 @@ export default function DashboardPage() {
               <li>Advanced price tracking alerts for multiple flights & hotels.</li>
               <li>Priority access to new AI features (like AR Previews & Ethical Audits).</li>
               <li>Ad-free experience across the platform.</li>
-              <li>Enhanced group planning tools.</li>
+              <li>Enhanced group planning tools with AI synthesis.</li>
             </ul>
              <p className="text-xs text-muted-foreground italic mb-3">
                 Secure payment processing via Stripe/PayPal would be integrated here.
@@ -265,7 +264,23 @@ export default function DashboardPage() {
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.55s'}}>
-          <AiCoTravelAgentCard />
+          <AiChatInteractionCard 
+            cardTitle="AI Co-Travel Agent (Aura)"
+            cardDescription="Ask Aura any travel-related question about your destination! (e.g., customs, tipping, local laws, phrases)."
+            icon={<MessageCircleQuestion className="w-6 h-6 mr-2 text-teal-400" />}
+            defaultDestinationPlaceholder="e.g., Paris, France"
+            cardBorderColorClass="border-teal-500/30"
+          />
+        </div>
+        
+        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.58s'}}>
+           <AiChatInteractionCard 
+            cardTitle="Aura In-Trip Concierge (Conceptual)"
+            cardDescription="Get real-time help during your travels. Ask for recommendations, directions, or local info. (Uses the same AI as Co-Travel Agent for this demo)"
+            icon={<ConciergeBell className="w-6 h-6 mr-2 text-indigo-400" />}
+            defaultDestinationPlaceholder="Your Current Destination"
+            cardBorderColorClass="border-indigo-500/30"
+          />
         </div>
 
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.6s'}}>

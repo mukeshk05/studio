@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Sparkles, MessageCircleQuestion, Lightbulb, Send, Info } from 'lucide-react';
+import { Loader2, Sparkles, Lightbulb, Send, Info } from 'lucide-react';
 import { getCoTravelAgentResponse } from '@/ai/flows/co-travel-agent-flow'; 
 import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
 import { useToast } from '@/hooks/use-toast';
@@ -18,8 +18,22 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
 
-export function AiCoTravelAgentCard() {
-  const [destination, setDestination] = useState('Paris, France'); 
+interface AiChatInteractionCardProps {
+  cardTitle: string;
+  cardDescription: string;
+  defaultDestinationPlaceholder?: string;
+  icon?: React.ReactNode;
+  cardBorderColorClass?: string; // e.g., "border-teal-500/30"
+}
+
+export function AiChatInteractionCard({ 
+  cardTitle, 
+  cardDescription, 
+  defaultDestinationPlaceholder = "e.g., Rome, Italy", 
+  icon,
+  cardBorderColorClass = "border-teal-500/30"
+}: AiChatInteractionCardProps) {
+  const [destination, setDestination] = useState(defaultDestinationPlaceholder.startsWith("e.g.") ? "" : defaultDestinationPlaceholder);
   const [question, setQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<CoTravelAgentOutput | null>(null);
@@ -67,33 +81,33 @@ export function AiCoTravelAgentCard() {
   };
 
   return (
-    <Card className={cn(glassCardClasses, "w-full border-teal-500/30 animate-fade-in-up")}>
+    <Card className={cn(glassCardClasses, "w-full animate-fade-in-up", cardBorderColorClass)}>
       <CardHeader>
         <CardTitle className="flex items-center text-xl text-card-foreground">
-          <MessageCircleQuestion className="w-6 h-6 mr-2 text-teal-400" />
-          AI Co-Travel Agent (Aura)
+          {icon || <Sparkles className="w-6 h-6 mr-2 text-primary" />}
+          {cardTitle}
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Ask Aura any travel-related question about your destination! (e.g., customs, tipping, local laws, phrases).
+          {cardDescription}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="coagent-destination" className="text-card-foreground/90">Destination</Label>
+            <Label htmlFor={`coagent-destination-${cardTitle.replace(/\s+/g, '-')}`} className="text-card-foreground/90">Destination</Label>
             <Input
-              id="coagent-destination"
+              id={`coagent-destination-${cardTitle.replace(/\s+/g, '-')}`}
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
-              placeholder="e.g., Rome, Italy"
+              placeholder={defaultDestinationPlaceholder}
               className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50"
             />
           </div>
         </div>
         <div>
-          <Label htmlFor="coagent-question" className="text-card-foreground/90">Your Question</Label>
+          <Label htmlFor={`coagent-question-${cardTitle.replace(/\s+/g, '-')}`} className="text-card-foreground/90">Your Question / Request</Label>
           <Textarea
-            id="coagent-question"
+            id={`coagent-question-${cardTitle.replace(/\s+/g, '-')}`}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="e.g., What's the best way to get from the airport to the city center? or Is it safe to drink tap water?"
@@ -113,7 +127,7 @@ export function AiCoTravelAgentCard() {
 
         {isLoading && !aiResponse && (
           <div className="text-center py-6 text-muted-foreground">
-            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-teal-400" />
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-primary" />
             <p>Aura is thinking...</p>
           </div>
         )}
