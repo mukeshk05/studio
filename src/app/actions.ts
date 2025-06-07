@@ -1076,20 +1076,25 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
 
   if (!conceptualBundlesOutput) {
     console.log(`[AI Flow - SmartBundlesConceptual] Calling smartBundleFlowOriginal for key ${cacheKey}`);
-    conceptualBundlesOutput = await smartBundleFlowOriginal(input);
-    if (firestore && conceptualBundlesOutput && conceptualBundlesOutput.suggestions && conceptualBundlesOutput.suggestions.length > 0) {
-      const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
-      const cleanedOutput = cleanDataForFirestore(conceptualBundlesOutput);
-      const dataToCache = { data: cleanedOutput, cachedAt: serverTimestamp(), queryKey: cacheKey };
-      console.log(`[Cache Write - SmartBundlesConceptual] Attempting to SAVE conceptual bundles to cache for key: ${cacheKey}.`);
-      try {
-        await setDoc(cacheDocRef, dataToCache, { merge: true });
-        console.log(`[Cache Write - SmartBundlesConceptual] Successfully SAVED conceptual bundles to cache for key: ${cacheKey}`);
-      } catch (cacheWriteError: any) {
-        console.error(`[Cache Write Error - SmartBundlesConceptual] For key ${cacheKey}:`, cacheWriteError.message, cacheWriteError);
+    try {
+      conceptualBundlesOutput = await smartBundleFlowOriginal(input);
+      if (firestore && conceptualBundlesOutput && conceptualBundlesOutput.suggestions && conceptualBundlesOutput.suggestions.length > 0) {
+        const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
+        const cleanedOutput = cleanDataForFirestore(conceptualBundlesOutput);
+        const dataToCache = { data: cleanedOutput, cachedAt: serverTimestamp(), queryKey: cacheKey };
+        console.log(`[Cache Write - SmartBundlesConceptual] Attempting to SAVE conceptual bundles to cache for key: ${cacheKey}.`);
+        try {
+          await setDoc(cacheDocRef, dataToCache, { merge: true });
+          console.log(`[Cache Write - SmartBundlesConceptual] Successfully SAVED conceptual bundles to cache for key: ${cacheKey}`);
+        } catch (cacheWriteError: any) {
+          console.error(`[Cache Write Error - SmartBundlesConceptual] For key ${cacheKey}:`, cacheWriteError.message, cacheWriteError);
+        }
+      } else if (firestore) {
+        console.log(`[Cache Write - SmartBundlesConceptual] SKIPPING save to cache for key: ${cacheKey} (no valid suggestions).`);
       }
-    } else if (firestore) {
-      console.log(`[Cache Write - SmartBundlesConceptual] SKIPPING save to cache for key: ${cacheKey} (no valid suggestions).`);
+    } catch (flowError: any) {
+      console.error(`[AI Flow - SmartBundlesConceptual] Error during smartBundleFlowOriginal for key ${cacheKey}:`, flowError.message, flowError);
+      return { suggestions: [] }; // Return empty suggestions if the flow itself fails
     }
   }
 
@@ -1368,4 +1373,3 @@ import type { PostTripFeedbackInput, PostTripAnalysisOutput } from '@/ai/types/p
 export async function synthesizePostTripFeedback(input: PostTripFeedbackInput): Promise<PostTripAnalysisOutput> { return synthesizePostTripFeedbackFlow(input); }
 
     
-
