@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area'; // ScrollBar removed from direct import
 import { X, MapPin, DollarSign, Info, Plane, Hotel as HotelIcon, ListChecks, Briefcase, ExternalLink, ImageOff, Sparkles, Clock, Route } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
@@ -117,8 +117,8 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0"> 
-          <ScrollBar />
-          <div className="p-4 sm:p-6 space-y-4">
+          {/* Removed explicit <ScrollBar /> here, ScrollArea will provide its own */}
+          <div className="p-4 sm:p-6 space-y-4"> 
             <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
               {imageUri ? (
                 <NextImage src={imageUri} alt={title} fill className="object-cover" data-ai-hint={derivedImageHint} sizes="(max-width: 768px) 90vw, (max-width: 1200px) 50vw, 700px" />
@@ -223,4 +223,3 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
     </Dialog>
   );
 }
-
