@@ -1,14 +1,14 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import NextImage from 'next/image'; // Aliased import
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadcnCardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area'; // ScrollBar removed from direct import
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { X, MapPin, DollarSign, Info, Plane, Hotel as HotelIcon, ListChecks, Briefcase, ExternalLink, ImageOff, Sparkles, Clock, Route } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
@@ -68,11 +68,9 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
   
   const country = isBundle ? (item as BundleSuggestion).tripIdea.destination.split(',').pop()?.trim() : (item as AiDestinationSuggestion).country;
 
-  // For AiDestinationSuggestion (conceptual)
   const conceptualFlightIdea = !isBundle ? (item as AiDestinationSuggestion).flightIdea : undefined;
   const conceptualHotelIdea = !isBundle ? (item as AiDestinationSuggestion).hotelIdea : undefined;
   
-  // For BundleSuggestion (potentially real data)
   const realFlightExample = isBundle ? (item as BundleSuggestion).realFlightExample : undefined;
   const realHotelExample = isBundle ? (item as BundleSuggestion).realHotelExample : undefined;
   const suggestedActivities = isBundle ? (item as BundleSuggestion).suggestedActivities : undefined;
@@ -116,8 +114,7 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0"> 
-          {/* Removed explicit <ScrollBar /> here, ScrollArea will provide its own */}
+        <ScrollArea className="flex-1 min-h-0 h-0"> {/* ADDED h-0 here */}
           <div className="p-4 sm:p-6 space-y-4"> 
             <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
               {imageUri ? (
@@ -131,7 +128,6 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
             
             <Separator className="my-3 bg-border/40" />
 
-            {/* Conceptual Data for AiDestinationSuggestion */}
             {!isBundle && (conceptualFlightIdea || conceptualHotelIdea) && (
               <Card className={cn(innerGlassEffectClasses, "p-3")}>
                 <CardHeader className="p-0 pb-2"><CardTitle className="text-sm font-medium text-card-foreground">Conceptual Travel Ideas</CardTitle></CardHeader>
@@ -152,7 +148,6 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
               </Card>
             )}
 
-            {/* Real/Augmented Data for BundleSuggestion */}
             {isBundle && (
               <div className="space-y-3">
                  {aiBudgetString && (
@@ -223,3 +218,5 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
     </Dialog>
   );
 }
+
+    
