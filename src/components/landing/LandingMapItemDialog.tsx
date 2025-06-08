@@ -3,13 +3,13 @@
 
 import React from 'react';
 import NextImage from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog"; // Added DialogFooter
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'; // Removed CardDescription as it's not used
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, MapPin, DollarSign, Info, Plane, Hotel as HotelIcon, ListChecks, Briefcase, ExternalLink, ImageOff, Sparkles } from 'lucide-react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { X, MapPin, DollarSign, Info, Plane, Hotel as HotelIcon, ListChecks, Briefcase, ExternalLink, ImageOff, Sparkles } from 'lucide-react'; // Removed Route as it's not used
 import { cn } from '@/lib/utils';
 import type { AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
 import type { BundleSuggestion } from '@/ai/types/smart-bundle-types';
@@ -76,8 +76,8 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={cn(glassCardClasses, "sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0 border-primary/30")}>
-        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
+      <DialogContent className={cn(glassCardClasses, "sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0 border-primary/30 overflow-hidden")}>
+        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm shrink-0">
           <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
               <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center" title={title}>
@@ -94,7 +94,8 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="flex-1 min-h-0"> 
+          <ScrollBar />
           <div className="p-4 sm:p-6 space-y-4">
             <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
               {imageUri ? (
@@ -167,7 +168,7 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
                   <Card className={cn(innerGlassEffectClasses, "p-3")}>
                     <CardHeader className="p-0 pb-1.5"><CardTitle className="text-xs font-medium text-card-foreground flex items-center"><HotelIcon className="w-4 h-4 mr-1.5 text-primary"/>Hotel Example</CardTitle></CardHeader>
                     <CardContent className="p-0 text-xs">
-                      <p><span className="text-card-foreground/90">Name:</span> {(realHotelExample as unknown as LibHotelOption).name}</p> {/* Changed to LibHotelOption for consistency */}
+                      <p><span className="text-card-foreground/90">Name:</span> {(realHotelExample as unknown as LibHotelOption).name}</p>
                       {(realHotelExample as unknown as LibHotelOption).price_per_night && <p><span className="text-card-foreground/90">Price:</span> ~${(realHotelExample as unknown as LibHotelOption).price_per_night?.toLocaleString()}/night</p>}
                       {(realHotelExample as unknown as LibHotelOption).rating !== undefined && <p><span className="text-card-foreground/90">Rating:</span> {(realHotelExample as unknown as LibHotelOption).rating?.toFixed(1)} ★</p>}
                     </CardContent>
@@ -187,7 +188,7 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
             )}
           </div>
         </ScrollArea>
-        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30", "glass-pane")}>
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 shrink-0", "glass-pane")}>
           <Button onClick={handlePlan} size="lg" className={cn(prominentButtonClasses, "w-full")}>
             <ExternalLink className="mr-2 h-5 w-5" /> Plan This Trip
           </Button>
