@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import {
   Search, Plane, Hotel, Compass, Briefcase, LogIn, UserPlus, User, LogOut, Sparkles, MapPin, Loader2, AlertTriangle, Info, ListChecks, LocateFixed, ExternalLink, X, Building, Route
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { LandingMapItemDialog } from "@/components/landing/LandingMapItemDialog";
 import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction } from '@/app/actions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { SmartBundleOutput, BundleSuggestion, SmartBundleInput } from '@/ai/types/smart-bundle-types';
@@ -33,7 +33,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from '@/components/ui/skeleton';
-import { LandingMapItemDialog } from '@/components/landing/LandingMapItemDialog';
 import Image from 'next/image';
 
 const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-xl";
@@ -80,7 +79,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false); // Changed initial to false
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false); 
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
   const [searchedLocationDetails, setSearchedLocationDetails] = useState<SearchedLocation | null>(null);
 
@@ -103,7 +102,7 @@ export default function LandingPage() {
   const [isMapDialogOpen, setIsMapDialogOpen] = useState(false);
   const [isMapsApiLoaded, setIsMapsApiLoaded] = useState(false);
   const [mapApiError, setMapApiError] = useState<string | null>(null);
-  const [isMapInitializing, setIsMapInitializing] = useState(true); // Starts true, map init effect expects this
+  const [isMapInitializing, setIsMapInitializing] = useState(true); 
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -224,9 +223,7 @@ export default function LandingPage() {
   }, [initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser]);
 
   useEffect(() => {
-    // This effect is responsible for the very first map initialization and data load
-    if (isMapsApiLoaded && mapRef.current && !map && isMapInitializing) { // Condition: API loaded, ref available, map not yet created, and we are in init phase
-      // No need to setIsMapInitializing(true) here, as it's already true.
+    if (isMapsApiLoaded && mapRef.current && !map && isMapInitializing) { 
       fetchInitialLocationAndData();
     }
   }, [isMapsApiLoaded, map, isMapInitializing, fetchInitialLocationAndData]);
@@ -234,7 +231,7 @@ export default function LandingPage() {
   useEffect(() => {
     if (isMapsApiLoaded && searchInputRef.current && !autocompleteRef.current && window.google && window.google.maps && window.google.maps.places) {
       autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-        types: ['(regions)'], // Corrected
+        types: ['(regions)'],
         fields: ['name', 'formatted_address', 'geometry.location']
       });
       autocompleteRef.current.addListener('place_changed', () => {
@@ -496,7 +493,12 @@ export default function LandingPage() {
           {!isLoadingPopular && popularDestinations.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {popularDestinations.map((dest) => (
-                <HomePagePackageCard key={dest.name + (dest.country || '')} item={dest} onPlanTrip={handlePlanTrip} />
+                <HomePagePackageCard 
+                  key={dest.name + (dest.country || '')} 
+                  item={dest} 
+                  onPlanTrip={handlePlanTrip} 
+                  onSelect={() => handleMapItemSelect(dest)}
+                />
               ))}
             </div>
           )}
@@ -531,7 +533,12 @@ export default function LandingPage() {
               {!isLoadingSmartBundles && smartBundles.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {smartBundles.map((bundle) => (
-                    <HomePagePackageCard key={bundle.bundleName} item={bundle} onPlanTrip={handlePlanTrip} />
+                    <HomePagePackageCard 
+                      key={bundle.bundleName} 
+                      item={bundle} 
+                      onPlanTrip={handlePlanTrip} 
+                      onSelect={() => handleMapItemSelect(bundle)}
+                    />
                   ))}
                 </div>
               )}
@@ -557,3 +564,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

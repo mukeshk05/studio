@@ -17,11 +17,12 @@ import type { ActivitySuggestion } from '@/lib/types';
 type HomePagePackageCardProps = {
   item: AiDestinationSuggestion | BundleSuggestion;
   onPlanTrip: (tripIdea: AITripPlannerInput) => void;
+  onSelect: () => void; // Added onSelect prop
 };
 
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 
-export function HomePagePackageCard({ item, onPlanTrip }: HomePagePackageCardProps) {
+export function HomePagePackageCard({ item, onPlanTrip, onSelect }: HomePagePackageCardProps) {
   const [imageLoadError, setImageLoadError] = useState(false);
 
   const isBundle = 'bundleName' in item;
@@ -52,7 +53,8 @@ export function HomePagePackageCard({ item, onPlanTrip }: HomePagePackageCardPro
     setImageLoadError(true);
   }, [title, imageUri]);
 
-  const handlePlan = () => {
+  const handlePlan = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // Prevent card's onSelect from firing
     const tripIdea: AITripPlannerInput = isBundle 
       ? (item as BundleSuggestion).tripIdea
       : {
@@ -66,7 +68,13 @@ export function HomePagePackageCard({ item, onPlanTrip }: HomePagePackageCardPro
   const canDisplayImage = !imageLoadError && imageUri;
 
   return (
-    <Card className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.02] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col")}>
+    <Card 
+        className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.02] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col cursor-pointer")}
+        onClick={onSelect} // Make the whole card clickable
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(); }}
+    >
       <div className="relative w-full aspect-[16/10] bg-muted/30 group">
         {canDisplayImage ? (
           <Image
@@ -154,3 +162,4 @@ export function HomePagePackageCard({ item, onPlanTrip }: HomePagePackageCardPro
     </Card>
   );
 }
+

@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import NextImage from 'next/image';
+import NextImage from 'next/image'; // Aliased import
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
