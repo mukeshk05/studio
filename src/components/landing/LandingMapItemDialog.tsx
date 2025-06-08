@@ -3,18 +3,18 @@
 
 import React from 'react';
 import NextImage from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog"; // Added DialogFooter
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'; // Removed CardDescription as it's not used
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { X, MapPin, DollarSign, Info, Plane, Hotel as HotelIcon, ListChecks, Briefcase, ExternalLink, ImageOff, Sparkles } from 'lucide-react'; // Removed Route as it's not used
+import { X, MapPin, DollarSign, Info, Plane, Hotel as HotelIcon, ListChecks, Briefcase, ExternalLink, ImageOff, Sparkles, Clock, Route } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
 import type { BundleSuggestion } from '@/ai/types/smart-bundle-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
-import type { ActivitySuggestion, FlightOption, HotelOption as LibHotelOption } from '@/lib/types'; // Using LibHotelOption for real hotel data consistency
+import type { ActivitySuggestion, FlightOption, HotelOption as LibHotelOption } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -30,6 +30,28 @@ interface LandingMapItemDialogProps {
 const glassCardClasses = "glass-card bg-card/80 dark:bg-card/50 backdrop-blur-lg border-border/20";
 const innerGlassEffectClasses = "bg-card/70 dark:bg-card/40 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
 const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
+
+function ActivityDisplayListItem({ activity }: { activity: ActivitySuggestion }) {
+  const imageHint = activity.imageUri?.startsWith('https://placehold.co')
+    ? (activity.imagePrompt || activity.name.toLowerCase().split(" ").slice(0, 2).join(" "))
+    : undefined;
+  return (
+    <div className={cn("p-2.5 rounded-lg mb-2 border border-border/40 flex gap-3 items-start", innerGlassEffectClasses, "bg-card/50")}>
+      {activity.imageUri && (
+         <div className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden border border-border/30 shadow-sm">
+            <NextImage src={activity.imageUri} alt={activity.name} fill className="object-cover" data-ai-hint={imageHint} sizes="64px" />
+         </div>
+      )}
+      <div className="flex-grow">
+        <h5 className="font-semibold text-xs text-card-foreground mb-0.5">{activity.name}</h5>
+        <Badge variant="outline" className="text-[0.65rem] capitalize bg-accent/10 text-accent border-accent/20 mb-1 py-0.5 px-1.5">{activity.category}</Badge>
+        <p className="text-[0.7rem] text-muted-foreground leading-snug line-clamp-2">{activity.description}</p>
+        {activity.estimatedPrice && <p className="text-[0.7rem] font-medium text-primary/90 mt-0.5">Est. Price: {activity.estimatedPrice}</p>}
+      </div>
+    </div>
+  );
+}
+
 
 export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: LandingMapItemDialogProps) {
   const { toast } = useToast();
@@ -157,30 +179,34 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
                 {realFlightExample && (
                   <Card className={cn(innerGlassEffectClasses, "p-3")}>
                     <CardHeader className="p-0 pb-1.5"><CardTitle className="text-xs font-medium text-card-foreground flex items-center"><Plane className="w-4 h-4 mr-1.5 text-primary"/>Flight Example</CardTitle></CardHeader>
-                    <CardContent className="p-0 text-xs">
-                      <p><span className="text-card-foreground/90">Name:</span> {(realFlightExample as unknown as FlightOption).name}</p>
-                      <p><span className="text-card-foreground/90">Price:</span> ~${(realFlightExample as unknown as FlightOption).price?.toLocaleString()}</p>
-                      {(realFlightExample as unknown as FlightOption).derived_stops_description && <p><span className="text-card-foreground/90">Stops:</span> {(realFlightExample as unknown as FlightOption).derived_stops_description}</p>}
+                    <CardContent className="p-0 text-xs space-y-0.5">
+                      <p><span className="text-card-foreground/90">Flight:</span> {(realFlightExample as FlightOption).name}</p>
+                      <p><span className="text-card-foreground/90">Price:</span> ~${(realFlightExample as FlightOption).price?.toLocaleString()}</p>
+                      {(realFlightExample as FlightOption).derived_stops_description && <p><span className="text-card-foreground/90">Stops:</span> {(realFlightExample as FlightOption).derived_stops_description}</p>}
+                      {(realFlightExample as FlightOption).total_duration && <p><span className="text-card-foreground/90">Duration:</span> {Math.floor((realFlightExample as FlightOption).total_duration! / 60)}h {(realFlightExample as FlightOption).total_duration! % 60}m</p>}
                     </CardContent>
                   </Card>
                 )}
                 {realHotelExample && (
                   <Card className={cn(innerGlassEffectClasses, "p-3")}>
                     <CardHeader className="p-0 pb-1.5"><CardTitle className="text-xs font-medium text-card-foreground flex items-center"><HotelIcon className="w-4 h-4 mr-1.5 text-primary"/>Hotel Example</CardTitle></CardHeader>
-                    <CardContent className="p-0 text-xs">
-                      <p><span className="text-card-foreground/90">Name:</span> {(realHotelExample as unknown as LibHotelOption).name}</p>
-                      {(realHotelExample as unknown as LibHotelOption).price_per_night && <p><span className="text-card-foreground/90">Price:</span> ~${(realHotelExample as unknown as LibHotelOption).price_per_night?.toLocaleString()}/night</p>}
-                      {(realHotelExample as unknown as LibHotelOption).rating !== undefined && <p><span className="text-card-foreground/90">Rating:</span> {(realHotelExample as unknown as LibHotelOption).rating?.toFixed(1)} ★</p>}
+                    <CardContent className="p-0 text-xs space-y-0.5">
+                      <p><span className="text-card-foreground/90">Hotel:</span> {(realHotelExample as LibHotelOption).name}</p>
+                      {(realHotelExample as LibHotelOption).type && <p><span className="text-card-foreground/90">Type:</span> {(realHotelExample as LibHotelOption).type}</p>}
+                      {(realHotelExample as LibHotelOption).price_per_night && <p><span className="text-card-foreground/90">Price:</span> ~${(realHotelExample as LibHotelOption).price_per_night?.toLocaleString()}/night</p>}
+                      {(realHotelExample as LibHotelOption).total_price && !(realHotelExample as LibHotelOption).price_per_night && <p><span className="text-card-foreground/90">Total Price:</span> ~${(realHotelExample as LibHotelOption).total_price?.toLocaleString()}</p>}
+                      {(realHotelExample as LibHotelOption).rating !== undefined && <p><span className="text-card-foreground/90">Rating:</span> {(realHotelExample as LibHotelOption).rating?.toFixed(1)} ★</p>}
+                      {(realHotelExample as LibHotelOption).amenities && (realHotelExample as LibHotelOption).amenities!.length > 0 && <p><span className="text-card-foreground/90">Amenities:</span> {(realHotelExample as LibHotelOption).amenities!.slice(0,3).join(', ')}{ (realHotelExample as LibHotelOption).amenities!.length > 3 ? '...' : ''}</p>}
                     </CardContent>
                   </Card>
                 )}
                 {suggestedActivities && suggestedActivities.length > 0 && (
                   <Card className={cn(innerGlassEffectClasses, "p-3")}>
-                    <CardHeader className="p-0 pb-1.5"><CardTitle className="text-xs font-medium text-card-foreground flex items-center"><ListChecks className="w-4 h-4 mr-1.5 text-primary"/>Activity Highlights</CardTitle></CardHeader>
-                    <CardContent className="p-0">
-                      <div className="flex flex-wrap gap-1.5">
-                        {suggestedActivities.map(act => <Badge key={act.name} variant="secondary" className="text-[0.7rem] bg-accent/10 text-accent border-accent/20">{act.name}</Badge>)}
-                      </div>
+                    <CardHeader className="p-0 pb-1.5"><CardTitle className="text-xs font-medium text-card-foreground flex items-center"><ListChecks className="w-4 h-4 mr-1.5 text-primary"/>Suggested Activities</CardTitle></CardHeader>
+                    <CardContent className="p-0 space-y-1.5">
+                      {suggestedActivities.map(act => (
+                        <ActivityDisplayListItem key={act.name} activity={act} />
+                      ))}
                     </CardContent>
                   </Card>
                 )}
