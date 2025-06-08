@@ -80,7 +80,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false); // Changed initial to false
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
   const [searchedLocationDetails, setSearchedLocationDetails] = useState<SearchedLocation | null>(null);
 
@@ -103,7 +103,7 @@ export default function LandingPage() {
   const [isMapDialogOpen, setIsMapDialogOpen] = useState(false);
   const [isMapsApiLoaded, setIsMapsApiLoaded] = useState(false);
   const [mapApiError, setMapApiError] = useState<string | null>(null);
-  const [isMapInitializing, setIsMapInitializing] = useState(true);
+  const [isMapInitializing, setIsMapInitializing] = useState(true); // Starts true, map init effect expects this
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -224,8 +224,9 @@ export default function LandingPage() {
   }, [initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser]);
 
   useEffect(() => {
-    if (isMapsApiLoaded && mapRef.current && !map && !isMapInitializing) {
-      setIsMapInitializing(true);
+    // This effect is responsible for the very first map initialization and data load
+    if (isMapsApiLoaded && mapRef.current && !map && isMapInitializing) { // Condition: API loaded, ref available, map not yet created, and we are in init phase
+      // No need to setIsMapInitializing(true) here, as it's already true.
       fetchInitialLocationAndData();
     }
   }, [isMapsApiLoaded, map, isMapInitializing, fetchInitialLocationAndData]);
@@ -233,7 +234,7 @@ export default function LandingPage() {
   useEffect(() => {
     if (isMapsApiLoaded && searchInputRef.current && !autocompleteRef.current && window.google && window.google.maps && window.google.maps.places) {
       autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-        types: ['(regions)'],
+        types: ['(regions)'], // Corrected
         fields: ['name', 'formatted_address', 'geometry.location']
       });
       autocompleteRef.current.addListener('place_changed', () => {
