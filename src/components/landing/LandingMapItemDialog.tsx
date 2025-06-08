@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadcnCardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// ScrollArea removed as we'll use native overflow
 import { X, MapPin, DollarSign, Info, Plane, Hotel as HotelIcon, ListChecks, Briefcase, ExternalLink, ImageOff, Sparkles, Clock, Route } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
@@ -96,8 +96,12 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={cn(glassCardClasses, "sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0 border-primary/30 overflow-hidden")}>
-        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm shrink-0">
+      <DialogContent className={cn(
+        glassCardClasses, 
+        "sm:max-w-2xl md:max-w-3xl max-h-[90vh] p-0 border-primary/30 overflow-hidden",
+        "grid grid-rows-[auto_1fr_auto]" // Grid layout for header, content, footer
+      )}>
+        <DialogHeader className="p-4 sm:p-6 border-b border-border/30 bg-card/80 dark:bg-card/50 backdrop-blur-sm shrink-0"> {/* Header takes its own height */}
           <div className="flex justify-between items-start">
             <div className="flex-grow min-w-0">
               <DialogTitle className="text-xl font-semibold text-foreground truncate flex items-center" title={title}>
@@ -114,7 +118,7 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 h-0"> {/* ADDED h-0 here */}
+        <div className="overflow-y-auto min-h-0"> {/* This div will be the 1fr part and handle scrolling */}
           <div className="p-4 sm:p-6 space-y-4"> 
             <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
               {imageUri ? (
@@ -178,7 +182,7 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
                       <p><span className="text-card-foreground/90">Flight:</span> {(realFlightExample as FlightOption).name}</p>
                       <p><span className="text-card-foreground/90">Price:</span> ~${(realFlightExample as FlightOption).price?.toLocaleString()}</p>
                       {(realFlightExample as FlightOption).derived_stops_description && <p><span className="text-card-foreground/90">Stops:</span> {(realFlightExample as FlightOption).derived_stops_description}</p>}
-                      {(realFlightExample as FlightOption).total_duration && <p><span className="text-card-foreground/90">Duration:</span> {Math.floor((realFlightExample as FlightOption).total_duration! / 60)}h {(realFlightExample as FlightOption).total_duration! % 60}m</p>}
+                      {(realFlightExample as FlightOption).total_duration && <p><span className="text-card-foreground/90">Duration:</span> {Math.floor(((realFlightExample as FlightOption).total_duration || 0) / 60)}h {((realFlightExample as FlightOption).total_duration || 0) % 60}m</p>}
                     </CardContent>
                   </Card>
                 )}
@@ -208,8 +212,8 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
               </div>
             )}
           </div>
-        </ScrollArea>
-        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 shrink-0", "glass-pane")}>
+        </div>
+        <DialogFooter className={cn("p-4 sm:p-6 border-t border-border/30 shrink-0", "glass-pane")}> {/* Footer takes its own height */}
           <Button onClick={handlePlan} size="lg" className={cn(prominentButtonClasses, "w-full")}>
             <ExternalLink className="mr-2 h-5 w-5" /> Plan This Trip
           </Button>
@@ -218,5 +222,3 @@ export function LandingMapItemDialog({ isOpen, onClose, item, onPlanTrip }: Land
     </Dialog>
   );
 }
-
-    
