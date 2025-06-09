@@ -8,17 +8,21 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { HomePagePackageCard } from '@/components/landing/HomePagePackageCard';
-import { FeatureShowcaseCard } from '@/components/landing/FeatureShowcaseCard'; // New Import
+// FeatureShowcaseCard import removed as per request
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import {
   Search, Plane, Hotel, Compass, Briefcase, LogIn, UserPlus, User, LogOut, Sparkles, MapPin, Loader2, AlertTriangle, Info, ListChecks, LocateFixed, ExternalLink, X, Building, Route, ArrowRight, Layers, Languages, ShieldCheck, ShieldAlert, BrainCircuit, MessageSquareHeart
 } from 'lucide-react';
 import { LandingMapItemDialog } from "@/components/landing/LandingMapItemDialog";
-import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction } from '@/app/actions';
+import { TrendingDealDetailsDialog } from "@/components/landing/TrendingDealDetailsDialog"; // New Dialog
+import { TrendingFlightDealCard } from "@/components/landing/TrendingFlightDealCard"; // New Card
+import { TrendingHotelDealCard } from "@/components/landing/TrendingHotelDealCard";   // New Card
+import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction, getTrendingFlightDealsAction, getTrendingHotelDealsAction } from '@/app/actions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { SmartBundleOutput, BundleSuggestion, SmartBundleInput } from '@/ai/types/smart-bundle-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
+import type { SerpApiFlightOption, SerpApiHotelSuggestion } from '@/ai/types/serpapi-flight-search-types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -46,51 +50,7 @@ const exploreCategories = [
   { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/explore" },
 ];
 
-const advancedAiFeatures = [
-  { 
-    icon: <Plane className="text-primary" />, 
-    title: "AI Trip Planner", 
-    description: "Generate full itineraries with flights, hotels, and daily plans tailored to your budget and preferences.", 
-    link: "/planner",
-    dataAiHint: "ai trip planning travel"
-  },
-  { 
-    icon: <Layers className="text-sky-400" />, 
-    title: "Digital Twin Explorer", 
-    description: "Virtually experience destinations with AI-simulated crowds, ambiance, and best times to visit. (Conceptual)", 
-    link: "/dashboard",
-    dataAiHint: "digital twin virtual travel"
-  },
-  { 
-    icon: <Languages className="text-lime-400" />, 
-    title: "Hyper-Local Language Coach", 
-    description: "Learn local dialects, slang, and idioms with AI-powered pronunciation feedback. (Conceptual)", 
-    link: "/dashboard",
-    dataAiHint: "ai language learning travel"
-  },
-  { 
-    icon: <ShieldCheck className="text-orange-400" />, 
-    title: "AI Authenticity Verifier", 
-    description: "Get AI insights on local crafts, food, or experiences to ensure authenticity. (Conceptual)", 
-    link: "/dashboard",
-    dataAiHint: "ai authenticity verification travel"
-  },
-  { 
-    icon: <Compass className="text-teal-400" />, 
-    title: "Local Insider Tips", 
-    description: "Discover what's buzzing, hidden gems, and daily picks via AI's simulated local knowledge.", 
-    link: "/dashboard",
-    dataAiHint: "local travel tips ai"
-  },
-  { 
-    icon: <ShieldAlert className="text-red-400" />, 
-    title: "AI Risk Scenario Simulator", 
-    description: "Explore how Aura AI could help you adapt to unexpected travel disruptions. (Conceptual)", 
-    link: "/dashboard",
-    dataAiHint: "ai travel risk simulation"
-  },
-];
-
+// AI Feature Showcase data removed as per request
 
 interface UserLocation { latitude: number; longitude: number; }
 interface SearchedLocation { name: string; lat: number; lng: number; }
@@ -117,7 +77,7 @@ const modernMapStyle: google.maps.MapTypeStyle[] = [
 ];
 
 type MapDisplayItem = AiDestinationSuggestion | BundleSuggestion;
-
+type TrendingDealDisplayItem = SerpApiFlightOption | SerpApiHotelSuggestion;
 
 export default function LandingPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -139,6 +99,19 @@ export default function LandingPage() {
   const [isLoadingSmartBundles, setIsLoadingSmartBundles] = useState(false);
   const [smartBundlesError, setSmartBundlesError] = useState<string | null>(null);
   const [smartBundlesContextualNote, setSmartBundlesContextualNote] = useState<string | null>(null);
+
+  const [trendingFlights, setTrendingFlights] = useState<SerpApiFlightOption[]>([]);
+  const [isLoadingTrendingFlights, setIsLoadingTrendingFlights] = useState(false);
+  const [trendingFlightsError, setTrendingFlightsError] = useState<string | null>(null);
+
+  const [trendingHotels, setTrendingHotels] = useState<SerpApiHotelSuggestion[]>([]);
+  const [isLoadingTrendingHotels, setIsLoadingTrendingHotels] = useState(false);
+  const [trendingHotelsError, setTrendingHotelsError] = useState<string | null>(null);
+
+  const [selectedTrendingDeal, setSelectedTrendingDeal] = useState<TrendingDealDisplayItem | null>(null);
+  const [selectedTrendingDealType, setSelectedTrendingDealType] = useState<'flight' | 'hotel' | null>(null);
+  const [isTrendingDealDialogOpen, setIsTrendingDealDialogOpen] = useState(false);
+
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -235,6 +208,18 @@ export default function LandingPage() {
     console.log("[LandingPage] fetchInitialLocationAndData called.");
     setIsFetchingLocation(true);
     setGeolocationError(null);
+
+    // Fetch Trending Deals regardless of geolocation
+    setIsLoadingTrendingFlights(true); setIsLoadingTrendingHotels(true);
+    getTrendingFlightDealsAction()
+        .then(setTrendingFlights)
+        .catch(err => setTrendingFlightsError(err.message || "Failed to load trending flights."))
+        .finally(() => setIsLoadingTrendingFlights(false));
+    getTrendingHotelDealsAction()
+        .then(setTrendingHotels)
+        .catch(err => setTrendingHotelsError(err.message || "Failed to load trending hotels."))
+        .finally(() => setIsLoadingTrendingHotels(false));
+
 
     if (navigator.geolocation) {
       console.log("[LandingPage] Geolocation API available. Requesting current position...");
@@ -396,6 +381,12 @@ export default function LandingPage() {
     window.dispatchEvent(new CustomEvent('localStorageUpdated_tripBundleToPlan')); 
     router.push('/planner');
   };
+
+  const handleViewTrendingDealDetails = (deal: TrendingDealDisplayItem, type: 'flight' | 'hotel') => {
+    setSelectedTrendingDeal(deal);
+    setSelectedTrendingDealType(type);
+    setIsTrendingDealDialogOpen(true);
+  };
   
   const prominentButtonClasses = "text-lg py-3 group transform transition-all duration-300 ease-out shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40";
 
@@ -486,55 +477,45 @@ export default function LandingPage() {
             ))}
           </div>
         </section>
-
+        
         <Separator className="my-10 border-border/30" />
 
-        {/* Trending Now Section - Conceptual */}
-        <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
-            <Sparkles className="w-7 h-7 mr-2 text-amber-400 animate-pulse" /> Trending Now (Conceptual)
-          </h2>
-          <div className={cn("p-4 rounded-lg", glassCardClasses, "border-amber-500/30")}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Static trending items for demo */}
-              <Card className="bg-card/70 dark:bg-card/60 border-border/30">
-                <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-500">Weekend Getaway to Kyoto</CardTitle></CardHeader>
-                <CardContent className="text-xs text-muted-foreground">Flights from $450! Cherry blossoms expected soon.</CardContent>
-              </Card>
-              <Card className="bg-card/70 dark:bg-card/60 border-border/30">
-                <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-500">Cultural Immersion in Rome</CardTitle></CardHeader>
-                <CardContent className="text-xs text-muted-foreground">Hotels from $99/night. Explore ancient wonders.</CardContent>
-              </Card>
-              <Card className="bg-card/70 dark:bg-card/60 border-border/30">
-                <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-500">Adventure in Costa Rica</CardTitle></CardHeader>
-                <CardContent className="text-xs text-muted-foreground">Eco-lodges available. Zip-line through rainforests!</CardContent>
-              </Card>
+        {/* Trending Now Section */}
+        <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.15s'}}>
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
+                <Sparkles className="w-7 h-7 mr-2 text-amber-400 animate-pulse" /> Trending Now: Real-Time Deals
+            </h2>
+            <div className={cn("p-4 rounded-lg", glassCardClasses, "border-amber-500/30")}>
+                {/* Trending Flights */}
+                <div className="mb-6">
+                    <h3 className="text-xl font-medium text-amber-500 mb-3 flex items-center"><Plane className="w-5 h-5 mr-2"/>Hot Flight Deals</h3>
+                    {isLoadingTrendingFlights && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1,2].map(i => <Skeleton key={`tf-${i}`} className="h-72 rounded-lg bg-muted/40"/>)}</div>}
+                    {trendingFlightsError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4"/><ShadcnAlertTitle>Error</ShadcnAlertTitle><ShadcnAlertDescription>{trendingFlightsError}</ShadcnAlertDescription></Alert>}
+                    {!isLoadingTrendingFlights && trendingFlights.length === 0 && !trendingFlightsError && <p className="text-sm text-muted-foreground">No trending flight deals available right now. Check back soon!</p>}
+                    {!isLoadingTrendingFlights && trendingFlights.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {trendingFlights.map((deal, index) => (
+                                <TrendingFlightDealCard key={`trending-flight-${index}`} deal={deal} onViewDetails={() => handleViewTrendingDealDetails(deal, 'flight')} travelDatesQuery="Next Month (7 days)" />
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <Separator className="my-6 border-amber-500/20"/>
+                {/* Trending Hotels */}
+                <div>
+                    <h3 className="text-xl font-medium text-amber-500 mb-3 flex items-center"><Hotel className="w-5 h-5 mr-2"/>Top Hotel Offers</h3>
+                    {isLoadingTrendingHotels && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1,2].map(i => <Skeleton key={`th-${i}`} className="h-72 rounded-lg bg-muted/40"/>)}</div>}
+                    {trendingHotelsError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4"/><ShadcnAlertTitle>Error</ShadcnAlertTitle><ShadcnAlertDescription>{trendingHotelsError}</ShadcnAlertDescription></Alert>}
+                    {!isLoadingTrendingHotels && trendingHotels.length === 0 && !trendingHotelsError && <p className="text-sm text-muted-foreground">No trending hotel offers available right now. Check back soon!</p>}
+                    {!isLoadingTrendingHotels && trendingHotels.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {trendingHotels.map((deal, index) => (
+                                <TrendingHotelDealCard key={`trending-hotel-${index}`} deal={deal} onViewDetails={() => handleViewTrendingDealDetails(deal, 'hotel')} destinationQuery="Paris" />
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
-            <Button variant="link" className="mt-3 text-amber-500 hover:text-amber-400 p-0 h-auto">
-              View All Hot Deals <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Button>
-          </div>
-        </section>
-
-        <Separator className="my-10 border-border/30" />
-
-        {/* AI Feature Showcase */}
-        <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
-             <Sparkles className="w-7 h-7 mr-3 text-accent" /> Discover Aura AI's Power
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {advancedAiFeatures.map((feature, index) => (
-              <FeatureShowcaseCard 
-                key={index}
-                icon={feature.icon}
-                title={feature.title}
-                description={feature.description}
-                link={feature.link}
-                dataAiHint={feature.dataAiHint}
-              />
-            ))}
-          </div>
         </section>
         
         <Separator className="my-10 border-border/30" />
@@ -663,6 +644,12 @@ export default function LandingPage() {
         onClose={() => setIsMapDialogOpen(false)}
         item={selectedMapItem}
         onPlanTrip={handlePlanTrip}
+      />
+      <TrendingDealDetailsDialog
+        isOpen={isTrendingDealDialogOpen}
+        onClose={() => setIsTrendingDealDialogOpen(false)}
+        deal={selectedTrendingDeal}
+        dealType={selectedTrendingDealType}
       />
     </div>
   );
