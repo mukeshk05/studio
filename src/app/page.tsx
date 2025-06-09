@@ -8,10 +8,11 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { HomePagePackageCard } from '@/components/landing/HomePagePackageCard';
+import { FeatureShowcaseCard } from '@/components/landing/FeatureShowcaseCard'; // New Import
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import {
-  Search, Plane, Hotel, Compass, Briefcase, LogIn, UserPlus, User, LogOut, Sparkles, MapPin, Loader2, AlertTriangle, Info, ListChecks, LocateFixed, ExternalLink, X, Building, Route
+  Search, Plane, Hotel, Compass, Briefcase, LogIn, UserPlus, User, LogOut, Sparkles, MapPin, Loader2, AlertTriangle, Info, ListChecks, LocateFixed, ExternalLink, X, Building, Route, ArrowRight, Layers, Languages, ShieldCheck, ShieldAlert, BrainCircuit, MessageSquareHeart
 } from 'lucide-react';
 import { LandingMapItemDialog } from "@/components/landing/LandingMapItemDialog";
 import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction } from '@/app/actions';
@@ -44,6 +45,52 @@ const exploreCategories = [
   { name: "Things to do", icon: <ListChecks className="w-5 h-5" />, href: "/things-to-do" },
   { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/explore" },
 ];
+
+const advancedAiFeatures = [
+  { 
+    icon: <Plane className="text-primary" />, 
+    title: "AI Trip Planner", 
+    description: "Generate full itineraries with flights, hotels, and daily plans tailored to your budget and preferences.", 
+    link: "/planner",
+    dataAiHint: "ai trip planning travel"
+  },
+  { 
+    icon: <Layers className="text-sky-400" />, 
+    title: "Digital Twin Explorer", 
+    description: "Virtually experience destinations with AI-simulated crowds, ambiance, and best times to visit. (Conceptual)", 
+    link: "/dashboard",
+    dataAiHint: "digital twin virtual travel"
+  },
+  { 
+    icon: <Languages className="text-lime-400" />, 
+    title: "Hyper-Local Language Coach", 
+    description: "Learn local dialects, slang, and idioms with AI-powered pronunciation feedback. (Conceptual)", 
+    link: "/dashboard",
+    dataAiHint: "ai language learning travel"
+  },
+  { 
+    icon: <ShieldCheck className="text-orange-400" />, 
+    title: "AI Authenticity Verifier", 
+    description: "Get AI insights on local crafts, food, or experiences to ensure authenticity. (Conceptual)", 
+    link: "/dashboard",
+    dataAiHint: "ai authenticity verification travel"
+  },
+  { 
+    icon: <Compass className="text-teal-400" />, 
+    title: "Local Insider Tips", 
+    description: "Discover what's buzzing, hidden gems, and daily picks via AI's simulated local knowledge.", 
+    link: "/dashboard",
+    dataAiHint: "local travel tips ai"
+  },
+  { 
+    icon: <ShieldAlert className="text-red-400" />, 
+    title: "AI Risk Scenario Simulator", 
+    description: "Explore how Aura AI could help you adapt to unexpected travel disruptions. (Conceptual)", 
+    link: "/dashboard",
+    dataAiHint: "ai travel risk simulation"
+  },
+];
+
 
 interface UserLocation { latitude: number; longitude: number; }
 interface SearchedLocation { name: string; lat: number; lng: number; }
@@ -405,7 +452,7 @@ export default function LandingPage() {
             Your Smart Travel Companion
           </h1>
           <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Discover, plan, and book your next adventure with AI-powered insights and real-time data.
+            Let Aura AI guide your journey! Discover, plan, and book your next adventure with AI-powered insights and real-time data.
           </p>
           <div className={cn("max-w-xl mx-auto p-2 rounded-xl shadow-xl", glassCardClasses, "border-primary/20")}>
             <form onSubmit={(e) => { e.preventDefault(); if (searchInputRef.current) searchInputRef.current.blur(); }} className="relative w-full">
@@ -416,7 +463,7 @@ export default function LandingPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search for a destination (e.g., 'Paris', 'beaches in Thailand')"
-                className="w-full pl-11 pr-4 py-2.5 h-12 text-base bg-input/70 border-border/50 focus:bg-input/90 dark:bg-input/50 rounded-full shadow-inner focus:ring-2 focus:ring-primary/50"
+                className="w-full pl-11 pr-4 py-2.5 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 rounded-full shadow-inner focus:ring-2 focus:ring-primary/50"
               />
             </form>
           </div>
@@ -441,8 +488,58 @@ export default function LandingPage() {
         </section>
 
         <Separator className="my-10 border-border/30" />
+
+        {/* Trending Now Section - Conceptual */}
+        <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
+            <Sparkles className="w-7 h-7 mr-2 text-amber-400 animate-pulse" /> Trending Now (Conceptual)
+          </h2>
+          <div className={cn("p-4 rounded-lg", glassCardClasses, "border-amber-500/30")}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Static trending items for demo */}
+              <Card className="bg-card/70 dark:bg-card/60 border-border/30">
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-500">Weekend Getaway to Kyoto</CardTitle></CardHeader>
+                <CardContent className="text-xs text-muted-foreground">Flights from $450! Cherry blossoms expected soon.</CardContent>
+              </Card>
+              <Card className="bg-card/70 dark:bg-card/60 border-border/30">
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-500">Cultural Immersion in Rome</CardTitle></CardHeader>
+                <CardContent className="text-xs text-muted-foreground">Hotels from $99/night. Explore ancient wonders.</CardContent>
+              </Card>
+              <Card className="bg-card/70 dark:bg-card/60 border-border/30">
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-500">Adventure in Costa Rica</CardTitle></CardHeader>
+                <CardContent className="text-xs text-muted-foreground">Eco-lodges available. Zip-line through rainforests!</CardContent>
+              </Card>
+            </div>
+            <Button variant="link" className="mt-3 text-amber-500 hover:text-amber-400 p-0 h-auto">
+              View All Hot Deals <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          </div>
+        </section>
+
+        <Separator className="my-10 border-border/30" />
+
+        {/* AI Feature Showcase */}
+        <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
+             <Sparkles className="w-7 h-7 mr-3 text-accent" /> Discover Aura AI's Power
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {advancedAiFeatures.map((feature, index) => (
+              <FeatureShowcaseCard 
+                key={index}
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.description}
+                link={feature.link}
+                dataAiHint={feature.dataAiHint}
+              />
+            ))}
+          </div>
+        </section>
         
-        <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+        <Separator className="my-10 border-border/30" />
+        
+        <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.3s'}}>
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
             <LocateFixed className="w-7 h-7 mr-2 text-primary"/> Explore on the Map
           </h2>
@@ -465,7 +562,7 @@ export default function LandingPage() {
 
         <Separator className="my-10 border-border/30" />
 
-        <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+        <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground flex items-center">
               <MapPin className="w-7 h-7 mr-2 text-primary" /> 
@@ -507,7 +604,7 @@ export default function LandingPage() {
         {currentUser && (
           <>
             <Separator className="my-10 border-border/30" />
-            <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+            <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
               <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
                 <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground flex items-center">
                   <Sparkles className="w-7 h-7 mr-2 text-accent" /> 
@@ -542,6 +639,12 @@ export default function LandingPage() {
                   ))}
                 </div>
               )}
+              {!isLoadingSmartBundles && smartBundles.length === 0 && smartBundlesContextualNote && !smartBundlesError && (
+                <Card className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
+                  <p>{smartBundlesContextualNote}</p>
+                  {!currentUser && <p className="mt-2">Log in to get personalized trip ideas based on your preferences!</p>}
+                </Card>
+              )}
             </section>
           </>
         )}
@@ -564,4 +667,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
