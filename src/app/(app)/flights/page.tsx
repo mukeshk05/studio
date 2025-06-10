@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -1337,7 +1336,7 @@ export default function FlightsPage() {
           
           <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-3"><TrendingUp className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Track Prices & Get AI Advice</CardTitle></div>
+              <div className="flex items-center gap-3"><TrendingUp className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Track Prices &amp; Get AI Advice</CardTitle></div>
               <CardDescription className="text-xs text-muted-foreground pt-1">Monitor flight prices and get AI insights.</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-3 mt-2">
@@ -1359,7 +1358,7 @@ export default function FlightsPage() {
             <CardFooter>
               <Button onClick={handleTrackPriceAndGetAdvice} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isTrackingPrice || !currentUser}>
                 {isTrackingPrice ? <Loader2 className="animate-spin"/> : <CheckCircle />}
-                {isTrackingPrice ? "Processing..." : "Track & Get Advice"}
+                {isTrackingPrice ? "Processing..." : "Track &amp; Get Advice"}
               </Button>
             </CardFooter>
           </Card>
@@ -1536,8 +1535,3 @@ export default function FlightsPage() {
     </div>
   );
 }
-
-
-    
-
-    
