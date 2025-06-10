@@ -1233,10 +1233,34 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
         const activityInterest = (conceptualSuggestion as any).activityKeywords?.join(", ") || undefined;
         const thingsToDoOutput = await getThingsToDoAction({ location: destination, interest: activityInterest });
         if (thingsToDoOutput.activities && thingsToDoOutput.activities.length > 0) {
-          augmentedSugg.suggestedActivities = thingsToDoOutput.activities.slice(0, 3) as ActivitySuggestion[]; 
-          console.log(`[Server Action - generateSmartBundles] Added ${augmentedSugg.suggestedActivities.length} activities for ${destination}.`);
+          // Placeholder Activity
+          const placeholderActivity: ActivitySuggestion = {
+            name: "Explore Local Area",
+            description: "Wander around and discover local shops, cafes, and hidden gems at your own pace.",
+            category: "Exploration",
+            estimatedPrice: "Free - Varies",
+            latitudeString: "",
+            longitudeString: "",
+            imagePrompt: "city street local shops exploration",
+          };
+          // Add the placeholder if no real activities or always add it as a generic option
+          const activitiesToSet = thingsToDoOutput.activities.length > 0 
+            ? thingsToDoOutput.activities.slice(0, 3) as ActivitySuggestion[]
+            : [placeholderActivity as ActivitySuggestion];
+          augmentedSugg.suggestedActivities = activitiesToSet;
+          console.log(`[Server Action - generateSmartBundles] Added/Set ${augmentedSugg.suggestedActivities.length} activities for ${destination}.`);
         } else {
-          console.log(`[Server Action - generateSmartBundles] No activities found for ${destination} with interest: ${activityInterest}.`);
+            // Add placeholder if getThingsToDoAction returned nothing
+            augmentedSugg.suggestedActivities = [{
+                name: "Explore Local Area",
+                description: "Wander around and discover local shops, cafes, and hidden gems at your own pace.",
+                category: "Exploration",
+                estimatedPrice: "Free - Varies",
+                latitudeString: "",
+                longitudeString: "",
+                imagePrompt: "city street local shops exploration",
+            } as ActivitySuggestion];
+          console.log(`[Server Action - generateSmartBundles] No specific activities found for ${destination} with interest: ${activityInterest}. Added placeholder.`);
         }
 
       } catch (error: any) {
@@ -1252,6 +1276,61 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
     return { suggestions: [] }; // Return empty suggestions if the flow itself fails
   }
 }
+
+export async function getTrendingFlightDealsAction(): Promise<SerpApiFlightOption[]> {
+  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights...");
+  const now = new Date();
+  const departureDate = format(addMonths(now, 1), "yyyy-MM-dd");
+  const returnDate = format(addDays(addMonths(now, 1), 7), "yyyy-MM-dd");
+
+  const samplePopularRoutes = [
+    { origin: "NYC", destination: "LON" }, // New York to London
+    { origin: "LAX", destination: "TYO" }, // Los Angeles to Tokyo
+  ];
+  const randomRoute = samplePopularRoutes[Math.floor(Math.random() * samplePopularRoutes.length)];
+
+  try {
+    const flightResults = await getRealFlightsAction({
+      origin: randomRoute.origin,
+      destination: randomRoute.destination,
+      departureDate,
+      returnDate,
+      tripType: "round-trip",
+    });
+    const deals = (flightResults.best_flights || []).concat(flightResults.other_flights || []);
+    console.log(`[Server Action - getTrendingFlightDealsAction] Found ${deals.length} potential trending flight deals.`);
+    return deals.slice(0, 2); // Return top 2 deals
+  } catch (error) {
+    console.error("[Server Action - getTrendingFlightDealsAction] Error fetching trending flights:", error);
+    return [];
+  }
+}
+
+export async function getTrendingHotelDealsAction(): Promise<SerpApiHotelSuggestion[]> {
+  console.log("[Server Action - getTrendingHotelDealsAction] Fetching trending hotels...");
+  const now = new Date();
+  const checkInDate = format(addMonths(now, 1), "yyyy-MM-dd");
+  const checkOutDate = format(addDays(addMonths(now, 1), 3), "yyyy-MM-dd"); // 3-night stay
+
+  const samplePopularDestinations = ["Paris", "Rome", "Barcelona"];
+  const randomDestination = samplePopularDestinations[Math.floor(Math.random() * samplePopularDestinations.length)];
+
+  try {
+    const hotelResults = await getRealHotelsAction({
+      destination: randomDestination,
+      checkInDate,
+      checkOutDate,
+      guests: "2",
+    });
+    const deals = hotelResults.hotels || [];
+    console.log(`[Server Action - getTrendingHotelDealsAction] Found ${deals.length} potential trending hotel deals for ${randomDestination}.`);
+    return deals.filter(h => h.rating && h.rating >= 4.0 && h.price_per_night && h.price_per_night < 300).slice(0, 2); // Filter for decent rating/price and take top 2
+  } catch (error) {
+    console.error("[Server Action - getTrendingHotelDealsAction] Error fetching trending hotels:", error);
+    return [];
+  }
+}
+
 
 export async function getCoTravelAgentResponse(input: CoTravelAgentInputType): Promise<CoTravelAgentOutputType> { return getCoTravelAgentResponseOriginal(input); }
 export async function getItineraryAssistance(input: ItineraryAssistanceInputType): Promise<ItineraryAssistanceOutputType> { return getItineraryAssistanceOriginal(input); }
