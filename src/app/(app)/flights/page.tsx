@@ -1086,41 +1086,116 @@ export default function FlightsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 animate-fade-in-up space-y-12">
-      <Card className={cn(glassCardClasses, "mb-8")}>
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold tracking-tight text-foreground flex items-center"><Plane className="w-8 h-8 mr-3 text-primary" />Find Your Next Flight</CardTitle>
-          <CardDescription className="text-muted-foreground">Enter your travel details. SerpApi will provide real flight options and ideas.</CardDescription>
+      <Card className={cn(glassCardClasses, "mb-8 overflow-hidden shadow-xl border-primary/30")}>
+        <CardHeader className="bg-primary/5 p-6">
+          <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center">
+            <Plane className="w-7 h-7 sm:w-8 sm:h-8 mr-3 text-primary" />
+            Book Your Flight
+          </CardTitle>
+          <CardDescription className="text-muted-foreground text-sm sm:text-base">
+            Enter your travel details below. Our AI, powered by SerpApi, will help you find flight options and provide insights.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <form onSubmit={handleSearchFlights} className="space-y-6">
-            <RadioGroup value={tripType} onValueChange={(value: "round-trip" | "one-way") => setTripType(value)} className="grid grid-cols-2 sm:grid-cols-2 gap-2 mb-4"> 
-              {["round-trip", "one-way"].map((type) => (<FormItem key={type} className="flex-1"><RadioGroupItem value={type} id={type} className="sr-only peer" /><Label htmlFor={type} className={cn("flex items-center justify-center p-3 text-sm font-medium rounded-md border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary", "transition-all cursor-pointer glass-pane")}>{type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</Label></FormItem>))}
+            <RadioGroup 
+              value={tripType} 
+              onValueChange={(value: "round-trip" | "one-way") => setTripType(value)} 
+              className="grid grid-cols-2 gap-3 mb-5"
+            >
+              {["round-trip", "one-way"].map((type) => (
+                <FormItem key={type} className="flex-1">
+                  <RadioGroupItem value={type} id={`tripType-${type}`} className="sr-only peer" />
+                  <Label 
+                    htmlFor={`tripType-${type}`} 
+                    className={cn(
+                      "flex items-center justify-center p-3 text-sm font-medium rounded-md border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary",
+                      "transition-all cursor-pointer glass-interactive shadow-sm hover:shadow-md"
+                    )}
+                  >
+                    {type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </Label>
+                </FormItem>
+              ))}
             </RadioGroup>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 items-end">
               <div className="relative">
                 <Label htmlFor="origin" className="text-sm font-medium text-card-foreground/90">Origin</Label>
                 <Input ref={originInputRef} id="origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="City or airport" className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-12 text-base" />
-                </div>
+              </div>
               <div className="relative flex items-center md:self-end">
                 <Button variant="ghost" size="icon" className="mx-1 text-muted-foreground hover:bg-accent/10 hidden md:flex" type="button" onClick={() => { setOrigin(destination); setDestination(origin); }} aria-label="Swap origin and destination"><ArrowRightLeft className="w-5 h-5" /></Button>
                 <div className="flex-grow">
                   <Label htmlFor="destination" className="text-sm font-medium text-card-foreground/90">Destination</Label>
                   <Input ref={destinationInputRef} id="destination" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="City or airport" className="mt-1 bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 h-12 text-base" />
+                </div>
+              </div>
+            
+              <div className={cn("grid gap-3", tripType === 'round-trip' ? 'grid-cols-2' : 'grid-cols-1')}>
+                <div>
+                  <Label htmlFor="departure-date" className="text-sm font-medium text-card-foreground/90">Departure</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.from && "text-muted-foreground")}>
+                        <CalendarLucideIcon className="mr-2 h-4 w-4" />
+                        {dates?.from && isValid(dates.from) ? format(dates.from, "MMM dd, yyyy") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start">
+                      <Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={tripType === 'one-way' ? 1 : 2} disabled={{ before: new Date(new Date().setDate(new Date().getDate()-1)) }} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {tripType === 'round-trip' && (
+                  <div>
+                    <Label htmlFor="return-date" className="text-sm font-medium text-card-foreground/90">Return</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.to && "text-muted-foreground")} disabled={!dates?.from}>
+                          <CalendarLucideIcon className="mr-2 h-4 w-4" />
+                          {dates?.to && isValid(dates.to) ? format(dates.to, "MMM dd, yyyy") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start">
+                        <Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={2} disabled={{ before: dates?.from || new Date(new Date().setDate(new Date().getDate()-1)) }} />
+                      </PopoverContent>
+                    </Popover>
                   </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3"> 
+                <div>
+                  <Label htmlFor="passengers" className="text-sm font-medium text-card-foreground/90 flex items-center"><Users className="w-4 h-4 mr-1.5" /> Passengers</Label>
+                  <Select value={passengers} onValueChange={setPassengers}>
+                    <SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger>
+                    <SelectContent className={glassCardClasses}>
+                      <SelectItem value="1 adult">1 adult</SelectItem>
+                      <SelectItem value="2 adults">2 adults</SelectItem>
+                      <SelectItem value="3 adults">3 adults</SelectItem>
+                      <SelectItem value="custom">Custom...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="cabin-class" className="text-sm font-medium text-card-foreground/90 flex items-center"><Briefcase className="w-4 h-4 mr-1.5" /> Cabin Class</Label>
+                  <Select value={cabinClass} onValueChange={setCabinClass}>
+                    <SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger>
+                    <SelectContent className={glassCardClasses}>
+                      <SelectItem value="economy">Economy</SelectItem>
+                      <SelectItem value="premium-economy">Premium Economy</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="first">First</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label htmlFor="departure-date" className="text-sm font-medium text-card-foreground/90">Departure</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.from && "text-muted-foreground")}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.from && isValid(dates.from) ? format(dates.from, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={tripType === 'one-way' ? 1 : 2} disabled={{ before: new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>
-                {tripType === 'round-trip' && (<div><Label htmlFor="return-date" className="text-sm font-medium text-card-foreground/90">Return</Label><Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start text-left font-normal mt-1 h-12 text-base glass-interactive",!dates?.to && "text-muted-foreground")} disabled={!dates?.from}><CalendarLucideIcon className="mr-2 h-4 w-4" />{dates?.to && isValid(dates.to) ? format(dates.to, "MMM dd, yyyy") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className={cn("w-auto p-0", glassCardClasses)} align="start"><Calendar mode="range" selected={dates} onSelect={setDates} initialFocus numberOfMonths={2} disabled={{ before: dates?.from || new Date(new Date().setDate(new Date().getDate()-1)) }} /></PopoverContent></Popover></div>)}
-                {tripType === 'one-way' && (<div><Label htmlFor="one-way-date" className="text-sm font-medium text-card-foreground/90 opacity-0 md:opacity-100">.</Label></div>)}
-              </div>
-              <div className="grid grid-cols-2 gap-2"> 
-                <div><Label htmlFor="passengers" className="text-sm font-medium text-card-foreground/90 flex items-center"><Users className="w-4 h-4 mr-1.5" /> Passengers</Label><Select value={passengers} onValueChange={setPassengers}><SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="1 adult">1 adult</SelectItem><SelectItem value="2 adults">2 adults</SelectItem><SelectItem value="3 adults">3 adults</SelectItem><SelectItem value="custom">Custom...</SelectItem></SelectContent></Select></div>
-                <div><Label htmlFor="cabin-class" className="text-sm font-medium text-card-foreground/90 flex items-center"><Briefcase className="w-4 h-4 mr-1.5" /> Cabin Class</Label><Select value={cabinClass} onValueChange={setCabinClass}><SelectTrigger className="mt-1 h-12 text-base bg-input/70 border-border/70 focus:bg-input/90 dark:bg-input/50 glass-interactive"><SelectValue /></SelectTrigger><SelectContent className={glassCardClasses}><SelectItem value="economy">Economy</SelectItem><SelectItem value="premium-economy">Premium Economy</SelectItem><SelectItem value="business">Business</SelectItem><SelectItem value="first">First</SelectItem></SelectContent></Select></div>
-              </div>
-            </div>
-            <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingRealFlights}>{isLoadingRealFlights ? <Loader2 className="animate-spin" /> : <Search />}{isLoadingRealFlights ? 'Searching Real Flights...' : 'Search Flights (SerpApi)'}</Button>
+            <Button type="submit" size="lg" className={cn("w-full gap-2 mt-6", prominentButtonClasses)} disabled={isLoadingRealFlights || !origin || !destination || !dates?.from}>
+              {isLoadingRealFlights ? <Loader2 className="animate-spin" /> : <Search />}
+              {isLoadingRealFlights ? 'Searching Real Flights...' : 'Search Flights (SerpApi)'}
+            </Button>
           </form>
         </CardContent>
       </Card>
@@ -1462,5 +1537,7 @@ export default function FlightsPage() {
   );
 }
 
+
+    
 
     

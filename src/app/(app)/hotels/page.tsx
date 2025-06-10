@@ -540,11 +540,10 @@ export default function HotelsPage() {
 
     console.log(`[HotelsPage] Plotted ${validMarkersPlotted} valid markers out of ${hotelsToDisplay.length} suggestions.`);
     if (validMarkersPlotted > 0 && !bounds.isEmpty()) {
-      map.fitBounds(bounds, 100);
+      map.fitBounds(bounds, 100); 
       if (validMarkersPlotted === 1 && map.getZoom() && map.getZoom()! > 15) map.setZoom(15);
     } else if (userLocation) {
-      map.setCenter({ lat: userLocation.latitude, lng: userLocation.longitude });
-      map.setZoom(10);
+      map.setCenter({ lat: userLocation.latitude, lng: userLocation.longitude }); map.setZoom(10);
     } else {
       map.setCenter({ lat: 20, lng: 0 }); map.setZoom(2);
     }
@@ -707,17 +706,17 @@ export default function HotelsPage() {
   return (
     <>
     <div className="container mx-auto py-8 px-4 animate-fade-in-up space-y-10">
-      <Card className={cn(glassCardClasses, "border-primary/30")}>
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold tracking-tight text-foreground flex items-center">
-            <Hotel className="w-8 h-8 mr-3 text-primary" />
-            Find your perfect stay
+      <Card className={cn(glassCardClasses, "border-primary/30 overflow-hidden shadow-xl")}>
+        <CardHeader className="bg-primary/5 p-6">
+          <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center">
+            <Hotel className="w-7 h-7 sm:w-8 sm:h-8 mr-3 text-primary" />
+            Find Your Perfect Stay
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Enter your destination, dates, and guest count. Real hotel options powered by SerpApi.
+          <CardDescription className="text-muted-foreground text-sm sm:text-base">
+            Enter your destination, dates, and guest count. Aura AI will find hotel options powered by SerpApi.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleHotelSearchSubmit)} className="space-y-5">
               <FormField
@@ -810,7 +809,7 @@ export default function HotelsPage() {
                   )}
                 />
               </div>
-              <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingSearchedHotels || form.formState.isSubmitting}>
+              <Button type="submit" size="lg" className={cn("w-full gap-2", prominentButtonClasses)} disabled={isLoadingSearchedHotels || form.formState.isSubmitting || !form.formState.isValid}>
                 {isLoadingSearchedHotels || form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : <Search />}
                 {isLoadingSearchedHotels || form.formState.isSubmitting ? 'SerpApi Searching Hotels...' : 'Search Hotels (SerpApi)'}
               </Button>
@@ -958,3 +957,5 @@ export default function HotelsPage() {
   );
 }
       
+
+    
