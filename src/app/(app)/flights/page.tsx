@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -999,12 +1000,28 @@ export default function FlightsPage() {
       toast({ title: "Please Log In", description: "You need to be logged in to track prices.", variant: "destructive" });
       return;
     }
-    if (!trackOrigin || !trackDestination || !trackTargetPrice || !trackCurrentConceptualPrice) {
-      toast({ title: "Missing Information", description: "Please fill in all required fields for price tracking.", variant: "destructive" });
+
+    const currentTrackOrigin = trackOrigin.trim();
+    const currentTrackDestination = trackDestination.trim();
+    const currentTrackTargetPrice = trackTargetPrice.trim();
+    const currentTrackCurrentConceptualPrice = trackCurrentConceptualPrice.trim();
+
+    if (!currentTrackOrigin || !currentTrackDestination || !currentTrackTargetPrice || !currentTrackCurrentConceptualPrice) {
+      let missingFields = [];
+      if (!currentTrackOrigin) missingFields.push("Origin");
+      if (!currentTrackDestination) missingFields.push("Destination");
+      if (!currentTrackTargetPrice) missingFields.push("Target Price");
+      if (!currentTrackCurrentConceptualPrice) missingFields.push("Current Price");
+      
+      toast({ 
+        title: "Missing Information", 
+        description: `Please fill in the following required fields for price tracking: ${missingFields.join(', ')}.`, 
+        variant: "destructive" 
+      });
       return;
     }
-    const targetPriceNum = parseFloat(trackTargetPrice);
-    const currentPriceNum = parseFloat(trackCurrentConceptualPrice);
+    const targetPriceNum = parseFloat(currentTrackTargetPrice);
+    const currentPriceNum = parseFloat(currentTrackCurrentConceptualPrice);
 
     if (isNaN(targetPriceNum) || targetPriceNum <= 0 || isNaN(currentPriceNum) || currentPriceNum <= 0) {
       toast({ title: "Invalid Price", description: "Target and current prices must be positive numbers.", variant: "destructive" });
@@ -1014,23 +1031,23 @@ export default function FlightsPage() {
     setIsTrackingPrice(true);
     setTrackPriceAiAdvice(null);
     try {
-      const itemName = `Flight from ${trackOrigin} to ${trackDestination}`;
+      const itemName = `Flight from ${currentTrackOrigin} to ${currentTrackDestination}`;
       await addTrackedItemMutation.mutateAsync({
         itemType: 'flight',
         itemName,
-        originCity: trackOrigin,
-        destination: trackDestination,
+        originCity: currentTrackOrigin,
+        destination: currentTrackDestination,
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
-        travelDates: trackTravelDates || undefined,
+        travelDates: trackTravelDates.trim() || undefined,
       });
       toast({ title: "Price Tracking Started", description: `${itemName} is now being tracked!` });
 
       const adviceInput: PriceAdvisorInput = {
         itemType: 'flight',
         itemName,
-        originCity: trackOrigin,
-        destination: trackDestination,
+        originCity: currentTrackOrigin,
+        destination: currentTrackDestination,
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
       };
@@ -1356,7 +1373,11 @@ export default function FlightsPage() {
               )}
             </CardContent>
             <CardFooter>
-              <Button onClick={handleTrackPriceAndGetAdvice} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isTrackingPrice || !currentUser}>
+              <Button 
+                onClick={handleTrackPriceAndGetAdvice} 
+                className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} 
+                disabled={isTrackingPrice || !currentUser || !trackOrigin.trim() || !trackDestination.trim() || !trackTargetPrice.trim() || !trackCurrentConceptualPrice.trim()}
+              >
                 {isTrackingPrice ? <Loader2 className="animate-spin"/> : <CheckCircle />}
                 {isTrackingPrice ? "Processing..." : "Track &amp; Get Advice"}
               </Button>
