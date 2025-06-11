@@ -1001,17 +1001,12 @@ export default function FlightsPage() {
       return;
     }
 
-    const currentTrackOrigin = trackOrigin.trim();
-    const currentTrackDestination = trackDestination.trim();
-    const currentTrackTargetPrice = trackTargetPrice.trim();
-    const currentTrackCurrentConceptualPrice = trackCurrentConceptualPrice.trim();
-
-    if (!currentTrackOrigin || !currentTrackDestination || !currentTrackTargetPrice || !currentTrackCurrentConceptualPrice) {
+    if (trackOrigin.trim() === '' || trackDestination.trim() === '' || trackTargetPrice.trim() === '' || trackCurrentConceptualPrice.trim() === '') {
       let missingFields = [];
-      if (!currentTrackOrigin) missingFields.push("Origin");
-      if (!currentTrackDestination) missingFields.push("Destination");
-      if (!currentTrackTargetPrice) missingFields.push("Target Price");
-      if (!currentTrackCurrentConceptualPrice) missingFields.push("Current Price");
+      if (trackOrigin.trim() === '') missingFields.push("Origin");
+      if (trackDestination.trim() === '') missingFields.push("Destination");
+      if (trackTargetPrice.trim() === '') missingFields.push("Target Price");
+      if (trackCurrentConceptualPrice.trim() === '') missingFields.push("Current Price");
       
       toast({ 
         title: "Missing Information", 
@@ -1020,8 +1015,8 @@ export default function FlightsPage() {
       });
       return;
     }
-    const targetPriceNum = parseFloat(currentTrackTargetPrice);
-    const currentPriceNum = parseFloat(currentTrackCurrentConceptualPrice);
+    const targetPriceNum = parseFloat(trackTargetPrice.trim());
+    const currentPriceNum = parseFloat(trackCurrentConceptualPrice.trim());
 
     if (isNaN(targetPriceNum) || targetPriceNum <= 0 || isNaN(currentPriceNum) || currentPriceNum <= 0) {
       toast({ title: "Invalid Price", description: "Target and current prices must be positive numbers.", variant: "destructive" });
@@ -1031,12 +1026,12 @@ export default function FlightsPage() {
     setIsTrackingPrice(true);
     setTrackPriceAiAdvice(null);
     try {
-      const itemName = `Flight from ${currentTrackOrigin} to ${currentTrackDestination}`;
+      const itemName = `Flight from ${trackOrigin.trim()} to ${trackDestination.trim()}`;
       await addTrackedItemMutation.mutateAsync({
         itemType: 'flight',
         itemName,
-        originCity: currentTrackOrigin,
-        destination: currentTrackDestination,
+        originCity: trackOrigin.trim(),
+        destination: trackDestination.trim(),
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
         travelDates: trackTravelDates.trim() || undefined,
@@ -1046,8 +1041,8 @@ export default function FlightsPage() {
       const adviceInput: PriceAdvisorInput = {
         itemType: 'flight',
         itemName,
-        originCity: currentTrackOrigin,
-        destination: currentTrackDestination,
+        originCity: trackOrigin.trim(),
+        destination: trackDestination.trim(),
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
       };
@@ -1376,7 +1371,7 @@ export default function FlightsPage() {
               <Button 
                 onClick={handleTrackPriceAndGetAdvice} 
                 className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} 
-                disabled={isTrackingPrice || !currentUser || !trackOrigin.trim() || !trackDestination.trim() || !trackTargetPrice.trim() || !trackCurrentConceptualPrice.trim()}
+                disabled={isTrackingPrice || !currentUser || trackOrigin.trim() === '' || trackDestination.trim() === '' || trackTargetPrice.trim() === '' || trackCurrentConceptualPrice.trim() === ''}
               >
                 {isTrackingPrice ? <Loader2 className="animate-spin"/> : <CheckCircle />}
                 {isTrackingPrice ? "Processing..." : "Track &amp; Get Advice"}
@@ -1556,3 +1551,4 @@ export default function FlightsPage() {
     </div>
   );
 }
+
