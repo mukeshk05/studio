@@ -998,29 +998,30 @@ export default function FlightsPage() {
   const handleTrackPriceAndGetAdvice = async () => {
     if (!currentUser) {
       toast({ title: "Please Log In", description: "You need to be logged in to track prices.", variant: "destructive" });
-      return;
+      return; // EXIT
     }
 
-    if (trackOrigin.trim() === '' || trackDestination.trim() === '' || trackTargetPrice.trim() === '' || trackCurrentConceptualPrice.trim() === '') {
-      let missingFields = [];
-      if (trackOrigin.trim() === '') missingFields.push("Origin");
-      if (trackDestination.trim() === '') missingFields.push("Destination");
-      if (trackTargetPrice.trim() === '') missingFields.push("Target Price");
-      if (trackCurrentConceptualPrice.trim() === '') missingFields.push("Current Price");
-      
+    let missingFields = [];
+    if (trackOrigin.trim() === '') missingFields.push("Origin");
+    if (trackDestination.trim() === '') missingFields.push("Destination");
+    if (trackTargetPrice.trim() === '') missingFields.push("Target Price");
+    if (trackCurrentConceptualPrice.trim() === '') missingFields.push("Current Price");
+    
+    if (missingFields.length > 0) {
       toast({ 
         title: "Missing Information", 
         description: `Please fill in the following required fields for price tracking: ${missingFields.join(', ')}.`, 
         variant: "destructive" 
       });
-      return;
+      return; // EXIT
     }
+
     const targetPriceNum = parseFloat(trackTargetPrice.trim());
     const currentPriceNum = parseFloat(trackCurrentConceptualPrice.trim());
 
     if (isNaN(targetPriceNum) || targetPriceNum <= 0 || isNaN(currentPriceNum) || currentPriceNum <= 0) {
       toast({ title: "Invalid Price", description: "Target and current prices must be positive numbers.", variant: "destructive" });
-      return;
+      return; // EXIT
     }
 
     setIsTrackingPrice(true);
@@ -1050,7 +1051,7 @@ export default function FlightsPage() {
       setTrackPriceAiAdvice(adviceResult.advice);
     } catch (error: any) {
       console.error("Error tracking price or getting advice:", error);
-      toast({ title: "Error", description: `Could not start tracking or get advice: ${error.message}`, variant: "destructive" });
+      toast({ title: "Error", description: `Could not start tracking or get advice: ${error instanceof Error ? error.message : String(error)}`, variant: "destructive" });
     } finally {
       setIsTrackingPrice(false);
     }
