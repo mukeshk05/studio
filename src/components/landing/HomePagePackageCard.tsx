@@ -125,8 +125,8 @@ export function HomePagePackageCard({ item, onPlanTrip, onSelect }: HomePagePack
           <div className="text-xs border-t border-border/20 pt-1.5">
              <p className="font-medium text-card-foreground/90 flex items-center"><ListChecks className="w-3 h-3 mr-1.5 text-primary/70" />Activity Highlights:</p>
              <div className="pl-4 flex flex-wrap gap-1 mt-1">
-                {activities.slice(0, 2).map(act => (
-                    <Badge key={act.name} variant="secondary" className="text-[0.7rem] bg-accent/10 text-accent border-accent/20">{act.name}</Badge>
+                {activities.slice(0, 2).map((act, index) => (
+                    <Badge key={`${act.name}-${index}`} variant="secondary" className="text-[0.7rem] bg-accent/10 text-accent border-accent/20">{act.name}</Badge>
                 ))}
                 {activities.length > 2 && <Badge variant="secondary" className="text-[0.7rem] bg-accent/10 text-accent border-accent/20">+{activities.length - 2} more</Badge>}
              </div>
@@ -162,4 +162,3 @@ export function HomePagePackageCard({ item, onPlanTrip, onSelect }: HomePagePack
     </Card>
   );
 }
-
