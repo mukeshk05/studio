@@ -820,8 +820,6 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
 }
 
 export interface TrendingFlightDealsInput {
-  userLatitude?: number;
-  userLongitude?: number;
   originCity?: string;
 }
 
@@ -834,40 +832,12 @@ export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsIn
   }
 
   // --- Primary Method: AI Suggested Hubs ---
-  let originCity = "New York"; 
-  let originDeterminationMethod = "Default";
-
-  if (input?.originCity) {
-    originCity = input.originCity;
-    originDeterminationMethod = `Direct Input: ${originCity}`;
-  } else if (input?.userLatitude && input?.userLongitude) {
-    try {
-      const reverseGeoParams = {
-        engine: "google_maps",
-        ll: `@${input.userLatitude},${input.userLongitude},15z`,
-        api_key: apiKey,
-      };
-      const geoResponse = await getSerpApiJson(reverseGeoParams);
-      if (geoResponse.place_results?.address_components) {
-        const cityComponent = geoResponse.place_results.address_components.find((c: any) => c.types.includes("locality"));
-        if (cityComponent) {
-          originCity = cityComponent.long_name;
-          originDeterminationMethod = `Geolocation: ${originCity}`;
-        } else {
-           originDeterminationMethod = `Geolocation (city not found, using default ${originCity})`;
-        }
-      }
-    } catch (e: any) {
-      console.error("[Server Action] Reverse geocoding failed:", e.message);
-      originDeterminationMethod = `Geolocation failed, using default ${originCity}`;
-    }
-  }
-
-  console.log(`[TrendingDeals] Origin determined via ${originDeterminationMethod}`);
+  const originCityForAI = input?.originCity || "New York"; 
+  console.log(`[TrendingDeals] Using origin for AI suggestions: ${originCityForAI}`);
 
   try {
-    const originIata = await getIataCodeAction(originCity) || originCity;
-    const hubSuggestionResult = await suggestHubAirportsFlow({ originCity });
+    const originIata = await getIataCodeAction(originCityForAI) || originCityForAI;
+    const hubSuggestionResult = await suggestHubAirportsFlow({ originCity: originCityForAI });
     const destinationHubs = hubSuggestionResult.hubs || [];
 
     if (destinationHubs.length > 0) {
@@ -889,14 +859,14 @@ export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsIn
         .filter((deal): deal is SerpApiFlightOption => deal !== null && deal !== undefined);
       
       if (successfulDeals.length > 0) {
-        console.log(`[Server Action] Successfully fetched ${successfulDeals.length} AI-suggested trending deals from ${originCity}.`);
+        console.log(`[Server Action] Successfully fetched ${successfulDeals.length} AI-suggested trending deals from ${originCityForAI}.`);
         return successfulDeals;
       } else {
-        console.warn(`[Server Action] AI-suggested hubs from ${originCity} did not yield any flight deals. Proceeding to fallback.`);
+        console.warn(`[Server Action] AI-suggested hubs from ${originCityForAI} did not yield any flight deals. Proceeding to fallback.`);
       }
     }
   } catch (error: any) {
-    console.error(`[Server Action] Error fetching AI-suggested trending flight deals from ${originCity}:`, error.message, "Proceeding to fallback.");
+    console.error(`[Server Action] Error fetching AI-suggested trending flight deals from ${originCityForAI}:`, error.message, "Proceeding to fallback.");
   }
 
   // --- Fallback Method: Predefined Popular Routes ---
@@ -937,27 +907,70 @@ export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsIn
 }
 
 
-export async function getTrendingHotelDealsAction(): Promise<SerpApiHotelSuggestion[]> {
-  console.log("[Server Action - getTrendingHotelDealsAction] Fetching trending hotels...");
+export interface TrendingHotelDealsInput {
+  destinationCity?: string;
+  userLatitude?: number;
+  userLongitude?: number;
+}
+
+export async function getTrendingHotelDealsAction(input?: TrendingHotelDealsInput): Promise<SerpApiHotelSuggestion[]> {
+  console.log("[Server Action - getTrendingHotelDealsAction] Fetching trending hotels with input:", input);
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey) {
+    console.error("[Server Action] SerpApi key not configured for hotel deals.");
+    return [];
+  }
+
+  let destinationToSearch = "Paris"; // Ultimate fallback
+  let determinationMethod = "Ultimate Fallback";
+
+  if (input?.destinationCity) {
+    destinationToSearch = input.destinationCity;
+    determinationMethod = `Direct Input: ${destinationToSearch}`;
+  } else if (input?.userLatitude && input?.userLongitude) {
+    try {
+      const reverseGeoParams = {
+        engine: "google_maps_reverse",
+        ll: `@${input.userLatitude},${input.userLongitude},15z`,
+        api_key: apiKey,
+      };
+      const geoResponse = await getSerpApiJson(reverseGeoParams);
+      const cityComponent = geoResponse.address_components?.find((c: any) => c.types.includes("locality"));
+      if (cityComponent) {
+        destinationToSearch = cityComponent.long_name;
+        determinationMethod = `Geolocation: ${destinationToSearch}`;
+      } else {
+        determinationMethod = `Geolocation (city not found, using fallback Paris)`;
+      }
+    } catch (e: any) {
+      console.error("[TrendingHotelDeals] Reverse geocoding failed:", e.message);
+      determinationMethod = `Geolocation failed, using fallback Paris`;
+    }
+  } else {
+    const samplePopularDestinations = ["Paris", "Rome", "Barcelona"];
+    destinationToSearch = samplePopularDestinations[Math.floor(Math.random() * samplePopularDestinations.length)];
+    determinationMethod = `Random popular: ${destinationToSearch}`;
+  }
+
+  console.log(`[TrendingHotelDeals] Destination determined via ${determinationMethod}`);
+
   const now = new Date();
   const checkInDate = format(addMonths(now, 1), "yyyy-MM-dd");
   const checkOutDate = format(addDays(addMonths(now, 1), 3), "yyyy-MM-dd"); // 3-night stay
 
-  const samplePopularDestinations = ["Paris", "Rome", "Barcelona"];
-  const randomDestination = samplePopularDestinations[Math.floor(Math.random() * samplePopularDestinations.length)];
-
   try {
     const hotelResults = await getRealHotelsAction({
-      destination: randomDestination,
+      destination: destinationToSearch,
       checkInDate,
       checkOutDate,
       guests: "2",
     });
     const deals = hotelResults.hotels || [];
-    console.log(`[Server Action - getTrendingHotelDealsAction] Found ${deals.length} potential trending hotel deals for ${randomDestination}.`);
-    return deals.filter(h => h.rating && h.rating >= 4.0 && h.price_per_night && h.price_per_night < 300).slice(0, 2); // Filter for decent rating/price and take top 2
+    console.log(`[TrendingHotelDeals] Found ${deals.length} potential deals for ${destinationToSearch}.`);
+    // Add filtering to make them "deals"
+    return deals.filter(h => h.rating && h.rating >= 4.0 && h.price_per_night && h.price_per_night < 350).slice(0, 4);
   } catch (error) {
-    console.error("[Server Action - getTrendingHotelDealsAction] Error fetching trending hotels:", error);
+    console.error(`[TrendingHotelDeals] Error fetching hotels for ${destinationToSearch}:`, error);
     return [];
   }
 }
@@ -995,7 +1008,7 @@ import type { AuthenticityVerifierInput, AuthenticityVerifierOutput } from '@/ai
 export async function getAuthenticityVerification(input: AuthenticityVerifierInput): Promise<AuthenticityVerifierOutput> { return getAuthenticityVerificationFlow(input); }
 
 import { generateSmartMapConcept as generateSmartMapConceptFlow } from '@/ai/flows/smart-map-concept-flow';
-import type { SmartMapConceptInput, SmartMapConceptOutput } from '@/ai/flows/smart-map-concept-flow';
+import type { SmartMapConceptInput, SmartMapConceptOutput } from '@/ai/types/smart-map-concept-types';
 export async function generateSmartMapConcept(input: SmartMapConceptInput): Promise<SmartMapConceptOutput> { return generateSmartMapConceptFlow(input); }
 
 import { getWhatIfAnalysis as getWhatIfAnalysisFlow } from '@/ai/flows/what-if-simulator-flow';

@@ -46,7 +46,7 @@ const exploreCategories = [
   { name: "Flights", icon: <Plane className="w-5 h-5" />, href: "/flights" },
   { name: "Hotels", icon: <Hotel className="w-5 h-5" />, href: "/hotels" },
   { name: "Things to do", icon: <ListChecks className="w-5 h-5" />, href: "/things-to-do" },
-  { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/explore" },
+  { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/explore" }, // Assuming packages might still be under explore or need their own page
 ];
 
 interface UserLocation { latitude: number; longitude: number; }
@@ -86,6 +86,7 @@ export default function LandingPage() {
   const [isFetchingLocation, setIsFetchingLocation] = useState(true); 
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
   const [searchedLocationDetails, setSearchedLocationDetails] = useState<SearchedLocation | null>(null);
+  const [currentSearchedCity, setCurrentSearchedCity] = useState<string | null>(null);
 
   const [popularDestinations, setPopularDestinations] = useState<AiDestinationSuggestion[]>([]);
   const [isLoadingPopular, setIsLoadingPopular] = useState(false);
@@ -179,14 +180,23 @@ export default function LandingPage() {
   const fetchAllData = useCallback(async (location?: UserLocation, searchedCity?: string) => {
     setIsLoadingPopular(true); setIsLoadingSmartBundles(true); setIsLoadingTrendingFlights(true); setIsLoadingTrendingHotels(true);
     setPopularError(null); setSmartBundlesError(null); setTrendingFlightsError(null); setTrendingHotelsError(null);
+    setCurrentSearchedCity(searchedCity || null);
 
     const commonDestInput: PopularDestinationsInput = {};
     if (searchedCity) {
-      commonDestInput.originCity = searchedCity;
+      commonDestInput.originCity = searchedCity; // for popular destinations
     } else if (location) {
       commonDestInput.userLatitude = location.latitude;
       commonDestInput.userLongitude = location.longitude;
     }
+    
+    const trendingDealsInput = {
+      originCity: searchedCity,
+      destinationCity: searchedCity, // For hotels
+      userLatitude: location?.latitude,
+      userLongitude: location?.longitude
+    };
+
 
     const smartBundleInterest = searchedCity ? `Trips related to ${searchedCity}` : undefined;
     
@@ -200,8 +210,8 @@ export default function LandingPage() {
         setSmartBundles(result.suggestions || []);
       }).catch(err => setSmartBundlesError(err.message || "Error")) : Promise.resolve().then(() => setSmartBundlesContextualNote("Log in for personalized trip ideas!")),
       
-      getTrendingFlightDealsAction(commonDestInput).then(setTrendingFlights).catch(err => setTrendingFlightsError(err.message || "Error")),
-      getTrendingHotelDealsAction().then(setTrendingHotels).catch(err => setTrendingHotelsError(err.message || "Error"))
+      getTrendingFlightDealsAction(trendingDealsInput).then(setTrendingFlights).catch(err => setTrendingFlightsError(err.message || "Error")),
+      getTrendingHotelDealsAction(trendingDealsInput).then(setTrendingHotels).catch(err => setTrendingHotelsError(err.message || "Error"))
     ]);
 
     setIsLoadingPopular(false); setIsLoadingSmartBundles(false); setIsLoadingTrendingFlights(false); setIsLoadingTrendingHotels(false);
@@ -454,7 +464,7 @@ export default function LandingPage() {
 
         <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.15s'}}>
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
-                <Sparkles className="w-7 h-7 mr-2 text-amber-400 animate-pulse" /> Trending Now: Real-Time Deals
+                <Sparkles className="w-7 h-7 mr-2 text-amber-400 animate-pulse" /> Trending Now: Real-Time Deals {currentSearchedCity ? `for ${currentSearchedCity}` : (userLocation ? 'Near You' : '')}
             </h2>
             <div className={cn("p-4 rounded-lg", glassCardClasses, "border-amber-500/30")}>
                 <div className="mb-6">
@@ -479,7 +489,7 @@ export default function LandingPage() {
                     {!isLoadingTrendingHotels && trendingHotels.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {trendingHotels.map((deal, index) => (
-                                <TrendingHotelDealCard key={`trending-hotel-${index}`} deal={deal} onViewDetails={() => handleViewTrendingDealDetails(deal, 'hotel')} destinationQuery="Paris" />
+                                <TrendingHotelDealCard key={`trending-hotel-${index}`} deal={deal} onViewDetails={() => handleViewTrendingDealDetails(deal, 'hotel')} destinationQuery={currentSearchedCity || undefined} />
                             ))}
                         </div>
                     )}
