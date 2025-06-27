@@ -21,9 +21,8 @@ export function useSavedTrips() {
     queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid],
     queryFn: async () => {
       const user = auth.currentUser;
-      if (!user) {
-        console.log("[useSavedTrips] User not authenticated, returning empty array.");
-        return []; // Return empty array instead of throwing
+      if (!user?.uid) {
+        return []; 
       }
       
       const tripsCollectionRef = collection(firestore, 'users', user.uid, 'savedTrips');
@@ -32,12 +31,10 @@ export function useSavedTrips() {
         const querySnapshot = await getDocs(tripsCollectionRef);
         return querySnapshot.docs.map(docSnapshot => ({ ...docSnapshot.data() as Omit<Itinerary, 'id'>, id: docSnapshot.id }));
       } catch (e: any) { 
-        console.error("[useSavedTrips] Error fetching documents: ", e);
-        if (e.code === 'permission-denied') {
-            console.error("[useSavedTrips] Firestore permission denied. This might be due to security rules or a timing issue.");
-            return []; // Return empty on permission denied to prevent crash
+        if (e.code !== 'permission-denied') {
+          console.error("[useSavedTrips] Unexpected Firestore error: ", e);
         }
-        throw e; // Re-throw other errors
+        return []; 
       }
     },
     enabled: !!currentUser,
@@ -147,14 +144,20 @@ export function useTrackedItems() {
     queryKey: [TRACKED_ITEMS_QUERY_KEY, currentUser?.uid],
     queryFn: async () => {
       const user = auth.currentUser;
-      if (!user) {
-        console.log("[useTrackedItems] User not authenticated, returning empty array.");
+      if (!user?.uid) {
         return [];
       }
-      const itemsCollectionRef = collection(firestore, 'users', user.uid, 'trackedItems');
-      const q = query(itemsCollectionRef, orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
+      try {
+        const itemsCollectionRef = collection(firestore, 'users', user.uid, 'trackedItems');
+        const q = query(itemsCollectionRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
+      } catch (e: any) {
+        if (e.code !== 'permission-denied') {
+          console.error("[useTrackedItems] Unexpected Firestore error: ", e);
+        }
+        return [];
+      }
     },
     enabled: !!currentUser,
     staleTime: 1000 * 60 * 5,
@@ -285,42 +288,48 @@ export function useSearchHistory(count: number = 20) {
     queryKey: [SEARCH_HISTORY_QUERY_KEY, currentUser?.uid, count],
     queryFn: async () => {
       const user = auth.currentUser;
-      if (!user) {
-        console.log("[useSearchHistory] User not authenticated, returning empty array.");
+      if (!user?.uid) {
         return [];
       }
-      const historyCollectionRef = collection(firestore, 'users', user.uid, 'searchHistory');
-      const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        let searchedAtDate = new Date(); 
-        if (data.searchedAt instanceof Timestamp) {
-          searchedAtDate = data.searchedAt.toDate();
-        } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
-          const tsSeconds = data.searchedAt.seconds || (typeof data.searchedAt === 'number' ? data.searchedAt / 1000 : undefined);
-          const tsNanos = data.searchedAt.nanoseconds || 0;
-          if (tsSeconds !== undefined) {
-            searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
-          } else {
-             const parsed = new Date(data.searchedAt); 
-             if(!isNaN(parsed.getTime())) {
-                searchedAtDate = parsed;
-             } else {
-                console.warn(`[FirestoreHooks] Could not parse searchedAt for doc ${doc.id}:`, data.searchedAt);
-             }
+      try {
+        const historyCollectionRef = collection(firestore, 'users', user.uid, 'searchHistory');
+        const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          let searchedAtDate = new Date(); 
+          if (data.searchedAt instanceof Timestamp) {
+            searchedAtDate = data.searchedAt.toDate();
+          } else if (data.searchedAt && (typeof data.searchedAt === 'string' || typeof data.searchedAt === 'number' || (typeof data.searchedAt === 'object' && typeof data.searchedAt.seconds === 'number'))) {
+            const tsSeconds = data.searchedAt.seconds || (typeof data.searchedAt === 'number' ? data.searchedAt / 1000 : undefined);
+            const tsNanos = data.searchedAt.nanoseconds || 0;
+            if (tsSeconds !== undefined) {
+              searchedAtDate = new Timestamp(tsSeconds, tsNanos).toDate();
+            } else {
+               const parsed = new Date(data.searchedAt); 
+               if(!isNaN(parsed.getTime())) {
+                  searchedAtDate = parsed;
+               } else {
+                  console.warn(`[FirestoreHooks] Could not parse searchedAt for doc ${doc.id}:`, data.searchedAt);
+               }
+            }
+          } else if (data.searchedAt) { 
+              console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${doc.id}:`, data.searchedAt, `Type: ${typeof data.searchedAt}`);
           }
-        } else if (data.searchedAt) { 
-            console.warn(`[FirestoreHooks] Unexpected searchedAt format for doc ${doc.id}:`, data.searchedAt, `Type: ${typeof data.searchedAt}`);
+
+
+          return {
+            ...data,
+            id: doc.id,
+            searchedAt: searchedAtDate
+          } as SearchHistoryEntry; 
+        });
+      } catch (e: any) {
+        if (e.code !== 'permission-denied') {
+          console.error("[useSearchHistory] Unexpected Firestore error: ", e);
         }
-
-
-        return {
-          ...data,
-          id: doc.id,
-          searchedAt: searchedAtDate
-        } as SearchHistoryEntry; 
-      });
+        return [];
+      }
     },
     enabled: !!currentUser,
     staleTime: 1000 * 60 * 15, // 15 minutes
@@ -414,28 +423,34 @@ export function useGetUserTravelPersona() {
     queryKey: [USER_TRAVEL_PERSONA_QUERY_KEY, currentUser?.uid],
     queryFn: async () => {
       const user = auth.currentUser;
-      if (!user) {
-        console.log("[useGetUserTravelPersona] User not authenticated, returning null.");
+      if (!user?.uid) {
         return null;
       }
-      const personaDocRef = doc(firestore, 'users', user.uid, 'profile', 'travelPersona');
-      const docSnap = await getDoc(personaDocRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        let lastUpdatedDate = new Date();
-        if (data.lastUpdated instanceof Timestamp) {
-          lastUpdatedDate = data.lastUpdated.toDate();
-        } else if (data.lastUpdated && (typeof data.lastUpdated === 'string' || typeof data.lastUpdated === 'number')) {
-           const parsed = new Date(data.lastUpdated);
-           if (!isNaN(parsed.getTime())) lastUpdatedDate = parsed;
+      try {
+        const personaDocRef = doc(firestore, 'users', user.uid, 'profile', 'travelPersona');
+        const docSnap = await getDoc(personaDocRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          let lastUpdatedDate = new Date();
+          if (data.lastUpdated instanceof Timestamp) {
+            lastUpdatedDate = data.lastUpdated.toDate();
+          } else if (data.lastUpdated && (typeof data.lastUpdated === 'string' || typeof data.lastUpdated === 'number')) {
+             const parsed = new Date(data.lastUpdated);
+             if (!isNaN(parsed.getTime())) lastUpdatedDate = parsed;
+          }
+          return {
+              name: data.name || "Traveler",
+              description: data.description || "Enjoys exploring new places.",
+              lastUpdated: lastUpdatedDate,
+          } as UserTravelPersona;
         }
-        return {
-            name: data.name || "Traveler",
-            description: data.description || "Enjoys exploring new places.",
-            lastUpdated: lastUpdatedDate,
-        } as UserTravelPersona;
+        return null;
+      } catch (e: any) {
+        if (e.code !== 'permission-denied') {
+          console.error("[useGetUserTravelPersona] Unexpected Firestore error: ", e);
+        }
+        return null;
       }
-      return null;
     },
     enabled: !!currentUser,
     staleTime: 1000 * 60 * 15, // 15 minutes
