@@ -825,16 +825,15 @@ export interface TrendingFlightDealsInput {
 }
 
 export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsInput): Promise<SerpApiFlightOption[]> {
-  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights. Caching is disabled.");
-  
+  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights.");
   const apiKey = process.env.SERPAPI_API_KEY;
   if (!apiKey || apiKey === "YOUR_SERPAPI_API_KEY_PLACEHOLDER") {
     console.error('[Server Action] SerpApi API key not configured.');
     return [];
   }
 
+  // --- Primary Method: AI Suggested Hubs ---
   let originCity = "New York"; 
-
   if (input?.userLatitude && input?.userLongitude) {
     try {
       const reverseGeoParams = {
@@ -859,14 +858,53 @@ export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsIn
     const hubSuggestionResult = await suggestHubAirportsFlow({ originCity });
     const destinationHubs = hubSuggestionResult.hubs || [];
 
-    if (destinationHubs.length === 0) return [];
+    if (destinationHubs.length > 0) {
+      const searchPromises = destinationHubs.slice(0, 3).map(hubIata => {
+        const departureDate = format(addMonths(new Date(), 1), "yyyy-MM-dd");
+        const returnDate = format(addDays(addMonths(new Date(), 1), 7), "yyyy-MM-dd");
+        return getRealFlightsAction({
+          origin: originIata,
+          destination: hubIata,
+          departureDate,
+          returnDate,
+          tripType: "round-trip"
+        });
+      });
 
-    const searchPromises = destinationHubs.map(hubIata => {
+      const results = await Promise.all(searchPromises);
+      const successfulDeals = results
+        .map(res => res.best_flights?.[0] || res.other_flights?.[0])
+        .filter((deal): deal is SerpApiFlightOption => deal !== null && deal !== undefined);
+      
+      if (successfulDeals.length > 0) {
+        console.log(`[Server Action] Successfully fetched ${successfulDeals.length} AI-suggested trending deals.`);
+        return successfulDeals;
+      } else {
+        console.warn("[Server Action] AI-suggested hubs did not yield any flight deals. Proceeding to fallback.");
+      }
+    }
+  } catch (error: any) {
+    console.error("[Server Action] Error fetching AI-suggested trending flight deals:", error.message, "Proceeding to fallback.");
+  }
+
+  // --- Fallback Method: Predefined Popular Routes ---
+  console.log("[Server Action] Executing fallback for trending flight deals.");
+  const fallbackRoutes = [
+    { origin: "NYC", destination: "LAX", description: "New York to Los Angeles" },
+    { origin: "LHR", destination: "CDG", description: "London to Paris" },
+    { origin: "SIN", destination: "BKK", description: "Singapore to Bangkok" },
+    { origin: "NYC", destination: "MIA", description: "New York to Miami" },
+  ];
+
+  const selectedRoutes = fallbackRoutes.sort(() => 0.5 - Math.random()).slice(0, 2);
+
+  try {
+    const searchPromises = selectedRoutes.map(route => {
       const departureDate = format(addMonths(new Date(), 1), "yyyy-MM-dd");
       const returnDate = format(addDays(addMonths(new Date(), 1), 7), "yyyy-MM-dd");
       return getRealFlightsAction({
-        origin: originIata,
-        destination: hubIata,
+        origin: route.origin,
+        destination: route.destination,
         departureDate,
         returnDate,
         tripType: "round-trip"
@@ -877,11 +915,11 @@ export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsIn
     const successfulDeals = results
       .map(res => res.best_flights?.[0] || res.other_flights?.[0])
       .filter((deal): deal is SerpApiFlightOption => deal !== null && deal !== undefined);
-      
-    console.log(`[Server Action] Successfully fetched ${successfulDeals.length} trending deals.`);
+
+    console.log(`[Server Action] Successfully fetched ${successfulDeals.length} deals from fallback routes.`);
     return successfulDeals;
-  } catch (error: any) {
-    console.error("[Server Action] Error fetching trending flight deals:", error.message);
+  } catch(error: any) {
+    console.error("[Server Action] Error fetching deals from fallback routes:", error.message);
     return [];
   }
 }
