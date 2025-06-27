@@ -1248,14 +1248,10 @@ export interface TrendingFlightDealsInput {
   userLongitude?: number;
 }
 
-export async function getTrendingFlightDealsAction(input: TrendingFlightDealsInput): Promise<SerpApiFlightOption[]> {
-  console.log("[Server Action - getTrendingFlightDealsAction] Fetching AI trending flights with input:", input);
+export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsInput): Promise<SerpApiFlightOption[]> {
+  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights for popular routes.");
   
-  const originForSearch = "NYC";
-
-  const latKey = input.userLatitude ? Math.round(input.userLatitude) : 'global';
-  const lonKey = input.userLongitude ? Math.round(input.userLongitude) : 'global';
-  const cacheKey = `ai_trending_flights_lat_${latKey}_lon_${lonKey}`;
+  const cacheKey = `trending_flights_popular_routes_v3`; // Changed key to force refresh
   const cacheCollectionName = 'aiTrendingDealsCache';
 
   if (firestore) {
@@ -1278,35 +1274,34 @@ export async function getTrendingFlightDealsAction(input: TrendingFlightDealsInp
       }
   }
 
-  console.log(`[AI Trending Flights] Cache miss or stale, fetching fresh data.`);
-  
-  const popularDestsOutput = await popularDestinationsFlow({
-      userLatitude: input.userLatitude,
-      userLongitude: input.userLongitude,
-  });
+  const samplePopularRoutes = [
+    { origin: "NYC", destination: "LAX", name: "New York to Los Angeles" },
+    { origin: "LHR", destination: "CDG", name: "London to Paris" },
+    { origin: "SIN", destination: "BKK", name: "Singapore to Bangkok" },
+    { origin: "SYD", destination: "MEL", name: "Sydney to Melbourne" },
+    { origin: "JFK", destination: "MIA", name: "New York to Miami" },
+    { origin: "SFO", destination: "LAS", name: "San Francisco to Las Vegas" },
+  ];
 
-  const destinationsToSearch = popularDestsOutput.destinations.slice(0, 3);
-  if (destinationsToSearch.length === 0) {
-      console.warn("[AI Trending Flights] AI did not return any popular destinations.");
-      return [];
-  }
-  console.log(`[AI Trending Flights] AI suggested destinations:`, destinationsToSearch.map(d => d.name));
+  const shuffled = samplePopularRoutes.sort(() => 0.5 - Math.random());
+  const routesToSearch = shuffled.slice(0, 2); // Fetch 2 random popular deals
+  console.log(`[AI Trending Flights] Selected routes to search:`, routesToSearch.map(r => r.name));
 
-  const searchPromises = destinationsToSearch.map(async (dest) => {
+  const searchPromises = routesToSearch.map(async (route) => {
       try {
           const departureDate = format(addMonths(new Date(), 1), "yyyy-MM-dd");
           const returnDate = format(addDays(addMonths(new Date(), 1), 7), "yyyy-MM-dd");
 
           const flightResults = await getRealFlightsAction({
-              origin: originForSearch,
-              destination: dest.name,
+              origin: route.origin,
+              destination: route.destination,
               departureDate,
               returnDate,
               tripType: "round-trip"
           });
           return flightResults.best_flights?.[0] || flightResults.other_flights?.[0] || null;
       } catch (error) {
-          console.error(`[AI Trending Flights] Error fetching flight for ${dest.name}:`, error);
+          console.error(`[AI Trending Flights] Error fetching flight for ${route.name}:`, error);
           return null;
       }
   });
