@@ -36,3 +36,4 @@ import '@/ai/flows/conceptual-date-grid-flow.ts';
 import '@/ai/flows/conceptual-price-graph-flow.ts';
 import '@/ai/flows/trip-summary-flow.ts'; // Added new flow
 import '@/ai/flows/generate-feature-image-flow.ts'; // Added new import
+import '@/ai/flows/suggest-hub-airports-flow.ts';

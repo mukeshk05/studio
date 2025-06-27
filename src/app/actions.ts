@@ -68,6 +68,7 @@ import { getTravelTip as getTravelTipOriginal } from '@/ai/flows/travel-tip-flow
 import type { TravelTipInput, TravelTipOutput } from '@/ai/flows/travel-tip-flow';
 import { getLocalInsiderTips as getLocalInsiderTipsOriginal } from '@/ai/flows/local-insider-tips-flow';
 import type { LocalInsiderTipsInput, LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-flow';
+import { suggestHubAirportsFlow } from '@/ai/flows/suggest-hub-airports-flow';
 
 // Helper to normalize parts of cache keys
 const normalizeCacheKeyPart = (part?: string | number | null): string => {
@@ -824,45 +825,65 @@ export interface TrendingFlightDealsInput {
 }
 
 export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsInput): Promise<SerpApiFlightOption[]> {
-  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights for popular routes directly (caching disabled).");
-
-  const samplePopularRoutes = [
-    { origin: "NYC", destination: "LAX", name: "New York to Los Angeles" },
-    { origin: "LHR", destination: "CDG", name: "London to Paris" },
-    { origin: "SIN", destination: "BKK", name: "Singapore to Bangkok" },
-    { origin: "SYD", destination: "MEL", name: "Sydney to Melbourne" },
-    { origin: "JFK", destination: "MIA", name: "New York to Miami" },
-    { origin: "SFO", destination: "LAS", name: "San Francisco to Las Vegas" },
-  ];
-
-  const shuffled = samplePopularRoutes.sort(() => 0.5 - Math.random());
-  const routesToSearch = shuffled.slice(0, 2); // Fetch 2 random popular deals
-  console.log(`[AI Trending Flights] Selected routes to search:`, routesToSearch.map(r => r.name));
-
-  const searchPromises = routesToSearch.map(async (route) => {
-      try {
-          const departureDate = format(addMonths(new Date(), 1), "yyyy-MM-dd");
-          const returnDate = format(addDays(addMonths(new Date(), 1), 7), "yyyy-MM-dd");
-
-          const flightResults = await getRealFlightsAction({
-              origin: route.origin,
-              destination: route.destination,
-              departureDate,
-              returnDate,
-              tripType: "round-trip"
-          });
-          return flightResults.best_flights?.[0] || flightResults.other_flights?.[0] || null;
-      } catch (error) {
-          console.error(`[AI Trending Flights] Error fetching flight for ${route.name}:`, error);
-          return null;
-      }
-  });
-
-  const results = await Promise.all(searchPromises);
-  const successfulDeals = results.filter((deal): deal is SerpApiFlightOption => deal !== null);
-  console.log(`[AI Trending Flights] Found ${successfulDeals.length} deals from SerpApi.`);
+  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights. Caching is disabled.");
   
-  return successfulDeals;
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey || apiKey === "YOUR_SERPAPI_API_KEY_PLACEHOLDER") {
+    console.error('[Server Action] SerpApi API key not configured.');
+    return [];
+  }
+
+  let originCity = "New York"; 
+
+  if (input?.userLatitude && input?.userLongitude) {
+    try {
+      const reverseGeoParams = {
+        engine: "google_maps",
+        ll: `@${input.userLatitude},${input.userLongitude},15z`,
+        api_key: apiKey,
+      };
+      const geoResponse = await getSerpApiJson(reverseGeoParams);
+      if (geoResponse.place_results?.address_components) {
+        const cityComponent = geoResponse.place_results.address_components.find((c: any) => c.types.includes("locality"));
+        if (cityComponent) {
+          originCity = cityComponent.long_name;
+        }
+      }
+    } catch (e: any) {
+      console.error("[Server Action] Reverse geocoding failed:", e.message);
+    }
+  }
+
+  try {
+    const originIata = await getIataCodeAction(originCity) || "NYC";
+    const hubSuggestionResult = await suggestHubAirportsFlow({ originCity });
+    const destinationHubs = hubSuggestionResult.hubs || [];
+
+    if (destinationHubs.length === 0) return [];
+
+    const searchPromises = destinationHubs.map(hubIata => {
+      const departureDate = format(addMonths(new Date(), 1), "yyyy-MM-dd");
+      const returnDate = format(addDays(addMonths(new Date(), 1), 7), "yyyy-MM-dd");
+      return getRealFlightsAction({
+        origin: originIata,
+        destination: hubIata,
+        departureDate,
+        returnDate,
+        tripType: "round-trip"
+      });
+    });
+
+    const results = await Promise.all(searchPromises);
+    const successfulDeals = results
+      .map(res => res.best_flights?.[0] || res.other_flights?.[0])
+      .filter((deal): deal is SerpApiFlightOption => deal !== null && deal !== undefined);
+      
+    console.log(`[Server Action] Successfully fetched ${successfulDeals.length} trending deals.`);
+    return successfulDeals;
+  } catch (error: any) {
+    console.error("[Server Action] Error fetching trending flight deals:", error.message);
+    return [];
+  }
 }
 
 
