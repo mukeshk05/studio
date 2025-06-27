@@ -15,50 +15,32 @@ const MAX_IMAGE_URI_LENGTH_FIRESTORE = 1000000; // Approx 1MB, slightly less tha
 
 // Hook to get saved trips
 export function useSavedTrips() {
-  const { currentUser } = useAuth(); // We still use this for the queryKey and enabled flag
+  const { currentUser } = useAuth();
 
   return useQuery<Itinerary[], Error>({
     queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid],
     queryFn: async () => {
-      // Get the user directly from the auth instance inside the query function
-      // This is more robust against potential context/timing issues.
       const user = auth.currentUser;
       if (!user) {
-        console.log("[useSavedTrips] User not authenticated at query execution.");
-        throw new Error("User not authenticated");
+        console.log("[useSavedTrips] User not authenticated, returning empty array.");
+        return []; // Return empty array instead of throwing
       }
-      console.log(`[useSavedTrips] Attempting to fetch trips for user ID: ${user.uid}`);
       
       const tripsCollectionRef = collection(firestore, 'users', user.uid, 'savedTrips');
       
-      console.log("[useSavedTrips] Executing Firestore query...");
-
       try {
         const querySnapshot = await getDocs(tripsCollectionRef);
-        console.log(`[useSavedTrips] Query successful. Found ${querySnapshot.docs.length} documents.`);
-        
-        if (querySnapshot.empty) {
-          console.log(`[useSavedTrips] No documents found for user ${user.uid}.`);
-        } else {
-          querySnapshot.forEach(docSnapshot => { 
-            console.log(`[useSavedTrips] Doc ID: ${docSnapshot.id}, Data (first 100 chars):`, JSON.stringify(docSnapshot.data()).substring(0,100) + "...");
-          });
-        }
-        
         return querySnapshot.docs.map(docSnapshot => ({ ...docSnapshot.data() as Omit<Itinerary, 'id'>, id: docSnapshot.id }));
       } catch (e: any) { 
         console.error("[useSavedTrips] Error fetching documents: ", e);
-        if (e && typeof e === 'object' && 'code' in e && 'message' in e) {
-            const firestoreError = e as { code: string; message: string }; 
-            console.error(`[useSavedTrips] Firestore error code: ${firestoreError.code}, message: ${firestoreError.message}`);
-            if (firestoreError.code === 'permission-denied') {
-                throw new Error("Permission denied. Please check Firestore security rules for reading 'savedTrips'.");
-            }
+        if (e.code === 'permission-denied') {
+            console.error("[useSavedTrips] Firestore permission denied. This might be due to security rules or a timing issue.");
+            return []; // Return empty on permission denied to prevent crash
         }
         throw e; // Re-throw other errors
       }
     },
-    enabled: !!currentUser, // The query is still enabled/disabled based on the context user
+    enabled: !!currentUser,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -164,8 +146,12 @@ export function useTrackedItems() {
   return useQuery<PriceTrackerEntry[], Error>({
     queryKey: [TRACKED_ITEMS_QUERY_KEY, currentUser?.uid],
     queryFn: async () => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const itemsCollectionRef = collection(firestore, 'users', currentUser.uid, 'trackedItems');
+      const user = auth.currentUser;
+      if (!user) {
+        console.log("[useTrackedItems] User not authenticated, returning empty array.");
+        return [];
+      }
+      const itemsCollectionRef = collection(firestore, 'users', user.uid, 'trackedItems');
       const q = query(itemsCollectionRef, orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
@@ -298,8 +284,12 @@ export function useSearchHistory(count: number = 20) {
   return useQuery<SearchHistoryEntry[], Error>({
     queryKey: [SEARCH_HISTORY_QUERY_KEY, currentUser?.uid, count],
     queryFn: async () => {
-      if (!currentUser) throw new Error("User not authenticated to fetch search history");
-      const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
+      const user = auth.currentUser;
+      if (!user) {
+        console.log("[useSearchHistory] User not authenticated, returning empty array.");
+        return [];
+      }
+      const historyCollectionRef = collection(firestore, 'users', user.uid, 'searchHistory');
       const q = query(historyCollectionRef, orderBy('searchedAt', 'desc'), limit(count));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => {
@@ -423,8 +413,12 @@ export function useGetUserTravelPersona() {
   return useQuery<UserTravelPersona | null, Error>({
     queryKey: [USER_TRAVEL_PERSONA_QUERY_KEY, currentUser?.uid],
     queryFn: async () => {
-      if (!currentUser) return null;
-      const personaDocRef = doc(firestore, 'users', currentUser.uid, 'profile', 'travelPersona');
+      const user = auth.currentUser;
+      if (!user) {
+        console.log("[useGetUserTravelPersona] User not authenticated, returning null.");
+        return null;
+      }
+      const personaDocRef = doc(firestore, 'users', user.uid, 'profile', 'travelPersona');
       const docSnap = await getDoc(personaDocRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
