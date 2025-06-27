@@ -203,23 +203,36 @@ export default function LandingPage() {
     } catch (error: any) { setSmartBundlesError(`Failed to load smart bundles: ${error.message}`); setSmartBundlesContextualNote(`Error: ${error.message}`); }
     finally { setIsLoadingSmartBundles(false); }
   }, [currentUser?.uid]);
-
+  
   const fetchInitialLocationAndData = useCallback(async () => {
     console.log("[LandingPage] fetchInitialLocationAndData called.");
     setIsFetchingLocation(true);
     setGeolocationError(null);
 
-    // Fetch Trending Deals regardless of geolocation
-    setIsLoadingTrendingFlights(true); setIsLoadingTrendingHotels(true);
-    getTrendingFlightDealsAction()
-        .then(setTrendingFlights)
-        .catch(err => setTrendingFlightsError(err.message || "Failed to load trending flights."))
-        .finally(() => setIsLoadingTrendingFlights(false));
+    // This function will fetch location-dependent data.
+    const fetchDataForLocation = async (loc?: UserLocation) => {
+      // Fetch popular destinations
+      await fetchPopularDestinations({ userLatitude: loc?.latitude, userLongitude: loc?.longitude }, loc ? "nearby" : "top_destinations");
+      
+      // Fetch trending flights
+      setIsLoadingTrendingFlights(true);
+      getTrendingFlightDealsAction({ userLatitude: loc?.latitude, userLongitude: loc?.longitude })
+          .then(setTrendingFlights)
+          .catch(err => setTrendingFlightsError(err.message || "Failed to load trending flights."))
+          .finally(() => setIsLoadingTrendingFlights(false));
+
+      // Fetch smart bundles if logged in
+      if (currentUser) {
+        await fetchSmartBundles();
+      }
+    };
+    
+    // Fetch trending hotels (not location-dependent for now)
+    setIsLoadingTrendingHotels(true);
     getTrendingHotelDealsAction()
         .then(setTrendingHotels)
         .catch(err => setTrendingHotelsError(err.message || "Failed to load trending hotels."))
         .finally(() => setIsLoadingTrendingHotels(false));
-
 
     if (navigator.geolocation) {
       console.log("[LandingPage] Geolocation API available. Requesting current position...");
@@ -229,8 +242,7 @@ export default function LandingPage() {
           console.log("[LandingPage] User location fetched for map:", loc);
           setUserLocation(loc);
           initializeMap({ lat: loc.latitude, lng: loc.longitude }, 5);
-          await fetchPopularDestinations({ userLatitude: loc.latitude, userLongitude: loc.longitude }, "nearby");
-          if (currentUser) await fetchSmartBundles();
+          await fetchDataForLocation(loc);
           setIsFetchingLocation(false);
         },
         async (error) => {
@@ -238,8 +250,7 @@ export default function LandingPage() {
           setGeolocationError(`Could not get location: ${error.message}. Showing global suggestions.`);
           setUserLocation(null);
           initializeMap({ lat: 20, lng: 0 }, 2);
-          await fetchPopularDestinations({}, "top_destinations_fallback");
-          if (currentUser) await fetchSmartBundles();
+          await fetchDataForLocation(); // Fetch global data on geo error
           setIsFetchingLocation(false);
         }, { timeout: 8000 }
       );
@@ -248,11 +259,12 @@ export default function LandingPage() {
       setGeolocationError("Geolocation is not supported. Showing global suggestions.");
       setUserLocation(null);
       initializeMap({ lat: 20, lng: 0 }, 2);
-      await fetchPopularDestinations({}, "top_destinations_no_geo");
-      if (currentUser) fetchSmartBundles();
+      await fetchDataForLocation(); // Fetch global data
       setIsFetchingLocation(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser]);
+
 
   useEffect(() => {
     if (isMapsApiLoaded && mapRef.current && !map && isMapInitializing) { 
@@ -460,7 +472,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mb-12 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.1s'}}>
            <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-3 rounded-xl", glassCardClasses, "border-primary/10")}>
             {exploreCategories.map((category) => (
               <Link key={category.name} href={category.href} passHref>
@@ -547,7 +559,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground flex items-center">
               <MapPin className="w-7 h-7 mr-2 text-primary" /> 
-              {searchedLocationDetails ? `Popular Destinations for ${searchedLocationDetails.name}` : popularContextualNote?.toLowerCase().includes("near you") ? "Popular Destinations Near You" : "Popular Global Destinations"}
+              {searchedLocationDetails ? `Popular Destinations for ${searchedLocationDetails.name}` : popularContextualNote?.toLowerCase().includes("nearby") ? "Popular Destinations Near You" : "Popular Global Destinations"}
             </h2>
              <Button 
                 onClick={() => fetchPopularDestinations(userLocation ? { userLatitude: userLocation.latitude, userLongitude: userLocation.longitude } : {}, userLocation ? "nearby_refresh" : "top_destinations_refresh")} 

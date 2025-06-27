@@ -85,59 +85,25 @@ const normalizeCacheKeyPart = (part?: string | number | null): string => {
 };
 
 function cleanDataForFirestore(obj: any): any {
-  let sanitizedObj;
-  try {
-    sanitizedObj = JSON.parse(JSON.stringify(obj));
-  } catch (e) {
-    console.warn("[Firestore Clean] Initial JSON.parse(JSON.stringify()) failed. Using structuredClone or shallow copy.", e);
-    if (typeof globalThis.structuredClone === 'function') {
-        try {
-            sanitizedObj = structuredClone(obj);
-        } catch (cloneError) {
-            console.warn("[Firestore Clean] structuredClone also failed. Falling back to shallow copy for root.", cloneError);
-            sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj };
-        }
-    } else {
-        sanitizedObj = Array.isArray(obj) ? [...obj] : { ...obj };
-    }
+  if (obj === undefined) {
+    return null; // Firestore cannot store `undefined`
   }
-
-  function deepClean(current: any): any {
-    if (current === undefined) {
-      return undefined; 
-    }
-    if (current === null || typeof current !== 'object') {
-      return current; 
-    }
-
-    if (Array.isArray(current)) {
-      const cleanedArray = current
-        .map(item => {
-          if (Array.isArray(item)) {
-            console.warn(`[Firestore Clean - Array] Nested array found and converted to string: ${JSON.stringify(item)}`);
-            return JSON.stringify(item); 
-          }
-          return deepClean(item); 
-        })
-        .filter(item => item !== undefined);
-      return cleanedArray.length > 0 ? cleanedArray : null; 
-    }
-
-    const newObject: { [key: string]: any } = {};
-    let hasProperties = false; 
-    for (const key in current) {
-      if (Object.prototype.hasOwnProperty.call(current, key)) {
-        const value = current[key];
-        const cleanedValue = deepClean(value);
-        if (cleanedValue !== undefined) { 
-          newObject[key] = cleanedValue;
-          hasProperties = true;
-        }
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanDataForFirestore(item)).filter(item => item !== null);
+  }
+  const newObject: { [key: string]: any } = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (value !== undefined) {
+        newObject[key] = cleanDataForFirestore(value);
       }
     }
-    return hasProperties ? newObject : null; 
   }
-  return deepClean(sanitizedObj);
+  return newObject;
 }
 
 
@@ -1218,7 +1184,7 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
               if (realPriceMin > conceptualBudget * 1.2) {
                   augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()}. Total closer to ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
               } else if (realPriceMin < conceptualBudget * 0.8) {
-                  augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()}. Good news! Total could be ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
+                  augmentedSugg.priceFeasibilityNote = `Good news! AI's budget \$${conceptualBudget.toLocaleString()}. Total could be ${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
               } else {
                   augmentedSugg.priceFeasibilityNote = `AI's budget \$${conceptualBudget.toLocaleString()} seems reasonable. Estimated ~${augmentedSugg.estimatedRealPriceRange}. (${priceNoteParts.join(' + ')})`;
               }
@@ -1277,34 +1243,93 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
   }
 }
 
-export async function getTrendingFlightDealsAction(): Promise<SerpApiFlightOption[]> {
-  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights...");
-  const now = new Date();
-  const departureDate = format(addMonths(now, 1), "yyyy-MM-dd");
-  const returnDate = format(addDays(addMonths(now, 1), 7), "yyyy-MM-dd");
-
-  const samplePopularRoutes = [
-    { origin: "NYC", destination: "LON" }, // New York to London
-    { origin: "LAX", destination: "TYO" }, // Los Angeles to Tokyo
-  ];
-  const randomRoute = samplePopularRoutes[Math.floor(Math.random() * samplePopularRoutes.length)];
-
-  try {
-    const flightResults = await getRealFlightsAction({
-      origin: randomRoute.origin,
-      destination: randomRoute.destination,
-      departureDate,
-      returnDate,
-      tripType: "round-trip",
-    });
-    const deals = (flightResults.best_flights || []).concat(flightResults.other_flights || []);
-    console.log(`[Server Action - getTrendingFlightDealsAction] Found ${deals.length} potential trending flight deals.`);
-    return deals.slice(0, 2); // Return top 2 deals
-  } catch (error) {
-    console.error("[Server Action - getTrendingFlightDealsAction] Error fetching trending flights:", error);
-    return [];
-  }
+export interface TrendingFlightDealsInput {
+  userLatitude?: number;
+  userLongitude?: number;
 }
+
+export async function getTrendingFlightDealsAction(input: TrendingFlightDealsInput): Promise<SerpApiFlightOption[]> {
+  console.log("[Server Action - getTrendingFlightDealsAction] Fetching AI trending flights with input:", input);
+  
+  const originForSearch = "NYC";
+
+  const latKey = input.userLatitude ? Math.round(input.userLatitude) : 'global';
+  const lonKey = input.userLongitude ? Math.round(input.userLongitude) : 'global';
+  const cacheKey = `ai_trending_flights_lat_${latKey}_lon_${lonKey}`;
+  const cacheCollectionName = 'aiTrendingDealsCache';
+
+  if (firestore) {
+      const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
+      try {
+          const docSnap = await getDoc(cacheDocRef);
+          if (docSnap.exists()) {
+              const cacheData = docSnap.data();
+              const cachedAt = (cacheData.cachedAt as Timestamp)?.toDate();
+              if (cachedAt && (new Date().getTime() - cachedAt.getTime()) < 1000 * 60 * 60 * 6) { // 6 hour cache
+                  console.log(`[Cache HIT - AI Trending Flights] For key: ${cacheKey}.`);
+                  return cacheData.deals as SerpApiFlightOption[];
+              }
+              console.log(`[Cache STALE - AI Trending Flights] For key: ${cacheKey}.`);
+          } else {
+              console.log(`[Cache MISS - AI Trending Flights] For key: ${cacheKey}.`);
+          }
+      } catch (e) {
+          console.error(`[Cache Read Error - AI Trending Flights] For key ${cacheKey}:`, e);
+      }
+  }
+
+  console.log(`[AI Trending Flights] Cache miss or stale, fetching fresh data.`);
+  
+  const popularDestsOutput = await popularDestinationsFlow({
+      userLatitude: input.userLatitude,
+      userLongitude: input.userLongitude,
+  });
+
+  const destinationsToSearch = popularDestsOutput.destinations.slice(0, 3);
+  if (destinationsToSearch.length === 0) {
+      console.warn("[AI Trending Flights] AI did not return any popular destinations.");
+      return [];
+  }
+  console.log(`[AI Trending Flights] AI suggested destinations:`, destinationsToSearch.map(d => d.name));
+
+  const searchPromises = destinationsToSearch.map(async (dest) => {
+      try {
+          const departureDate = format(addMonths(new Date(), 1), "yyyy-MM-dd");
+          const returnDate = format(addDays(addMonths(new Date(), 1), 7), "yyyy-MM-dd");
+
+          const flightResults = await getRealFlightsAction({
+              origin: originForSearch,
+              destination: dest.name,
+              departureDate,
+              returnDate,
+              tripType: "round-trip"
+          });
+          return flightResults.best_flights?.[0] || flightResults.other_flights?.[0] || null;
+      } catch (error) {
+          console.error(`[AI Trending Flights] Error fetching flight for ${dest.name}:`, error);
+          return null;
+      }
+  });
+
+  const results = await Promise.all(searchPromises);
+  const successfulDeals = results.filter((deal): deal is SerpApiFlightOption => deal !== null);
+  console.log(`[AI Trending Flights] Found ${successfulDeals.length} deals from SerpApi.`);
+
+  if (firestore && successfulDeals.length > 0) {
+      const cacheDocRef = doc(firestore, cacheCollectionName, cacheKey);
+      const cleanedDeals = cleanDataForFirestore(successfulDeals);
+      const dataToCache = {
+          deals: cleanedDeals,
+          cachedAt: serverTimestamp(),
+          queryKey: cacheKey
+      };
+      await setDoc(cacheDocRef, dataToCache);
+      console.log(`[Cache Write - AI Trending Flights] Saved ${successfulDeals.length} deals to cache for key: ${cacheKey}.`);
+  }
+
+  return successfulDeals;
+}
+
 
 export async function getTrendingHotelDealsAction(): Promise<SerpApiHotelSuggestion[]> {
   console.log("[Server Action - getTrendingHotelDealsAction] Fetching trending hotels...");
