@@ -25,20 +25,18 @@ export function useSavedTrips() {
         throw new Error("User not authenticated");
       }
       console.log(`[useSavedTrips] Attempting to fetch trips for user ID: ${currentUser.uid}`);
-      const path = `users/${currentUser.uid}/savedTrips`;
-      console.log(`[useSavedTrips] Firestore query path: ${path}`);
-      const tripsCollectionRef = collection(firestore, path);
       
-      // Simplified query without ordering for debugging
-      const q = query(tripsCollectionRef); 
+      // Correctly reference the subcollection
+      const tripsCollectionRef = collection(firestore, 'users', currentUser.uid, 'savedTrips');
+      
       console.log("[useSavedTrips] Executing Firestore query...");
 
       try {
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(tripsCollectionRef);
         console.log(`[useSavedTrips] Query successful. Found ${querySnapshot.docs.length} documents.`);
         
         if (querySnapshot.empty) {
-          console.log(`[useSavedTrips] No documents found at path: ${path} for user ${currentUser.uid}.`);
+          console.log(`[useSavedTrips] No documents found for user ${currentUser.uid}.`);
         } else {
           querySnapshot.forEach(docSnapshot => { 
             console.log(`[useSavedTrips] Doc ID: ${docSnapshot.id}, Data (first 100 chars):`, JSON.stringify(docSnapshot.data()).substring(0,100) + "...");
@@ -588,3 +586,5 @@ export function useAddSavedPackage() {
     }
   });
 }
+
+    
