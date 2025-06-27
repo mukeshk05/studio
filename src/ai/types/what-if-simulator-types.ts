@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI 'What If' Travel Simulator.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const DestinationAnalysisSchema = z.object({
   name: z.string().describe("The name of the destination."),
@@ -29,6 +29,6 @@ export const WhatIfSimulatorOutputSchema = z.object({
   comparisonSummary: z.string().describe("A brief (2-3 sentences) overall summary comparing the two destinations for the given travel interest."),
   destination1Analysis: DestinationAnalysisSchema.describe("Detailed analysis for the first destination."),
   destination2Analysis: DestinationAnalysisSchema.describe("Detailed analysis for the second destination."),
-  aiRecommendation: z.string().optional().describe("An optional AI recommendation on which destination might be a better fit, or advice on choosing."),
+  aiRecommendation: z.string().optional().describe("An optional AI recommendation on which destination might be a better fit, or advice on how to choose."),
 });
 export type WhatIfSimulatorOutput = z.infer<typeof WhatIfSimulatorOutputSchema>;

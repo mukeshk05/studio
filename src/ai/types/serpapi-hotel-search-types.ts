@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for SerpApi Hotel Search.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 // Represents a single hotel suggestion from SerpApi
 export const SerpApiHotelSuggestionSchema = z.object({

@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Post-Trip Synthesizer & Trajectory Mapper.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 import { AITripPlannerInputSchema } from '@/ai/types/trip-planner-types'; // For suggested next trip
 
 export const PostTripFeedbackInputSchema = z.object({

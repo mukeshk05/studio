@@ -2,7 +2,7 @@
 /**
  * @fileOverview Types for the AI Hub Airport Suggestion flow.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const SuggestHubAirportsInputSchema = z.object({
   originCity: z.string().describe("The user's origin city, e.g., 'New York' or 'London'."),

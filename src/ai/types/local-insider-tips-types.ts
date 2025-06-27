@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Local Insider Tips feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const LocalInsiderTipsInputSchema = z.object({
   destination: z.string().describe('The city or area for which insider tips are requested.'),

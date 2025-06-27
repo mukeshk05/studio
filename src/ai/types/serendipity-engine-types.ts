@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Serendipity Engine feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const SerendipitySuggestionSchema = z.object({
   name: z.string().describe("A catchy name for the serendipitous find (e.g., 'Hidden Rooftop Jazz Jam', 'Secret Waterfall Hike', 'Pop-Up Artisan Market')."),
@@ -27,4 +27,3 @@ export const SerendipityOutputSchema = z.object({
     .describe("An array of 0 to 3 unique, plausible, and seemingly spontaneous local events, hidden gems, or activities. Each suggestion should include a name, description, reasoning, and an optional visual prompt for image generation."),
 });
 export type SerendipityOutput = z.infer<typeof SerendipityOutputSchema>;
-

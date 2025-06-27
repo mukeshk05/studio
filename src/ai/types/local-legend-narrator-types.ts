@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Local Legend & Folklore Narrator.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const LocalLegendNarratorInputSchema = z.object({
   destination: z.string().min(3, { message: "Destination must be at least 3 characters." })

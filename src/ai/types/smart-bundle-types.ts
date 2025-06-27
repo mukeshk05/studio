@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the Smart Bundle Generator.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 import { AITripPlannerInputSchema } from '@/ai/types/trip-planner-types';
 // Import the updated FlightOption and HotelOption types that reflect SerpApi structure
 import type { FlightOption, HotelOption } from '@/lib/types'; 
@@ -41,4 +41,3 @@ export const SmartBundleOutputSchema = z.object({
   suggestions: z.array(BundleSuggestionSchema).min(0).max(2).describe("An array of 0 to 2 suggested trip bundles, potentially augmented with real data and suggested activities."),
 });
 export type SmartBundleOutput = z.infer<typeof SmartBundleOutputSchema>;
-

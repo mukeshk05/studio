@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for SerpApi Flight Search.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 // Individual flight leg details
 export const SerpApiFlightLegSchema = z.object({

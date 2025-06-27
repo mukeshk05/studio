@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const DestinationFactInputSchema = z.object({
   destination: z.string().describe('The travel destination (e.g., "Paris, France", "Kyoto, Japan").')
@@ -53,4 +53,3 @@ const destinationFactFlow = ai.defineFlow(
     return output!;
   }
 );
-

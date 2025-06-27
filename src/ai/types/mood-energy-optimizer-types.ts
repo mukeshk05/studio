@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Mood & Energy Optimizer.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const MoodEnergyOptimizerInputSchema = z.object({
   currentDayPlanDescription: z.string().min(20, { message: "Please describe the current day's plan in at least 20 characters." })

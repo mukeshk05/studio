@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Personalized Accessibility Scout.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const PersonalizedAccessibilityScoutInputSchema = z.object({
   destination: z.string().min(3, { message: "Destination must be at least 3 characters." })

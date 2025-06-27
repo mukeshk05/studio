@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI-powered "Things to Do" feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const ThingsToDoSearchInputSchema = z.object({
   location: z.string().min(3, { message: "Location must be at least 3 characters." })
@@ -32,4 +32,4 @@ export const ThingsToDoOutputSchema = z.object({
   searchSummary: z.string().optional()
     .describe("An optional overall summary message from the AI related to the search, e.g., 'Here are some exciting things to do in Paris!'."),
 });
-export type ThingsToDoOutput = z.
+export type ThingsToDoOutput = z.infer<typeof ThingsToDoOutputSchema>;

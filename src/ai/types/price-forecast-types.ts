@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Price Forecast feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const PriceForecastInputSchema = z.object({
   itemType: z.enum(['flight', 'hotel']).describe('The type of item: flight or hotel.'),
@@ -19,4 +19,3 @@ export const PriceForecastOutputSchema = z.object({
   confidence: z.enum(['low', 'medium', 'high']).optional().describe('The AI\'s confidence level in this forecast (low, medium, or high).')
 });
 export type PriceForecastOutput = z.infer<typeof PriceForecastOutputSchema>;
-

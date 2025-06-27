@@ -3,7 +3,7 @@
  * @fileOverview Type definitions and Zod schemas for the AI-powered "Ideas for You" on the Explore page,
  * based on user search history.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 import { HotelIdeaSchema, FlightIdeaSchema } from '@/ai/types/popular-destinations-types'; // Reusing these
 
 export const ExploreIdeasFromHistoryInputSchema = z.object({

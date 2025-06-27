@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Conceptual Price Graph feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const ConceptualPriceGraphInputSchema = z.object({
   origin: z.string().min(3, "Origin must be at least 3 characters.").describe("The origin city or airport."),

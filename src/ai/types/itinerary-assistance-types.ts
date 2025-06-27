@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Itinerary Assistance feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const SuggestedAdditionSchema = z.object({
   type: z.enum(["activity", "tour", "restaurant", "experience", "hidden_gem"]).describe("The type of suggestion (e.g., activity, restaurant)."),

@@ -2,7 +2,7 @@
 /**
  * @fileOverview Zod schemas and type definitions for the AI Trip Summary feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const TripSummaryInputSchema = z.object({
   destination: z.string().describe('The main destination of the trip.'),

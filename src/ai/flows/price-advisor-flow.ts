@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const PriceAdvisorInputSchema = z.object({
   itemType: z.enum(['flight', 'hotel']).describe('The type of item: flight or hotel.'),
@@ -66,4 +66,3 @@ const priceAdvisorFlow = ai.defineFlow(
     return output;
   }
 );
-

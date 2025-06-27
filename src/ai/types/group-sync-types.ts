@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Group Sync feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const CompanionPreferenceSchema = z.object({
   id: z.string().describe("A unique ID for the companion input field, client-side only."),
@@ -28,4 +28,3 @@ export const GroupSyncOutputSchema = z.object({
   compatibilityReport: z.string().describe("A comprehensive report detailing trip compatibility for the group, including an overview and specific suggestions for adjustments. Should be formatted for readability (e.g., using markdown-like structure)."),
 });
 export type GroupSyncOutput = z.infer<typeof GroupSyncOutputSchema>;
-

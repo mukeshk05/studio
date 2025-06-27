@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const TravelTipInputSchema = z.object({
   topic: z.string().optional().describe("Optional topic for the travel tip, e.g., 'packing', 'budget travel', 'solo travel', 'eco-friendly travel'.")

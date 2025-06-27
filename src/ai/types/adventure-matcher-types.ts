@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the Adventure Quiz and Matcher AI.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 import { AITripPlannerInputSchema } from '@/ai/types/trip-planner-types';
 
 // Schema for the quiz answers, moved from AdventureQuizForm

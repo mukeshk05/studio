@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Authenticity Verifier feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const AuthenticityVerifierInputSchema = z.object({
   itemNameOrDescription: z.string().min(5, { message: "Please provide a description of at least 5 characters." })

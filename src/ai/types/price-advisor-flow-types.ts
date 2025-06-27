@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the Price Advisor AI Flow.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const PriceAdvisorInputSchema = z.object({
   itemType: z.enum(['flight', 'hotel']).describe('The type of item: flight or hotel.'),

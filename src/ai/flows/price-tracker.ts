@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const PriceTrackerInputSchema = z.object({
   itemType: z.enum(['flight', 'hotel']).describe('The type of item to track: flight or hotel.'),

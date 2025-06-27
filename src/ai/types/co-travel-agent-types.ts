@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Co-Travel Agent.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const CoTravelAgentInputSchema = z.object({
   destination: z.string().min(3, { message: "Destination must be at least 3 characters." })
@@ -18,4 +18,3 @@ export const CoTravelAgentOutputSchema = z.object({
     .describe('Optional: 1-2 very short, highly relevant additional tips related to the question or destination if deemed useful by the AI.'),
 });
 export type CoTravelAgentOutput = z.infer<typeof CoTravelAgentOutputSchema>;
-

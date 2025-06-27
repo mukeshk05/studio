@@ -1,5 +1,5 @@
 
-import { z } from 'genkit';
+import { z } from 'zod';
 // Corrected imports: Zod schemas are runtime values, not just types.
 import { SerpApiFlightOptionSchema } from './serpapi-flight-search-types'; // For real flight options input
 import { SerpApiHotelSuggestionSchema } from './serpapi-hotel-search-types'; // For real hotel options input

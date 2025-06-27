@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Hotel Search feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const AiHotelSearchInputSchema = z.object({
   destination: z.string().min(3, { message: "Destination must be at least 3 characters." })
@@ -32,4 +32,3 @@ export const AiHotelSearchOutputSchema = z.object({
   searchSummary: z.string().optional().describe("An optional overall summary message from the AI, e.g., 'Found some great options for your stay in Paris!' or notes if suggestions are broad."),
 });
 export type AiHotelSearchOutput = z.infer<typeof AiHotelSearchOutputSchema>;
-

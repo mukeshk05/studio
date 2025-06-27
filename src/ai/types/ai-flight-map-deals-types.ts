@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions for AI Flight Map Deals feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const AiFlightMapDealInputSchema = z.object({
   originDescription: z.string()
@@ -37,4 +37,3 @@ export const AiFlightMapDealOutputSchema = z.object({
   contextualNote: z.string().optional().describe("A note about how the suggestions were derived or if no specific deals could be conceptualized."),
 });
 export type AiFlightMapDealOutput = z.infer<typeof AiFlightMapDealOutputSchema>;
-

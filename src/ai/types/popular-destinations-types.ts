@@ -2,7 +2,7 @@
 /**
  * @fileOverview Type definitions and Zod schemas for the AI Popular Destinations feature.
  */
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const PopularDestinationsInputSchema = z.object({
   userLatitude: z.number().optional().describe("User's current latitude for location-aware suggestions."),
@@ -41,4 +41,3 @@ export const PopularDestinationsOutputSchema = z.object({
   contextualNote: z.string().optional().describe("A note about how the suggestions were derived, e.g., based on location or general popularity.")
 });
 export type PopularDestinationsOutput = z.infer<typeof PopularDestinationsOutputSchema>;
-
