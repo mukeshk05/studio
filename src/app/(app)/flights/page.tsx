@@ -998,22 +998,11 @@ export default function FlightsPage() {
   const handleTrackPriceAndGetAdvice = async () => {
     if (!currentUser) {
       toast({ title: "Please Log In", description: "You need to be logged in to track prices.", variant: "destructive" });
-      return; // EXIT
+      return;
     }
-
-    let missingFields = [];
-    if (trackOrigin.trim() === '') missingFields.push("Origin");
-    if (trackDestination.trim() === '') missingFields.push("Destination");
-    if (trackTargetPrice.trim() === '') missingFields.push("Target Price");
-    if (trackCurrentConceptualPrice.trim() === '') missingFields.push("Current Price");
-    
-    if (missingFields.length > 0) {
-      toast({ 
-        title: "Missing Information", 
-        description: `Please fill in the following required fields for price tracking: ${missingFields.join(', ')}.`, 
-        variant: "destructive" 
-      });
-      return; // EXIT
+    if (!trackOrigin || !trackDestination || !trackTargetPrice || !trackCurrentConceptualPrice) {
+      toast({ title: "Missing Information", description: "Please fill in all required fields for price tracking.", variant: "destructive" });
+      return;
     }
 
     const targetPriceNum = parseFloat(trackTargetPrice.trim());
