@@ -3,7 +3,7 @@
  * @fileOverview Type definitions and Zod schemas for the Adventure Quiz and Matcher AI.
  */
 import { z } from 'zod';
-import { AITripPlannerInputSchema } from '@/ai/types/trip-planner-types';
+import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 
 // Schema for the quiz answers, moved from AdventureQuizForm
 export const AdventureQuizInputSchema = z.object({
@@ -25,13 +25,22 @@ export const AdventureQuizInputSchema = z.object({
 });
 export type AdventureQuizInput = z.infer<typeof AdventureQuizInputSchema>;
 
+// New, more specific schema for the suggested trip idea
+export const SuggestedTripIdeaSchema = z.object({
+  destination: z.string().describe("The specific destination for the trip idea (e.g., 'Lisbon, Portugal')."),
+  travelDates: z.string().describe("A plausible, general timeframe for the trip (e.g., 'September, 10 days', 'Next spring for 7 days')."),
+  budget: z.number().describe("A realistic budget in USD for the suggested trip."),
+});
+export type SuggestedTripIdea = z.infer<typeof SuggestedTripIdeaSchema>;
+
+
 // Schema for a single adventure suggestion
 export const AdventureSuggestionSchema = z.object({
   name: z.string().describe("A catchy name for the suggested travel persona or adventure type (e.g., 'Cultural Explorer', 'Thrill-Seeking Naturalist', 'Urban Foodie')."),
   description: z.string().describe("A brief, engaging description of this travel persona or adventure type."),
   exampleDestinations: z.array(z.string()).min(1).max(3).describe("An array of 1-3 example destinations that fit this persona/adventure (e.g., ['Rome, Italy', 'Kyoto, Japan'])."),
   matchReasoning: z.string().describe("A short explanation (1-2 sentences) of why this suggestion aligns well with the user's quiz answers, highlighting key connections."),
-  suggestedTripIdea: AITripPlannerInputSchema.optional().describe("An optional, concrete trip idea (destination, travelDates, budget) that the user can directly use to start planning. Be creative and ensure it's plausible for the persona."),
+  suggestedTripIdea: z.custom<AITripPlannerInput>().optional().describe("An optional, concrete trip idea (destination, travelDates, budget) that the user can directly use to start planning. Be creative and ensure it's plausible for the persona."),
 });
 export type AdventureSuggestion = z.infer<typeof AdventureSuggestionSchema>;
 

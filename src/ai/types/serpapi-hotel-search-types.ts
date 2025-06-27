@@ -15,11 +15,11 @@ export const SerpApiHotelSuggestionSchema = z.object({
   rating: z.number().optional(),
   reviews: z.number().optional(),
   amenities: z.array(z.string()).optional(),
-  link: z.string().url().optional(),
-  thumbnail: z.string().url().optional(),
+  link: z.string().optional(),
+  thumbnail: z.string().optional(),
   images: z.array(z.object({
-    thumbnail: z.string().url().optional(),
-    original_image: z.string().url().optional(),
+    thumbnail: z.string().optional(),
+    original_image: z.string().optional(),
   })).optional(),
   coordinates: z.object({
     latitude: z.number().optional(),

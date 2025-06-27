@@ -10,7 +10,7 @@ export const SerpApiFlightLegSchema = z.object({
   arrival_airport: z.object({ name: z.string(), id: z.string().optional(), time: z.string().optional() }).optional(),
   duration: z.number().optional().describe("Duration in minutes"),
   airline: z.string().optional(),
-  airline_logo: z.string().url().optional(),
+  airline_logo: z.string().optional(),
   flight_number: z.string().optional(),
   airplane: z.string().optional(),
   travel_class: z.string().optional(),
@@ -35,8 +35,8 @@ export const SerpApiFlightOptionSchema = z.object({
   price: z.number().optional(),
   type: z.string().optional().describe("e.g., 'Round trip', 'One way'"),
   airline: z.string().optional().describe("Primary airline for the option"), // SerpApi might provide this at top level
-  airline_logo: z.string().url().optional(), // Overall logo for the option
-  link: z.string().url().optional().describe("Direct link to Google Flights or booking page"),
+  airline_logo: z.string().optional(),
+  link: z.string().optional().describe("Direct link to Google Flights or booking page"),
   carbon_emissions: z.object({
       this_flight: z.number().optional(),
       typical_for_this_route: z.number().optional(),
