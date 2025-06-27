@@ -1,7 +1,7 @@
 
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { firestore } from './firebase'; // Ensure firestore is correctly initialized and exported
+import { firestore, auth } from './firebase'; // Import auth
 import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId, Timestamp } from 'firebase/firestore';
 import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput } from './types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,19 +15,21 @@ const MAX_IMAGE_URI_LENGTH_FIRESTORE = 1000000; // Approx 1MB, slightly less tha
 
 // Hook to get saved trips
 export function useSavedTrips() {
-  const { currentUser } = useAuth();
+  const { currentUser } = useAuth(); // We still use this for the queryKey and enabled flag
 
   return useQuery<Itinerary[], Error>({
     queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid],
     queryFn: async () => {
-      if (!currentUser) {
-        console.log("[useSavedTrips] User not authenticated at query time.");
+      // Get the user directly from the auth instance inside the query function
+      // This is more robust against potential context/timing issues.
+      const user = auth.currentUser;
+      if (!user) {
+        console.log("[useSavedTrips] User not authenticated at query execution.");
         throw new Error("User not authenticated");
       }
-      console.log(`[useSavedTrips] Attempting to fetch trips for user ID: ${currentUser.uid}`);
+      console.log(`[useSavedTrips] Attempting to fetch trips for user ID: ${user.uid}`);
       
-      // Correctly reference the subcollection
-      const tripsCollectionRef = collection(firestore, 'users', currentUser.uid, 'savedTrips');
+      const tripsCollectionRef = collection(firestore, 'users', user.uid, 'savedTrips');
       
       console.log("[useSavedTrips] Executing Firestore query...");
 
@@ -36,7 +38,7 @@ export function useSavedTrips() {
         console.log(`[useSavedTrips] Query successful. Found ${querySnapshot.docs.length} documents.`);
         
         if (querySnapshot.empty) {
-          console.log(`[useSavedTrips] No documents found for user ${currentUser.uid}.`);
+          console.log(`[useSavedTrips] No documents found for user ${user.uid}.`);
         } else {
           querySnapshot.forEach(docSnapshot => { 
             console.log(`[useSavedTrips] Doc ID: ${docSnapshot.id}, Data (first 100 chars):`, JSON.stringify(docSnapshot.data()).substring(0,100) + "...");
@@ -56,7 +58,7 @@ export function useSavedTrips() {
         throw e; // Re-throw other errors
       }
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser, // The query is still enabled/disabled based on the context user
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -586,5 +588,3 @@ export function useAddSavedPackage() {
     }
   });
 }
-
-    
