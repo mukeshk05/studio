@@ -822,10 +822,11 @@ export async function generateSmartBundles(input: SmartBundleInputType): Promise
 export interface TrendingFlightDealsInput {
   userLatitude?: number;
   userLongitude?: number;
+  originCity?: string;
 }
 
 export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsInput): Promise<SerpApiFlightOption[]> {
-  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights.");
+  console.log("[Server Action - getTrendingFlightDealsAction] Fetching trending flights with input:", input);
   const apiKey = process.env.SERPAPI_API_KEY;
   if (!apiKey || apiKey === "YOUR_SERPAPI_API_KEY_PLACEHOLDER") {
     console.error('[Server Action] SerpApi API key not configured.');
@@ -834,7 +835,12 @@ export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsIn
 
   // --- Primary Method: AI Suggested Hubs ---
   let originCity = "New York"; 
-  if (input?.userLatitude && input?.userLongitude) {
+  let originDeterminationMethod = "Default";
+
+  if (input?.originCity) {
+    originCity = input.originCity;
+    originDeterminationMethod = `Direct Input: ${originCity}`;
+  } else if (input?.userLatitude && input?.userLongitude) {
     try {
       const reverseGeoParams = {
         engine: "google_maps",
@@ -846,15 +852,21 @@ export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsIn
         const cityComponent = geoResponse.place_results.address_components.find((c: any) => c.types.includes("locality"));
         if (cityComponent) {
           originCity = cityComponent.long_name;
+          originDeterminationMethod = `Geolocation: ${originCity}`;
+        } else {
+           originDeterminationMethod = `Geolocation (city not found, using default ${originCity})`;
         }
       }
     } catch (e: any) {
       console.error("[Server Action] Reverse geocoding failed:", e.message);
+      originDeterminationMethod = `Geolocation failed, using default ${originCity}`;
     }
   }
 
+  console.log(`[TrendingDeals] Origin determined via ${originDeterminationMethod}`);
+
   try {
-    const originIata = await getIataCodeAction(originCity) || "NYC";
+    const originIata = await getIataCodeAction(originCity) || originCity;
     const hubSuggestionResult = await suggestHubAirportsFlow({ originCity });
     const destinationHubs = hubSuggestionResult.hubs || [];
 
@@ -877,14 +889,14 @@ export async function getTrendingFlightDealsAction(input?: TrendingFlightDealsIn
         .filter((deal): deal is SerpApiFlightOption => deal !== null && deal !== undefined);
       
       if (successfulDeals.length > 0) {
-        console.log(`[Server Action] Successfully fetched ${successfulDeals.length} AI-suggested trending deals.`);
+        console.log(`[Server Action] Successfully fetched ${successfulDeals.length} AI-suggested trending deals from ${originCity}.`);
         return successfulDeals;
       } else {
-        console.warn("[Server Action] AI-suggested hubs did not yield any flight deals. Proceeding to fallback.");
+        console.warn(`[Server Action] AI-suggested hubs from ${originCity} did not yield any flight deals. Proceeding to fallback.`);
       }
     }
   } catch (error: any) {
-    console.error("[Server Action] Error fetching AI-suggested trending flight deals:", error.message, "Proceeding to fallback.");
+    console.error(`[Server Action] Error fetching AI-suggested trending flight deals from ${originCity}:`, error.message, "Proceeding to fallback.");
   }
 
   // --- Fallback Method: Predefined Popular Routes ---
@@ -979,7 +991,7 @@ import type { SerendipityInput, SerendipityOutput } from '@/ai/types/serendipity
 export async function getSerendipitySuggestions(input: SerendipityInput): Promise<SerendipityOutput> { return getSerendipitySuggestionsFlow(input); }
 
 import { getAuthenticityVerification as getAuthenticityVerificationFlow } from '@/ai/flows/authenticity-verifier-flow';
-import type { AuthenticityVerifierInput, AuthenticityVerifierOutput } from '@/ai/flows/authenticity-verifier-flow';
+import type { AuthenticityVerifierInput, AuthenticityVerifierOutput } from '@/ai/types/authenticity-verifier-flow';
 export async function getAuthenticityVerification(input: AuthenticityVerifierInput): Promise<AuthenticityVerifierOutput> { return getAuthenticityVerificationFlow(input); }
 
 import { generateSmartMapConcept as generateSmartMapConceptFlow } from '@/ai/flows/smart-map-concept-flow';
@@ -987,7 +999,7 @@ import type { SmartMapConceptInput, SmartMapConceptOutput } from '@/ai/flows/sma
 export async function generateSmartMapConcept(input: SmartMapConceptInput): Promise<SmartMapConceptOutput> { return generateSmartMapConceptFlow(input); }
 
 import { getWhatIfAnalysis as getWhatIfAnalysisFlow } from '@/ai/flows/what-if-simulator-flow';
-import type { WhatIfSimulatorInput, WhatIfSimulatorOutput } from '@/ai/flows/what-if-simulator-flow';
+import type { WhatIfSimulatorInput, WhatIfSimulatorOutput } from '@/ai/types/what-if-simulator-types';
 export async function getWhatIfAnalysis(input: WhatIfSimulatorInput): Promise<WhatIfSimulatorOutput> { return getWhatIfAnalysisFlow(input); }
 
 import { getAiArPreview as getAiArPreviewFlow } from '@/ai/flows/ai-ar-preview-flow';

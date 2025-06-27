@@ -8,7 +8,6 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { HomePagePackageCard } from '@/components/landing/HomePagePackageCard';
-// FeatureShowcaseCard import removed as per request
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import {
@@ -50,8 +49,6 @@ const exploreCategories = [
   { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/explore" },
 ];
 
-// AI Feature Showcase data removed as per request
-
 interface UserLocation { latitude: number; longitude: number; }
 interface SearchedLocation { name: string; lat: number; lng: number; }
 
@@ -86,7 +83,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false); 
+  const [isFetchingLocation, setIsFetchingLocation] = useState(true); 
   const [geolocationError, setGeolocationError] = useState<string | null>(null);
   const [searchedLocationDetails, setSearchedLocationDetails] = useState<SearchedLocation | null>(null);
 
@@ -178,104 +175,74 @@ export default function LandingPage() {
     } catch (error) { console.error("[LandingPage] Error initializing map:", error); setMapApiError("Error initializing map."); }
     finally { setIsMapInitializing(false); }
   }, []);
-
-  const fetchPopularDestinations = useCallback(async (locInput?: PopularDestinationsInput, context?: string) => {
-    setIsLoadingPopular(true); setPopularError(null);
-    const noteContext = context || (locInput?.userLatitude ? "ideas near your location" : "popular global ideas");
-    setPopularContextualNote(`Fetching ${noteContext}...`);
-    try {
-      const result = await getPopularDestinations(locInput || {});
-      setPopularDestinations(result.destinations || []);
-      setPopularContextualNote(result.contextualNote || (result.destinations?.length === 0 ? `No ${noteContext} found.` : `Explore these ${noteContext}!`));
-    } catch (error: any) { setPopularError(`Failed to load ${noteContext}: ${error.message}`); setPopularContextualNote(`Error: ${error.message}`); }
-    finally { setIsLoadingPopular(false); }
-  }, []);
-
-  const fetchSmartBundles = useCallback(async (interestHint?: string) => {
-    if (!currentUser?.uid) { setSmartBundles([]); setSmartBundlesContextualNote("Log in to see personalized trip ideas!"); return; }
-    setIsLoadingSmartBundles(true); setSmartBundlesError(null);
-    setSmartBundlesContextualNote(interestHint ? `Finding smart bundles related to ${interestHint}...` : "Fetching your personalized smart bundles...");
-    try {
-      const input: SmartBundleInput = { userId: currentUser.uid, travelInterests: interestHint };
-      const result = await generateSmartBundlesAction(input);
-      setSmartBundles(result.suggestions || []);
-      setSmartBundlesContextualNote(result.suggestions?.length === 0 ? `No specific bundles found ${interestHint ? `for ${interestHint}` : 'yet'}.` : `Here are some smart ideas ${interestHint ? `for ${interestHint}` : 'tailored for you'}!`);
-    } catch (error: any) { setSmartBundlesError(`Failed to load smart bundles: ${error.message}`); setSmartBundlesContextualNote(`Error: ${error.message}`); }
-    finally { setIsLoadingSmartBundles(false); }
-  }, [currentUser?.uid]);
   
-  const fetchInitialLocationAndData = useCallback(async () => {
-    console.log("[LandingPage] fetchInitialLocationAndData called.");
-    setIsFetchingLocation(true);
-    setGeolocationError(null);
+  const fetchAllData = useCallback(async (location?: UserLocation, searchedCity?: string) => {
+    setIsLoadingPopular(true); setIsLoadingSmartBundles(true); setIsLoadingTrendingFlights(true); setIsLoadingTrendingHotels(true);
+    setPopularError(null); setSmartBundlesError(null); setTrendingFlightsError(null); setTrendingHotelsError(null);
 
-    // This function will fetch location-dependent data.
-    const fetchDataForLocation = async (loc?: UserLocation) => {
-      // Fetch popular destinations
-      await fetchPopularDestinations({ userLatitude: loc?.latitude, userLongitude: loc?.longitude }, loc ? "nearby" : "top_destinations");
-      
-      // Fetch trending flights
-      setIsLoadingTrendingFlights(true);
-      getTrendingFlightDealsAction({ userLatitude: loc?.latitude, userLongitude: loc?.longitude })
-          .then(setTrendingFlights)
-          .catch(err => setTrendingFlightsError(err.message || "Failed to load trending flights."))
-          .finally(() => setIsLoadingTrendingFlights(false));
-
-      // Fetch smart bundles if logged in
-      if (currentUser) {
-        await fetchSmartBundles();
-      }
-    };
-    
-    // Fetch trending hotels (not location-dependent for now)
-    setIsLoadingTrendingHotels(true);
-    getTrendingHotelDealsAction()
-        .then(setTrendingHotels)
-        .catch(err => setTrendingHotelsError(err.message || "Failed to load trending hotels."))
-        .finally(() => setIsLoadingTrendingHotels(false));
-
-    if (navigator.geolocation) {
-      console.log("[LandingPage] Geolocation API available. Requesting current position...");
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-          console.log("[LandingPage] User location fetched for map:", loc);
-          setUserLocation(loc);
-          initializeMap({ lat: loc.latitude, lng: loc.longitude }, 5);
-          await fetchDataForLocation(loc);
-          setIsFetchingLocation(false);
-        },
-        async (error) => {
-          console.warn("[LandingPage] Geolocation error for map:", error);
-          setGeolocationError(`Could not get location: ${error.message}. Showing global suggestions.`);
-          setUserLocation(null);
-          initializeMap({ lat: 20, lng: 0 }, 2);
-          await fetchDataForLocation(); // Fetch global data on geo error
-          setIsFetchingLocation(false);
-        }, { timeout: 8000 }
-      );
-    } else {
-      console.warn("[LandingPage] Geolocation not supported by this browser for map.");
-      setGeolocationError("Geolocation is not supported. Showing global suggestions.");
-      setUserLocation(null);
-      initializeMap({ lat: 20, lng: 0 }, 2);
-      await fetchDataForLocation(); // Fetch global data
-      setIsFetchingLocation(false);
+    const commonDestInput: PopularDestinationsInput = {};
+    if (searchedCity) {
+      commonDestInput.originCity = searchedCity;
+    } else if (location) {
+      commonDestInput.userLatitude = location.latitude;
+      commonDestInput.userLongitude = location.longitude;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initializeMap, fetchPopularDestinations, fetchSmartBundles, currentUser]);
+
+    const smartBundleInterest = searchedCity ? `Trips related to ${searchedCity}` : undefined;
+    
+    await Promise.allSettled([
+      getPopularDestinations(commonDestInput).then(result => {
+        setPopularDestinations(result.destinations || []);
+        setPopularContextualNote(result.contextualNote || null);
+      }).catch(err => setPopularError(err.message || "Error")),
+      
+      currentUser ? generateSmartBundlesAction({ userId: currentUser.uid, travelInterests: smartBundleInterest }).then(result => {
+        setSmartBundles(result.suggestions || []);
+      }).catch(err => setSmartBundlesError(err.message || "Error")) : Promise.resolve().then(() => setSmartBundlesContextualNote("Log in for personalized trip ideas!")),
+      
+      getTrendingFlightDealsAction(commonDestInput).then(setTrendingFlights).catch(err => setTrendingFlightsError(err.message || "Error")),
+      getTrendingHotelDealsAction().then(setTrendingHotels).catch(err => setTrendingHotelsError(err.message || "Error"))
+    ]);
+
+    setIsLoadingPopular(false); setIsLoadingSmartBundles(false); setIsLoadingTrendingFlights(false); setIsLoadingTrendingHotels(false);
+  }, [currentUser]);
 
 
   useEffect(() => {
     if (isMapsApiLoaded && mapRef.current && !map && isMapInitializing) { 
-      fetchInitialLocationAndData();
+      setIsFetchingLocation(true);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+            setUserLocation(loc);
+            initializeMap({ lat: loc.latitude, lng: loc.longitude }, 5);
+            fetchAllData(loc);
+            setIsFetchingLocation(false);
+          },
+          (error) => {
+            console.warn("[LandingPage] Geolocation error:", error);
+            setGeolocationError(`Could not get location. Showing global suggestions.`);
+            setUserLocation(null);
+            initializeMap({ lat: 20, lng: 0 }, 2);
+            fetchAllData();
+            setIsFetchingLocation(false);
+          }, { timeout: 8000 }
+        );
+      } else {
+        setGeolocationError("Geolocation is not supported. Showing global suggestions.");
+        setUserLocation(null);
+        initializeMap({ lat: 20, lng: 0 }, 2);
+        fetchAllData();
+        setIsFetchingLocation(false);
+      }
     }
-  }, [isMapsApiLoaded, map, isMapInitializing, fetchInitialLocationAndData]);
+  }, [isMapsApiLoaded, map, isMapInitializing, initializeMap, fetchAllData]);
   
   useEffect(() => {
-    if (isMapsApiLoaded && searchInputRef.current && !autocompleteRef.current && window.google && window.google.maps && window.google.maps.places) {
+    if (isMapsApiLoaded && searchInputRef.current && !autocompleteRef.current && window.google?.maps?.places) {
       autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-        types: ['(regions)'],
+        types: ['(cities)'],
         fields: ['name', 'formatted_address', 'geometry.location']
       });
       autocompleteRef.current.addListener('place_changed', () => {
@@ -286,21 +253,13 @@ export default function LandingPage() {
           const placeName = place.name || place.formatted_address || "Selected Location";
           setSearchTerm(placeName);
           setSearchedLocationDetails({ name: placeName, lat: newLat, lng: newLng });
-          if (map) {
-            map.setCenter({ lat: newLat, lng: newLng });
-            map.setZoom(9);
-          }
-          fetchPopularDestinations({ userLatitude: newLat, userLongitude: newLng }, `around ${placeName}`);
-          if (currentUser) {
-            fetchSmartBundles(`Trips related to ${placeName}`);
-          }
+          if (map) { map.setCenter({ lat: newLat, lng: newLng }); map.setZoom(9); }
+          fetchAllData(undefined, placeName); // Re-fetch all data based on new city
           toast({ title: "Location Updated", description: `Showing suggestions for ${placeName}.`});
-        } else {
-          toast({ title: "Location Not Found", description: "Could not get specific coordinates for this place.", variant: "destructive"});
         }
       });
     }
-  }, [isMapsApiLoaded, map, currentUser, fetchPopularDestinations, fetchSmartBundles, toast]);
+  }, [isMapsApiLoaded, map, fetchAllData, toast]);
 
 
   const handleMapItemSelect = useCallback((item: MapDisplayItem) => {
@@ -381,7 +340,8 @@ export default function LandingPage() {
         });
       }
     } else if (userLocation && newMarkers.length === 0 && !searchedLocationDetails) {
-        map.panTo({ lat: userLocation.latitude, lng: userLocation.longitude }); map.setZoom(5);
+        map.panTo({ lat: userLocation.latitude, lng: userLocation.longitude });
+        map.setZoom(5);
     } else if (searchedLocationDetails) {
         map.setCenter({lat: searchedLocationDetails.lat, lng: searchedLocationDetails.lng});
         map.setZoom(9);
@@ -492,13 +452,11 @@ export default function LandingPage() {
         
         <Separator className="my-10 border-border/30" />
 
-        {/* Trending Now Section */}
         <section className="mb-12 animate-fade-in-up" style={{animationDelay: '0.15s'}}>
             <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-6 flex items-center">
                 <Sparkles className="w-7 h-7 mr-2 text-amber-400 animate-pulse" /> Trending Now: Real-Time Deals
             </h2>
             <div className={cn("p-4 rounded-lg", glassCardClasses, "border-amber-500/30")}>
-                {/* Trending Flights */}
                 <div className="mb-6">
                     <h3 className="text-xl font-medium text-amber-500 mb-3 flex items-center"><Plane className="w-5 h-5 mr-2"/>Hot Flight Deals</h3>
                     {isLoadingTrendingFlights && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1,2].map(i => <Skeleton key={`tf-${i}`} className="h-72 rounded-lg bg-muted/40"/>)}</div>}
@@ -513,7 +471,6 @@ export default function LandingPage() {
                     )}
                 </div>
                 <Separator className="my-6 border-amber-500/20"/>
-                {/* Trending Hotels */}
                 <div>
                     <h3 className="text-xl font-medium text-amber-500 mb-3 flex items-center"><Hotel className="w-5 h-5 mr-2"/>Top Hotel Offers</h3>
                     {isLoadingTrendingHotels && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1,2].map(i => <Skeleton key={`th-${i}`} className="h-72 rounded-lg bg-muted/40"/>)}</div>}
@@ -562,14 +519,13 @@ export default function LandingPage() {
               {searchedLocationDetails ? `Popular Destinations for ${searchedLocationDetails.name}` : popularContextualNote?.toLowerCase().includes("nearby") ? "Popular Destinations Near You" : "Popular Global Destinations"}
             </h2>
              <Button 
-                onClick={() => fetchPopularDestinations(userLocation ? { userLatitude: userLocation.latitude, userLongitude: userLocation.longitude } : {}, userLocation ? "nearby_refresh" : "top_destinations_refresh")} 
+                onClick={() => fetchAllData(userLocation || undefined)} 
                 disabled={isLoadingPopular || isFetchingLocation} 
                 variant="outline" className="glass-interactive">
               {(isLoadingPopular || isFetchingLocation ) ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
               {(isLoadingPopular || isFetchingLocation ) ? "Updating..." : userLocation ? "Refresh Nearby" : "Refresh Global"}
             </Button>
           </div>
-          {geolocationError && !searchedLocationDetails && <p className="text-xs text-center text-amber-500 mb-3"><Info className="inline w-3 h-3 mr-1"/>{geolocationError}</p>}
           {popularContextualNote && !isLoadingPopular && <p className="text-sm text-muted-foreground italic mb-4 text-center sm:text-left">{popularContextualNote}</p>}
 
           {isLoadingPopular && (
@@ -604,7 +560,7 @@ export default function LandingPage() {
                   {searchedLocationDetails ? `Smart Trip Ideas For ${searchedLocationDetails.name}` : "Smart Trip Ideas For You"}
                 </h2>
                  <Button 
-                    onClick={() => fetchSmartBundles(searchedLocationDetails ? `Trips related to ${searchedLocationDetails.name}` : undefined)} 
+                    onClick={() => fetchAllData(userLocation || undefined, searchedLocationDetails?.name)} 
                     disabled={isLoadingSmartBundles} variant="outline" className="glass-interactive">
                     {isLoadingSmartBundles ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
                     {isLoadingSmartBundles ? "Thinking..." : "Refresh My Ideas"}
