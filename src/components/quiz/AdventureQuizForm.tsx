@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -132,7 +131,13 @@ export function AdventureQuizForm({ onSubmit, isSubmitting }: AdventureQuizFormP
         <Button
           type="submit"
           size="lg"
-          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+          className={cn(
+            "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+            "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+            "hover:from-accent hover:to-primary",
+            "focus-visible:ring-4 focus-visible:ring-primary/40",
+            "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+          )}
           disabled={isSubmitting || form.formState.isSubmitting}
         >
           {isSubmitting || form.formState.isSubmitting ? (
