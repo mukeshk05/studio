@@ -1013,15 +1013,18 @@ export default function FlightsPage() {
     setTrackPriceAiAdvice(null);
     try {
       const itemName = `Flight from ${trackOrigin.trim()} to ${trackDestination.trim()}`;
-      await addTrackedItemMutation.mutateAsync({
-        itemType: 'flight',
+      
+      const newItemData = {
+        itemType: 'flight' as const,
         itemName,
         originCity: trackOrigin.trim(),
         destination: trackDestination.trim(),
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
-        travelDates: trackTravelDates.trim() || undefined,
-      });
+        ...(trackTravelDates.trim() && { travelDates: trackTravelDates.trim() }),
+      };
+
+      await addTrackedItemMutation.mutateAsync(newItemData);
       toast({ title: "Price Tracking Started", description: `${itemName} is now being tracked!` });
 
       const adviceInput: PriceAdvisorInput = {
