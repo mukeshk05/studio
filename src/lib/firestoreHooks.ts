@@ -15,7 +15,7 @@ const MAX_IMAGE_URI_LENGTH_FIRESTORE = 1000000; // Approx 1MB, slightly less tha
 
 // Hook to get saved trips
 export function useSavedTrips() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
 
   return useQuery<Itinerary[], Error>({
     queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid],
@@ -37,7 +37,7 @@ export function useSavedTrips() {
         return []; 
       }
     },
-    enabled: !!currentUser,
+    enabled: !authLoading && !!currentUser,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -138,7 +138,7 @@ const TRACKED_ITEMS_QUERY_KEY = 'trackedItems';
 
 // Hook to get tracked items
 export function useTrackedItems() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
 
   return useQuery<PriceTrackerEntry[], Error>({
     queryKey: [TRACKED_ITEMS_QUERY_KEY, currentUser?.uid],
@@ -159,7 +159,7 @@ export function useTrackedItems() {
         return [];
       }
     },
-    enabled: !!currentUser,
+    enabled: !authLoading && !!currentUser,
     staleTime: 1000 * 60 * 5,
   });
 }
@@ -282,7 +282,7 @@ export function useAddSearchHistory() {
 
 // Hook to get search history (e.g., last N entries)
 export function useSearchHistory(count: number = 20) {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
 
   return useQuery<SearchHistoryEntry[], Error>({
     queryKey: [SEARCH_HISTORY_QUERY_KEY, currentUser?.uid, count],
@@ -331,7 +331,7 @@ export function useSearchHistory(count: number = 20) {
         return [];
       }
     },
-    enabled: !!currentUser,
+    enabled: !authLoading && !!currentUser,
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 }
@@ -417,7 +417,7 @@ export function useSaveUserTravelPersona() {
 }
 
 export function useGetUserTravelPersona() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
 
   return useQuery<UserTravelPersona | null, Error>({
     queryKey: [USER_TRAVEL_PERSONA_QUERY_KEY, currentUser?.uid],
@@ -452,7 +452,7 @@ export function useGetUserTravelPersona() {
         return null;
       }
     },
-    enabled: !!currentUser,
+    enabled: !authLoading && !!currentUser,
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 }
