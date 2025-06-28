@@ -39,7 +39,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Force a token refresh to ensure backend auth state is up-to-date
+          // before we declare loading is finished. This prevents race-condition permission errors.
+          await user.getIdToken(true);
+        } catch (error) {
+          // This can happen if user gets disconnected during the process.
+          // We can just log it and proceed, as the auth state might still be valid or will be null.
+          console.warn("AuthContext: Failed to refresh token during auth state change:", error);
+        }
+      }
       setCurrentUser(user);
       setLoading(false);
     });
