@@ -32,8 +32,8 @@ export function useSavedTrips() {
         return querySnapshot.docs.map(docSnapshot => ({ ...docSnapshot.data() as Omit<Itinerary, 'id'>, id: docSnapshot.id }));
       } catch (e: any) { 
         if (e.code === 'permission-denied') {
-          console.error("[useSavedTrips] Firestore permission denied. This might be due to security rules or a timing issue.");
-          return []; // Return empty on permission denied to prevent crash
+          // This can happen during auth state changes. Return empty to avoid crash and console error.
+          return []; 
         }
         // For other errors, it might be useful to log them but still return empty to avoid crashing UI.
         console.error("[useSavedTrips] Unexpected Firestore error: ", e);
@@ -52,11 +52,18 @@ export function useAddSavedTrip() {
 
   return useMutation<string, Error, Omit<Itinerary, 'id' | 'aiGeneratedMemory' | 'aiTripSummary'>>({
     mutationFn: async (newTripData) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated");
-      const tripsCollectionRef = collection(firestore, 'users', user.uid, 'savedTrips');
-      const docRef = await addDoc(tripsCollectionRef, { ...newTripData, createdAt: serverTimestamp() });
-      return docRef.id;
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const tripsCollectionRef = collection(firestore, 'users', user.uid, 'savedTrips');
+        const docRef = await addDoc(tripsCollectionRef, { ...newTripData, createdAt: serverTimestamp() });
+        return docRef.id;
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid] });
@@ -71,10 +78,17 @@ export function useRemoveSavedTrip() {
 
   return useMutation<void, Error, string>({
     mutationFn: async (tripId) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated");
-      const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
-      await deleteDoc(tripDocRef);
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
+        await deleteDoc(tripDocRef);
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SAVED_TRIPS_QUERY_KEY, currentUser?.uid] });
@@ -89,13 +103,20 @@ export function useUpdateSavedTripMemory() {
 
   return useMutation<void, Error, { tripId: string; memory: { memoryText: string; generatedAt: string; } }>({
     mutationFn: async ({ tripId, memory }) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated");
-      const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
-      await updateDoc(tripDocRef, {
-        aiGeneratedMemory: memory,
-        lastModified: serverTimestamp()
-      });
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
+        await updateDoc(tripDocRef, {
+          aiGeneratedMemory: memory,
+          lastModified: serverTimestamp()
+        });
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.setQueryData([SAVED_TRIPS_QUERY_KEY, currentUser?.uid], (oldData: Itinerary[] | undefined) =>
@@ -117,13 +138,20 @@ export function useUpdateSavedTripSummary() {
 
   return useMutation<void, Error, { tripId: string; summary: { text: string; generatedAt: string; } }>({
     mutationFn: async ({ tripId, summary }) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated");
-      const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
-      await updateDoc(tripDocRef, {
-        aiTripSummary: summary,
-        lastModified: serverTimestamp()
-      });
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
+        await updateDoc(tripDocRef, {
+          aiTripSummary: summary,
+          lastModified: serverTimestamp()
+        });
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.setQueryData([SAVED_TRIPS_QUERY_KEY, currentUser?.uid], (oldData: Itinerary[] | undefined) =>
@@ -161,7 +189,6 @@ export function useTrackedItems() {
         return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
       } catch (e: any) {
         if (e.code === 'permission-denied') {
-          // This can happen briefly during auth state changes. Return empty to avoid crash.
           return [];
         }
         console.error("[useTrackedItems] Unexpected Firestore error: ", e);
@@ -180,15 +207,22 @@ export function useAddTrackedItem() {
 
   return useMutation<string, Error, Omit<PriceTrackerEntry, 'id' | 'lastChecked' | 'aiAdvice' | 'createdAt' | 'alertStatus' | 'priceForecast'>>({
     mutationFn: async (newItemData) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated");
-      const itemsCollectionRef = collection(firestore, 'users', user.uid, 'trackedItems');
-      const docRef = await addDoc(itemsCollectionRef, {
-        ...newItemData,
-        lastChecked: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-      });
-      return docRef.id;
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const itemsCollectionRef = collection(firestore, 'users', user.uid, 'trackedItems');
+        const docRef = await addDoc(itemsCollectionRef, {
+          ...newItemData,
+          lastChecked: new Date().toISOString(),
+          createdAt: serverTimestamp(),
+        });
+        return docRef.id;
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TRACKED_ITEMS_QUERY_KEY, currentUser?.uid] });
@@ -203,13 +237,20 @@ export function useUpdateTrackedItem() {
 
   return useMutation<void, Error, { itemId: string; dataToUpdate: Partial<Omit<PriceTrackerEntry, 'id' | 'createdAt'>> }>({
     mutationFn: async ({ itemId, dataToUpdate }) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated");
-      const itemDocRef = doc(firestore, 'users', user.uid, 'trackedItems', itemId);
-      await updateDoc(itemDocRef, {
-        ...dataToUpdate,
-        lastChecked: new Date().toISOString(),
-      });
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const itemDocRef = doc(firestore, 'users', user.uid, 'trackedItems', itemId);
+        await updateDoc(itemDocRef, {
+          ...dataToUpdate,
+          lastChecked: new Date().toISOString(),
+        });
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.setQueryData<PriceTrackerEntry[]>([TRACKED_ITEMS_QUERY_KEY, currentUser?.uid], (oldData) =>
@@ -226,10 +267,17 @@ export function useRemoveTrackedItem() {
 
   return useMutation<void, Error, string>({
     mutationFn: async (itemId) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated");
-      const itemDocRef = doc(firestore, 'users', user.uid, 'trackedItems', itemId);
-      await deleteDoc(itemDocRef);
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const itemDocRef = doc(firestore, 'users', user.uid, 'trackedItems', itemId);
+        await deleteDoc(itemDocRef);
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TRACKED_ITEMS_QUERY_KEY, currentUser?.uid] });
@@ -248,40 +296,41 @@ export function useAddSearchHistory() {
 
   return useMutation<string, Error, Omit<SearchHistoryEntry, 'id' | 'searchedAt'>>({
     mutationFn: async (searchData) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated to save search history");
-      const historyCollectionRef = collection(firestore, 'users', user.uid, 'searchHistory');
-      
-      const dataToSave: Partial<SearchHistoryEntry> = {
-        userInput: searchData.userInput,
-        flightResults: searchData.flightResults,
-        hotelResults: searchData.hotelResults,
-        aiItineraries: searchData.aiItineraries,
-        tripPackages: searchData.tripPackages,
-        searchedAt: serverTimestamp(),
-      };
-      
-      if(searchData.userInput){
-        dataToSave.destination = searchData.userInput.destination;
-        dataToSave.travelDates = searchData.userInput.travelDates;
-        dataToSave.budget = searchData.userInput.budget;
-      } else {
-        dataToSave.destination = "Unknown Destination";
-        dataToSave.travelDates = "Unknown Dates";
-        dataToSave.budget = 0;
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated to save search history");
+        const historyCollectionRef = collection(firestore, 'users', user.uid, 'searchHistory');
+        
+        const dataToSave: Partial<SearchHistoryEntry> = {
+          userInput: searchData.userInput,
+          flightResults: searchData.flightResults,
+          hotelResults: searchData.hotelResults,
+          aiItineraries: searchData.aiItineraries,
+          tripPackages: searchData.tripPackages,
+          searchedAt: serverTimestamp(),
+        };
+        
+        if(searchData.userInput){
+          dataToSave.destination = searchData.userInput.destination;
+          dataToSave.travelDates = searchData.userInput.travelDates;
+          dataToSave.budget = searchData.userInput.budget;
+        } else {
+          dataToSave.destination = "Unknown Destination";
+          dataToSave.travelDates = "Unknown Dates";
+          dataToSave.budget = 0;
+        }
+        
+        console.log("[FirestoreHooks useAddSearchHistory] Attempting to save search history:", JSON.stringify(dataToSave, null, 2).substring(0, 1000) + "...");
+  
+  
+        const docRef = await addDoc(historyCollectionRef, dataToSave as any); // Cast to any if cleaning is handled elsewhere
+        return docRef.id;
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
       }
-      
-      // The cleanDataForFirestore function will be moved to actions.ts
-      // For now, we'll assume it exists or is passed, or data is already clean.
-      // Ideally, the cleaning logic specific to actions.ts would be called there.
-      // This hook is mainly for invoking the Firestore operation.
-      // Let's assume for now actions.ts calls this hook with ALREADY CLEANED DATA if necessary,
-      // or that the types are inherently Firestore-compatible.
-      console.log("[FirestoreHooks useAddSearchHistory] Attempting to save search history:", JSON.stringify(dataToSave, null, 2).substring(0, 1000) + "...");
-
-
-      const docRef = await addDoc(historyCollectionRef, dataToSave as any); // Cast to any if cleaning is handled elsewhere
-      return docRef.id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SEARCH_HISTORY_QUERY_KEY, currentUser?.uid] });
@@ -339,7 +388,6 @@ export function useSearchHistory(count: number = 20) {
         });
       } catch (e: any) {
         if (e.code === 'permission-denied') {
-          // This can happen briefly during auth state changes. Return empty to avoid crash.
           return [];
         }
         console.error("[useSearchHistory] Unexpected Firestore error: ", e);
@@ -418,13 +466,20 @@ export function useSaveUserTravelPersona() {
 
   return useMutation<void, Error, Omit<UserTravelPersona, 'lastUpdated'>>({
     mutationFn: async (personaData) => {
-      const user = auth.currentUser;
-      if (!user?.uid) throw new Error("User not authenticated");
-      const personaDocRef = doc(firestore, 'users', user.uid, 'profile', 'travelPersona');
-      await setDoc(personaDocRef, {
-        ...personaData,
-        lastUpdated: serverTimestamp(),
-      }, { merge: true });
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const personaDocRef = doc(firestore, 'users', user.uid, 'profile', 'travelPersona');
+        await setDoc(personaDocRef, {
+          ...personaData,
+          lastUpdated: serverTimestamp(),
+        }, { merge: true });
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USER_TRAVEL_PERSONA_QUERY_KEY, currentUser?.uid] });
@@ -463,7 +518,6 @@ export function useGetUserTravelPersona() {
         return null;
       } catch (e: any) {
         if (e.code === 'permission-denied') {
-          // This can happen briefly during auth state changes. Return null to avoid crash.
           return null;
         }
         console.error("[useGetUserTravelPersona] Unexpected Firestore error: ", e);
@@ -576,37 +630,40 @@ export function useAddSavedPackage() {
 
   return useMutation<string, Error, TripPackageSuggestion>({ 
     mutationFn: async (packageData) => {
-      const user = auth.currentUser;
-      const currentUserId = user?.uid; 
-      if (!currentUserId) {
-        console.error("[FirestoreHooks useAddSavedPackage] User ID is missing. Cannot save package. PackageData:", packageData, "CurrentUser:", user);
-        throw new Error("User ID is missing for saving package.");
+      try {
+        const user = auth.currentUser;
+        const currentUserId = user?.uid; 
+        if (!currentUserId) {
+          console.error("[FirestoreHooks useAddSavedPackage] User ID is missing. Cannot save package. PackageData:", packageData, "CurrentUser:", user);
+          throw new Error("User not authenticated");
+        }
+  
+        const packagesCollectionRef = collection(firestore, 'users', currentUserId, 'savedTripPackages');
+        
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...dataToSaveWithoutId } = packageData; 
+        
+        const finalDataToSave: Omit<TripPackageSuggestion, 'id'> = {
+          ...dataToSaveWithoutId,
+          userId: currentUserId, 
+          createdAt: serverTimestamp(),
+        };
+        
+        if (finalDataToSave.destinationImageUri && finalDataToSave.destinationImageUri.length > MAX_IMAGE_URI_LENGTH_FIRESTORE) {
+          console.warn(`[FirestoreHooks useAddSavedPackage] destinationImageUri for package ${finalDataToSave.destinationQuery} is too long (${finalDataToSave.destinationImageUri.length} bytes). Setting to undefined.`);
+          finalDataToSave.destinationImageUri = undefined; 
+        }
+  
+        console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package (data as received):", JSON.stringify(finalDataToSave, null, 2).substring(0,500)+"...");
+  
+        const docRef = await addDoc(packagesCollectionRef, finalDataToSave as any); // Cast to any if cleaning is done higher up
+        return docRef.id;
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
       }
-
-      const packagesCollectionRef = collection(firestore, 'users', currentUserId, 'savedTripPackages');
-      
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, ...dataToSaveWithoutId } = packageData; 
-      
-      const finalDataToSave: Omit<TripPackageSuggestion, 'id'> = {
-        ...dataToSaveWithoutId,
-        userId: currentUserId, 
-        createdAt: serverTimestamp(),
-      };
-      
-      if (finalDataToSave.destinationImageUri && finalDataToSave.destinationImageUri.length > MAX_IMAGE_URI_LENGTH_FIRESTORE) {
-        console.warn(`[FirestoreHooks useAddSavedPackage] destinationImageUri for package ${finalDataToSave.destinationQuery} is too long (${finalDataToSave.destinationImageUri.length} bytes). Setting to undefined.`);
-        finalDataToSave.destinationImageUri = undefined; 
-      }
-
-      // The cleanDataForFirestore function will be defined in actions.ts and called there if needed.
-      // For this hook, we assume the data passed (packageData) has been prepared for Firestore.
-      // Or, if we want to be super safe, we'd need to import/replicate cleaning here.
-      // Given the current structure, actions.ts is the more appropriate place for that specific cleaning.
-      console.log("[FirestoreHooks useAddSavedPackage] Attempting to save package (data as received):", JSON.stringify(finalDataToSave, null, 2).substring(0,500)+"...");
-
-      const docRef = await addDoc(packagesCollectionRef, finalDataToSave as any); // Cast to any if cleaning is done higher up
-      return docRef.id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SAVED_TRIP_PACKAGES_QUERY_KEY, currentUser?.uid] });
