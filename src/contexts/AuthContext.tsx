@@ -42,18 +42,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          // Force a token refresh to ensure backend auth state is up-to-date
-          // before we declare loading is finished. This prevents race-condition permission errors.
-          await user.getIdToken(true);
+          // Force a token refresh to ensure the backend recognizes the user.
+          // This is the critical step to prevent race conditions.
+          await user.getIdToken(true); 
+          setCurrentUser(user);
         } catch (error) {
-          // This can happen if user gets disconnected during the process.
-          // We can just log it and proceed, as the auth state might still be valid or will be null.
-          console.warn("AuthContext: Failed to refresh token during auth state change:", error);
+          console.error("AuthContext: Critical token refresh failed. User session might be invalid.", error);
+          // If token refresh fails, it's safer to treat the user as logged out.
+          setCurrentUser(null);
+        } finally {
+          setLoading(false);
         }
+      } else {
+        // No user, just set state and finish loading.
+        setCurrentUser(null);
+        setLoading(false);
       }
-      setCurrentUser(user);
-      setLoading(false);
     });
+
     return unsubscribe; // Unsubscribe on unmount
   }, []);
 
@@ -61,7 +67,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged will handle setting currentUser
+      // onAuthStateChanged will handle setting currentUser and loading state
       router.push('/planner'); // Redirect after successful login
       toast({ title: "Login Successful", description: "Welcome back!" });
     } catch (error: any) {
@@ -75,7 +81,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle setting currentUser
+      // onAuthStateChanged will handle setting currentUser and loading state
       router.push('/planner');
       toast({ title: "Login Successful", description: "Welcome back!" });
       return userCredential.user;
@@ -91,7 +97,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle setting currentUser
+      // onAuthStateChanged will handle setting currentUser and loading state
       router.push('/planner'); 
       toast({ title: "Signup Successful", description: "Welcome to BudgetRoam!" });
       return userCredential.user;
@@ -107,14 +113,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
     try {
       await firebaseSignOut(auth);
-      setCurrentUser(null); // Explicitly set to null
+      // onAuthStateChanged will set currentUser to null and loading to false
       router.push('/'); // Redirect to landing page after logout
       toast({ title: "Logged Out", description: "You have been successfully logged out." });
     } catch (error: any) {
       console.error("Logout error: ", error);
       toast({ title: "Logout Failed", description: error.message || "Could not log out.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      // onAuthStateChanged will set loading to false, but we can do it here too just in case
+      if (auth.currentUser === null) {
+        setLoading(false);
+      }
     }
   };
 
