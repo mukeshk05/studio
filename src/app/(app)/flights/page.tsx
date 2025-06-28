@@ -683,10 +683,6 @@ export default function FlightsPage() {
 
   const handleSearchFlights = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) {
-      toast({ title: "Please Log In", description: "You need to be logged in to search for flights.", variant: "destructive" });
-      return;
-    }
     if (!origin || !destination || !dates?.from) {
       toast({ title: "Missing Information", description: "Please provide origin, destination, and departure date.", variant: "destructive" });
       return;
@@ -1541,4 +1537,3 @@ export default function FlightsPage() {
     </div>
   );
 }
-
