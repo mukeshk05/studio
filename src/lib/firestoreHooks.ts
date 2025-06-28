@@ -31,10 +31,13 @@ export function useSavedTrips() {
         const querySnapshot = await getDocs(tripsCollectionRef);
         return querySnapshot.docs.map(docSnapshot => ({ ...docSnapshot.data() as Omit<Itinerary, 'id'>, id: docSnapshot.id }));
       } catch (e: any) { 
-        if (e.code !== 'permission-denied') {
-          console.error("[useSavedTrips] Unexpected Firestore error: ", e);
+        if (e.code === 'permission-denied') {
+          console.error("[useSavedTrips] Firestore permission denied. This might be due to security rules or a timing issue.");
+          return []; // Return empty on permission denied to prevent crash
         }
-        return []; 
+        // For other errors, it might be useful to log them but still return empty to avoid crashing UI.
+        console.error("[useSavedTrips] Unexpected Firestore error: ", e);
+        return [];
       }
     },
     enabled: !authLoading && !!currentUser,
@@ -49,8 +52,9 @@ export function useAddSavedTrip() {
 
   return useMutation<string, Error, Omit<Itinerary, 'id' | 'aiGeneratedMemory' | 'aiTripSummary'>>({
     mutationFn: async (newTripData) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const tripsCollectionRef = collection(firestore, 'users', currentUser.uid, 'savedTrips');
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const tripsCollectionRef = collection(firestore, 'users', user.uid, 'savedTrips');
       const docRef = await addDoc(tripsCollectionRef, { ...newTripData, createdAt: serverTimestamp() });
       return docRef.id;
     },
@@ -67,8 +71,9 @@ export function useRemoveSavedTrip() {
 
   return useMutation<void, Error, string>({
     mutationFn: async (tripId) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const tripDocRef = doc(firestore, 'users', currentUser.uid, 'savedTrips', tripId);
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
       await deleteDoc(tripDocRef);
     },
     onSuccess: () => {
@@ -84,8 +89,9 @@ export function useUpdateSavedTripMemory() {
 
   return useMutation<void, Error, { tripId: string; memory: { memoryText: string; generatedAt: string; } }>({
     mutationFn: async ({ tripId, memory }) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const tripDocRef = doc(firestore, 'users', currentUser.uid, 'savedTrips', tripId);
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
       await updateDoc(tripDocRef, {
         aiGeneratedMemory: memory,
         lastModified: serverTimestamp()
@@ -111,8 +117,9 @@ export function useUpdateSavedTripSummary() {
 
   return useMutation<void, Error, { tripId: string; summary: { text: string; generatedAt: string; } }>({
     mutationFn: async ({ tripId, summary }) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const tripDocRef = doc(firestore, 'users', currentUser.uid, 'savedTrips', tripId);
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const tripDocRef = doc(firestore, 'users', user.uid, 'savedTrips', tripId);
       await updateDoc(tripDocRef, {
         aiTripSummary: summary,
         lastModified: serverTimestamp()
@@ -153,10 +160,12 @@ export function useTrackedItems() {
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
       } catch (e: any) {
-        if (e.code !== 'permission-denied') {
-          console.error("[useTrackedItems] Unexpected Firestore error: ", e);
+        if (e.code === 'permission-denied') {
+          // This can happen briefly during auth state changes. Return empty to avoid crash.
+          return [];
         }
-        return [];
+        console.error("[useTrackedItems] Unexpected Firestore error: ", e);
+        throw e;
       }
     },
     enabled: !authLoading && !!currentUser,
@@ -171,8 +180,9 @@ export function useAddTrackedItem() {
 
   return useMutation<string, Error, Omit<PriceTrackerEntry, 'id' | 'lastChecked' | 'aiAdvice' | 'createdAt' | 'alertStatus' | 'priceForecast'>>({
     mutationFn: async (newItemData) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const itemsCollectionRef = collection(firestore, 'users', currentUser.uid, 'trackedItems');
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const itemsCollectionRef = collection(firestore, 'users', user.uid, 'trackedItems');
       const docRef = await addDoc(itemsCollectionRef, {
         ...newItemData,
         lastChecked: new Date().toISOString(),
@@ -193,8 +203,9 @@ export function useUpdateTrackedItem() {
 
   return useMutation<void, Error, { itemId: string; dataToUpdate: Partial<Omit<PriceTrackerEntry, 'id' | 'createdAt'>> }>({
     mutationFn: async ({ itemId, dataToUpdate }) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const itemDocRef = doc(firestore, 'users', currentUser.uid, 'trackedItems', itemId);
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const itemDocRef = doc(firestore, 'users', user.uid, 'trackedItems', itemId);
       await updateDoc(itemDocRef, {
         ...dataToUpdate,
         lastChecked: new Date().toISOString(),
@@ -215,8 +226,9 @@ export function useRemoveTrackedItem() {
 
   return useMutation<void, Error, string>({
     mutationFn: async (itemId) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const itemDocRef = doc(firestore, 'users', currentUser.uid, 'trackedItems', itemId);
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const itemDocRef = doc(firestore, 'users', user.uid, 'trackedItems', itemId);
       await deleteDoc(itemDocRef);
     },
     onSuccess: () => {
@@ -236,8 +248,9 @@ export function useAddSearchHistory() {
 
   return useMutation<string, Error, Omit<SearchHistoryEntry, 'id' | 'searchedAt'>>({
     mutationFn: async (searchData) => {
-      if (!currentUser) throw new Error("User not authenticated to save search history");
-      const historyCollectionRef = collection(firestore, 'users', currentUser.uid, 'searchHistory');
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated to save search history");
+      const historyCollectionRef = collection(firestore, 'users', user.uid, 'searchHistory');
       
       const dataToSave: Partial<SearchHistoryEntry> = {
         userInput: searchData.userInput,
@@ -325,10 +338,12 @@ export function useSearchHistory(count: number = 20) {
           } as SearchHistoryEntry; 
         });
       } catch (e: any) {
-        if (e.code !== 'permission-denied') {
-          console.error("[useSearchHistory] Unexpected Firestore error: ", e);
+        if (e.code === 'permission-denied') {
+          // This can happen briefly during auth state changes. Return empty to avoid crash.
+          return [];
         }
-        return [];
+        console.error("[useSearchHistory] Unexpected Firestore error: ", e);
+        throw e;
       }
     },
     enabled: !authLoading && !!currentUser,
@@ -403,8 +418,9 @@ export function useSaveUserTravelPersona() {
 
   return useMutation<void, Error, Omit<UserTravelPersona, 'lastUpdated'>>({
     mutationFn: async (personaData) => {
-      if (!currentUser) throw new Error("User not authenticated");
-      const personaDocRef = doc(firestore, 'users', currentUser.uid, 'profile', 'travelPersona');
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const personaDocRef = doc(firestore, 'users', user.uid, 'profile', 'travelPersona');
       await setDoc(personaDocRef, {
         ...personaData,
         lastUpdated: serverTimestamp(),
@@ -446,10 +462,12 @@ export function useGetUserTravelPersona() {
         }
         return null;
       } catch (e: any) {
-        if (e.code !== 'permission-denied') {
-          console.error("[useGetUserTravelPersona] Unexpected Firestore error: ", e);
+        if (e.code === 'permission-denied') {
+          // This can happen briefly during auth state changes. Return null to avoid crash.
+          return null;
         }
-        return null;
+        console.error("[useGetUserTravelPersona] Unexpected Firestore error: ", e);
+        throw e;
       }
     },
     enabled: !authLoading && !!currentUser,
@@ -558,9 +576,10 @@ export function useAddSavedPackage() {
 
   return useMutation<string, Error, TripPackageSuggestion>({ 
     mutationFn: async (packageData) => {
-      const currentUserId = packageData.userId || currentUser?.uid; 
+      const user = auth.currentUser;
+      const currentUserId = user?.uid; 
       if (!currentUserId) {
-        console.error("[FirestoreHooks useAddSavedPackage] User ID is missing. Cannot save package. PackageData:", packageData, "CurrentUser:", currentUser);
+        console.error("[FirestoreHooks useAddSavedPackage] User ID is missing. Cannot save package. PackageData:", packageData, "CurrentUser:", user);
         throw new Error("User ID is missing for saving package.");
       }
 
