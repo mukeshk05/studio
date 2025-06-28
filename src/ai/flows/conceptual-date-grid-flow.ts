@@ -20,7 +20,8 @@ export async function conceptualDateGridFlow(input: ConceptualDateGridInput): Pr
     output: { schema: ConceptualDateGridOutputSchema },
     prompt: `You are an AI Travel Price Analyst. For flights from '{{{origin}}}' to '{{{destination}}}' for the period around '{{{monthToExplore}}}', provide the following:
 1.  'gridSummary': A textual summary (2-3 sentences) describing likely cheaper or more expensive periods (e.g., "Flights mid-week are often cheaper. Expect higher prices towards the end of the month due to a local festival.").
-2.  'datePricePoints': An array of 3 to 5 distinct conceptual objects. Each object MUST have:
+2.  'datePricePoints': An array of 5 to 7 distinct conceptual objects. Each object MUST have:
+    *   'dayOfMonth': A NUMBER for the specific day (e.g., 10 for 'Dec 10'). THIS IS CRITICAL.
     *   'dateLabel': A string for the specific date or short date range (e.g., "Dec 10", "First week of July", "Weekend of Dec 12").
     *   'priceIndicator': A string representing a conceptual price idea (e.g., "Around $280", "$350 - $420") OR a relative level ('Low', 'Average', 'High').
     *   'notes': An optional brief string with notes (e.g., "Potential event", "Mid-week dip").

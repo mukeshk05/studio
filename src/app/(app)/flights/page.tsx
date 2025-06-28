@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar, type DayProps } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -566,6 +566,8 @@ export default function FlightsPage() {
   const [dateGridMonth, setDateGridMonth] = useState('');
   const [dateGridResult, setDateGridResult] = useState<ConceptualDateGridOutput | null>(null);
   const [isLoadingDateGrid, setIsLoadingDateGrid] = useState(false);
+  const [dateGridPriceData, setDateGridPriceData] = useState<Map<number, DatePricePoint>>(new Map());
+  const [dateGridCalendarMonth, setDateGridCalendarMonth] = useState<Date>(new Date());
 
   const [priceGraphOrigin, setPriceGraphOrigin] = useState('');
   const [priceGraphDestination, setPriceGraphDestination] = useState('');
@@ -1022,11 +1024,8 @@ export default function FlightsPage() {
         destination: trackDestination.trim(),
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
+        travelDates: trackTravelDates.trim() || undefined,
       };
-
-      if(trackTravelDates.trim()) {
-        newItemData.travelDates = trackTravelDates.trim();
-      }
 
       await addTrackedItemMutation.mutateAsync(newItemData as Omit<PriceTrackerEntry, 'id'>);
       toast({ title: "Price Tracking Started", description: `${itemName} is now being tracked!` });
@@ -1058,6 +1057,22 @@ export default function FlightsPage() {
     try {
       const result = await getConceptualDateGridAction({ origin: dateGridOrigin, destination: dateGridDestination, monthToExplore: dateGridMonth });
       setDateGridResult(result);
+      if (result.datePricePoints && result.datePricePoints.length > 0) {
+        const priceMap = new Map<number, DatePricePoint>();
+        result.datePricePoints.forEach(dp => {
+            if (dp.dayOfMonth !== undefined) {
+                priceMap.set(dp.dayOfMonth, dp);
+            }
+        });
+        setDateGridPriceData(priceMap);
+        const calendarDate = new Date(`${dateGridMonth} 1, ${new Date().getFullYear()}`);
+        if(isValid(calendarDate)){
+             setDateGridCalendarMonth(calendarDate);
+        } else {
+            // fallback for simpler month like "Next Month"
+             setDateGridCalendarMonth(new Date());
+        }
+      }
       if (!result.gridSummary && (!result.datePricePoints || result.datePricePoints.length === 0)) {
         toast({ title: "No Insights", description: "AI couldn't generate date grid insights for this query."});
       }
@@ -1067,6 +1082,28 @@ export default function FlightsPage() {
       setIsLoadingDateGrid(false);
     }
   };
+  
+  function CustomDayContent(props: DayProps) {
+    const pricePoint = dateGridPriceData.get(props.date.getDate());
+    const priceLevel = pricePoint?.priceIndicator?.toLowerCase() ?? '';
+    let priceColorClass = 'text-primary/90';
+    if(priceLevel.includes('low')) priceColorClass = 'text-green-400';
+    else if(priceLevel.includes('high')) priceColorClass = 'text-red-400';
+    else if(priceLevel.includes('average')) priceColorClass = 'text-amber-400';
+
+    return (
+      <div className={cn("relative flex flex-col items-center justify-center w-full h-full", 
+        pricePoint ? "bg-primary/5 rounded-md" : ""
+      )}>
+        <p>{format(props.date, 'd')}</p>
+        {pricePoint && (
+           <p className={cn("text-[0.6rem] font-bold absolute bottom-0", priceColorClass)}>
+            {pricePoint.priceIndicator.match(/\$\d+/)?.[0] || pricePoint.priceIndicator.substring(0,4)}
+           </p>
+        )}
+      </div>
+    );
+  }
 
   const handleGetPriceTrendInsights = async () => {
     if (!priceGraphOrigin || !priceGraphDestination || !priceGraphDatesHint) {
@@ -1388,15 +1425,13 @@ export default function FlightsPage() {
                     <p className="font-semibold text-card-foreground">AI Date Insights:</p>
                     <p className="italic text-muted-foreground">{dateGridResult.gridSummary}</p>
                     {dateGridResult.datePricePoints && dateGridResult.datePricePoints.length > 0 && (
-                      <div className="pt-1 space-y-1">
-                        <p className="font-medium text-card-foreground/90">Example Price Points:</p>
-                        {dateGridResult.datePricePoints.map((dp, i) => (
-                          <Card key={i} className={cn("p-2 bg-card/50 dark:bg-card/40 border-border/30 shadow-sm")}>
-                            <p className="font-semibold text-sm text-primary">{dp.dateLabel}</p>
-                            <p className="text-xs text-muted-foreground">Price Idea: <span className="text-primary/90">{dp.priceIndicator}</span></p>
-                            {dp.notes && <p className="text-xs italic text-muted-foreground/80 mt-0.5">Note: {dp.notes}</p>}
-                          </Card>
-                        ))}
+                      <div className={cn("p-2 rounded-md", innerGlassEffectClasses, "border-primary/20")}>
+                        <Calendar
+                            month={dateGridCalendarMonth}
+                            onMonthChange={setDateGridCalendarMonth}
+                            showOutsideDays={false}
+                            components={{ Day: CustomDayContent }}
+                         />
                       </div>
                     )}
                   </div>
