@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAddTrackedItem } from "@/lib/firestoreHooks";
 import { cn } from "@/lib/utils";
+import type { PriceTrackerEntry } from "@/lib/types";
 
 const formSchema = z.object({
   itemType: z.enum(["flight", "hotel"], {
@@ -40,7 +41,7 @@ const formSchema = z.object({
 export function PriceTrackerForm() {
   const { toast } = useToast();
   const [aiAlert, setAiAlert] = React.useState<PriceTrackerOutput | null>(null);
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const addTrackedItemMutation = useAddTrackedItem();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -84,20 +85,20 @@ export function PriceTrackerForm() {
       });
       setAiAlert(alertResult);
 
-      const newItemData = {
+      const newItemData: Partial<Omit<PriceTrackerEntry, 'id'>> = {
         itemType: values.itemType,
         itemName: values.itemName,
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
-        ...(values.itemType === 'flight' && values.originCity && { originCity: values.originCity }),
-        ...(values.destination && { destination: values.destination }),
-        ...(values.travelDates && { travelDates: values.travelDates }),
+        alertStatus: alertResult,
       };
 
+      if (values.itemType === 'flight' && values.originCity) newItemData.originCity = values.originCity;
+      if (values.destination) newItemData.destination = values.destination;
+      if (values.travelDates) newItemData.travelDates = values.travelDates;
+
       await addTrackedItemMutation.mutateAsync(
-        // @ts-ignore - This is acceptable here as we're dynamically adding properties
-        // before passing to the mutation, which itself prepares the final Firestore object.
-        {...newItemData, alertStatus: alertResult}
+        newItemData as Omit<PriceTrackerEntry, 'id' | 'lastChecked' | 'aiAdvice' | 'createdAt' | 'alertStatus' | 'priceForecast'>
       );
 
       toast({
@@ -112,13 +113,19 @@ export function PriceTrackerForm() {
             duration: 10000,
          });
       }
-      form.reset();
+      form.reset({
+          itemName: "",
+          originCity: "",
+          destination: "",
+          travelDates: "",
+          itemType: values.itemType, // Keep item type selected
+      });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error tracking price:", error);
       toast({
         title: "Error",
-        description: "Could not add item to tracker. Please try again.",
+        description: error.message || "Could not add item to tracker. Please try again.",
         variant: "destructive",
       });
     }
@@ -276,14 +283,14 @@ export function PriceTrackerForm() {
               type="submit"
               size="lg"
               className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
-              disabled={isSubmitting || !currentUser}
+              disabled={isSubmitting || !currentUser || authLoading}
             >
-              {isSubmitting ? (
+              {isSubmitting || authLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <BellPlus className="mr-2 h-4 w-4" />
               )}
-              Add to Tracker
+              {authLoading ? 'Authenticating...' : (isSubmitting ? 'Adding...' : 'Add to Tracker')}
             </Button>
           </form>
         </Form>

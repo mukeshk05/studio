@@ -94,6 +94,7 @@ import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAddTrackedItem } from '@/lib/firestoreHooks';
+import type { PriceTrackerEntry } from '@/lib/types';
 
 const glassCardClasses = "glass-card bg-card/80 dark:bg-card/50 backdrop-blur-lg border-border/20";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -526,7 +527,7 @@ export default function FlightsPage() {
 
   const { toast } = useToast();
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const addTrackedItemMutation = useAddTrackedItem();
 
   const [generalAiDestinations, setGeneralAiDestinations] = useState<AiDestinationSuggestion[]>([]);
@@ -1014,17 +1015,20 @@ export default function FlightsPage() {
     try {
       const itemName = `Flight from ${trackOrigin.trim()} to ${trackDestination.trim()}`;
       
-      const newItemData = {
+      const newItemData: Partial<PriceTrackerEntry> = {
         itemType: 'flight' as const,
         itemName,
         originCity: trackOrigin.trim(),
         destination: trackDestination.trim(),
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
-        ...(trackTravelDates.trim() && { travelDates: trackTravelDates.trim() }),
       };
 
-      await addTrackedItemMutation.mutateAsync(newItemData);
+      if(trackTravelDates.trim()) {
+        newItemData.travelDates = trackTravelDates.trim();
+      }
+
+      await addTrackedItemMutation.mutateAsync(newItemData as Omit<PriceTrackerEntry, 'id'>);
       toast({ title: "Price Tracking Started", description: `${itemName} is now being tracked!` });
 
       const adviceInput: PriceAdvisorInput = {
@@ -1039,7 +1043,7 @@ export default function FlightsPage() {
       setTrackPriceAiAdvice(adviceResult.advice);
     } catch (error: any) {
       console.error("Error tracking price or getting advice:", error);
-      toast({ title: "Error", description: `Could not start tracking or get advice: ${error instanceof Error ? error.message : String(error)}`, variant: "destructive" });
+      toast({ title: "Error", description: `Could not start tracking or get advice: ${error.message || String(error)}`, variant: "destructive" });
     } finally {
       setIsTrackingPrice(false);
     }
@@ -1360,10 +1364,10 @@ export default function FlightsPage() {
                 <Button 
                   onClick={handleTrackPriceAndGetAdvice} 
                   className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} 
-                  disabled={isTrackingPrice || !currentUser || trackOrigin.trim() === '' || trackDestination.trim() === '' || trackTargetPrice.trim() === '' || trackCurrentConceptualPrice.trim() === ''}
+                  disabled={isTrackingPrice || !currentUser || authLoading || trackOrigin.trim() === '' || trackDestination.trim() === '' || trackTargetPrice.trim() === '' || trackCurrentConceptualPrice.trim() === ''}
                 >
-                  {isTrackingPrice ? <Loader2 className="animate-spin"/> : <CheckCircle />}
-                  {isTrackingPrice ? "Processing..." : "Track &amp; Get Advice"}
+                  {isTrackingPrice || authLoading ? <Loader2 className="animate-spin"/> : <CheckCircle />}
+                  {isTrackingPrice ? "Processing..." : (authLoading ? "Authenticating..." : "Track & Get Advice")}
                 </Button>
               </CardFooter>
             </Card>
