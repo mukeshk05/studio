@@ -41,6 +41,7 @@ type BookingCardProps = {
   booking: Itinerary;
   onRemoveBooking: (bookingId: string) => void;
   isRemoving?: boolean;
+  isAuthLoading?: boolean;
 };
 
 
@@ -87,7 +88,7 @@ function SavedDailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
 }
 const glassEffectClasses = "glass-card";
 
-export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCardProps) {
+export function BookingCard({ booking, onRemoveBooking, isRemoving, isAuthLoading }: BookingCardProps) {
   const { toast } = useToast();
   const [isPackingListDialogOpen, setIsPackingListDialogOpen] = useState(false);
   const [isFactDialogOpen, setIsFactDialogOpen] = useState(false);
@@ -327,15 +328,15 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
         <Button onClick={() => setIsGroupSyncDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive">
           <Users className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />Sync
         </Button>
-        <Button onClick={handleOpenMemoryDialog} variant="outline" size="sm" className="w-full glass-interactive">
+        <Button onClick={handleOpenMemoryDialog} variant="outline" size="sm" className="w-full glass-interactive" disabled={isAuthLoading}>
           <BookOpenText className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />Memory
         </Button>
         <Button onClick={() => setIsTimelineDialogOpen(true)} variant="outline" size="sm" className="w-full glass-interactive"> {/* New Timeline Button */}
           <Route className="mr-1 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />Timeline
         </Button>
-        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50 col-span-2 sm:col-span-3 lg:col-span-1" disabled={isRemoving}>
-          {isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-          <span className="ml-1 sm:ml-2">{isRemoving ? '' : 'Remove'}</span>
+        <Button onClick={() => onRemoveBooking(booking.id)} variant="outline" size="sm" className="w-full text-destructive hover:bg-destructive/10 border-destructive/50 col-span-2 sm:col-span-3 lg:col-span-1" disabled={isRemoving || isAuthLoading}>
+          {isRemoving || isAuthLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          <span className="ml-1 sm:ml-2">{isRemoving ? '' : (isAuthLoading ? '...' : 'Remove')}</span>
         </Button>
       </CardFooter>
     </Card>
@@ -461,8 +462,8 @@ export function BookingCard({ booking, onRemoveBooking, isRemoving }: BookingCar
                 )}
             </div>
             <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                 <Button variant="outline" onClick={triggerMemoryGeneration} disabled={isLoadingAI || updateSavedTripMemoryMutation.isPending} className="w-full sm:w-auto glass-interactive">
-                    {isLoadingAI || updateSavedTripMemoryMutation.isPending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+                 <Button variant="outline" onClick={triggerMemoryGeneration} disabled={isLoadingAI || updateSavedTripMemoryMutation.isPending || isAuthLoading} className="w-full sm:w-auto glass-interactive">
+                    {isLoadingAI || updateSavedTripMemoryMutation.isPending || isAuthLoading ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                     Refresh Memory
                 </Button>
                 <AlertDialogAction onClick={() => setIsMemoryDialogOpen(false)} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">Close</AlertDialogAction>

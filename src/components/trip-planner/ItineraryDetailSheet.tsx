@@ -13,10 +13,12 @@ import { Button } from "@/components/ui/button";
 import { ItineraryCard } from "./itinerary-card";
 import type { Itinerary } from "@/lib/types";
 import type { AiArPreviewOutput } from "@/ai/types/ai-ar-preview-types";
-import { getAiArPreview } from "@/ai/flows/ai-ar-preview-flow";
+import { getAiArPreview, getLocalInsiderTips } from "@/app/actions";
+import type { LocalInsiderTipsOutput } from "@/ai/flows/local-insider-tips-flow";
+import { LocalInsiderTipsDisplay } from "@/components/common/LocalInsiderTipsDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, MapPin, Send, Bookmark, Loader2, ScanEye, ImageOff, Sparkles, Info, Tag, Clock } from "lucide-react";
+import { X, MapPin, Send, Bookmark, Loader2, ScanEye, ImageOff, Sparkles, Info, Tag, Clock, Compass as CompassIcon, Tabs, TabsContent, TabsList, TabsTrigger } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -39,12 +41,13 @@ type ItineraryDetailSheetProps = {
   onSaveTrip: (itineraryData: Omit<Itinerary, 'id'>) => void;
   isTripSaved: boolean;
   isSaving?: boolean;
+  isAuthLoading?: boolean;
   onInitiateBooking: (itinerary: Itinerary) => void;
 };
 
 const glassPaneClasses = "glass-pane"; 
 const glassCardClasses = "glass-card"; 
-const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
+const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-lg";
 
 
 export function ItineraryDetailSheet({
@@ -54,11 +57,14 @@ export function ItineraryDetailSheet({
   onSaveTrip,
   isTripSaved,
   isSaving,
+  isAuthLoading,
   onInitiateBooking,
 }: ItineraryDetailSheetProps) {
   const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false);
   const [isLoadingArPreview, setIsLoadingArPreview] = useState(false);
   const [arPreviewData, setArPreviewData] = useState<AiArPreviewOutput | null>(null);
+  const [localTips, setLocalTips] = useState<LocalInsiderTipsOutput | null>(null);
+  const [isLoadingTips, setIsLoadingTips] = useState(false);
   const { toast } = useToast();
 
   const handleSave = () => {
@@ -119,11 +125,22 @@ export function ItineraryDetailSheet({
   };
   
   useEffect(() => {
-    if (isOpen && isArVrDialogOpen && !arPreviewData && !isLoadingArPreview) {
-      handleFetchArPreview();
+    if (isOpen) {
+        setLocalTips(null); // Reset tips when sheet opens
+        setIsLoadingTips(true);
+        getLocalInsiderTips({ destination: itinerary.destination })
+            .then(setLocalTips)
+            .catch(err => {
+                console.error("Failed to fetch local tips for itinerary sheet:", err);
+                toast({ title: "Tips Error", description: "Could not load local insights.", variant: "destructive" });
+            })
+            .finally(() => setIsLoadingTips(false));
+
+        if (isArVrDialogOpen && !arPreviewData && !isLoadingArPreview) {
+            handleFetchArPreview();
+        }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isArVrDialogOpen, isOpen, itinerary.destination]);
+  }, [isArVrDialogOpen, isOpen, itinerary.destination, toast, isLoadingArPreview, arPreviewData]); 
 
   const arImageHint = arPreviewData?.generatedImageUri?.startsWith('https://placehold.co') 
     ? (arPreviewData?.generatedImagePrompt || itinerary.destination) 
@@ -152,45 +169,76 @@ export function ItineraryDetailSheet({
           </SheetHeader>
           <ScrollArea className="flex-grow">
             <div className="p-4 sm:p-6 space-y-6">
-              <ItineraryCard
-                itinerary={itineraryForCard}
-                onSaveTrip={handleSave}
-                isSaved={isTripSaved}
-                isSaving={isSaving}
-                isDetailedView={true}
-              />
+               <Tabs defaultValue="itinerary" className="w-full">
+                <TabsList className={cn("grid w-full grid-cols-2 sm:grid-cols-3 mb-4 glass-pane p-1", "border border-border/50")}>
+                  <TabsTrigger value="itinerary" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Full Plan</TabsTrigger>
+                  <TabsTrigger value="map" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Area Map</TabsTrigger>
+                  <TabsTrigger value="local-insights" className="data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground text-xs sm:text-sm">Local Insights</TabsTrigger>
+                </TabsList>
 
-              <div className={cn("mt-6 p-4", glassCardClasses)}>
-                <h3 className="text-lg font-semibold mb-3 flex items-center text-card-foreground">
-                  <MapPin className="w-5 h-5 mr-2 text-primary" />
-                  Explore {itinerary.destination} Hotels & Area
-                </h3>
-                {mapsApiKey ? (
-                  <div className="aspect-video w-full rounded-md overflow-hidden border border-border/50">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      allowFullScreen
-                      referrerPolicy="no-referrer-when-downgrade"
-                      src={mapEmbedUrl}
-                      title={`Map of hotels in ${itinerary.destination}`}
-                    ></iframe>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground bg-muted/30 p-4 rounded-md">
-                    <p>Google Maps API Key is missing.</p>
-                    <p className="text-xs">Please configure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables to enable map features.</p>
-                  </div>
-                )}
-              </div>
+                <TabsContent value="itinerary">
+                  <ItineraryCard
+                    itinerary={itineraryForCard}
+                    onSaveTrip={handleSave}
+                    isSaved={isTripSaved}
+                    isSaving={isSaving}
+                    isDetailedView={true}
+                    isAuthLoading={isAuthLoading}
+                  />
+                </TabsContent>
+
+                <TabsContent value="map">
+                    <div className={cn("p-4", glassCardClasses)}>
+                        <h3 className="text-lg font-semibold mb-3 flex items-center text-card-foreground">
+                        <MapPin className="w-5 h-5 mr-2 text-primary" />
+                        Explore {itinerary.destination} Area
+                        </h3>
+                        {mapsApiKey ? (
+                        <div className="aspect-video w-full rounded-md overflow-hidden border border-border/50">
+                            <iframe
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            loading="lazy"
+                            allowFullScreen
+                            referrerPolicy="no-referrer-when-downgrade"
+                            src={mapEmbedUrl}
+                            title={`Map of hotels in ${itinerary.destination}`}
+                            ></iframe>
+                        </div>
+                        ) : (
+                        <div className="text-center py-8 text-muted-foreground bg-muted/30 p-4 rounded-md">
+                            <p>Google Maps API Key is missing.</p>
+                            <p className="text-xs">Please configure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables to enable map features.</p>
+                        </div>
+                        )}
+                    </div>
+                </TabsContent>
+                
+                <TabsContent value="local-insights">
+                    {isLoadingTips && (
+                        <div className="flex flex-col items-center justify-center text-center py-10 text-muted-foreground">
+                            <Loader2 className="w-8 h-8 animate-spin mb-3 text-accent" />
+                            <p>Fetching Local Insider Tips...</p>
+                        </div>
+                    )}
+                    {!isLoadingTips && localTips && (
+                        <LocalInsiderTipsDisplay tipsData={localTips} destinationName={itinerary.destination} />
+                    )}
+                    {!isLoadingTips && !localTips && (
+                        <Card className={cn(glassCardClasses, "p-6 text-center text-muted-foreground")}>
+                            <CompassIcon className="w-10 h-10 mx-auto mb-2 opacity-70" />
+                            Could not load local insider tips for {itinerary.destination} at this moment.
+                        </Card>
+                    )}
+                </TabsContent>
+              </Tabs>
             </div>
           </ScrollArea>
            <div className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3", glassPaneClasses)}>
               <Button
                 onClick={handleSave}
-                disabled={isTripSaved || isSaving}
+                disabled={isTripSaved || isSaving || isAuthLoading}
                 size="lg"
                 className={cn(
                   "w-full",
@@ -198,8 +246,8 @@ export function ItineraryDetailSheet({
                 )}
                 variant={isTripSaved ? "secondary" : "default"} 
               >
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
-                {isSaving ? "Saving..." : isTripSaved ? "Saved" : "Save Trip"}
+                {isSaving || isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
+                {isSaving ? "Saving..." : isAuthLoading ? "Authenticating..." : isTripSaved ? "Saved" : "Save Trip"}
               </Button>
               <Button
                 onClick={handleBook}

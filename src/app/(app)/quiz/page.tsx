@@ -26,7 +26,7 @@ export default function AdventureQuizPage() {
   const [aiSuggestions, setAiSuggestions] = useState<AdventureSuggestion[] | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const saveUserTravelPersona = useSaveUserTravelPersona();
 
   const handleSubmitQuiz = async (answers: AdventureQuizInput) => {
@@ -102,7 +102,7 @@ export default function AdventureQuizPage() {
         </CardHeader>
         <CardContent>
           {!aiSuggestions && !isLoading && (
-            <AdventureQuizForm onSubmit={handleSubmitQuiz} isSubmitting={isLoading} />
+            <AdventureQuizForm onSubmit={handleSubmitQuiz} isSubmitting={isLoading || authLoading} />
           )}
 
           {isLoading && (

@@ -10,7 +10,7 @@ import { useSavedTrips, useRemoveSavedTrip } from "@/lib/firestoreHooks";
 import type { Itinerary } from "@/lib/types";
 
 export function BookingList() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
   const { data: savedTrips, isLoading, error } = useSavedTrips();
@@ -33,7 +33,7 @@ export function BookingList() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10 text-muted-foreground">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
@@ -81,10 +81,10 @@ export function BookingList() {
             booking={trip} 
             onRemoveBooking={handleRemoveBooking}
             isRemoving={removeSavedTripMutation.isPending && removeSavedTripMutation.variables === trip.id}
+            isAuthLoading={authLoading}
           />
         ))}
       </div>
     </ScrollArea>
   );
 }
-

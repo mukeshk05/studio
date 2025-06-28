@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -22,6 +23,7 @@ type ItineraryCardProps = {
   isSaved: boolean;
   isSaving?: boolean;
   isDetailedView?: boolean; 
+  isAuthLoading?: boolean;
 };
 
 function HotelOptionDisplay({ hotel, onClick }: { hotel: HotelOption; onClick: () => void; }) {
@@ -110,7 +112,7 @@ function DailyPlanDisplay({ planItem }: { planItem: DailyPlanItem }) {
 }
 
 
-export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDetailedView = false }: ItineraryCardProps) {
+export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDetailedView = false, isAuthLoading }: ItineraryCardProps) {
   const [selectedHotel, setSelectedHotel] = useState<HotelOption | null>(null);
   const [isHotelDetailOpen, setIsHotelDetailOpen] = useState(false);
 
@@ -266,7 +268,7 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
         <CardFooter className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button 
             onClick={handleSaveClick} 
-            disabled={isSaved || isSaving} 
+            disabled={isSaved || isSaving || isAuthLoading} 
             className={cn(
                 "w-full sm:flex-1",
                 isSaved ? "glass-interactive text-muted-foreground" : prominentButtonBaseClassesSm
@@ -274,8 +276,8 @@ export function ItineraryCard({ itinerary, onSaveTrip, isSaved, isSaving, isDeta
             size="sm"
             variant={isSaved ? "secondary" : "default"}
             >
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
-            {isSaving ? "Saving..." : isSaved ? "Saved To Dashboard" : "Save Trip"}
+            {isSaving || isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
+            {isSaving ? "Saving..." : isAuthLoading ? "Authenticating..." : isSaved ? "Saved To Dashboard" : "Save Trip"}
             </Button>
             <Button 
             onClick={handleFindDeals} 
