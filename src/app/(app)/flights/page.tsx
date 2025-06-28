@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { FlightProgressIndicator } from '@/components/ui/FlightProgressIndicator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PriceTrackerList } from '@/components/dashboard/price-tracker-list';
 
 
 import { cn } from '@/lib/utils';
@@ -1009,7 +1011,7 @@ export default function FlightsPage() {
 
     if (isNaN(targetPriceNum) || targetPriceNum <= 0 || isNaN(currentPriceNum) || currentPriceNum <= 0) {
       toast({ title: "Invalid Price", description: "Target and current prices must be positive numbers.", variant: "destructive" });
-      return; // EXIT
+      return; 
     }
 
     setIsTrackingPrice(true);
@@ -1024,8 +1026,11 @@ export default function FlightsPage() {
         destination: trackDestination.trim(),
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
-        travelDates: trackTravelDates.trim() || undefined,
       };
+
+      if (trackTravelDates.trim()) {
+        newItemData.travelDates = trackTravelDates.trim();
+      }
 
       await addTrackedItemMutation.mutateAsync(newItemData as Omit<PriceTrackerEntry, 'id'>);
       toast({ title: "Price Tracking Started", description: `${itemName} is now being tracked!` });
@@ -1371,139 +1376,157 @@ export default function FlightsPage() {
 
       <Separator className="my-12 border-border/40" />
 
+      
       {currentUser && (
         <section className="animate-fade-in-up" style={{animationDelay: '0.6s'}}>
           <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-6">Useful tools to help you find the best flight deals</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3"><TrendingUp className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Track Prices &amp; Get AI Advice</CardTitle></div>
-                <CardDescription className="text-xs text-muted-foreground pt-1">Monitor flight prices and get AI insights.</CardDescription>
+          <Card className={cn(glassCardClasses, "border-accent/30")}>
+            <Tabs defaultValue="tracker" className="w-full">
+              <CardHeader>
+                <TabsList className={cn("grid w-full grid-cols-1 sm:grid-cols-3", "glass-pane")}>
+                  <TabsTrigger value="tracker">Price Tracker</TabsTrigger>
+                  <TabsTrigger value="date-grid">Date Grid</TabsTrigger>
+                  <TabsTrigger value="price-graph">Price Graph</TabsTrigger>
+                </TabsList>
               </CardHeader>
-              <CardContent className="flex-grow space-y-3 mt-2">
-                <div><Label htmlFor="track-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={trackOriginInputRef} id="track-origin" value={trackOrigin} onChange={e => setTrackOrigin(e.target.value)} placeholder="e.g., New York" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                <div><Label htmlFor="track-dest" className="text-xs text-muted-foreground">Destination</Label><Input ref={trackDestinationInputRef} id="track-dest" value={trackDestination} onChange={e => setTrackDestination(e.target.value)} placeholder="e.g., London" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                <div><Label htmlFor="track-dates" className="text-xs text-muted-foreground">Travel Dates (Optional)</Label><Input id="track-dates" value={trackTravelDates} onChange={e => setTrackTravelDates(e.target.value)} placeholder="e.g., Mid-December" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Label htmlFor="track-target-price" className="text-xs text-muted-foreground">Target Price ($)</Label><Input id="track-target-price" type="number" value={trackTargetPrice} onChange={e => setTrackTargetPrice(e.target.value)} placeholder="e.g., 300" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                  <div><Label htmlFor="track-current-price" className="text-xs text-muted-foreground">Current Price ($)</Label><Input id="track-current-price" type="number" value={trackCurrentConceptualPrice} onChange={e => setTrackCurrentConceptualPrice(e.target.value)} placeholder="e.g., 350" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                </div>
-                {trackPriceAiAdvice && (
-                  <Alert variant="default" className="p-2.5 text-xs border-accent/50 bg-accent/10 text-card-foreground">
-                    <Sparkles className="h-4 w-4 text-accent" />
-                    <ShadcnAlertTitle className="text-xs font-semibold text-accent mb-0.5">AI Advice</ShadcnAlertTitle>
-                    <ShadcnAlertDescription className="text-xs">{trackPriceAiAdvice}</ShadcnAlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  onClick={handleTrackPriceAndGetAdvice} 
-                  className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} 
-                  disabled={isTrackingPrice || !currentUser || authLoading || trackOrigin.trim() === '' || trackDestination.trim() === '' || trackTargetPrice.trim() === '' || trackCurrentConceptualPrice.trim() === ''}
-                >
-                  {isTrackingPrice || authLoading ? <Loader2 className="animate-spin"/> : <CheckCircle />}
-                  {isTrackingPrice ? "Processing..." : (authLoading ? "Authenticating..." : "Track & Get Advice")}
-                </Button>
-              </CardFooter>
-            </Card>
-
-            
-            <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3"><Grid2X2 className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Date Grid</CardTitle></div>
-                <CardDescription className="text-xs text-muted-foreground pt-1">AI insights on price variations across dates.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow space-y-3 mt-2">
-                <div><Label htmlFor="date-grid-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={dateGridOriginInputRef} id="date-grid-origin" value={dateGridOrigin} onChange={e => setDateGridOrigin(e.target.value)} placeholder="e.g., Los Angeles" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                <div><Label htmlFor="date-grid-dest" className="text-xs text-muted-foreground">Destination</Label><Input ref={dateGridDestinationInputRef} id="date-grid-dest" value={dateGridDestination} onChange={e => setDateGridDestination(e.target.value)} placeholder="e.g., Tokyo" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                <div><Label htmlFor="date-grid-month" className="text-xs text-muted-foreground">Month to Explore</Label><Input id="date-grid-month" value={dateGridMonth} onChange={e => setDateGridMonth(e.target.value)} placeholder="e.g., December 2024" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                {isLoadingDateGrid && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-accent mx-auto" /></div>}
-                {dateGridResult && (
-                  <div className={cn("p-3 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-2", innerGlassEffectClasses)}>
-                    <p className="font-semibold text-card-foreground">AI Date Insights:</p>
-                    <p className="italic text-muted-foreground">{dateGridResult.gridSummary}</p>
-                    {dateGridResult.datePricePoints && dateGridResult.datePricePoints.length > 0 && (
-                      <div className={cn("p-2 rounded-md", innerGlassEffectClasses, "border-primary/20")}>
-                        <Calendar
-                            month={dateGridCalendarMonth}
-                            onMonthChange={setDateGridCalendarMonth}
-                            showOutsideDays={false}
-                            components={{ Day: CustomDayContent }}
-                         />
+              <CardContent className="space-y-4">
+                <TabsContent value="tracker" className="space-y-6">
+                  <Card className={cn(glassCardClasses, "flex flex-col")}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3"><TrendingUp className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Track Prices &amp; Get AI Advice</CardTitle></div>
+                      <CardDescription className="text-xs text-muted-foreground pt-1">Add a flight to your tracker to monitor its price and get AI insights.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-3 mt-2">
+                      <div><Label htmlFor="track-origin" className="text-xs text-muted-foreground">Origin *</Label><Input ref={trackOriginInputRef} id="track-origin" value={trackOrigin} onChange={e => setTrackOrigin(e.target.value)} placeholder="e.g., New York" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      <div><Label htmlFor="track-dest" className="text-xs text-muted-foreground">Destination *</Label><Input ref={trackDestinationInputRef} id="track-dest" value={trackDestination} onChange={e => setTrackDestination(e.target.value)} placeholder="e.g., London" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      <div><Label htmlFor="track-dates" className="text-xs text-muted-foreground">Travel Dates (Optional)</Label><Input id="track-dates" value={trackTravelDates} onChange={e => setTrackTravelDates(e.target.value)} placeholder="e.g., Mid-December" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><Label htmlFor="track-target-price" className="text-xs text-muted-foreground">Target Price ($) *</Label><Input id="track-target-price" type="number" value={trackTargetPrice} onChange={e => setTrackTargetPrice(e.target.value)} placeholder="e.g., 300" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                        <div><Label htmlFor="track-current-price" className="text-xs text-muted-foreground">Current Price ($) *</Label><Input id="track-current-price" type="number" value={trackCurrentConceptualPrice} onChange={e => setTrackCurrentConceptualPrice(e.target.value)} placeholder="e.g., 350" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handleGetDateGridInsights} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isLoadingDateGrid}>
-                   {isLoadingDateGrid ? <Loader2 className="animate-spin"/> : <Sparkles />}
-                  Get Date Insights
-                </Button>
-              </CardFooter>
-            </Card>
+                      {trackPriceAiAdvice && (
+                        <Alert variant="default" className="p-2.5 text-xs border-accent/50 bg-accent/10 text-card-foreground">
+                          <Sparkles className="h-4 w-4 text-accent" />
+                          <ShadcnAlertTitle className="text-xs font-semibold text-accent mb-0.5">AI Advice</ShadcnAlertTitle>
+                          <ShadcnAlertDescription className="text-xs">{trackPriceAiAdvice}</ShadcnAlertDescription>
+                        </Alert>
+                      )}
+                    </CardContent>
+                    <CardFooter>
+                      <Button 
+                        onClick={handleTrackPriceAndGetAdvice} 
+                        className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} 
+                        disabled={isTrackingPrice || !currentUser || authLoading || trackOrigin.trim() === '' || trackDestination.trim() === '' || trackTargetPrice.trim() === '' || trackCurrentConceptualPrice.trim() === ''}
+                      >
+                        {isTrackingPrice || authLoading ? <Loader2 className="animate-spin"/> : <CheckCircle />}
+                        {isTrackingPrice ? "Processing..." : (authLoading ? "Authenticating..." : "Track & Get Advice")}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                  <Separator className="my-6"/>
+                  <h3 className="text-lg font-semibold text-card-foreground mb-4">Your Tracked Flights</h3>
+                  <PriceTrackerList/>
+                </TabsContent>
 
-            
-            <Card className={cn(glassCardClasses, "flex flex-col border-accent/30")}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3"><PieChart className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Price Graph</CardTitle></div>
-                <CardDescription className="text-xs text-muted-foreground pt-1">AI insights on price trends.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow space-y-3 mt-2">
-                <div><Label htmlFor="price-graph-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={priceGraphOriginInputRef} id="price-graph-origin" value={priceGraphOrigin} onChange={e => setPriceGraphOrigin(e.target.value)} placeholder="e.g., London" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                <div><Label htmlFor="price-graph-dest" className="text-xs text-muted-foreground">Destination</Label><Input ref={priceGraphDestinationInputRef} id="price-graph-dest" value={priceGraphDestination} onChange={e => setPriceGraphDestination(e.target.value)} placeholder="e.g., Rome" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                <div><Label htmlFor="price-graph-dates" className="text-xs text-muted-foreground">Travel Dates Hint</Label><Input id="price-graph-dates" value={priceGraphDatesHint} onChange={e => setPriceGraphDatesHint(e.target.value)} placeholder="e.g., Next 3 months" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
-                {isLoadingPriceGraph && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-accent mx-auto" /></div>}
-                {priceGraphResult && (
-                   <div className={cn("p-3 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-2", innerGlassEffectClasses)}>
-                    <p className="font-semibold text-card-foreground">AI Price Trend Insights:</p>
-                    <p className="italic text-muted-foreground mb-2">{priceGraphResult.trendDescription}</p>
-                     {priceGraphResult.conceptualDataPoints && priceGraphResult.conceptualDataPoints.length > 0 ? (
-                      <ChartContainer config={priceGraphChartConfig} className="min-h-[200px] w-full">
-                        <LineChart data={priceGraphResult.conceptualDataPoints.map(dp => ({ timeframe: dp.timeframe, priceLevel: priceIndicatorToNumericForGraph(dp.relativePriceIndicator), originalIndicator: dp.relativePriceIndicator }))}
-                         margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.4)" />
-                          <XAxis dataKey="timeframe" tickLine={false} axisLine={false} tickMargin={8} className="text-[0.65rem]" />
-                          <YAxis dataKey="priceLevel" type="number" domain={[0, 8]} ticks={[1,2,3,4,5,6,7]} tickFormatter={yAxisTickFormatter} tickLine={false} axisLine={false} tickMargin={8} className="text-[0.65rem]" />
-                          <RechartsTooltip
-                              cursor={false}
-                              content={<ChartTooltipContent 
-                                          indicator="line" 
-                                          labelKey="priceLevel" 
-                                          nameKey="timeframe" 
-                                          formatter={(value, name, props) => {
-                                              const payloadItem = props.payload?.[0]?.payload;
-                                              if (payloadItem) {
-                                                  return (
-                                                      <div className="text-xs">
-                                                          <p className="font-semibold">{payloadItem.timeframe}</p>
-                                                          <p>Relative Price: {payloadItem.originalIndicator}</p>
-                                                      </div>
-                                                  );
-                                              }
-                                              return null;
-                                          }}
-                                      />} 
-                          />
-                          <Line type="monotone" dataKey="priceLevel" stroke="var(--color-priceLevel)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--color-priceLevel)" }} activeDot={{ r: 6 }} />
-                        </LineChart>
-                      </ChartContainer>
-                    ) : (
-                      <p className="text-muted-foreground text-center">No trend data points to display.</p>
-                    )}
-                  </div>
-                )}
+                <TabsContent value="date-grid">
+                  <Card className={cn(glassCardClasses, "flex flex-col")}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3"><Grid2X2 className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Date Grid</CardTitle></div>
+                      <CardDescription className="text-xs text-muted-foreground pt-1">AI insights on price variations across dates.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-3 mt-2">
+                      <div><Label htmlFor="date-grid-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={dateGridOriginInputRef} id="date-grid-origin" value={dateGridOrigin} onChange={e => setDateGridOrigin(e.target.value)} placeholder="e.g., Los Angeles" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      <div><Label htmlFor="date-grid-dest" className="text-xs text-muted-foreground">Destination</Label><Input ref={dateGridDestinationInputRef} id="date-grid-dest" value={dateGridDestination} onChange={e => setDateGridDestination(e.target.value)} placeholder="e.g., Tokyo" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      <div><Label htmlFor="date-grid-month" className="text-xs text-muted-foreground">Month to Explore</Label><Input id="date-grid-month" value={dateGridMonth} onChange={e => setDateGridMonth(e.target.value)} placeholder="e.g., December 2024" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      {isLoadingDateGrid && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-accent mx-auto" /></div>}
+                      {dateGridResult && (
+                        <div className={cn("p-3 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-2", innerGlassEffectClasses)}>
+                          <p className="font-semibold text-card-foreground">AI Date Insights:</p>
+                          <p className="italic text-muted-foreground">{dateGridResult.gridSummary}</p>
+                          {dateGridResult.datePricePoints && dateGridResult.datePricePoints.length > 0 && (
+                            <div className={cn("p-2 rounded-md", innerGlassEffectClasses, "border-primary/20")}>
+                              <Calendar
+                                  month={dateGridCalendarMonth}
+                                  onMonthChange={setDateGridCalendarMonth}
+                                  showOutsideDays={false}
+                                  components={{ Day: CustomDayContent }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={handleGetDateGridInsights} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isLoadingDateGrid}>
+                        {isLoadingDateGrid ? <Loader2 className="animate-spin"/> : <Sparkles />}
+                        Get Date Insights
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="price-graph">
+                  <Card className={cn(glassCardClasses, "flex flex-col")}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3"><PieChart className="w-8 h-8 text-accent" /><CardTitle className="text-lg text-card-foreground">Conceptual Price Graph</CardTitle></div>
+                      <CardDescription className="text-xs text-muted-foreground pt-1">AI insights on price trends.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-3 mt-2">
+                      <div><Label htmlFor="price-graph-origin" className="text-xs text-muted-foreground">Origin</Label><Input ref={priceGraphOriginInputRef} id="price-graph-origin" value={priceGraphOrigin} onChange={e => setPriceGraphOrigin(e.target.value)} placeholder="e.g., London" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      <div><Label htmlFor="price-graph-dest" className="text-xs text-muted-foreground">Destination</Label><Input ref={priceGraphDestinationInputRef} id="price-graph-dest" value={priceGraphDestination} onChange={e => setPriceGraphDestination(e.target.value)} placeholder="e.g., Rome" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      <div><Label htmlFor="price-graph-dates" className="text-xs text-muted-foreground">Travel Dates Hint</Label><Input id="price-graph-dates" value={priceGraphDatesHint} onChange={e => setPriceGraphDatesHint(e.target.value)} placeholder="e.g., Next 3 months" className="mt-0.5 bg-input/50 border-border/50 h-9 text-sm" /></div>
+                      {isLoadingPriceGraph && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-accent mx-auto" /></div>}
+                      {priceGraphResult && (
+                        <div className={cn("p-3 mt-2 rounded-md border border-border/40 bg-background/30 text-xs space-y-2", innerGlassEffectClasses)}>
+                          <p className="font-semibold text-card-foreground">AI Price Trend Insights:</p>
+                          <p className="italic text-muted-foreground mb-2">{priceGraphResult.trendDescription}</p>
+                          {priceGraphResult.conceptualDataPoints && priceGraphResult.conceptualDataPoints.length > 0 ? (
+                            <ChartContainer config={priceGraphChartConfig} className="min-h-[200px] w-full">
+                              <LineChart data={priceGraphResult.conceptualDataPoints.map(dp => ({ timeframe: dp.timeframe, priceLevel: priceIndicatorToNumericForGraph(dp.relativePriceIndicator), originalIndicator: dp.relativePriceIndicator }))}
+                              margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border)/0.4)" />
+                                <XAxis dataKey="timeframe" tickLine={false} axisLine={false} tickMargin={8} className="text-[0.65rem]" />
+                                <YAxis dataKey="priceLevel" type="number" domain={[0, 8]} ticks={[1,2,3,4,5,6,7]} tickFormatter={yAxisTickFormatter} tickLine={false} axisLine={false} tickMargin={8} className="text-[0.65rem]" />
+                                <RechartsTooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent 
+                                                indicator="line" 
+                                                labelKey="priceLevel" 
+                                                nameKey="timeframe" 
+                                                formatter={(value, name, props) => {
+                                                    const payloadItem = props.payload?.[0]?.payload;
+                                                    if (payloadItem) {
+                                                        return (
+                                                            <div className="text-xs">
+                                                                <p className="font-semibold">{payloadItem.timeframe}</p>
+                                                                <p>Relative Price: {payloadItem.originalIndicator}</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
+                                            />} 
+                                />
+                                <Line type="monotone" dataKey="priceLevel" stroke="var(--color-priceLevel)" strokeWidth={2.5} dot={{ r: 4, fill: "var(--color-priceLevel)" }} activeDot={{ r: 6 }} />
+                              </LineChart>
+                            </ChartContainer>
+                          ) : (
+                            <p className="text-muted-foreground text-center">No trend data points to display.</p>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={handleGetPriceTrendInsights} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isLoadingPriceGraph}>
+                        {isLoadingPriceGraph ? <Loader2 className="animate-spin"/> : <Sparkles />}
+                        Get Trend Insights
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
               </CardContent>
-              <CardFooter>
-                <Button onClick={handleGetPriceTrendInsights} className={cn("w-full glass-interactive py-2 text-sm", prominentButtonClassesSm)} disabled={isLoadingPriceGraph}>
-                  {isLoadingPriceGraph ? <Loader2 className="animate-spin"/> : <Sparkles />}
-                  Get Trend Insights
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
+            </Tabs>
+          </Card>
         </section>
       )}
 
