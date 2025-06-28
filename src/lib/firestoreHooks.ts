@@ -33,11 +33,12 @@ export function useSavedTrips() {
       } catch (e: any) { 
         if (e.code === 'permission-denied') {
           // This can happen during auth state changes. Return empty to avoid crash and console error.
+          console.warn("[useSavedTrips] Permission denied. This may be due to auth state change. Silently failing.");
           return []; 
         }
         // For other errors, it might be useful to log them but still return empty to avoid crashing UI.
         console.error("[useSavedTrips] Unexpected Firestore error: ", e);
-        return [];
+        throw e; // Re-throw other errors so react-query can handle them
       }
     },
     enabled: !authLoading && !!currentUser,
@@ -189,6 +190,7 @@ export function useTrackedItems() {
         return querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
       } catch (e: any) {
         if (e.code === 'permission-denied') {
+          console.warn("[useTrackedItems] Permission denied. This may be due to auth state change. Silently failing.");
           return [];
         }
         console.error("[useTrackedItems] Unexpected Firestore error: ", e);
@@ -210,9 +212,19 @@ export function useAddTrackedItem() {
       try {
         const user = auth.currentUser;
         if (!user?.uid) throw new Error("User not authenticated");
+
+        // Defensively remove any keys with undefined values
+        const dataToSave = { ...newItemData };
+        Object.keys(dataToSave).forEach(keyStr => {
+            const key = keyStr as keyof typeof dataToSave;
+            if (dataToSave[key] === undefined) {
+                delete dataToSave[key];
+            }
+        });
+        
         const itemsCollectionRef = collection(firestore, 'users', user.uid, 'trackedItems');
         const docRef = await addDoc(itemsCollectionRef, {
-          ...newItemData,
+          ...dataToSave,
           lastChecked: new Date().toISOString(),
           createdAt: serverTimestamp(),
         });
@@ -221,12 +233,16 @@ export function useAddTrackedItem() {
         if (e.code === 'permission-denied') {
           throw new Error("Permission denied. Your session might be initializing, please try again.");
         }
+        console.error("Firestore addDoc error:", e);
         throw e;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TRACKED_ITEMS_QUERY_KEY, currentUser?.uid] });
     },
+    onError: (error) => {
+      console.error("[useAddTrackedItem] Mutation Error:", error);
+    }
   });
 }
 
@@ -388,6 +404,7 @@ export function useSearchHistory(count: number = 20) {
         });
       } catch (e: any) {
         if (e.code === 'permission-denied') {
+          console.warn("[useSearchHistory] Permission denied. This may be due to auth state change. Silently failing.");
           return [];
         }
         console.error("[useSearchHistory] Unexpected Firestore error: ", e);
@@ -518,6 +535,7 @@ export function useGetUserTravelPersona() {
         return null;
       } catch (e: any) {
         if (e.code === 'permission-denied') {
+          console.warn("[useGetUserTravelPersona] Permission denied. This may be due to auth state change. Silently failing.");
           return null;
         }
         console.error("[useGetUserTravelPersona] Unexpected Firestore error: ", e);
@@ -673,3 +691,5 @@ export function useAddSavedPackage() {
     }
   });
 }
+
+    
