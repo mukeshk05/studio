@@ -87,15 +87,16 @@ export function PriceTrackerForm() {
       const newItemData = {
         itemType: values.itemType,
         itemName: values.itemName,
-        originCity: values.itemType === 'flight' ? values.originCity : undefined,
-        destination: values.destination,
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
-        travelDates: values.travelDates || undefined,
+        ...(values.itemType === 'flight' && values.originCity && { originCity: values.originCity }),
+        ...(values.destination && { destination: values.destination }),
+        ...(values.travelDates && { travelDates: values.travelDates }),
       };
 
       await addTrackedItemMutation.mutateAsync(
-        // @ts-ignore
+        // @ts-ignore - This is acceptable here as we're dynamically adding properties
+        // before passing to the mutation, which itself prepares the final Firestore object.
         {...newItemData, alertStatus: alertResult}
       );
 
@@ -299,4 +300,3 @@ export function PriceTrackerForm() {
     </Card>
   );
 }
-
