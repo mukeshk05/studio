@@ -32,24 +32,30 @@ import { formatDistanceToNow } from 'date-fns';
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
 
-function QuizHistoryCard({ result, onDelete }: { result: QuizResult, onDelete: (id: string) => void }) {
+function QuizHistoryCard({ result, onDelete, onView }: { result: QuizResult; onDelete: (id: string) => void; onView: () => void; }) {
   const mainSuggestion = result.suggestions.suggestions[0];
   return (
-    <Card className={cn(glassCardClasses, "border-border/30 w-full")}>
-      <CardHeader className="pb-2">
+     <Card 
+      className={cn(glassCardClasses, "border-border/30 w-full group transition-all hover:border-primary/40 cursor-pointer")}
+      onClick={onView}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onView(); }}
+      tabIndex={0}
+      role="button"
+    >
+      <CardHeader className="pb-2 pt-3">
         <div className="flex justify-between items-start">
             <div>
-                <CardTitle className="text-sm font-semibold text-card-foreground">{mainSuggestion.name}</CardTitle>
+                <CardTitle className="text-sm font-semibold text-card-foreground group-hover:text-primary transition-colors">{mainSuggestion.name}</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
                     Submitted {formatDistanceToNow(new Date(result.createdAt?.toDate?.() || result.createdAt), { addSuffix: true })}
                 </CardDescription>
             </div>
-            <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive hover:bg-destructive/10" onClick={() => onDelete(result.id)}>
+            <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive hover:bg-destructive/10 z-10" onClick={(e) => { e.stopPropagation(); onDelete(result.id); }}>
                 <Trash2 className="w-4 h-4"/>
             </Button>
         </div>
       </CardHeader>
-      <CardContent className="text-xs text-muted-foreground space-y-1">
+      <CardContent className="text-xs text-muted-foreground space-y-1 pb-3">
         <p className="font-medium text-card-foreground/90">Your Answers:</p>
         <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
             <p><strong className="capitalize">{result.answers.pace}:</strong> Pace</p>
@@ -58,6 +64,7 @@ function QuizHistoryCard({ result, onDelete }: { result: QuizResult, onDelete: (
             <p><strong className="capitalize">{result.answers.company}:</strong> Company</p>
             <p className="col-span-2"><strong className="capitalize">{result.answers.interest.replace(/-/g, ' ')}:</strong> Interest</p>
         </div>
+        <p className="text-xs text-right text-primary/70 italic pt-2">Click to view full AI results</p>
       </CardContent>
     </Card>
   );
@@ -152,6 +159,11 @@ export default function AdventureQuizPage() {
         }
       });
     }
+  };
+
+  const handleViewHistory = (result: QuizResult) => {
+    setAiSuggestions(result.suggestions.suggestions);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const prominentButtonClasses = "text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
@@ -266,7 +278,12 @@ export default function AdventureQuizPage() {
             ) : quizHistory && quizHistory.length > 0 ? (
                 <div className="space-y-4">
                     {quizHistory.map(result => (
-                       <QuizHistoryCard key={result.id} result={result} onDelete={handleDeleteClick} />
+                       <QuizHistoryCard 
+                          key={result.id} 
+                          result={result} 
+                          onDelete={handleDeleteClick} 
+                          onView={() => handleViewHistory(result)}
+                        />
                     ))}
                 </div>
             ) : (
