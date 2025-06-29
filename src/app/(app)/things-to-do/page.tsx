@@ -26,7 +26,7 @@ import {
   Search, Sparkles, Loader2, Map as LucideMap, Compass, DollarSign, Tag, ImageOff, Info, ExternalLink, X, MapPin, Briefcase, User
 } from 'lucide-react'; // Added User for geo error
 import { useToast } from '@/hooks/use-toast';
-import { getThingsToDoAction } from '@/app/actions';
+import { getThingsToDoAction } from '@/app/actions/destination';
 import type { ThingsToDoSearchInput, ActivitySuggestion } from '@/ai/types/things-to-do-types';
 
 const glassCardClasses = "glass-card bg-card/80 dark:bg-card/50 backdrop-blur-lg border-border/20";
@@ -564,4 +564,5 @@ export default function ThingsToDoPage() {
     </>
   );
 }
+
 

@@ -76,14 +76,10 @@ import {
 import { format, addDays, isValid, parseISO } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  getPopularDestinations, 
-  getRealFlightsAction, 
-  getAiFlightMapDealsAction, 
-  getPriceAdviceAction,
-  getConceptualDateGridAction,
-  getConceptualPriceGraphAction
-} from '@/app/actions';
+import { getPopularDestinations, getAiFlightMapDealsAction } from '@/app/actions/suggestions';
+import { getRealFlightsAction } from '@/app/actions/data';
+import { getPriceAdviceAction } from '@/app/actions/price';
+import { getConceptualDateGridAction, getConceptualPriceGraphAction } from '@/app/actions/insights';
 import type { PopularDestinationsInput, AiDestinationSuggestion } from '@/ai/types/popular-destinations-types';
 import type { AiFlightMapDealSuggestion, AiFlightMapDealOutput, AiFlightMapDealInput } from '@/ai/types/ai-flight-map-deals-types';
 import type { SerpApiFlightSearchInput, SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiFlightLeg } from '@/ai/types/serpapi-flight-search-types'; 

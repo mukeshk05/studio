@@ -50,7 +50,7 @@ import {
 import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { getRealHotelsAction } from '@/app/actions';
+import { getRealHotelsAction } from '@/app/actions/data';
 // Removed import for AiHotelSearchInput as it's no longer used for the primary search
 import type { SerpApiHotelSearchInput, SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types'; // Should use this
 import { cn } from '@/lib/utils';

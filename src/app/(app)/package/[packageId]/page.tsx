@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAddSavedPackage } from '@/lib/firestoreHooks';
 import { useToast } from '@/hooks/use-toast';
-import { getLocalInsiderTips } from '@/app/actions';
+import { getLocalInsiderTips } from '@/app/actions/destination';
 import type { LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-flow';
 import { LocalInsiderTipsDisplay } from '@/components/common/LocalInsiderTipsDisplay';
 import { Separator } from '@/components/ui/separator';

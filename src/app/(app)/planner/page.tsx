@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AITripPlannerInput, AITripPlannerOutput, UserPersona } from "@/ai/types/trip-planner-types";
 import { aiTripPlanner } from "@/ai/flows/ai-trip-planner";
-import { getCoTravelAgentResponse, getIataCodeAction, generateMultipleImagesAction, getRealFlightsAction, getRealHotelsAction, getThingsToDoAction } from "@/app/actions"; // Added getThingsToDoAction
+import { getCoTravelAgentResponse } from "@/app/actions/advancedAi";
+import { getIataCodeAction, getRealFlightsAction, getRealHotelsAction } from "@/app/actions/data";
+import { generateMultipleImagesAction } from "@/app/actions/images";
+import { getThingsToDoAction } from "@/app/actions/destination";
 import type { Itinerary, SearchHistoryEntry, SerpApiFlightOption, SerpApiHotelSuggestion, TripPackageSuggestion, ActivitySuggestion } from "@/lib/types"; // Added ActivitySuggestion
 import { TripPlannerInputSheet } from "@/components/trip-planner/TripPlannerInputSheet";
 import { ChatMessageCard } from "@/components/trip-planner/ChatMessageCard";

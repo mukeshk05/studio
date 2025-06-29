@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Search, Plane, Hotel, Compass, Briefcase, MapPin, ImageOff, Loader2, Sparkles, Building, Route, Info, ExternalLink, Mountain, FerrisWheel, Palette, Utensils, AlertTriangle, X, LocateFixed, Lightbulb } from 'lucide-react';
-import { getPopularDestinations, getExploreIdeasAction } from '@/app/actions'; // Added getExploreIdeasAction
+import { getPopularDestinations, getExploreIdeasAction } from '@/app/actions/suggestions'; // Updated import
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { ExploreIdeaSuggestion, ExploreIdeasOutput } from '@/ai/types/explore-ideas-types'; // New types
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
@@ -753,13 +753,11 @@ export default function ExplorePage() {
           </h2>
           <Card className={cn(glassCardClasses, "h-[500px] p-2 border-primary/20")}>
              {mapsApiError && (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-destructive/10 text-destructive-foreground p-4 rounded-md">
-                    <AlertTriangle className="w-12 h-12 mb-3"/> <p className="font-semibold text-lg">Map Error</p> <p className="text-sm text-center">{mapsApiError}</p>
-                </div>
+                <div className="w-full h-full flex flex-col items-center justify-center bg-destructive/10 text-destructive-foreground p-3 rounded-md"><AlertTriangle className="w-10 h-10 mb-2"/><p className="font-semibold">Map Error</p><p className="text-xs text-center">{mapsApiError}</p></div>
             )}
             {(!mapsApiError && (isMapInitializing || (isFetchingLocation && !map) )) && (
                  <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
-                    <Loader2 className="w-10 h-10 animate-spin mb-3 text-primary"/> <p className="text-sm">{isFetchingLocation ? "Getting your location..." : "Initializing Modern Map..."}</p>
+                    <Loader2 className="w-10 h-10 animate-spin mb-3 text-primary"/><p className="text-sm">{isFetchingLocation ? "Getting your location..." : "Initializing Modern Map..."}</p>
                 </div>
             )}
             <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing || (isFetchingLocation && !map)) ? "hidden" : "")} />
@@ -976,4 +974,5 @@ const modernMapStyle = [
     { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
     { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
 ];
+
 
