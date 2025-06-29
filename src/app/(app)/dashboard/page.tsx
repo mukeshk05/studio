@@ -3,12 +3,12 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles, Briefcase, DollarSign, MessageCircleQuestion, ConciergeBell, Bot } from 'lucide-react';
+import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,30 +19,6 @@ import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useRouter } from 'next/navigation';
 import { onForegroundMessageListener } from "@/lib/firebaseMessaging";
 import { NotificationSettings } from "@/components/dashboard/NotificationSettings";
-import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder";
-import { AuthenticityVerifierPlaceholder } from "@/components/dashboard/AuthenticityVerifierPlaceholder";
-import { LocalInsiderTipsCard } from "@/components/dashboard/LocalInsiderTipsCard";
-import { SmartPackingListCard } from "@/components/dashboard/SmartPackingListCard"; // New Import
-import { InteractiveMapPlaceholder } from "@/components/dashboard/InteractiveMapPlaceholder";
-import { WhatIfSimulatorPlaceholder } from "@/components/dashboard/WhatIfSimulatorPlaceholder";
-import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder"; 
-import { AiChatInteractionCard } from "@/components/dashboard/AiChatInteractionCard"; 
-import { MoodEnergyOptimizerCard } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
-import { AiCalendarSyncCard } from "@/components/dashboard/AiCalendarSyncPlaceholder";
-import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/HyperLocalLanguageCoachPlaceholder";
-import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTwinExplorerPlaceholder";
-import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder";
-import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
-import { PersonalizedAccessibilityScoutCard } from "@/components/dashboard/PersonalizedAccessibilityScoutPlaceholder";
-import { LocalLegendNarratorCard } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
-import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
-import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
-import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
-import { DynamicItineraryOptimizerPlaceholder } from "@/components/dashboard/DynamicItineraryOptimizerPlaceholder";
-import { SmartBudgetingAssistantPlaceholder } from "@/components/dashboard/SmartBudgetingAssistantPlaceholder";
-import { AiRiskScenarioSimulatorCard } from "@/components/dashboard/AiRiskScenarioSimulatorCard";
-import { WhatIfPlanChangeCard } from "@/components/dashboard/WhatIfPlanChangeCard";
-import { ProactiveJourneySentinelCard } from "@/components/dashboard/ProactiveJourneySentinelCard";
 
 
 export default function DashboardPage() {
@@ -191,154 +167,9 @@ export default function DashboardPage() {
         <div className={cn("lg:col-span-2", "animate-fade-in-up", "glass-card")} style={{animationDelay: '0.2s'}}>
             <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
         </div>
-        
-        <Card className={cn("lg:col-span-3", "glass-card", "animate-fade-in-up", "border-amber-500/30 hover:border-amber-400/50 transition-all")} style={{animationDelay: '0.22s'}}>
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg text-card-foreground">
-              <Sparkles className="w-6 h-6 mr-2 text-amber-400" />
-              Unlock BudgetRoam Premium! (Conceptual)
-            </CardTitle>
-            <CardDescription className="text-muted-foreground pt-1">
-              Supercharge your travel planning with exclusive AI features and benefits.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc list-inside space-y-1 text-sm text-card-foreground/90 mb-4 pl-2">
-              <li>Unlimited AI-powered itinerary generations.</li>
-              <li>Advanced price tracking alerts for multiple flights & hotels.</li>
-              <li>Priority access to new AI features (like AR Previews & Ethical Audits).</li>
-              <li>Ad-free experience across the platform.</li>
-              <li>Enhanced group planning tools with AI synthesis.</li>
-            </ul>
-             <p className="text-xs text-muted-foreground italic mb-3">
-                Secure payment processing via Stripe/PayPal would be integrated here.
-              </p>
-            <Button size="lg" className="w-full text-lg py-3 shadow-md shadow-amber-400/30 hover:shadow-lg hover:shadow-amber-400/40 bg-amber-500 hover:bg-amber-600 text-white" disabled>
-              <DollarSign className="mr-2"/> Upgrade to Premium (Coming Soon)
-            </Button>
-          </CardContent>
-           <CardFooter>
-            <p className="text-xs text-muted-foreground text-center w-full">
-              Full payment integration with Stripe/PayPal is a future enhancement.
-            </p>
-          </CardFooter>
-        </Card>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.23s'}}>
-          <ProactiveJourneySentinelCard />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.24s'}}>
-          <SmartPackingListCard />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.25s'}}>
-          <LocalInsiderTipsCard />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.28s'}}>
-          <SmartBudgetingAssistantPlaceholder />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.3s'}}>
-          <SerendipityEnginePlaceholder />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.35s'}}>
-          <AuthenticityVerifierPlaceholder />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.4s'}}>
-          <InteractiveMapPlaceholder />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.45s'}}>
-          <WhatIfSimulatorPlaceholder />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.48s'}}>
-          <AiRiskScenarioSimulatorCard />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.49s'}}>
-          <WhatIfPlanChangeCard />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.5s'}}>
-          <AiArPreviewPlaceholder />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.55s'}}>
-          <AiChatInteractionCard 
-            cardTitle="AI Co-Travel Agent (Aura)"
-            cardDescription="Ask Aura any travel-related question about your destination! (e.g., customs, tipping, local laws, phrases)."
-            icon={<MessageCircleQuestion className="w-6 h-6 mr-2 text-teal-400" />}
-            defaultDestinationPlaceholder="e.g., Paris, France"
-            cardBorderColorClass="border-teal-500/30"
-          />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.58s'}}>
-           <AiChatInteractionCard 
-            cardTitle="Aura In-Trip Concierge (Conceptual)"
-            cardDescription="Get real-time help during your travels. Ask for recommendations, directions, or local info. (Uses the same AI as Co-Travel Agent for this demo)"
-            icon={<ConciergeBell className="w-6 h-6 mr-2 text-indigo-400" />}
-            defaultDestinationPlaceholder="Your Current Destination"
-            cardBorderColorClass="border-indigo-500/30"
-          />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.6s'}}>
-          <MoodEnergyOptimizerCard />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.65s'}}>
-          <AiCalendarSyncCard />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.7s'}}>
-          <HyperLocalLanguageCoachPlaceholder />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.75s'}}>
-          <DigitalTwinExplorerPlaceholder />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.8s'}}>
-          <AffectiveComputingPlaceholder />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.85s'}}>
-          <EthicalImpactAuditorPlaceholder />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.88s'}}>
-          <DynamicItineraryOptimizerPlaceholder />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.9s'}}>
-          <PersonalizedAccessibilityScoutCard />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.95s'}}>
-          <LocalLegendNarratorCard />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.0s'}}>
-          <PostTripSynthesizerCard />
-        </div>
-
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.05s'}}>
-          <AiItineraryAssistanceCard />
-        </div>
-        
-        <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '1.1s'}}>
-          <VisualSearchPlaceholder />
-        </div>
-
       </div>
       
-      <div className="mb-8 animate-fade-in-up glass-card" style={{ animationDelay: '1.15s' }}>
+      <div className="mb-8 animate-fade-in-up glass-card" style={{ animationDelay: '0.3s' }}>
         <NotificationSettings />
       </div>
 
@@ -348,7 +179,7 @@ export default function DashboardPage() {
             "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
-          )} style={{animationDelay: '1.2s'}}>
+          )} style={{animationDelay: '0.4s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecks className="w-5 h-5" />
             My Saved Trips
@@ -359,7 +190,7 @@ export default function DashboardPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '1.25s'}}>
+        <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.45s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
           </TabsContent>
