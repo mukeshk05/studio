@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firestore, auth } from './firebase'; // Import auth
 import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId, Timestamp } from 'firebase/firestore';
-import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput } from './types';
+import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SerpApiFlightSearchOutput, SerpApiHotelSearchOutput } from '@/ai/types/serpapi-flight-search-types';
 
@@ -207,7 +207,7 @@ export function useAddTrackedItem() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
-  return useMutation<string, Error, Omit<PriceTrackerEntry, 'id' | 'lastChecked' | 'aiAdvice' | 'createdAt' | 'alertStatus' | 'priceForecast'>>({
+  return useMutation<string, Error, Partial<Omit<PriceTrackerEntry, 'id' | 'lastChecked' | 'createdAt'>>>({
     mutationFn: async (newItemData) => {
       try {
         const user = auth.currentUser;
@@ -692,4 +692,101 @@ export function useAddSavedPackage() {
   });
 }
 
-    
+// --- Quiz History Hooks ---
+const QUIZ_HISTORY_QUERY_KEY = 'quizHistory';
+
+// Hook to get quiz history
+export function useQuizHistory() {
+  const { currentUser, loading: authLoading } = useAuth();
+
+  return useQuery<QuizResult[], Error>({
+    queryKey: [QUIZ_HISTORY_QUERY_KEY, currentUser?.uid],
+    queryFn: async () => {
+      const user = auth.currentUser;
+      if (!user?.uid) {
+        return [];
+      }
+      try {
+        const historyCollectionRef = collection(firestore, 'users', user.uid, 'quizHistory');
+        const q = query(historyCollectionRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            let createdAtDate = new Date();
+            if (data.createdAt instanceof Timestamp) {
+                createdAtDate = data.createdAt.toDate();
+            } else if (data.createdAt) {
+                const parsed = new Date(data.createdAt);
+                if(!isNaN(parsed.getTime())) createdAtDate = parsed;
+            }
+          return { ...data, id: doc.id, createdAt: createdAtDate } as QuizResult
+        });
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          console.warn("[useQuizHistory] Permission denied, possibly during auth state change. Silently failing.");
+          return [];
+        }
+        console.error("[useQuizHistory] Unexpected Firestore error: ", e);
+        throw e;
+      }
+    },
+    enabled: !authLoading && !!currentUser,
+  });
+}
+
+// Hook to add a quiz result
+export function useAddQuizResult() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<string, Error, Omit<QuizResult, 'id' | 'createdAt' | 'userId'>>({
+    mutationFn: async (quizData) => {
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        
+        const historyCollectionRef = collection(firestore, 'users', user.uid, 'quizHistory');
+        const dataToSave = {
+          ...quizData,
+          userId: user.uid,
+          createdAt: serverTimestamp(),
+        };
+        const docRef = await addDoc(historyCollectionRef, dataToSave);
+        return docRef.id;
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUIZ_HISTORY_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+// Hook to remove a quiz result
+export function useRemoveQuizResult() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (quizResultId: string) => {
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const resultDocRef = doc(firestore, 'users', user.uid, 'quizHistory', quizResultId);
+        await deleteDoc(resultDocRef);
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUIZ_HISTORY_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}

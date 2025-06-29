@@ -4,6 +4,8 @@ import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOrigi
 import type { SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // This import is fine
 import type { ActivitySuggestion as ThingsToDoActivitySuggestion } from "@/ai/types/things-to-do-types"; // For suggested activities
 import { z } from 'zod';
+import type { AdventureQuizInput, AdventureMatcherOutput } from '@/ai/types/adventure-matcher-types';
+
 
 // This effectively takes the type of a single itinerary object from the array
 type SingleItineraryFromAI = AITripPlannerOutput["itineraries"][0];
@@ -86,6 +88,14 @@ export interface UserTravelPersona {
   lastUpdated: any;
 }
 
+export interface QuizResult {
+  id: string;
+  userId: string;
+  createdAt: any; // Firestore timestamp
+  answers: AdventureQuizInput;
+  suggestions: AdventureMatcherOutput;
+}
+
 
 export type { AITripPlannerOutput } from "@/ai/types/trip-planner-types";
 
@@ -125,4 +135,3 @@ export interface ConceptualDailyPlanItem {
   day: string;
   activities: string;
 }
-
