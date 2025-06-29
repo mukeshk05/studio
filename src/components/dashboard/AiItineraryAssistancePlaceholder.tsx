@@ -121,6 +121,8 @@ export function AiItineraryAssistanceCard() {
       setIsLoading(false);
     }
   };
+  
+  const prominentButtonClasses = "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
   return (
     <Card className={cn("glass-card w-full border-sky-500/30", "animate-fade-in-up")}>
@@ -168,7 +170,7 @@ export function AiItineraryAssistanceCard() {
           onClick={handleFetchAssistance}
           disabled={isLoading}
           size="lg"
-          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+          className={cn(prominentButtonClasses)}
         >
           {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           {assistanceData ? "Refresh Sample Suggestions" : "Get Sample Assistance"}

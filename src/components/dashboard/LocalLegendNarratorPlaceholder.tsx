@@ -67,6 +67,7 @@ export function LocalLegendNarratorCard() {
   
   const imageHint = legendData?.visualPrompt || (legendData?.legendTitle ? legendData.legendTitle.toLowerCase().split(" ").slice(0,2).join(" ") : "folklore story");
 
+  const prominentButtonClasses = "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
   return (
     <Card className={cn(glassCardClasses, "w-full border-yellow-500/30 animate-fade-in-up")}>
@@ -107,7 +108,7 @@ export function LocalLegendNarratorCard() {
           onClick={handleFetchLegend}
           disabled={isLoading || !destination.trim()}
           size="lg"
-          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+          className={cn(prominentButtonClasses)}
         >
           {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Uncover Local Legends
