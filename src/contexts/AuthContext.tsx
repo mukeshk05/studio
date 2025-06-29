@@ -119,7 +119,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error: any) {
       console.error("Logout error: ", error);
       toast({ title: "Logout Failed", description: error.message || "Could not log out.", variant: "destructive" });
-    } finally {
       // onAuthStateChanged will set loading to false, but we can do it here too just in case
       if (auth.currentUser === null) {
         setLoading(false);
