@@ -14,7 +14,7 @@ import {
   type ExploreIdeasOutput,
   ExploreIdeaSuggestionSchema,
 } from '@/ai/types/explore-ideas-types';
-import { getRecentUserSearchHistory } from '@/lib/firestoreHooks'; 
+import { getRecentUserSearchHistory } from '@/lib/firestoreServer'; 
 
 // Helper to generate an image for a single suggestion
 async function generateSuggestionImage(promptText: string | undefined, fallbackHint: string): Promise<string | null> {
@@ -116,7 +116,7 @@ export const exploreIdeasFromHistoryFlow = ai.defineFlow(
       console.error(`[ExploreIdeasFlow] Full error object:`, JSON.stringify(error, Object.getOwnPropertyNames(error))); // Log full error
       return { 
         suggestions: [], 
-        contextualNote: "Error EIFH1: Could not process search history within the AI flow. Check server logs for details." 
+        contextualNote: "Error EIFH1: Could not process search history. Check server logs for details." 
       };
     }
 
@@ -188,4 +188,6 @@ export const exploreIdeasFromHistoryFlow = ai.defineFlow(
 export async function getExploreIdeasFromHistory(input: ExploreIdeasFromHistoryInput): Promise<ExploreIdeasOutput> {
   return exploreIdeasFromHistoryFlow(input);
 }
+    
+
     

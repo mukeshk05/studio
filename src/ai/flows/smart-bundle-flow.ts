@@ -9,7 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getRecentUserSearchHistory, getUserTravelPersona } from '@/lib/firestoreHooks';
+import { getRecentUserSearchHistory, getUserTravelPersona } from '@/lib/firestoreServer';
 import {
   SmartBundleInputSchema,
   type SmartBundleInput,
@@ -189,3 +189,4 @@ export async function generateSmartBundles(input: SmartBundleInput): Promise<Sma
   return smartBundleFlow(input);
 }
 
+    

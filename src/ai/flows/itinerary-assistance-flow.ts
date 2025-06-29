@@ -7,7 +7,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { getUserTravelPersona } from '@/lib/firestoreHooks'; // Assuming this can be used server-side
+import { getUserTravelPersona } from '@/lib/firestoreServer'; // Assuming this can be used server-side
 import type { UserTravelPersona } from '@/lib/types';
 import {
   ItineraryAssistanceInputSchema,
@@ -178,3 +178,5 @@ export const itineraryAssistanceFlow = ai.defineFlow(
 export async function getItineraryAssistance(input: ItineraryAssistanceInput): Promise<ItineraryAssistanceOutput> {
   return itineraryAssistanceFlow(input);
 }
+
+    
