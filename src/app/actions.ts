@@ -67,7 +67,7 @@ import type { PriceForecastInput, PriceForecastOutput } from '@/ai/flows/price-f
 import { getTravelTip as getTravelTipOriginal } from '@/ai/flows/travel-tip-flow';
 import type { TravelTipInput, TravelTipOutput } from '@/ai/flows/travel-tip-flow';
 import { getLocalInsiderTips as getLocalInsiderTipsOriginal } from '@/ai/flows/local-insider-tips-flow';
-import type { LocalInsiderTipsInput, LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-flow';
+import type { LocalInsiderTipsInput, LocalInsiderTipsOutput } from '@/ai/flows/local-insider-tips-types';
 import { suggestHubAirportsFlow } from '@/ai/flows/suggest-hub-airports-flow';
 
 // Helper to normalize parts of cache keys
@@ -124,38 +124,62 @@ export async function getLandingPageImagesWithFallback(
 }
 
 export async function getPopularDestinations(input: PopularDestinationsInput): Promise<PopularDestinationsOutput> {
-  return popularDestinationsFlow(input);
+  try {
+    return await popularDestinationsFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getPopularDestinations failed:`, error);
+    return { 
+      destinations: [], 
+      contextualNote: "Sorry, we encountered an error while fetching destination ideas. Please try again later." 
+    };
+  }
 }
 
 export async function getExploreIdeasAction(input: ExploreIdeasFromHistoryInput): Promise<ExploreIdeasOutput> {
-  return getExploreIdeasFromHistoryFlow(input);
+  try {
+    return await getExploreIdeasFromHistoryFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getExploreIdeasAction failed:`, error);
+    return { 
+      suggestions: [], 
+      contextualNote: "Sorry, an error occurred while generating personalized ideas. Please try again later."
+    };
+  }
 }
 
 export async function getAiFlightMapDealsAction(input: AiFlightMapDealInput): Promise<AiFlightMapDealOutput> {
-  const flowInput: AiFlightMapDealInput & { realPriceContext?: string } = { ...input };
   try {
-    const startDate = addMonths(new Date(), 1);
-    const endDate = addDays(startDate, 7);
-    
-    const originForSearch = await getIataCodeAction(input.originDescription) || input.originDescription;
-    const destinationForSearch = await getIataCodeAction(input.targetDestinationCity) || input.targetDestinationCity;
+    const flowInput: AiFlightMapDealInput & { realPriceContext?: string } = { ...input };
+    try {
+      const startDate = addMonths(new Date(), 1);
+      const endDate = addDays(startDate, 7);
+      
+      const originForSearch = await getIataCodeAction(input.originDescription) || input.originDescription;
+      const destinationForSearch = await getIataCodeAction(input.targetDestinationCity) || input.targetDestinationCity;
 
-    const flightSearchInput: SerpApiFlightSearchInput = {
-      origin: originForSearch,
-      destination: destinationForSearch,
-      departureDate: format(startDate, "yyyy-MM-dd"),
-      returnDate: format(endDate, "yyyy-MM-dd"),
-      tripType: "round-trip",
-    };
-    const flightResults = await getRealFlightsAction(flightSearchInput);
-    const bestFlight = flightResults.best_flights?.[0] || flightResults.other_flights?.[0];
-    if (bestFlight?.price) {
-      flowInput.realPriceContext = `around $${bestFlight.price.toLocaleString()}`;
+      const flightSearchInput: SerpApiFlightSearchInput = {
+        origin: originForSearch,
+        destination: destinationForSearch,
+        departureDate: format(startDate, "yyyy-MM-dd"),
+        returnDate: format(endDate, "yyyy-MM-dd"),
+        tripType: "round-trip",
+      };
+      const flightResults = await getRealFlightsAction(flightSearchInput);
+      const bestFlight = flightResults.best_flights?.[0] || flightResults.other_flights?.[0];
+      if (bestFlight?.price) {
+        flowInput.realPriceContext = `around $${bestFlight.price.toLocaleString()}`;
+      }
+    } catch (e: any) {
+      console.error("[Action Error] Failed to get real price context for map deals:", e.message);
     }
-  } catch (e: any) {
-    console.error("[Action Error] Failed to get real price context for map deals:", e.message);
+    return await aiFlightMapDealsFlow(flowInput);
+  } catch (error: any) {
+    console.error(`[Action Error] getAiFlightMapDealsAction failed:`, error);
+    return {
+      suggestions: [],
+      contextualNote: "Sorry, an error occurred while searching for flight map deals. Please try again."
+    };
   }
-  return aiFlightMapDealsFlow(flowInput);
 }
 
 function deriveStopsDescription(flightOption: Partial<SerpApiFlightOption>): string {
@@ -975,62 +999,302 @@ export async function getTrendingHotelDealsAction(input?: TrendingHotelDealsInpu
   }
 }
 
-export async function getCoTravelAgentResponse(input: CoTravelAgentInputType): Promise<CoTravelAgentOutputType> { return getCoTravelAgentResponseOriginal(input); }
-export async function getItineraryAssistance(input: ItineraryAssistanceInputType): Promise<ItineraryAssistanceOutputType> { return getItineraryAssistanceOriginal(input); }
-export async function generateTripSummary(input: TripSummaryInputType): Promise<TripSummaryOutputType> { return generateTripSummaryOriginal(input); }
-export async function getPriceAdviceAction(input: PriceAdvisorInputType): Promise<PriceAdvisorOutputType> { return getPriceAdviceOriginal(input); }
-export async function getConceptualDateGridAction(input: ConceptualDateGridInputType): Promise<ConceptualDateGridOutputType> { return conceptualDateGridFlowOriginal(input); }
-export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphInputType): Promise<ConceptualPriceGraphOutputType> { return conceptualPriceGraphFlowOriginal(input); }
-
-export async function getThingsToDoAction(input: ThingsToDoSearchInputType): Promise<ThingsToDoOutputType> {
-  console.log('[Server Action - getThingsToDoAction] Input:', JSON.stringify(input, null, 2));
-  console.log(`[AI Flow - ThingsToDo] Calling thingsToDoFlowOriginal directly (caching disabled).`);
-  const result = await thingsToDoFlowOriginal(input);
-  console.log(`[AI Flow - ThingsToDo] Result (first 500 chars):`, JSON.stringify(result,null,2).substring(0,500) + "...");
-  return result;
+export async function getCoTravelAgentResponse(input: CoTravelAgentInputType): Promise<CoTravelAgentOutputType> { 
+  try {
+    return await getCoTravelAgentResponseOriginal(input); 
+  } catch (error: any) {
+    console.error(`[Action Error] getCoTravelAgentResponse failed:`, error);
+    return {
+      answer: "Sorry, the AI travel agent is currently unavailable. Please try again later.",
+      relevantTips: []
+    };
+  }
 }
 
-export async function getPackingList(input: PackingListInput): Promise<PackingListOutput> { return getPackingListOriginal(input); }
-export async function getDestinationFact(input: DestinationFactInput): Promise<DestinationFactOutput> { return getDestinationFactOriginal(input); }
-export async function generateTripMemory(input: GenerateTripMemoryInput): Promise<GenerateTripMemoryOutput> { return generateTripMemoryOriginal(input); }
-export async function generateGroupSyncReport(input: GroupSyncInput): Promise<GroupSyncOutput> { return generateGroupSyncReportOriginal(input); }
-export async function trackPrice(input: PriceTrackerInput): Promise<PriceTrackerOutput> { return trackPriceOriginal(input); }
-export async function getPriceForecast(input: PriceForecastInput): Promise<PriceForecastOutput> { return getPriceForecastOriginal(input); }
-export async function getTravelTip(input?: TravelTipInput): Promise<TravelTipOutput> { return getTravelTipOriginal(input || {}); }
-export async function getLocalInsiderTips(input: LocalInsiderTipsInput): Promise<LocalInsiderTipsOutput> { return getLocalInsiderTipsOriginal(input); }
+export async function getItineraryAssistance(input: ItineraryAssistanceInputType): Promise<ItineraryAssistanceOutputType> {
+  try {
+    return await getItineraryAssistanceOriginal(input); 
+  } catch (error: any) {
+    console.error(`[Action Error] getItineraryAssistance failed:`, error);
+    return {
+      suggestedAdditions: [],
+      assistanceSummary: "Sorry, the AI assistant could not provide suggestions at this time."
+    };
+  }
+}
+
+export async function generateTripSummary(input: TripSummaryInputType): Promise<TripSummaryOutputType> {
+  try {
+    return await generateTripSummaryOriginal(input); 
+  } catch (error: any) {
+    console.error(`[Action Error] generateTripSummary failed:`, error);
+    return { summary: "Could not generate an AI summary for this trip." };
+  }
+}
+
+export async function getPriceAdviceAction(input: PriceAdvisorInputType): Promise<PriceAdvisorOutputType> {
+  try {
+    return await getPriceAdviceOriginal(input); 
+  } catch (error: any) {
+    console.error(`[Action Error] getPriceAdviceAction failed:`, error);
+    return { advice: "The AI price advisor is currently unavailable. Please check back later." };
+  }
+}
+
+export async function getConceptualDateGridAction(input: ConceptualDateGridInputType): Promise<ConceptualDateGridOutputType> { 
+  try {
+    return await conceptualDateGridFlowOriginal(input); 
+  } catch (error: any) {
+    console.error(`[Action Error] getConceptualDateGridAction failed:`, error);
+    return {
+      gridSummary: "Could not fetch date grid insights due to an error.",
+      datePricePoints: [],
+    };
+  }
+}
+
+export async function getConceptualPriceGraphAction(input: ConceptualPriceGraphInputType): Promise<ConceptualPriceGraphOutputType> { 
+  try {
+    return await conceptualPriceGraphFlowOriginal(input); 
+  } catch (error: any) {
+    console.error(`[Action Error] getConceptualPriceGraphAction failed:`, error);
+    return {
+      trendDescription: "Could not fetch price trend insights due to an error.",
+      conceptualDataPoints: []
+    };
+  }
+}
+
+export async function getThingsToDoAction(input: ThingsToDoSearchInputType): Promise<ThingsToDoOutputType> {
+  try {
+    console.log('[Server Action - getThingsToDoAction] Input:', JSON.stringify(input, null, 2));
+    console.log(`[AI Flow - ThingsToDo] Calling thingsToDoFlowOriginal directly (caching disabled).`);
+    const result = await thingsToDoFlowOriginal(input);
+    console.log(`[AI Flow - ThingsToDo] Result (first 500 chars):`, JSON.stringify(result,null,2).substring(0,500) + "...");
+    return result;
+  } catch (error: any) {
+    console.error(`[Action Error] getThingsToDoAction failed:`, error);
+    return {
+      activities: [],
+      searchSummary: "Sorry, an error occurred while searching for things to do. Please try again."
+    };
+  }
+}
+
+export async function getPackingList(input: PackingListInput): Promise<PackingListOutput> {
+  try {
+    return await getPackingListOriginal(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getPackingList failed:`, error);
+    return { packingList: ["Failed to generate list. Please check your inputs."] };
+  }
+}
+
+export async function getDestinationFact(input: DestinationFactInput): Promise<DestinationFactOutput> {
+  try {
+    return await getDestinationFactOriginal(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getDestinationFact failed:`, error);
+    return { fact: "Could not fetch a fun fact at this moment." };
+  }
+}
+
+export async function generateTripMemory(input: GenerateTripMemoryInput): Promise<GenerateTripMemoryOutput> {
+  try {
+    return await generateTripMemoryOriginal(input);
+  } catch (error: any) {
+    console.error(`[Action Error] generateTripMemory failed:`, error);
+    return { memoryText: "Could not generate a memory for this trip." };
+  }
+}
+
+export async function generateGroupSyncReport(input: GroupSyncInput): Promise<GroupSyncOutput> {
+  try {
+    return await generateGroupSyncReportOriginal(input);
+  } catch (error: any) {
+    console.error(`[Action Error] generateGroupSyncReport failed:`, error);
+    return { compatibilityReport: "Failed to generate the group compatibility report due to an unexpected error." };
+  }
+}
+
+export async function trackPrice(input: PriceTrackerInput): Promise<PriceTrackerOutput> {
+  try {
+    return await trackPriceOriginal(input);
+  } catch (error: any) {
+    console.error(`[Action Error] trackPrice failed:`, error);
+    return { shouldAlert: false, alertMessage: "Could not process price tracking request." };
+  }
+}
+
+export async function getPriceForecast(input: PriceForecastInput): Promise<PriceForecastOutput> {
+  try {
+    return await getPriceForecastOriginal(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getPriceForecast failed:`, error);
+    return { forecast: "Could not generate a price forecast at this time.", confidence: "low" };
+  }
+}
+
+export async function getTravelTip(input?: TravelTipInput): Promise<TravelTipOutput> {
+  try {
+    return await getTravelTipOriginal(input || {});
+  } catch (error: any) {
+    console.error(`[Action Error] getTravelTip failed:`, error);
+    return { tip: "Always pack a backup power bank for your phone!" };
+  }
+}
+
+export async function getLocalInsiderTips(input: LocalInsiderTipsInput): Promise<LocalInsiderTipsOutput> {
+  try {
+    return await getLocalInsiderTipsOriginal(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getLocalInsiderTips failed:`, error);
+    return {
+      trendingSpotsSummary: "Could not fetch trending spots.",
+      hiddenGemPick: { name: "Error", description: "Could not fetch hidden gem.", reason: "Service unavailable." },
+      dailyActivityPick: { name: "Error", description: "Could not fetch daily pick.", reason: "Service unavailable." },
+      availabilityNotes: "Could not fetch availability notes."
+    };
+  }
+}
 
 import { getSerendipitySuggestions as getSerendipitySuggestionsFlow } from '@/ai/flows/serendipity-engine-flow';
 import type { SerendipityInput, SerendipityOutput } from '@/ai/types/serendipity-engine-types';
-export async function getSerendipitySuggestions(input: SerendipityInput): Promise<SerendipityOutput> { return getSerendipitySuggestionsFlow(input); }
+export async function getSerendipitySuggestions(input: SerendipityInput): Promise<SerendipityOutput> {
+  try {
+    return await getSerendipitySuggestionsFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getSerendipitySuggestions failed:`, error);
+    return { suggestions: [] };
+  }
+}
 
 import { getAuthenticityVerification as getAuthenticityVerificationFlow } from '@/ai/flows/authenticity-verifier-flow';
 import type { AuthenticityVerifierInput, AuthenticityVerifierOutput } from '@/ai/types/authenticity-verifier-flow';
-export async function getAuthenticityVerification(input: AuthenticityVerifierInput): Promise<AuthenticityVerifierOutput> { return getAuthenticityVerificationFlow(input); }
+export async function getAuthenticityVerification(input: AuthenticityVerifierInput): Promise<AuthenticityVerifierOutput> {
+  try {
+    return await getAuthenticityVerificationFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getAuthenticityVerification failed:`, error);
+    const fallbackImage = `https://placehold.co/600x400.png?text=Error`;
+    return {
+      verificationSummary: "Could not generate authenticity insights.",
+      authenticityFactors: [],
+      confidenceNote: "An error occurred while trying to verify.",
+      generatedImagePrompt: "error",
+      generatedImageUri: fallbackImage,
+    };
+  }
+}
 
 import { generateSmartMapConcept as generateSmartMapConceptFlow } from '@/ai/flows/smart-map-concept-flow';
 import type { SmartMapConceptInput, SmartMapConceptOutput } from '@/ai/types/smart-map-concept-types';
-export async function generateSmartMapConcept(input: SmartMapConceptInput): Promise<SmartMapConceptOutput> { return generateSmartMapConceptFlow(input); }
+export async function generateSmartMapConcept(input: SmartMapConceptInput): Promise<SmartMapConceptOutput> {
+  try {
+    return await generateSmartMapConceptFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] generateSmartMapConcept failed:`, error);
+    return {
+      mapConceptDescription: "Could not generate a smart map concept due to an error.",
+      suggestedLayers: [],
+      examplePois: [],
+      imagePrompt: "error map concept",
+    };
+  }
+}
 
 import { getWhatIfAnalysis as getWhatIfAnalysisFlow } from '@/ai/flows/what-if-simulator-flow';
 import type { WhatIfSimulatorInput, WhatIfSimulatorOutput } from '@/ai/types/what-if-simulator-types';
-export async function getWhatIfAnalysis(input: WhatIfSimulatorInput): Promise<WhatIfSimulatorOutput> { return getWhatIfAnalysisFlow(input); }
+export async function getWhatIfAnalysis(input: WhatIfSimulatorInput): Promise<WhatIfSimulatorOutput> {
+  try {
+    return await getWhatIfAnalysisFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getWhatIfAnalysis failed:`, error);
+    const fallbackImage = `https://placehold.co/600x400.png?text=Error`;
+    return {
+      comparisonSummary: "Could not generate a comparison due to an error.",
+      destination1Analysis: { name: input.destination1, suitabilityForInterest: "N/A", generalVibe: "N/A", costExpectation: "N/A", keyHighlights: [], imageUri: fallbackImage, imagePrompt: "error" },
+      destination2Analysis: { name: input.destination2, suitabilityForInterest: "N/A", generalVibe: "N/A", costExpectation: "N/A", keyHighlights: [], imageUri: fallbackImage, imagePrompt: "error" },
+      aiRecommendation: "AI recommendation unavailable."
+    };
+  }
+}
 
 import { getAiArPreview as getAiArPreviewFlow } from '@/ai/flows/ai-ar-preview-flow';
 import type { AiArPreviewInput, AiArPreviewOutput } from '@/ai/types/ai-ar-preview-types';
-export async function getAiArPreview(input: AiArPreviewInput): Promise<AiArPreviewOutput> { return getAiArPreviewFlow(input); }
+export async function getAiArPreview(input: AiArPreviewInput): Promise<AiArPreviewOutput> {
+  try {
+    return await getAiArPreviewFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getAiArPreview failed:`, error);
+    const fallbackImage = `https://placehold.co/600x400.png?text=Error`;
+    return {
+      sceneDescription: "Could not generate AR preview insights.",
+      moodTags: [], activityTags: [],
+      generatedImageUri: fallbackImage,
+      generatedImagePrompt: "error"
+    };
+  }
+}
 
 import { optimizeDayPlanByMood as optimizeDayPlanByMoodFlow } from '@/ai/flows/mood-energy-optimizer-flow';
 import type { MoodEnergyOptimizerInput, MoodEnergyOptimizerOutput } from '@/ai/types/mood-energy-optimizer-types';
-export async function optimizeDayPlanByMood(input: MoodEnergyOptimizerInput): Promise<MoodEnergyOptimizerOutput> { return optimizeDayPlanByMoodFlow(input); }
+export async function optimizeDayPlanByMood(input: MoodEnergyOptimizerInput): Promise<MoodEnergyOptimizerOutput> {
+  try {
+    return await optimizeDayPlanByMoodFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] optimizeDayPlanByMood failed:`, error);
+    return {
+      optimizationSummary: "Could not generate optimizations due to an error.",
+      suggestedAdjustments: []
+    };
+  }
+}
 
 import { getPersonalizedAccessibilityScout as getPersonalizedAccessibilityScoutFlow } from '@/ai/flows/personalized-accessibility-scout-flow';
 import type { PersonalizedAccessibilityScoutInput, PersonalizedAccessibilityScoutOutput } from '@/ai/types/personalized-accessibility-scout-types';
-export async function getPersonalizedAccessibilityScout(input: PersonalizedAccessibilityScoutInput): Promise<PersonalizedAccessibilityScoutOutput> { return getPersonalizedAccessibilityScoutFlow(input); }
+export async function getPersonalizedAccessibilityScout(input: PersonalizedAccessibilityScoutInput): Promise<PersonalizedAccessibilityScoutOutput> {
+  try {
+    return await getPersonalizedAccessibilityScoutFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] getPersonalizedAccessibilityScout failed:`, error);
+    const fallbackImage = `https://placehold.co/600x400.png?text=Error`;
+    return {
+      overallAssessment: "Could not generate an accessibility report due to an error.",
+      disclaimer: `This AI-generated information is for preliminary guidance only and not a substitute for thorough personal research and consultation with official accessibility resources for ${input.destination}. Verify all details with providers and local authorities before traveling.`,
+      imagePrompt: "error",
+      imageUri: fallbackImage,
+    };
+  }
+}
 
 import { narrateLocalLegend as narrateLocalLegendFlow } from '@/ai/flows/local-legend-narrator-flow';
 import type { LocalLegendNarratorInput, LocalLegendNarratorOutput } from '@/ai/types/local-legend-narrator-types';
-export async function narrateLocalLegend(input: LocalLegendNarratorInput): Promise<LocalLegendNarratorOutput> { return narrateLocalLegendFlow(input); }
+export async function narrateLocalLegend(input: LocalLegendNarratorInput): Promise<LocalLegendNarratorOutput> {
+  try {
+    return await narrateLocalLegendFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] narrateLocalLegend failed:`, error);
+    const fallbackImage = `https://placehold.co/600x400.png?text=Error`;
+    return {
+      legendTitle: "The Lost Story",
+      narrative: `Could not retrieve a legend due to an error.`,
+      imageUri: fallbackImage,
+      visualPrompt: "error story"
+    };
+  }
+}
 
 import { synthesizePostTripFeedback as synthesizePostTripFeedbackFlow } from '@/ai/flows/post-trip-synthesizer-flow';
 import type { PostTripFeedbackInput, PostTripAnalysisOutput } from '@/ai/types/post-trip-synthesizer-flow';
-export async function synthesizePostTripFeedback(input: PostTripFeedbackInput): Promise<PostTripAnalysisOutput> { return synthesizePostTripFeedbackFlow(input); }
+export async function synthesizePostTripFeedback(input: PostTripFeedbackInput): Promise<PostTripAnalysisOutput> {
+  try {
+    return await synthesizePostTripFeedbackFlow(input);
+  } catch (error: any) {
+    console.error(`[Action Error] synthesizePostTripFeedback failed:`, error);
+    return {
+      refinedPersonaInsights: "Could not synthesize feedback due to an error.",
+      futureTrajectorySuggestions: []
+    };
+  }
+}
