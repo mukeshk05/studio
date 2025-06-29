@@ -2,19 +2,29 @@
 "use client";
 
 import React from "react";
+import dynamic from 'next/dynamic';
 import { cn } from "@/lib/utils";
 import { Sparkles, MessageCircleQuestion, ConciergeBell, History } from 'lucide-react';
-import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder";
-import { AuthenticityVerifierPlaceholder } from "@/components/dashboard/AuthenticityVerifierPlaceholder";
-import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder";
-import { AiChatInteractionCard } from "@/components/dashboard/AiChatInteractionCard";
-import { MoodEnergyOptimizerCard } from "@/components/dashboard/MoodEnergyOptimizerPlaceholder";
-import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/HyperLocalLanguageCoachPlaceholder";
-import { LocalLegendNarratorCard } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
-import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
-import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
 import { Separator } from "@/components/ui/separator";
-import { AiFeaturesHistory } from "@/components/dashboard/AiFeaturesHistory";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Loading component for dynamic imports
+const FeatureCardSkeleton = () => (
+  <Skeleton className="w-full h-[400px] rounded-lg bg-card/50" />
+);
+
+// Dynamic imports for each feature card
+const AiChatInteractionCard = dynamic(() => import('@/components/dashboard/AiChatInteractionCard').then(mod => mod.AiChatInteractionCard), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const AiItineraryAssistanceCard = dynamic(() => import('@/components/dashboard/AiItineraryAssistancePlaceholder').then(mod => mod.AiItineraryAssistanceCard), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const SerendipityEnginePlaceholder = dynamic(() => import('@/components/dashboard/SerendipityEnginePlaceholder').then(mod => mod.SerendipityEnginePlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const AuthenticityVerifierPlaceholder = dynamic(() => import('@/components/dashboard/AuthenticityVerifierPlaceholder').then(mod => mod.AuthenticityVerifierPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const AiArPreviewPlaceholder = dynamic(() => import('@/components/dashboard/AiArPreviewPlaceholder').then(mod => mod.AiArPreviewPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const MoodEnergyOptimizerCard = dynamic(() => import('@/components/dashboard/MoodEnergyOptimizerPlaceholder').then(mod => mod.MoodEnergyOptimizerCard), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const HyperLocalLanguageCoachPlaceholder = dynamic(() => import('@/components/dashboard/HyperLocalLanguageCoachPlaceholder').then(mod => mod.HyperLocalLanguageCoachPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const LocalLegendNarratorCard = dynamic(() => import('@/components/dashboard/LocalLegendNarratorPlaceholder').then(mod => mod.LocalLegendNarratorCard), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const PostTripSynthesizerCard = dynamic(() => import('@/components/dashboard/PostTripSynthesizerPlaceholder').then(mod => mod.PostTripSynthesizerCard), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const AiFeaturesHistory = dynamic(() => import('@/components/dashboard/AiFeaturesHistory').then(mod => mod.AiFeaturesHistory), { loading: () => <Skeleton className="w-full h-64 rounded-lg bg-card/50" />, ssr: false });
+
 
 export default function AiFeaturesPage() {
   return (
