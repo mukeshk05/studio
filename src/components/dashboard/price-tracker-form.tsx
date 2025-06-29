@@ -38,6 +38,8 @@ const formSchema = z.object({
   travelDates: z.string().optional(),
 });
 
+const prominentButtonClasses = "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
+
 export function PriceTrackerForm() {
   const { toast } = useToast();
   const [aiAlert, setAiAlert] = React.useState<PriceTrackerOutput | null>(null);
@@ -77,20 +79,11 @@ export function PriceTrackerForm() {
 
     setAiAlert(null);
     try {
-      const alertResult = await trackPrice({
-        itemType: values.itemType,
-        itemName: values.itemName,
-        targetPrice: values.targetPrice,
-        currentPrice: values.currentPrice,
-      });
-      setAiAlert(alertResult);
-
       const newItemData: Partial<Omit<PriceTrackerEntry, 'id'>> = {
         itemType: values.itemType,
         itemName: values.itemName,
         targetPrice: values.targetPrice,
         currentPrice: values.currentPrice,
-        alertStatus: alertResult,
       };
 
       if (values.itemType === 'flight' && values.originCity) newItemData.originCity = values.originCity;
@@ -103,16 +96,8 @@ export function PriceTrackerForm() {
 
       toast({
         title: "Price Tracker Added",
-        description: `${values.itemName} ${values.destination ? `(from ${values.originCity || 'N/A'} to ${values.destination})` : ''} is now being tracked.`,
+        description: `${values.itemName} is now being tracked.`,
       });
-      if(alertResult.shouldAlert){
-         toast({
-            title: "Price Alert!",
-            description: alertResult.alertMessage,
-            variant: "default",
-            duration: 10000,
-         });
-      }
       form.reset({
           itemName: "",
           originCity: "",
@@ -282,7 +267,7 @@ export function PriceTrackerForm() {
             <Button
               type="submit"
               size="lg"
-              className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+              className={cn(prominentButtonClasses)}
               disabled={isSubmitting || !currentUser || authLoading}
             >
               {isSubmitting || authLoading ? (
@@ -294,15 +279,6 @@ export function PriceTrackerForm() {
             </Button>
           </form>
         </Form>
-        {aiAlert && (
-          <Alert className={cn("mt-4 bg-card/80 backdrop-blur-sm dark:bg-card/50", aiAlert.shouldAlert ? 'border-green-500/70 text-green-400' : 'border-blue-500/70 text-blue-400' )}>
-            <BellPlus className={cn("h-4 w-4", aiAlert.shouldAlert ? 'text-green-500' : 'text-blue-500')} />
-            <AlertTitle className="text-card-foreground">{aiAlert.shouldAlert ? "Price Alert!" : "Price Update"}</AlertTitle>
-            <AlertDescription className="text-muted-foreground">
-              {aiAlert.alertMessage}
-            </AlertDescription>
-          </Alert>
-        )}
       </CardContent>
     </Card>
   );

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BookingList } from "@/components/dashboard/booking-list";
 import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
 import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
-import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles } from 'lucide-react';
+import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles, Wand2 } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,7 @@ import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useRouter } from 'next/navigation';
 import { onForegroundMessageListener } from "@/lib/firebaseMessaging";
 import { NotificationSettings } from "@/components/dashboard/NotificationSettings";
+import { SavedIdeasHistory } from "@/components/dashboard/SavedIdeasHistory";
 
 
 export default function DashboardPage() {
@@ -176,13 +177,17 @@ export default function DashboardPage() {
 
       <Tabs defaultValue="my-trips" className="w-full">
         <TabsList className={cn(
-            "grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
+            "grid w-full grid-cols-2 sm:grid-cols-3 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
           )} style={{animationDelay: '0.4s'}}>
           <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecks className="w-5 h-5" />
             My Saved Trips
+          </TabsTrigger>
+           <TabsTrigger value="ai-ideas" id="ai-ideas-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+            <Wand2 className="w-5 h-5" />
+            AI-Generated Ideas
           </TabsTrigger>
           <TabsTrigger value="price-tracker" id="price-tracker-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <BellRing className="w-5 h-5" />
@@ -193,6 +198,9 @@ export default function DashboardPage() {
         <div className={cn("p-0 sm:p-2 rounded-xl", "glass-card", "animate-fade-in-up")} style={{animationDelay: '0.45s'}}>
           <TabsContent value="my-trips" className="mt-0">
             <BookingList />
+          </TabsContent>
+          <TabsContent value="ai-ideas" className="mt-0">
+            <SavedIdeasHistory />
           </TabsContent>
           <TabsContent value="price-tracker" className="mt-0">
             <PriceTrackerForm />

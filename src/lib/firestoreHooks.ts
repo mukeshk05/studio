@@ -1,10 +1,9 @@
 
-
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firestore, auth } from './firebase'; // Import auth
 import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId, Timestamp } from 'firebase/firestore';
-import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult, SavedPackingList, SavedComparison, SavedAccessibilityReport, SavedToolResult, SavedAiFeatureResult } from './types';
+import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult, SavedPackingList, SavedComparison, SavedAccessibilityReport, SavedToolResult, SavedAiFeatureResult, SavedIdea, BundleSuggestion } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SerpApiFlightSearchOutput, SerpApiHotelSearchOutput } from '@/ai/types/serpapi-flight-search-types';
 
@@ -995,4 +994,71 @@ export function useRemoveSavedAiFeatureResult() {
       queryClient.invalidateQueries({ queryKey: [SAVED_AI_FEATURES_QUERY_KEY, currentUser?.uid] });
     },
   });
+}
+
+// --- Saved Ideas Hooks ---
+const SAVED_IDEAS_QUERY_KEY = 'savedIdeas';
+
+export function useAddSavedIdea() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<string, Error, { bundle: BundleSuggestion }>({
+    mutationFn: async (ideaData) => {
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const ideasCollectionRef = collection(firestore, 'users', user.uid, 'savedIdeas');
+      const docRef = await addDoc(ideasCollectionRef, { ...ideaData, userId: user.uid, createdAt: serverTimestamp() });
+      return docRef.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SAVED_IDEAS_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+export function useSavedIdeas() {
+  const { currentUser, loading: authLoading } = useAuth();
+
+  return useQuery<SavedIdea[], Error>({
+    queryKey: [SAVED_IDEAS_QUERY_KEY, currentUser?.uid],
+    queryFn: async () => {
+      const user = auth.currentUser;
+      if (!user?.uid) return [];
+      try {
+        const ideasCollectionRef = collection(firestore, 'users', user.uid, 'savedIdeas');
+        const q = query(ideasCollectionRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, id: doc.id } as SavedIdea;
+        });
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          console.warn("[useSavedIdeas] Permission denied. This may be due to auth state change. Silently failing.");
+          return [];
+        }
+        console.error("[useSavedIdeas] Unexpected Firestore error: ", e);
+        throw e;
+      }
+    },
+    enabled: !authLoading && !!currentUser,
+  });
+}
+
+export function useRemoveSavedIdea() {
+    const { currentUser } = useAuth();
+    const queryClient = useQueryClient();
+  
+    return useMutation<void, Error, string>({
+      mutationFn: async (ideaId: string) => {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const ideaDocRef = doc(firestore, 'users', user.uid, 'savedIdeas', ideaId);
+        await deleteDoc(ideaDocRef);
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [SAVED_IDEAS_QUERY_KEY, currentUser?.uid] });
+      },
+    });
 }

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
+const prominentButtonClassesSm = "text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
 export function NotificationSettings() {
   const [isLoadingPush, setIsLoadingPush] = useState(false);
@@ -84,7 +85,7 @@ export function NotificationSettings() {
                 onClick={handleEnablePushNotifications}
                 disabled={isLoadingPush}
                 size="sm"
-                className="w-full sm:w-auto text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                className={cn("w-full sm:w-auto", prominentButtonClassesSm)}
             >
                 {isLoadingPush ? (
                 <Loader2 className="animate-spin" />

@@ -1,10 +1,10 @@
 
-
 import type { AITripPlannerOutput, AITripPlannerInput as AITripPlannerInputOriginal, FlightOptionSchema as AIFlightOptionSchema, HotelOptionSchema as AIHotelOptionSchema, RoomSchema as AIRoomSchema, DailyPlanItemSchema as AIDailyPlanItemSchema } from "@/ai/types/trip-planner-types";
 import type { SerpApiFlightSearchOutput, SerpApiFlightOption, SerpApiHotelSearchOutput, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types"; // This import is fine
 import type { ActivitySuggestion as ThingsToDoActivitySuggestion } from "@/ai/types/things-to-do-types"; // For suggested activities
 import { z } from 'zod';
-import type { AdventureQuizInput, AdventureMatcherOutput } from '@/ai/types/adventure-matcher-types';
+import type { AdventureQuizInput, AdventureMatcherOutput } from "@/ai/types/adventure-matcher-types";
+import type { BundleSuggestion } from '@/ai/types/smart-bundle-types';
 
 
 // This effectively takes the type of a single itinerary object from the array
@@ -246,6 +246,13 @@ export interface SavedPostTripAnalysis {
     featureType: 'postTripAnalysis';
     destination: string;
     analysis: import('@/ai/types/post-trip-synthesizer-types').PostTripAnalysisOutput;
+}
+
+export interface SavedIdea {
+  id: string;
+  userId: string;
+  createdAt: any;
+  bundle: BundleSuggestion;
 }
 
 export type SavedAiFeatureResult = SavedCoTravelAgentResponse | SavedItineraryAssistance | SavedSerendipitySuggestion | SavedAuthenticityVerification | SavedArPreview | SavedMoodOptimization | SavedLegend | SavedPostTripAnalysis;
