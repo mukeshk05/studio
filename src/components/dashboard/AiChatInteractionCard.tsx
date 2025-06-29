@@ -7,13 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Sparkles, Lightbulb, Send, Info } from 'lucide-react';
+import { Loader2, Sparkles, Lightbulb, Send, Info, Save } from 'lucide-react';
 import { getCoTravelAgentResponse } from '@/ai/flows/co-travel-agent-flow'; 
 import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAddSavedAiFeature } from '@/lib/firestoreHooks';
+
 
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -38,6 +41,10 @@ export function AiChatInteractionCard({
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<CoTravelAgentOutput | null>(null);
   const { toast } = useToast();
+  
+  const { currentUser } = useAuth();
+  const addSavedFeatureMutation = useAddSavedAiFeature();
+  const [isResultSaved, setIsResultSaved] = useState(false);
 
   const handleAskAura = async () => {
     if (!destination.trim()) {
@@ -51,6 +58,8 @@ export function AiChatInteractionCard({
 
     setIsLoading(true);
     setAiResponse(null);
+    setIsResultSaved(false); // Reset save state on new generation
+
     try {
       const input: CoTravelAgentInput = {
         destination,
@@ -79,6 +88,29 @@ export function AiChatInteractionCard({
       setIsLoading(false);
     }
   };
+
+  const handleSaveResult = async () => {
+    if (!currentUser) {
+      toast({ title: "Please log in to save results.", variant: "destructive" });
+      return;
+    }
+    if (!aiResponse) return;
+
+    try {
+      await addSavedFeatureMutation.mutateAsync({
+        featureType: 'coTravelAgent',
+        destination,
+        question,
+        response: aiResponse,
+      });
+      toast({ title: "Success!", description: "AI response saved to your history." });
+      setIsResultSaved(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: `Could not save result: ${error.message}`, variant: "destructive" });
+    }
+  };
+  
+  const prominentButtonClasses = "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
   return (
     <Card className={cn(glassCardClasses, "w-full animate-fade-in-up", cardBorderColorClass)}>
@@ -119,7 +151,7 @@ export function AiChatInteractionCard({
           onClick={handleAskAura}
           disabled={isLoading || !destination.trim() || question.trim().length < 10}
           size="lg"
-          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+          className={cn(prominentButtonClasses)}
         >
           {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
           Ask Aura AI
@@ -133,19 +165,19 @@ export function AiChatInteractionCard({
         )}
 
         {aiResponse && !isLoading && (
-          <div className={cn("mt-5 animate-fade-in space-y-3", innerGlassEffectClasses, "p-4 rounded-lg")}>
-            <div>
-              <h3 className="text-md font-semibold text-card-foreground mb-1 flex items-center">
+          <Card className={cn(innerGlassEffectClasses, "mt-5 animate-fade-in", "p-4")}>
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-md font-semibold text-card-foreground flex items-center">
                 <Sparkles className="w-5 h-5 mr-2 text-primary" />
                 Aura's Answer:
-              </h3>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
               <ScrollArea className="max-h-48">
                  <p className="text-sm text-card-foreground/90 whitespace-pre-line leading-relaxed pr-3">{aiResponse.answer}</p>
               </ScrollArea>
-            </div>
-
-            {aiResponse.relevantTips && aiResponse.relevantTips.length > 0 && (
-              <div>
+              {aiResponse.relevantTips && aiResponse.relevantTips.length > 0 && (
+              <div className="mt-3">
                 <Separator className="my-2 bg-border/40" />
                 <h4 className="text-sm font-semibold text-card-foreground mb-1 flex items-center">
                   <Lightbulb className="w-4 h-4 mr-1.5 text-accent" />
@@ -157,8 +189,21 @@ export function AiChatInteractionCard({
                   ))}
                 </ul>
               </div>
-            )}
-          </div>
+              )}
+            </CardContent>
+             <CardFooter className="p-0 pt-4">
+              <Button
+                variant={isResultSaved ? "secondary" : "default"}
+                size="sm"
+                className="w-full glass-interactive"
+                disabled={isResultSaved || addSavedFeatureMutation.isPending || !currentUser}
+                onClick={handleSaveResult}
+              >
+                {addSavedFeatureMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Save className="w-4 h-4 mr-2"/>}
+                {isResultSaved ? "Saved" : (addSavedFeatureMutation.isPending ? "Saving..." : "Save this Response")}
+              </Button>
+            </CardFooter>
+          </Card>
         )}
       </CardContent>
        <CardFooter className="pt-2">

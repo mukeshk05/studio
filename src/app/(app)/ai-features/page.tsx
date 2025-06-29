@@ -3,7 +3,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Sparkles, MessageCircleQuestion, ConciergeBell } from 'lucide-react';
+import { Sparkles, MessageCircleQuestion, ConciergeBell, History } from 'lucide-react';
 import { SerendipityEnginePlaceholder } from "@/components/dashboard/SerendipityEnginePlaceholder";
 import { AuthenticityVerifierPlaceholder } from "@/components/dashboard/AuthenticityVerifierPlaceholder";
 import { AiArPreviewPlaceholder } from "@/components/dashboard/AiArPreviewPlaceholder";
@@ -13,6 +13,8 @@ import { HyperLocalLanguageCoachPlaceholder } from "@/components/dashboard/Hyper
 import { LocalLegendNarratorCard } from "@/components/dashboard/LocalLegendNarratorPlaceholder";
 import { AiItineraryAssistanceCard } from "@/components/dashboard/AiItineraryAssistancePlaceholder";
 import { PostTripSynthesizerCard } from "@/components/dashboard/PostTripSynthesizerPlaceholder";
+import { Separator } from "@/components/ui/separator";
+import { AiFeaturesHistory } from "@/components/dashboard/AiFeaturesHistory";
 
 export default function AiFeaturesPage() {
   return (
@@ -71,6 +73,21 @@ export default function AiFeaturesPage() {
             <PostTripSynthesizerCard />
         </div>
       </div>
+      
+      <Separator className="my-12 border-border/40" />
+
+      <section className="animate-fade-in-up" style={{animationDelay: '1.1s'}}>
+        <header className="mb-8">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center">
+                <History className="w-8 h-8 mr-3 text-primary" />
+                Your Saved AI Insights
+            </h2>
+            <p className="text-md text-muted-foreground mt-1">
+                Revisit the suggestions and analyses you've saved from the AI features.
+            </p>
+        </header>
+        <AiFeaturesHistory />
+      </section>
     </div>
   );
 }

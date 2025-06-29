@@ -4,7 +4,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firestore, auth } from './firebase'; // Import auth
 import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId, Timestamp } from 'firebase/firestore';
-import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult, SavedPackingList, SavedComparison, SavedAccessibilityReport, SavedToolResult } from './types';
+import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult, SavedPackingList, SavedComparison, SavedAccessibilityReport, SavedToolResult, SavedAiFeatureResult } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SerpApiFlightSearchOutput, SerpApiHotelSearchOutput } from '@/ai/types/serpapi-flight-search-types';
 
@@ -908,6 +908,91 @@ export function useRemoveSavedToolResult() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [SAVED_TOOL_RESULTS_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+// --- Saved AI Features Hooks ---
+
+const SAVED_AI_FEATURES_QUERY_KEY = 'savedAiFeatures';
+
+// Generic hook to add any AI feature result
+export function useAddSavedAiFeature() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<string, Error, Omit<SavedAiFeatureResult, 'id' | 'createdAt' | 'userId'>>({
+    mutationFn: async (featureData) => {
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const featuresCollectionRef = collection(firestore, 'users', user.uid, 'savedAiFeatures');
+      const docRef = await addDoc(featuresCollectionRef, { ...featureData, userId: user.uid, createdAt: serverTimestamp() });
+      return docRef.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SAVED_AI_FEATURES_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+// Hook to get all saved AI feature results
+export function useSavedAiFeatureResults() {
+  const { currentUser, loading: authLoading } = useAuth();
+
+  return useQuery<SavedAiFeatureResult[], Error>({
+    queryKey: [SAVED_AI_FEATURES_QUERY_KEY, currentUser?.uid],
+    queryFn: async () => {
+      const user = auth.currentUser;
+      if (!user?.uid) return [];
+      try {
+        const resultsCollectionRef = collection(firestore, 'users', user.uid, 'savedAiFeatures');
+        const q = query(resultsCollectionRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          let createdAtDate = new Date();
+          if (data.createdAt instanceof Timestamp) {
+            createdAtDate = data.createdAt.toDate();
+          } else if (data.createdAt) {
+            const parsed = new Date(data.createdAt);
+            if (!isNaN(parsed.getTime())) createdAtDate = parsed;
+          }
+          return { ...data, id: doc.id, createdAt: createdAtDate } as SavedAiFeatureResult;
+        });
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          console.warn("[useSavedAiFeatureResults] Permission denied. This may be due to auth state change. Silently failing.");
+          return [];
+        }
+        console.error("[useSavedAiFeatureResults] Unexpected Firestore error: ", e);
+        throw e;
+      }
+    },
+    enabled: !authLoading && !!currentUser,
+  });
+}
+
+// Hook to remove a saved AI feature result
+export function useRemoveSavedAiFeatureResult() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (resultId: string) => {
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const resultDocRef = doc(firestore, 'users', user.uid, 'savedAiFeatures', resultId);
+        await deleteDoc(resultDocRef);
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SAVED_AI_FEATURES_QUERY_KEY, currentUser?.uid] });
     },
   });
 }

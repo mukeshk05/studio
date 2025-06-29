@@ -170,3 +170,82 @@ export interface SavedAccessibilityReport {
 }
 
 export type SavedToolResult = SavedPackingList | SavedComparison | SavedAccessibilityReport;
+
+// New AI Feature result types
+export interface SavedCoTravelAgentResponse {
+    id: string;
+    userId: string;
+    createdAt: any;
+    featureType: 'coTravelAgent';
+    destination: string;
+    question: string;
+    response: import('@/ai/types/co-travel-agent-types').CoTravelAgentOutput;
+}
+
+export interface SavedItineraryAssistance {
+    id: string;
+    userId: string;
+    createdAt: any;
+    featureType: 'itineraryAssistance';
+    destination: string;
+    assistanceResult: import('@/ai/types/itinerary-assistance-types').ItineraryAssistanceOutput;
+}
+
+export interface SavedSerendipitySuggestion {
+    id: string;
+    userId: string;
+    createdAt: any;
+    featureType: 'serendipity';
+    destination: string;
+    moodOrInterest: string;
+    suggestions: import('@/ai/types/serendipity-engine-types').SerendipityOutput;
+}
+
+export interface SavedAuthenticityVerification {
+    id: string;
+    userId: string;
+    createdAt: any;
+    featureType: 'authenticity';
+    itemName: string;
+    verificationResult: import('@/ai/types/authenticity-verifier-types').AuthenticityVerifierOutput;
+}
+
+export interface SavedArPreview {
+    id: string;
+    userId: string;
+    createdAt: any;
+    featureType: 'arPreview';
+    landmarkName: string;
+    previewResult: import('@/ai/types/ai-ar-preview-types').AiArPreviewOutput;
+}
+
+export interface SavedMoodOptimization {
+    id: string;
+    userId: string;
+    createdAt: any;
+    featureType: 'moodOptimization';
+    dayPlanDescription: string;
+    desiredEnergyLevel: 'low' | 'medium' | 'high';
+    optimizationResult: import('@/ai/types/mood-energy-optimizer-types').MoodEnergyOptimizerOutput;
+}
+
+export interface SavedLegend {
+    id: string;
+    userId: string;
+    createdAt: any;
+    featureType: 'legendNarrator';
+    destination: string;
+    landmark?: string;
+    legend: import('@/ai/types/local-legend-narrator-types').LocalLegendNarratorOutput;
+}
+
+export interface SavedPostTripAnalysis {
+    id: string;
+    userId: string;
+    createdAt: any;
+    featureType: 'postTripAnalysis';
+    destination: string;
+    analysis: import('@/ai/types/post-trip-synthesizer-types').PostTripAnalysisOutput;
+}
+
+export type SavedAiFeatureResult = SavedCoTravelAgentResponse | SavedItineraryAssistance | SavedSerendipitySuggestion | SavedAuthenticityVerification | SavedArPreview | SavedMoodOptimization | SavedLegend | SavedPostTripAnalysis;
