@@ -1,15 +1,20 @@
 
 "use client";
 
+import React from "react"; // Added React import
 import { PriceTrackerItem } from "./price-tracker-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BellRing, Loader2 } from "lucide-react"; // Corrected
+import { BellRing, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrackedItems, useRemoveTrackedItem, useUpdateTrackedItem } from "@/lib/firestoreHooks";
 import type { PriceTrackerEntry } from "@/lib/types";
 
-export function PriceTrackerList() {
+type PriceTrackerListProps = {
+  filterByType?: 'flight' | 'hotel';
+};
+
+export function PriceTrackerList({ filterByType }: PriceTrackerListProps) {
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -19,7 +24,7 @@ export function PriceTrackerList() {
 
   const handleRemoveItem = async (itemId: string) => {
     if (!currentUser) {
-      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      toast({ title: "Error", description: "You must be logged in to remove items.", variant: "destructive" });
       return;
     }
     try {
@@ -36,17 +41,24 @@ export function PriceTrackerList() {
 
   const handleUpdateItem = async (itemId: string, dataToUpdate: Partial<Omit<PriceTrackerEntry, 'id' | 'createdAt'>>) => {
      if (!currentUser) {
-      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      toast({ title: "Error", description: "You must be logged in to update items.", variant: "destructive" });
       return;
     }
     try {
       await updateTrackedItemMutation.mutateAsync({ itemId, dataToUpdate });
-      // Toast for update success can be handled in PriceTrackerItem or here if needed
     } catch (err) {
       console.error("Error updating item:", err);
       toast({ title: "Error Updating Item", variant: "destructive" });
     }
   };
+
+  const filteredItems = React.useMemo(() => {
+    if (!trackedItems) return [];
+    if (filterByType) {
+      return trackedItems.filter(item => item.itemType === filterByType);
+    }
+    return trackedItems;
+  }, [trackedItems, filterByType]);
 
   if (isLoading) {
     return (
@@ -77,28 +89,25 @@ export function PriceTrackerList() {
     );
   }
 
-  if (!trackedItems || trackedItems.length === 0) {
+  if (!filteredItems || filteredItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10 text-muted-foreground">
         <BellRing className="w-16 h-16 mb-4" />
-        <h3 className="text-xl font-semibold">No Items Being Tracked</h3>
-        <p>Add flights or hotels to the tracker to monitor their prices.</p>
+        <h3 className="text-xl font-semibold">No {filterByType ? `${filterByType}s` : 'Items'} Being Tracked</h3>
+        <p>Add {filterByType ? `${filterByType}s` : 'items'} to the tracker to monitor their prices.</p>
       </div>
     );
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-30rem)]"> {/* Adjust height as needed */}
+    <ScrollArea className="h-[calc(100vh-30rem)]">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-1">
-        {/* Sort by lastChecked or createdAt if available. For now, default order. */}
-        {/* Firestore typically returns by ID if not specified, or you can sort in the query */}
-        {trackedItems.sort((a,b) => new Date(b.lastChecked).getTime() - new Date(a.lastChecked).getTime()).map((item) => (
+        {filteredItems.sort((a,b) => new Date(b.lastChecked).getTime() - new Date(a.lastChecked).getTime()).map((item) => (
           <PriceTrackerItem 
             key={item.id} 
             item={item} 
             onRemoveItem={handleRemoveItem}
-            onUpdateItem={handleUpdateItem} // Pass the new update handler
-            // Pass mutation states for individual item loading indicators
+            onUpdateItem={handleUpdateItem}
             isUpdating={updateTrackedItemMutation.isPending && updateTrackedItemMutation.variables?.itemId === item.id}
             isRemoving={removeTrackedItemMutation.isPending && removeTrackedItemMutation.variables === item.id}
           />

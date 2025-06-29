@@ -1026,11 +1026,8 @@ export default function FlightsPage() {
         destination: trackDestination.trim(),
         targetPrice: targetPriceNum,
         currentPrice: currentPriceNum,
+        travelDates: trackTravelDates.trim() || undefined,
       };
-
-      if (trackTravelDates.trim()) {
-        newItemData.travelDates = trackTravelDates.trim();
-      }
 
       await addTrackedItemMutation.mutateAsync(newItemData as Omit<PriceTrackerEntry, 'id'>);
       toast({ title: "Price Tracking Started", description: `${itemName} is now being tracked!` });
@@ -1425,7 +1422,7 @@ export default function FlightsPage() {
                   </Card>
                   <Separator className="my-6"/>
                   <h3 className="text-lg font-semibold text-card-foreground mb-4">Your Tracked Flights</h3>
-                  <PriceTrackerList/>
+                  <PriceTrackerList filterByType="flight" />
                 </TabsContent>
 
                 <TabsContent value="date-grid">
