@@ -29,10 +29,10 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           key={item.href}
           href={item.href}
           className={cn(
-            "text-sm font-medium transition-colors hover:text-primary flex items-center gap-1 p-1.5 md:p-2 rounded-md",
+            "text-sm font-medium transition-all duration-200 flex items-center gap-1.5 p-2 rounded-lg transform hover:scale-105",
             pathname === item.href || (item.href === "/planner" && pathname === "/")
-              ? "text-primary bg-accent/10"
-              : "text-muted-foreground"
+              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/30"
+              : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
           )}
         >
           <item.icon className="h-4 w-4 md:h-5 md:w-5" />
