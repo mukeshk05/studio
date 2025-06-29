@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -70,7 +71,7 @@ export default function FullPackageDetailPage() {
   const handleSavePackage = async () => {
     if (!packageDetail) return;
      if (!currentUser?.uid) {
-      toast({ title: "Authentication Error", description: "Please log in to save this package.", variant = "destructive"});
+      toast({ title: "Authentication Error", description: "Please log in to save this package.", variant: "destructive"});
       return;
     }
     const packageToSave: TripPackageSuggestion = { ...packageDetail, userId: currentUser.uid, createdAt: new Date().toISOString() };
@@ -79,7 +80,7 @@ export default function FullPackageDetailPage() {
       await addSavedPackageMutation.mutateAsync(packageToSave);
       toast({ title: "Package Saved!", description: `Trip package to ${packageDetail.destinationQuery} saved to your dashboard.` });
     } catch (err: any) {
-      toast({ title: "Save Error", description: err.message || "Could not save the trip package.", variant = "destructive" });
+      toast({ title: "Save Error", description: err.message || "Could not save the trip package.", variant: "destructive" });
     }
   };
 

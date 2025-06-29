@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Plane, Hotel, DollarSign, Tag, Trash2, RefreshCw, Bell, Sparkles, Loader2, TrendingUp, LineChart, CalendarDays, MapPin, CheckCircle, Info } from "lucide-react";
 import { format, formatDistanceToNow, parseISO, addMonths, startOfMonth } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
-import { trackPrice, PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
-import { getPriceAdvice, PriceAdvisorInput as AIPAdInput } from "@/ai/flows/price-advisor-flow"; 
-import { getPriceForecast, PriceForecastInput as AIPFInput } from "@/ai/flows/price-forecast-flow.ts";
+import { trackPrice, getPriceAdviceAction, getPriceForecast } from "@/app/actions/price";
+import type { PriceTrackerInput, PriceTrackerOutput } from "@/ai/flows/price-tracker";
+import type { PriceAdvisorInput } from "@/ai/types/price-advisor-flow-types"; 
+import type { PriceForecastInput } from "@/ai/flows/price-forecast-flow.ts";
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { PriceForecastChart } from "./PriceForecastChart"; 
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions";
+import { getRealFlightsAction, getRealHotelsAction } from "@/app/actions/data";
 import type { SerpApiFlightOption, SerpApiHotelSuggestion } from "@/ai/types/serpapi-flight-search-types";
 
 type PriceTrackerItemProps = {
@@ -245,7 +246,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
   const handleGetAiAdvice = async () => {
     setIsAiAdviceLoading(true);
     try {
-      const adviceInput: AIPAdInput = {
+      const adviceInput: PriceAdvisorInput = {
         itemType: item.itemType,
         itemName: item.itemName,
         originCity: item.itemType === 'flight' ? item.originCity : undefined,
@@ -253,7 +254,7 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
         targetPrice: item.targetPrice,
         currentPrice: item.currentPrice,
       };
-      const result = await getPriceAdvice(adviceInput);
+      const result = await getPriceAdviceAction(adviceInput);
       await onUpdateItem(item.id, { aiAdvice: result.advice, lastChecked: new Date().toISOString() });
       toast({
         title: "AI Advice Received",
@@ -542,4 +543,3 @@ export function PriceTrackerItem({ item, onRemoveItem, onUpdateItem, isUpdating,
     </>
   );
 }
-

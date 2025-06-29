@@ -17,7 +17,7 @@ import { LandingMapItemDialog } from "@/components/landing/LandingMapItemDialog"
 import { TrendingDealDetailsDialog } from "@/components/landing/TrendingDealDetailsDialog"; // New Dialog
 import { TrendingFlightDealCard } from "@/components/landing/TrendingFlightDealCard"; // New Card
 import { TrendingHotelDealCard } from "@/components/landing/TrendingHotelDealCard";   // New Card
-import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction, getTrendingFlightDealsAction, getTrendingHotelDealsAction } from '@/app/actions';
+import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction } from '@/app/actions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { SmartBundleOutput, BundleSuggestion, SmartBundleInput } from '@/ai/types/smart-bundle-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
@@ -45,12 +45,9 @@ const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-
 const exploreCategories = [
   { name: "Flights", icon: <Plane className="w-5 h-5" />, href: "/flights" },
   { name: "Hotels", icon: <Hotel className="w-5 h-5" />, href: "/hotels" },
-  { name: "Things to do", icon: <ListChecks className="w-5 h-5" />, href: "/things-to-do" },
+  { name: "Things to do", icon: <Compass className="w-5 h-5" />, href: "/things-to-do" }, // Corrected href
   { name: "Packages", icon: <Briefcase className="w-5 h-5" />, href: "/explore" }, // Assuming packages might still be under explore or need their own page
 ];
-
-interface UserLocation { latitude: number; longitude: number; }
-interface SearchedLocation { name: string; lat: number; lng: number; }
 
 const modernMapStyle: google.maps.MapTypeStyle[] = [
     { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
@@ -72,6 +69,192 @@ const modernMapStyle: google.maps.MapTypeStyle[] = [
     { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
     { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
 ];
+
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+}
+
+interface SearchInputProps {
+  initialSearchTerm?: string;
+  onSearch?: (term: string) => void;
+  placeholder?: string;
+}
+
+function SearchInput({ initialSearchTerm = '', onSearch, placeholder = "Search destinations, hotels, flights..."}: SearchInputProps) {
+   const [term, setTerm] = useState(initialSearchTerm);
+   const { toast: shadcnToast } = useToast();
+   const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onSearch) onSearch(term);
+    shadcnToast({
+        title: "Search Submitted (Conceptual)",
+        description: `You searched for: ${term}. This would typically trigger a search or navigation to a results page.`,
+    });
+  };
+  return (
+    <form onSubmit={handleSubmit} className="relative w-full">
+      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+      <Input
+        type="search"
+        value={term}
+        onChange={(e) => setTerm(e.target.value)}
+        placeholder={placeholder}
+        className="w-full pl-11 pr-4 py-2.5 h-12 text-base bg-input/70 border-border/50 focus:bg-input/90 dark:bg-input/50 rounded-full shadow-inner focus:ring-2 focus:ring-primary/50"
+      />
+      <button type="submit" className="hidden">Search</button>
+    </form>
+  );
+}
+
+interface AiDestinationCardProps {
+  destination: AiDestinationSuggestion;
+  onSelect: () => void;
+  onPlanTrip: (data: AITripPlannerInput) => void;
+}
+
+function AiDestinationCard({ destination, onSelect, onPlanTrip }: AiDestinationCardProps) {
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  const derivedImageHint = useMemo(() => {
+    if (destination.imageUri && destination.imageUri.startsWith('https://placehold.co')) {
+      return destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0, 2).join(" ");
+    }
+    return undefined;
+  }, [destination.imageUri, destination.imagePrompt, destination.name]);
+
+  const handleImageError = useCallback(() => {
+    console.warn(`[AiDestinationCard - TravelPage] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
+    setImageLoadError(true);
+  }, [destination.name, destination.imageUri]);
+  
+  const currentImageSrc = !imageLoadError && destination.imageUri ? destination.imageUri : null;
+
+
+  const handlePlanTripClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // Prevent card's onSelect from firing
+    const plannerInput: AITripPlannerInput = {
+        destination: destination.name + (destination.country ? `, ${destination.country}` : ''),
+        travelDates: "Next month for 7 days", // Default sensible travel dates
+        budget: parseInt(destination.hotelIdea?.priceRange?.match(/\$(\d+)/)?.[0].replace('$','') || destination.flightIdea?.priceRange?.match(/\$(\d+)/)?.[0].replace('$','') || '2000', 10) * (destination.hotelIdea?.priceRange ? 7 : 1),
+    };
+    onPlanTrip(plannerInput);
+  };
+
+
+  return (
+    <Card
+        className={cn(glassCardClasses, "overflow-hidden transform hover:scale-[1.03] transition-transform duration-300 ease-out shadow-lg hover:shadow-primary/30 flex flex-col cursor-pointer")}
+        onClick={onSelect}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(); }}
+    >
+      <div className="relative w-full aspect-[16/10] bg-muted/30 group">
+        {currentImageSrc ? (
+          <Image
+            src={currentImageSrc}
+            alt={destination.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            data-ai-hint={derivedImageHint}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            onError={handleImageError}
+            priority={false} // Lower priority for these dynamic images
+          />
+        ) : (
+            <div className="w-full h-full bg-muted/30 flex items-center justify-center">
+              <ImageOff className="w-10 h-10 text-muted-foreground" />
+            </div>
+        )}
+      </div>
+      <CardHeader className="p-3 pb-2">
+        <CardTitle className="text-md font-semibold text-card-foreground">{destination.name}</CardTitle>
+        <CardDescription className="text-xs text-muted-foreground">{destination.country}</CardDescription>
+      </CardHeader>
+      <CardContent className="p-3 pt-0 text-xs text-muted-foreground flex-grow space-y-1.5">
+        <p className="line-clamp-3">{destination.description}</p>
+        {destination.hotelIdea && (
+          <div className="text-xs border-t border-border/20 pt-1.5 mt-1.5">
+            <p className="font-medium text-card-foreground/90 flex items-center"><Building className="w-3 h-3 mr-1.5 text-primary/70"/>Hotel Idea:</p>
+            <p className="pl-4 text-muted-foreground">{destination.hotelIdea.type} ({destination.hotelIdea.priceRange})</p>
+          </div>
+        )}
+        {destination.flightIdea && (
+          <div className="text-xs border-t border-border/20 pt-1.5 mt-1.5">
+            <p className="font-medium text-card-foreground/90 flex items-center"><Route className="w-3 h-3 mr-1.5 text-primary/70"/>Flight Idea:</p>
+            <p className="pl-4 text-muted-foreground">{destination.flightIdea.description} ({destination.flightIdea.priceRange})</p>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="p-3 pt-2">
+          <Button
+            size="sm"
+            className={cn(
+                "w-full text-sm py-2 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40",
+                "bg-gradient-to-r from-primary to-accent text-primary-foreground",
+                "hover:from-accent hover:to-primary",
+                "focus-visible:ring-4 focus-visible:ring-primary/40",
+                "transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+            )}
+            onClick={handlePlanTripClick}
+          >
+             <ExternalLink className="mr-2 h-4 w-4" /> Plan Trip
+          </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+interface DialogImageDisplayProps {
+  destination: AiDestinationSuggestion | null;
+}
+
+function DialogImageDisplay({ destination }: DialogImageDisplayProps) {
+  const [imageLoadError, setDialogImageLoadError] = useState(false);
+
+  useEffect(() => {
+    setDialogImageLoadError(false); 
+  }, [destination?.imageUri]);
+
+  if (!destination) return null;
+
+  const derivedImageHint = useMemo(() => {
+    if (destination.imageUri && destination.imageUri.startsWith('https://placehold.co')) {
+      return destination.imagePrompt || destination.name.toLowerCase().split(" ").slice(0,2).join(" ");
+    }
+    return undefined;
+  }, [destination.imageUri, destination.imagePrompt, destination.name]);
+
+  const handleImageError = useCallback(() => {
+    console.warn(`[DialogImageDisplay - TravelPage] Image load ERROR for: ${destination.name}, src: ${destination.imageUri}`);
+    setDialogImageLoadError(true);
+  },[destination.name, destination.imageUri]);
+
+  const currentImageSrc = !imageLoadError && destination.imageUri ? destination.imageUri : null;
+
+  return (
+    <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-border/50 shadow-lg bg-muted/30">
+      {currentImageSrc ? (
+        <Image
+          src={currentImageSrc}
+          alt={`Image of ${destination.name}`}
+          fill
+          className="object-cover"
+          data-ai-hint={derivedImageHint}
+          sizes="(max-width: 640px) 90vw, 500px"
+          onError={handleImageError}
+        />
+      ) : (
+        <div className="w-full h-full bg-muted/30 flex items-center justify-center">
+          <ImageOff className="w-10 h-10 text-muted-foreground" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SearchedLocation { name: string; lat: number; lng: number; }
 
 type MapDisplayItem = AiDestinationSuggestion | BundleSuggestion;
 type TrendingDealDisplayItem = SerpApiFlightOption | SerpApiHotelSuggestion;
@@ -178,26 +361,18 @@ export default function LandingPage() {
   }, []);
   
   const fetchAllData = useCallback(async (location?: UserLocation, searchedCity?: string) => {
-    setIsLoadingPopular(true); setIsLoadingSmartBundles(true); setIsLoadingTrendingFlights(true); setIsLoadingTrendingHotels(true);
-    setPopularError(null); setSmartBundlesError(null); setTrendingFlightsError(null); setTrendingHotelsError(null);
+    setIsLoadingPopular(true); setIsLoadingSmartBundles(true); 
+    setPopularError(null); setSmartBundlesError(null); 
     setCurrentSearchedCity(searchedCity || null);
 
     const commonDestInput: PopularDestinationsInput = {};
     if (searchedCity) {
-      commonDestInput.originCity = searchedCity; // for popular destinations
+      // Logic for searched city (if needed for popular destinations)
     } else if (location) {
       commonDestInput.userLatitude = location.latitude;
       commonDestInput.userLongitude = location.longitude;
     }
     
-    const trendingDealsInput = {
-      originCity: searchedCity,
-      destinationCity: searchedCity, // For hotels
-      userLatitude: location?.latitude,
-      userLongitude: location?.longitude
-    };
-
-
     const smartBundleInterest = searchedCity ? `Trips related to ${searchedCity}` : undefined;
     
     await Promise.allSettled([
@@ -209,12 +384,9 @@ export default function LandingPage() {
       currentUser ? generateSmartBundlesAction({ userId: currentUser.uid, travelInterests: smartBundleInterest }).then(result => {
         setSmartBundles(result.suggestions || []);
       }).catch(err => setSmartBundlesError(err.message || "Error")) : Promise.resolve().then(() => setSmartBundlesContextualNote("Log in for personalized trip ideas!")),
-      
-      getTrendingFlightDealsAction(trendingDealsInput).then(setTrendingFlights).catch(err => setTrendingFlightsError(err.message || "Error")),
-      getTrendingHotelDealsAction(trendingDealsInput).then(setTrendingHotels).catch(err => setTrendingHotelsError(err.message || "Error"))
     ]);
 
-    setIsLoadingPopular(false); setIsLoadingSmartBundles(false); setIsLoadingTrendingFlights(false); setIsLoadingTrendingHotels(false);
+    setIsLoadingPopular(false); setIsLoadingSmartBundles(false); 
   }, [currentUser]);
 
 

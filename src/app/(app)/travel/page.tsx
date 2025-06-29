@@ -690,57 +690,6 @@ export default function TravelPage() {
 
       </main>
 
-      {selectedMapDestination && (
-         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className={cn("sm:max-w-lg md:max-w-xl p-0", glassCardClasses, "border-primary/30")}>
-                <DialogHeader className="p-4 sm:p-6 border-b border-border/30 sticky top-0 z-10 bg-card/80 dark:bg-card/50 backdrop-blur-sm">
-                    <div className="flex justify-between items-center">
-                         <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
-                            <MapPin className="w-5 h-5 mr-2 text-primary" />
-                            {selectedMapDestination.name}
-                         </DialogTitle>
-                        <DialogClose asChild>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground">
-                                <X className="h-5 w-5" />
-                            </Button>
-                        </DialogClose>
-                    </div>
-                     <DialogDescription className="text-sm text-muted-foreground">{selectedMapDestination.country}</DialogDescription>
-                </DialogHeader>
-                <div className="p-4 sm:p-6 space-y-4">
-                    <DialogImageDisplay destination={selectedMapDestination} />
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                        {selectedMapDestination.description}
-                    </p>
-                    {selectedMapDestination.hotelIdea && (
-                        <div className="text-xs border-t border-border/30 pt-2 mt-2">
-                            <p className="font-medium text-card-foreground/90 flex items-center"><Building className="w-3.5 h-3.5 mr-1.5 text-primary/80"/>Hotel Idea:</p>
-                            <p className="pl-5 text-muted-foreground">{selectedMapDestination.hotelIdea.type} ({selectedMapDestination.hotelIdea.priceRange})</p>
-                        </div>
-                    )}
-                    {selectedMapDestination.flightIdea && (
-                        <div className="text-xs border-t border-border/30 pt-2 mt-2">
-                            <p className="font-medium text-card-foreground/90 flex items-center"><Route className="w-3.5 h-3.5 mr-1.5 text-primary/80"/>Flight Idea:</p>
-                            <p className="pl-5 text-muted-foreground">{selectedMapDestination.flightIdea.description} ({selectedMapDestination.flightIdea.priceRange})</p>
-                        </div>
-                    )}
-                    <Button
-                        onClick={() => handleInitiatePlanningFromTravelPage({
-                            destination: selectedMapDestination.name + (selectedMapDestination.country ? `, ${selectedMapDestination.country}` : ''),
-                            travelDates: "Next month for 7 days",
-                            budget: parseInt(selectedMapDestination.hotelIdea?.priceRange?.match(/\$(\d+)/)?.[0].replace('$','') || selectedMapDestination.flightIdea?.priceRange?.match(/\$(\d+)/)?.[0].replace('$','') || '2000', 10) * (selectedMapDestination.hotelIdea?.priceRange ? 7 : 1),
-                        })}
-                        size="lg"
-                        className={cn(prominentButtonClasses, "w-full mt-4", "text-base py-2.5")}
-                    >
-                        <ExternalLink className="mr-2 h-5 w-5" />
-                        Plan a Trip to {selectedMapDestination.name}
-                    </Button>
-                </div>
-            </DialogContent>
-        </Dialog>
-      )}
-
       <footer className={cn("py-6 border-t border-border/30 mt-auto", glassPaneClasses)}>
          <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
@@ -748,6 +697,13 @@ export default function TravelPage() {
           </p>
         </div>
       </footer>
+      
+      <LandingMapItemDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        item={selectedMapDestination}
+        onPlanTrip={handleInitiatePlanningFromTravelPage}
+      />
     </div>
   );
 }

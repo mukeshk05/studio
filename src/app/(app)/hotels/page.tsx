@@ -50,8 +50,7 @@ import {
 import { format, addDays, isValid } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { getRealHotelsAction } from '@/app/actions/data';
-// Removed import for AiHotelSearchInput as it's no longer used for the primary search
+import { getRealHotelsAction } from '@/app/actions';
 import type { SerpApiHotelSearchInput, SerpApiHotelSuggestion } from '@/ai/types/serpapi-hotel-search-types'; // Should use this
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -377,7 +376,7 @@ export default function HotelsPage() {
     resolver: zodResolver(hotelSearchFormSchema),
     defaultValues: {
       destination: "",
-      guests: "2 adults",
+      guests: "2",
       dates: { from: undefined, to: undefined },
     },
   });
@@ -879,7 +878,6 @@ export default function HotelsPage() {
               {(!mapsApiError && isMapInitializing ) && <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mb-2 text-accent"/><p className="text-xs">Initializing Map...</p></div>}
               <div ref={mapRef} className={cn("w-full h-full rounded-md", (mapsApiError || isMapInitializing) ? "hidden" : "")} />
             </div>
-            {geolocationError && !isFetchingLocation && <p className="text-xs text-center text-amber-500 mt-1"><Info className="inline w-3 h-3 mr-1"/>{geolocationError}</p>}
           </CardContent>
         </Card>
       </section>

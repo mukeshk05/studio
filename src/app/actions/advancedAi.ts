@@ -1,35 +1,36 @@
+
 'use server';
 
-import { getCoTravelAgentResponse as getCoTravelAgentResponseOriginal } from '@/ai/flows/co-travel-agent-flow';
+import { coTravelAgentFlow } from '@/ai/flows/co-travel-agent-flow';
 import type { CoTravelAgentInput, CoTravelAgentOutput } from '@/ai/types/co-travel-agent-types';
 
-import { getItineraryAssistance as getItineraryAssistanceOriginal } from '@/ai/flows/itinerary-assistance-flow';
+import { itineraryAssistanceFlow } from '@/ai/flows/itinerary-assistance-flow';
 import type { ItineraryAssistanceInput, ItineraryAssistanceOutput } from '@/ai/types/itinerary-assistance-types';
 
-import { generateSmartMapConcept as generateSmartMapConceptFlow } from '@/ai/flows/smart-map-concept-flow';
+import { smartMapConceptFlow } from '@/ai/flows/smart-map-concept-flow';
 import type { SmartMapConceptInput, SmartMapConceptOutput } from '@/ai/types/smart-map-concept-types';
 
-import { getWhatIfAnalysis as getWhatIfAnalysisFlow } from '@/ai/flows/what-if-simulator-flow';
+import { whatIfSimulatorFlow } from '@/ai/flows/what-if-simulator-flow';
 import type { WhatIfSimulatorInput, WhatIfSimulatorOutput } from '@/ai/types/what-if-simulator-types';
 
-import { getAiArPreview as getAiArPreviewFlow } from '@/ai/flows/ai-ar-preview-flow';
+import { aiArPreviewFlow } from '@/ai/flows/ai-ar-preview-flow';
 import type { AiArPreviewInput, AiArPreviewOutput } from '@/ai/types/ai-ar-preview-types';
 
-import { optimizeDayPlanByMood as optimizeDayPlanByMoodFlow } from '@/ai/flows/mood-energy-optimizer-flow';
+import { moodEnergyOptimizerFlow } from '@/ai/flows/mood-energy-optimizer-flow';
 import type { MoodEnergyOptimizerInput, MoodEnergyOptimizerOutput } from '@/ai/types/mood-energy-optimizer-types';
 
-import { getPersonalizedAccessibilityScout as getPersonalizedAccessibilityScoutFlow } from '@/ai/flows/personalized-accessibility-scout-flow';
+import { personalizedAccessibilityScoutFlow } from '@/ai/flows/personalized-accessibility-scout-flow';
 import type { PersonalizedAccessibilityScoutInput, PersonalizedAccessibilityScoutOutput } from '@/ai/types/personalized-accessibility-scout-types';
 
-import { narrateLocalLegend as narrateLocalLegendFlow } from '@/ai/flows/local-legend-narrator-flow';
+import { localLegendNarratorFlow } from '@/ai/flows/local-legend-narrator-flow';
 import type { LocalLegendNarratorInput, LocalLegendNarratorOutput } from '@/ai/types/local-legend-narrator-types';
 
-import { synthesizePostTripFeedback as synthesizePostTripFeedbackFlow } from '@/ai/flows/post-trip-synthesizer-flow';
+import { synthesizePostTripFeedbackFlow } from '@/ai/flows/post-trip-synthesizer-flow';
 import type { PostTripFeedbackInput, PostTripAnalysisOutput } from '@/ai/types/post-trip-synthesizer-types';
 
 export async function getCoTravelAgentResponse(input: CoTravelAgentInput): Promise<CoTravelAgentOutput> { 
   try {
-    return await getCoTravelAgentResponseOriginal(input); 
+    return await coTravelAgentFlow(input); 
   } catch (error: any) {
     console.error(`[Action Error] getCoTravelAgentResponse failed:`, error);
     return {
@@ -41,7 +42,7 @@ export async function getCoTravelAgentResponse(input: CoTravelAgentInput): Promi
 
 export async function getItineraryAssistance(input: ItineraryAssistanceInput): Promise<ItineraryAssistanceOutput> {
   try {
-    return await getItineraryAssistanceOriginal(input); 
+    return await itineraryAssistanceFlow(input); 
   } catch (error: any) {
     console.error(`[Action Error] getItineraryAssistance failed:`, error);
     return {
@@ -53,7 +54,7 @@ export async function getItineraryAssistance(input: ItineraryAssistanceInput): P
 
 export async function generateSmartMapConcept(input: SmartMapConceptInput): Promise<SmartMapConceptOutput> {
   try {
-    return await generateSmartMapConceptFlow(input);
+    return await smartMapConceptFlow(input);
   } catch (error: any) {
     console.error(`[Action Error] generateSmartMapConcept failed:`, error);
     return {
@@ -67,7 +68,7 @@ export async function generateSmartMapConcept(input: SmartMapConceptInput): Prom
 
 export async function getWhatIfAnalysis(input: WhatIfSimulatorInput): Promise<WhatIfSimulatorOutput> {
   try {
-    return await getWhatIfAnalysisFlow(input);
+    return await whatIfSimulatorFlow(input);
   } catch (error: any) {
     console.error(`[Action Error] getWhatIfAnalysis failed:`, error);
     const fallbackImage = `https://placehold.co/600x400.png?text=Error`;
@@ -82,7 +83,7 @@ export async function getWhatIfAnalysis(input: WhatIfSimulatorInput): Promise<Wh
 
 export async function getAiArPreview(input: AiArPreviewInput): Promise<AiArPreviewOutput> {
   try {
-    return await getAiArPreviewFlow(input);
+    return await aiArPreviewFlow(input);
   } catch (error: any) {
     console.error(`[Action Error] getAiArPreview failed:`, error);
     const fallbackImage = `https://placehold.co/600x400.png?text=Error`;
@@ -97,7 +98,7 @@ export async function getAiArPreview(input: AiArPreviewInput): Promise<AiArPrevi
 
 export async function optimizeDayPlanByMood(input: MoodEnergyOptimizerInput): Promise<MoodEnergyOptimizerOutput> {
   try {
-    return await optimizeDayPlanByMoodFlow(input);
+    return await moodEnergyOptimizerFlow(input);
   } catch (error: any) {
     console.error(`[Action Error] optimizeDayPlanByMood failed:`, error);
     return {
@@ -109,7 +110,7 @@ export async function optimizeDayPlanByMood(input: MoodEnergyOptimizerInput): Pr
 
 export async function getPersonalizedAccessibilityScout(input: PersonalizedAccessibilityScoutInput): Promise<PersonalizedAccessibilityScoutOutput> {
   try {
-    return await getPersonalizedAccessibilityScoutFlow(input);
+    return await personalizedAccessibilityScoutFlow(input);
   } catch (error: any) {
     console.error(`[Action Error] getPersonalizedAccessibilityScout failed:`, error);
     const fallbackImage = `https://placehold.co/600x400.png?text=Error`;
@@ -124,7 +125,7 @@ export async function getPersonalizedAccessibilityScout(input: PersonalizedAcces
 
 export async function narrateLocalLegend(input: LocalLegendNarratorInput): Promise<LocalLegendNarratorOutput> {
   try {
-    return await narrateLocalLegendFlow(input);
+    return await localLegendNarratorFlow(input);
   } catch (error: any) {
     console.error(`[Action Error] narrateLocalLegend failed:`, error);
     const fallbackImage = `https://placehold.co/600x400.png?text=Error`;

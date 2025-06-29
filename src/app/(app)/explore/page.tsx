@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Search, Plane, Hotel, Compass, Briefcase, MapPin, ImageOff, Loader2, Sparkles, Building, Route, Info, ExternalLink, Mountain, FerrisWheel, Palette, Utensils, AlertTriangle, X, LocateFixed, Lightbulb } from 'lucide-react';
-import { getPopularDestinations, getExploreIdeasAction } from '@/app/actions/suggestions'; // Updated import
+import { getPopularDestinations, getExploreIdeasAction } from '@/app/actions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { ExploreIdeaSuggestion, ExploreIdeasOutput } from '@/ai/types/explore-ideas-types'; // New types
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
@@ -974,5 +974,8 @@ const modernMapStyle = [
     { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
     { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
 ];
+
+
+
 
 
