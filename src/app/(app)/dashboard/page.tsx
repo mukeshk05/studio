@@ -1,24 +1,33 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookingList } from "@/components/dashboard/booking-list";
-import { PriceTrackerForm } from "@/components/dashboard/price-tracker-form";
-import { PriceTrackerList } from "@/components/dashboard/price-tracker-list";
 import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles, Wand2 } from 'lucide-react';
 import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useTrackedItems } from "@/lib/firestoreHooks";
 import { cn } from "@/lib/utils";
-import { SmartBundleGenerator } from "@/components/dashboard/SmartBundleGenerator";
 import type { AITripPlannerInput } from "@/ai/types/trip-planner-types";
 import { useRouter } from 'next/navigation';
 import { onForegroundMessageListener } from "@/lib/firebaseMessaging";
-import { NotificationSettings } from "@/components/dashboard/NotificationSettings";
-import { SavedIdeasHistory } from "@/components/dashboard/SavedIdeasHistory";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Skeletons for dynamic components
+const DashboardCardSkeleton = () => <Skeleton className="w-full h-72 rounded-lg bg-card/50" />;
+const TabsContentSkeleton = () => <Skeleton className="w-full h-[400px] rounded-lg bg-card/50" />;
+
+// Dynamic imports
+const SmartBundleGenerator = dynamic(() => import('@/components/dashboard/SmartBundleGenerator').then(mod => mod.SmartBundleGenerator), { loading: () => <DashboardCardSkeleton />, ssr: false });
+const NotificationSettings = dynamic(() => import('@/components/dashboard/NotificationSettings').then(mod => mod.NotificationSettings), { loading: () => <Skeleton className="w-full h-48 rounded-lg bg-card/50" />, ssr: false });
+const BookingList = dynamic(() => import('@/components/dashboard/booking-list').then(mod => mod.BookingList), { loading: () => <TabsContentSkeleton />, ssr: false });
+const SavedIdeasHistory = dynamic(() => import('@/components/dashboard/SavedIdeasHistory').then(mod => mod.SavedIdeasHistory), { loading: () => <TabsContentSkeleton />, ssr: false });
+const PriceTrackerForm = dynamic(() => import('@/components/dashboard/price-tracker-form').then(mod => mod.PriceTrackerForm), { loading: () => <DashboardCardSkeleton />, ssr: false });
+const PriceTrackerList = dynamic(() => import('@/components/dashboard/price-tracker-list').then(mod => mod.PriceTrackerList), { loading: () => <TabsContentSkeleton />, ssr: false });
 
 
 export default function DashboardPage() {
@@ -164,12 +173,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <div className={cn("lg:col-span-2", "animate-fade-in-up", "glass-card")} style={{animationDelay: '0.2s'}}>
+        <div className={cn("lg:col-span-2", "animate-fade-in-up")} style={{animationDelay: '0.2s'}}>
             <SmartBundleGenerator onPlanTripFromBundle={handlePlanTripFromBundle} />
         </div>
       </div>
       
-      <div className="mb-8 animate-fade-in-up glass-card" style={{ animationDelay: '0.3s' }}>
+      <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
         <NotificationSettings />
       </div>
 

@@ -2,15 +2,24 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
 import { BrainCircuit } from 'lucide-react';
-import { ProactiveJourneySentinelCard } from "@/components/dashboard/ProactiveJourneySentinelCard";
-import { AiCalendarSyncCard } from "@/components/dashboard/AiCalendarSyncPlaceholder";
-import { DigitalTwinExplorerPlaceholder } from "@/components/dashboard/DigitalTwinExplorerPlaceholder";
-import { AffectiveComputingPlaceholder } from "@/components/dashboard/AffectiveComputingPlaceholder";
-import { EthicalImpactAuditorPlaceholder } from "@/components/dashboard/EthicalImpactAuditorPlaceholder";
-import { DynamicItineraryOptimizerPlaceholder } from "@/components/dashboard/DynamicItineraryOptimizerPlaceholder";
-import { VisualSearchPlaceholder } from "@/components/dashboard/VisualSearchPlaceholder";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Loading component for dynamic imports
+const FeatureCardSkeleton = () => (
+  <Skeleton className="w-full h-[400px] rounded-lg bg-card/50" />
+);
+
+// Dynamic imports for each conceptual feature card
+const ProactiveJourneySentinelCard = dynamic(() => import('@/components/dashboard/ProactiveJourneySentinelCard').then(mod => mod.ProactiveJourneySentinelCard), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const AiCalendarSyncCard = dynamic(() => import('@/components/dashboard/AiCalendarSyncPlaceholder').then(mod => mod.AiCalendarSyncCard), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const DigitalTwinExplorerPlaceholder = dynamic(() => import('@/components/dashboard/DigitalTwinExplorerPlaceholder').then(mod => mod.DigitalTwinExplorerPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const AffectiveComputingPlaceholder = dynamic(() => import('@/components/dashboard/AffectiveComputingPlaceholder').then(mod => mod.AffectiveComputingPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const EthicalImpactAuditorPlaceholder = dynamic(() => import('@/components/dashboard/EthicalImpactAuditorPlaceholder').then(mod => mod.EthicalImpactAuditorPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const DynamicItineraryOptimizerPlaceholder = dynamic(() => import('@/components/dashboard/DynamicItineraryOptimizerPlaceholder').then(mod => mod.DynamicItineraryOptimizerPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const VisualSearchPlaceholder = dynamic(() => import('@/components/dashboard/VisualSearchPlaceholder').then(mod => mod.VisualSearchPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
 
 export default function LabsPage() {
   return (
