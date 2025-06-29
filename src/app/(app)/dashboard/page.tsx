@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -181,15 +180,15 @@ export default function DashboardPage() {
             "glass-pane border-opacity-50", 
             "animate-fade-in-up"
           )} style={{animationDelay: '0.4s'}}>
-          <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+          <TabsTrigger value="my-trips" id="my-trips-trigger" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <ListChecks className="w-5 h-5" />
             My Saved Trips
           </TabsTrigger>
-           <TabsTrigger value="ai-ideas" id="ai-ideas-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+           <TabsTrigger value="ai-ideas" id="ai-ideas-trigger" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <Wand2 className="w-5 h-5" />
             AI-Generated Ideas
           </TabsTrigger>
-          <TabsTrigger value="price-tracker" id="price-tracker-trigger" className="flex items-center gap-2 data-[state=active]:bg-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+          <TabsTrigger value="price-tracker" id="price-tracker-trigger" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
             <BellRing className="w-5 h-5" />
             Price Tracker
           </TabsTrigger>
