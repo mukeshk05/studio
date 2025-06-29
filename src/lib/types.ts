@@ -141,6 +141,7 @@ export interface SavedPackingList {
   id: string;
   userId: string;
   createdAt: any;
+  toolType: 'packingList';
   destination: string;
   travelDates: string;
   tripType?: string;
@@ -151,6 +152,7 @@ export interface SavedComparison {
     id: string;
     userId: string;
     createdAt: any;
+    toolType: 'comparison';
     destination1: string;
     destination2: string;
     travelInterest: string;
@@ -161,7 +163,10 @@ export interface SavedAccessibilityReport {
     id: string;
     userId: string;
     createdAt: any;
+    toolType: 'accessibilityReport';
     destination: string;
     accessibilityNeeds: string;
     report: import('@/ai/types/personalized-accessibility-scout-types').PersonalizedAccessibilityScoutOutput;
 }
+
+export type SavedToolResult = SavedPackingList | SavedComparison | SavedAccessibilityReport;

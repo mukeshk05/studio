@@ -4,7 +4,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firestore, auth } from './firebase'; // Import auth
 import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId, Timestamp } from 'firebase/firestore';
-import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult, SavedPackingList, SavedComparison, SavedAccessibilityReport } from './types';
+import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult, SavedPackingList, SavedComparison, SavedAccessibilityReport, SavedToolResult } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SerpApiFlightSearchOutput, SerpApiHotelSearchOutput } from '@/ai/types/serpapi-flight-search-types';
 
@@ -794,7 +794,8 @@ export function useRemoveQuizResult() {
 
 // --- Saved Tool Result Hooks ---
 
-const SAVED_PACKING_LISTS_QUERY_KEY = 'savedPackingLists';
+const SAVED_TOOL_RESULTS_QUERY_KEY = 'savedToolResults';
+
 export function useAddSavedPackingList() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
@@ -808,12 +809,11 @@ export function useAddSavedPackingList() {
       return docRef.id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [SAVED_PACKING_LISTS_QUERY_KEY, currentUser?.uid] });
+      queryClient.invalidateQueries({ queryKey: [SAVED_TOOL_RESULTS_QUERY_KEY, currentUser?.uid] });
     },
   });
 }
 
-const SAVED_COMPARISONS_QUERY_KEY = 'savedComparisons';
 export function useAddSavedComparison() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
@@ -827,12 +827,11 @@ export function useAddSavedComparison() {
       return docRef.id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [SAVED_COMPARISONS_QUERY_KEY, currentUser?.uid] });
+      queryClient.invalidateQueries({ queryKey: [SAVED_TOOL_RESULTS_QUERY_KEY, currentUser?.uid] });
     },
   });
 }
 
-const SAVED_ACCESSIBILITY_REPORTS_QUERY_KEY = 'savedAccessibilityReports';
 export function useAddSavedAccessibilityReport() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
@@ -846,7 +845,69 @@ export function useAddSavedAccessibilityReport() {
       return docRef.id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [SAVED_ACCESSIBILITY_REPORTS_QUERY_KEY, currentUser?.uid] });
+      queryClient.invalidateQueries({ queryKey: [SAVED_TOOL_RESULTS_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+// Hook to get all saved tool results
+export function useSavedToolResults() {
+  const { currentUser, loading: authLoading } = useAuth();
+
+  return useQuery<SavedToolResult[], Error>({
+    queryKey: [SAVED_TOOL_RESULTS_QUERY_KEY, currentUser?.uid],
+    queryFn: async () => {
+      const user = auth.currentUser;
+      if (!user?.uid) return [];
+      try {
+        const resultsCollectionRef = collection(firestore, 'users', user.uid, 'savedToolResults');
+        const q = query(resultsCollectionRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          let createdAtDate = new Date();
+          if (data.createdAt instanceof Timestamp) {
+            createdAtDate = data.createdAt.toDate();
+          } else if (data.createdAt) {
+            const parsed = new Date(data.createdAt);
+            if (!isNaN(parsed.getTime())) createdAtDate = parsed;
+          }
+          return { ...data, id: doc.id, createdAt: createdAtDate } as SavedToolResult;
+        });
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          console.warn("[useSavedToolResults] Permission denied. This may be due to auth state change. Silently failing.");
+          return [];
+        }
+        console.error("[useSavedToolResults] Unexpected Firestore error: ", e);
+        throw e;
+      }
+    },
+    enabled: !authLoading && !!currentUser,
+  });
+}
+
+// Hook to remove a saved tool result
+export function useRemoveSavedToolResult() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (resultId: string) => {
+      try {
+        const user = auth.currentUser;
+        if (!user?.uid) throw new Error("User not authenticated");
+        const resultDocRef = doc(firestore, 'users', user.uid, 'savedToolResults', resultId);
+        await deleteDoc(resultDocRef);
+      } catch (e: any) {
+        if (e.code === 'permission-denied') {
+          throw new Error("Permission denied. Your session might be initializing, please try again.");
+        }
+        throw e;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SAVED_TOOL_RESULTS_QUERY_KEY, currentUser?.uid] });
     },
   });
 }
