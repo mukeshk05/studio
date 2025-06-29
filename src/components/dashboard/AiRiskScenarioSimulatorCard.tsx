@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState } from 'react';
@@ -7,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Loader2, Sparkles, AlertTriangle, ShieldAlert, Info, ExternalLink } from 'lucide-react';
+import { Loader2, Sparkles, AlertTriangle, ShieldAlert, Info, ExternalLink, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -86,6 +88,8 @@ export function AiRiskScenarioSimulatorCard() {
       setIsLoading(false);
     }, 1500);
   };
+  
+  const prominentButtonClasses = "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
   return (
     <Card className={cn(glassCardClasses, "w-full border-red-500/30 animate-fade-in-up")}>
@@ -124,7 +128,7 @@ export function AiRiskScenarioSimulatorCard() {
           onClick={handleSimulate}
           disabled={isLoading || !tripContext.trim() || !riskScenario.trim()}
           size="lg"
-          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+          className={prominentButtonClasses}
         >
           {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Simulate AI Response
@@ -174,6 +178,20 @@ export function AiRiskScenarioSimulatorCard() {
                 </div>
               )}
             </CardContent>
+            <CardFooter className="pt-4 px-0 pb-0">
+               <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                       <Button variant="outline" size="sm" className="w-full glass-interactive border-primary/50 text-primary hover:bg-primary/10" disabled>
+                        <Save className="w-4 h-4 mr-1.5" /> Save Scenario Analysis
+                       </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="glass-card">
+                      <p>Future feature: Save this analysis to your trip notes.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+            </CardFooter>
           </Card>
         )}
       </CardContent>

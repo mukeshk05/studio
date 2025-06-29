@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react';
@@ -12,6 +13,9 @@ import Image from 'next/image';
 const glassCardClasses = "glass-card border-indigo-500/30 hover:border-indigo-400/50 transition-all";
 
 export function WhatIfPlanChangeCard() {
+
+  const prominentButtonClasses = "w-full sm:w-auto text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
+
   return (
     <Card className={cn(glassCardClasses, "animate-fade-in-up")}>
       <CardHeader className="pb-3">
@@ -53,7 +57,7 @@ export function WhatIfPlanChangeCard() {
             </ol>
           </div>
           <div className="text-center mt-4">
-            <Button asChild variant="default" size="lg" className="w-full sm:w-auto text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40">
+            <Button asChild size="lg" className={cn(prominentButtonClasses, "text-base py-2.5")}>
               <Link href="/planner">
                 <Wand2 className="w-5 h-5 mr-2" />
                 Go to AI Trip Planner

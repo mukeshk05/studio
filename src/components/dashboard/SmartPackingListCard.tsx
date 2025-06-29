@@ -1,16 +1,19 @@
 
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Sparkles, Briefcase, Info, ListChecks } from 'lucide-react';
+import { Loader2, Sparkles, Briefcase, Info, ListChecks, Save } from 'lucide-react';
 import { getPackingList, PackingListInput, PackingListOutput } from '@/ai/flows/packing-list-flow';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAddSavedPackingList } from '@/lib/firestoreHooks';
 
 const glassCardClasses = "glass-card";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -24,6 +27,13 @@ export function SmartPackingListCard() {
   const [tripType, setTripType] = useState('');
   const [weatherContext, setWeatherContext] = useState('');
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+  const addSavedPackingListMutation = useAddSavedPackingList();
+  const [isListSaved, setIsListSaved] = useState(false);
+
+  useEffect(() => {
+    setIsListSaved(false);
+  }, [packingList]);
 
   const handleFetchPackingList = async () => {
     if (!destination.trim() || !travelDates.trim() || !tripDuration.trim()) {
@@ -58,6 +68,28 @@ export function SmartPackingListCard() {
       setIsLoading(false);
     }
   };
+
+  const handleSaveList = async () => {
+    if (!packingList || !currentUser) {
+      toast({ title: "Cannot Save", description: "No list to save or you are not logged in.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await addSavedPackingListMutation.mutateAsync({
+        destination,
+        travelDates,
+        tripType: tripType || undefined,
+        packingList,
+      });
+      toast({ title: "Success!", description: "Packing list saved to your profile." });
+      setIsListSaved(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: `Could not save list: ${error.message}`, variant: "destructive" });
+    }
+  };
+  
+  const prominentButtonClasses = "w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-4 focus-visible:ring-primary/40 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100";
 
   return (
     <Card className={cn(glassCardClasses, "w-full border-green-500/30", "animate-fade-in-up")}>
@@ -98,7 +130,7 @@ export function SmartPackingListCard() {
           onClick={handleFetchPackingList}
           disabled={isLoading || !destination.trim() || !travelDates.trim() || !tripDuration.trim()}
           size="lg"
-          className="w-full text-lg py-3 shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+          className={prominentButtonClasses}
         >
           {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
           Generate Packing List
@@ -113,11 +145,21 @@ export function SmartPackingListCard() {
 
         {packingList && !isLoading && (
           <Card className={cn(innerGlassEffectClasses, "mt-4 p-4 animate-fade-in")}>
-            <CardHeader className="p-0 pb-3">
+            <CardHeader className="p-0 pb-3 flex flex-row justify-between items-center">
                 <CardTitle className="text-lg text-accent flex items-center">
                     <ListChecks className="w-5 h-5 mr-2" />
                     Your AI-Suggested Packing List:
                 </CardTitle>
+                <Button 
+                    variant={isListSaved ? "secondary" : "default"} 
+                    size="sm" 
+                    onClick={handleSaveList}
+                    disabled={isListSaved || addSavedPackingListMutation.isPending || !currentUser}
+                    className={cn(isListSaved ? "cursor-not-allowed" : "shadow-md shadow-accent/30")}
+                >
+                    {addSavedPackingListMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Save className="w-4 h-4 mr-2"/>}
+                    {isListSaved ? "Saved" : "Save List"}
+                </Button>
             </CardHeader>
             <CardContent className="p-0">
                 <ul className="list-disc space-y-1 pl-5 text-sm text-card-foreground/90 max-h-60 overflow-y-auto">

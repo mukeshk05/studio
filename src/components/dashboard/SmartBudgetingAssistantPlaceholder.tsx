@@ -1,13 +1,15 @@
 
+
 "use client";
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PiggyBank, Sparkles, Replace, Info, CheckCircle, XCircle, Hotel, Plane, FerrisWheel } from 'lucide-react';
+import { PiggyBank, Sparkles, Replace, Info, CheckCircle, XCircle, Hotel, Plane, FerrisWheel, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image'; // Keep for consistency, though not used for dynamic images here
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const glassCardClasses = "glass-card border-green-500/30 hover:border-green-400/50 transition-all";
 const innerGlassEffectClasses = "bg-card/80 dark:bg-card/50 backdrop-blur-md border border-white/10 dark:border-[hsl(var(--primary)/0.1)] rounded-md";
@@ -101,9 +103,18 @@ export function SmartBudgetingAssistantPlaceholder() {
               <Button variant="default" size="sm" className="flex-1 bg-green-500 hover:bg-green-600 text-white" disabled>
                 <CheckCircle className="w-4 h-4 mr-1.5" /> Accept Suggestion
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 glass-interactive border-destructive/50 text-destructive hover:bg-destructive/10" disabled>
-                <XCircle className="w-4 h-4 mr-1.5" /> Keep Original
-              </Button>
+               <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                       <Button variant="outline" size="sm" className="flex-1 glass-interactive border-primary/50 text-primary hover:bg-primary/10" disabled>
+                        <Save className="w-4 h-4 mr-1.5" /> Save Analysis
+                       </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="glass-card">
+                      <p>Future feature: Save this analysis to your trip notes.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
             </div>
           </div>
 

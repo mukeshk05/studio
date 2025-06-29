@@ -1,9 +1,10 @@
 
+
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { firestore, auth } from './firebase'; // Import auth
 import { collection, addDoc, deleteDoc, doc, getDocs, updateDoc, query, where, serverTimestamp, orderBy, limit, setDoc, getDoc, documentId, Timestamp } from 'firebase/firestore';
-import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult } from './types';
+import type { Itinerary, PriceTrackerEntry, SearchHistoryEntry, UserTravelPersona, TripPackageSuggestion, AITripPlannerInput, AITripPlannerOutput, QuizResult, SavedPackingList, SavedComparison, SavedAccessibilityReport } from './types';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SerpApiFlightSearchOutput, SerpApiHotelSearchOutput } from '@/ai/types/serpapi-flight-search-types';
 
@@ -787,6 +788,65 @@ export function useRemoveQuizResult() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUIZ_HISTORY_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+// --- Saved Tool Result Hooks ---
+
+const SAVED_PACKING_LISTS_QUERY_KEY = 'savedPackingLists';
+export function useAddSavedPackingList() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<string, Error, Omit<SavedPackingList, 'id' | 'createdAt' | 'userId'>>({
+    mutationFn: async (listData) => {
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const listsCollectionRef = collection(firestore, 'users', user.uid, 'savedToolResults');
+      const docRef = await addDoc(listsCollectionRef, { ...listData, toolType: 'packingList', userId: user.uid, createdAt: serverTimestamp() });
+      return docRef.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SAVED_PACKING_LISTS_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+const SAVED_COMPARISONS_QUERY_KEY = 'savedComparisons';
+export function useAddSavedComparison() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<string, Error, Omit<SavedComparison, 'id' | 'createdAt' | 'userId'>>({
+    mutationFn: async (comparisonData) => {
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const comparisonsCollectionRef = collection(firestore, 'users', user.uid, 'savedToolResults');
+      const docRef = await addDoc(comparisonsCollectionRef, { ...comparisonData, toolType: 'comparison', userId: user.uid, createdAt: serverTimestamp() });
+      return docRef.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SAVED_COMPARISONS_QUERY_KEY, currentUser?.uid] });
+    },
+  });
+}
+
+const SAVED_ACCESSIBILITY_REPORTS_QUERY_KEY = 'savedAccessibilityReports';
+export function useAddSavedAccessibilityReport() {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation<string, Error, Omit<SavedAccessibilityReport, 'id' | 'createdAt' | 'userId'>>({
+    mutationFn: async (reportData) => {
+      const user = auth.currentUser;
+      if (!user?.uid) throw new Error("User not authenticated");
+      const reportsCollectionRef = collection(firestore, 'users', user.uid, 'savedToolResults');
+      const docRef = await addDoc(reportsCollectionRef, { ...reportData, toolType: 'accessibilityReport', userId: user.uid, createdAt: serverTimestamp() });
+      return docRef.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SAVED_ACCESSIBILITY_REPORTS_QUERY_KEY, currentUser?.uid] });
     },
   });
 }

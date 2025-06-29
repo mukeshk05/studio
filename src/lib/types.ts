@@ -135,3 +135,33 @@ export interface ConceptualDailyPlanItem {
   day: string;
   activities: string;
 }
+
+// Saved Tool Types
+export interface SavedPackingList {
+  id: string;
+  userId: string;
+  createdAt: any;
+  destination: string;
+  travelDates: string;
+  tripType?: string;
+  packingList: string[];
+}
+
+export interface SavedComparison {
+    id: string;
+    userId: string;
+    createdAt: any;
+    destination1: string;
+    destination2: string;
+    travelInterest: string;
+    analysisResult: import('@/ai/types/what-if-simulator-types').WhatIfSimulatorOutput;
+}
+
+export interface SavedAccessibilityReport {
+    id: string;
+    userId: string;
+    createdAt: any;
+    destination: string;
+    accessibilityNeeds: string;
+    report: import('@/ai/types/personalized-accessibility-scout-types').PersonalizedAccessibilityScoutOutput;
+}
