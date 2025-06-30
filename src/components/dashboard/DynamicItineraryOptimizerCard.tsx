@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -10,7 +9,7 @@ import Image from 'next/image';
 
 const glassCardClasses = "glass-card border-amber-500/30 hover:border-amber-400/50 transition-all";
 
-export function DynamicItineraryOptimizerPlaceholder() {
+export function DynamicItineraryOptimizerCard() {
   return (
     <Card className={cn(glassCardClasses, "animate-fade-in-up")}>
       <CardHeader className="pb-3">

@@ -18,7 +18,7 @@ const AiCalendarSyncCard = dynamic(() => import('@/components/dashboard/AiCalend
 const DigitalTwinExplorerPlaceholder = dynamic(() => import('@/components/dashboard/DigitalTwinExplorerPlaceholder').then(mod => mod.DigitalTwinExplorerPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
 const AffectiveComputingPlaceholder = dynamic(() => import('@/components/dashboard/AffectiveComputingPlaceholder').then(mod => mod.AffectiveComputingPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
 const EthicalImpactAuditorPlaceholder = dynamic(() => import('@/components/dashboard/EthicalImpactAuditorPlaceholder').then(mod => mod.EthicalImpactAuditorPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
-const DynamicItineraryOptimizerPlaceholder = dynamic(() => import('@/components/dashboard/DynamicItineraryOptimizerPlaceholder').then(mod => mod.DynamicItineraryOptimizerPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
+const DynamicItineraryOptimizerCard = dynamic(() => import('@/components/dashboard/DynamicItineraryOptimizerCard').then(mod => mod.DynamicItineraryOptimizerCard), { loading: () => <FeatureCardSkeleton />, ssr: false });
 const VisualSearchPlaceholder = dynamic(() => import('@/components/dashboard/VisualSearchPlaceholder').then(mod => mod.VisualSearchPlaceholder), { loading: () => <FeatureCardSkeleton />, ssr: false });
 
 export default function LabsPage() {
@@ -39,7 +39,7 @@ export default function LabsPage() {
           <ProactiveJourneySentinelCard />
         </div>
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.2s'}}>
-          <DynamicItineraryOptimizerPlaceholder />
+          <DynamicItineraryOptimizerCard />
         </div>
         <div className={cn("lg:col-span-3", "animate-fade-in-up")} style={{animationDelay: '0.3s'}}>
           <AiCalendarSyncCard />
