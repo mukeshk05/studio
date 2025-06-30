@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Search, Plane, Hotel, Compass, Briefcase, MapPin, ImageOff, Loader2, Sparkles, Building, Route, Info, ExternalLink, Mountain, FerrisWheel, Palette, Utensils, AlertTriangle, X, LocateFixed, Lightbulb } from 'lucide-react';
-import { getPopularDestinations, getExploreIdeasAction } from '@/app/actions';
+import { getPopularDestinations } from '@/app/actions/suggestions';
+import { getExploreIdeasAction } from '@/app/actions/suggestions';
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
 import type { ExploreIdeaSuggestion, ExploreIdeasOutput } from '@/ai/types/explore-ideas-types'; // New types
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
@@ -23,12 +24,12 @@ import { useAuth } from '@/contexts/AuthContext'; // For fetching user ID
 const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 
 const interestCategories = [
-  { name: "Beaches", icon: <Plane className="w-6 h-6" />, hint: "sandy beaches sunny coast", bgColor: "bg-blue-500/10", borderColor: "border-blue-500/30", textColor: "text-blue-300" },
-  { name: "Mountains", icon: <Mountain className="w-6 h-6" />, hint: "majestic mountains hiking trails", bgColor: "bg-green-500/10", borderColor: "border-green-500/30", textColor: "text-green-300" },
-  { name: "Cities", icon: <Building className="w-6 h-6" />, hint: "vibrant city skyline nightlife", bgColor: "bg-purple-500/10", borderColor: "border-purple-500/30", textColor: "text-purple-300" },
-  { name: "Adventure", icon: <FerrisWheel className="w-6 h-6" />, hint: "thrilling adventure outdoor activities", bgColor: "bg-orange-500/10", borderColor: "border-orange-500/30", textColor: "text-orange-300" },
-  { name: "Culture", icon: <Palette className="w-6 h-6" />, hint: "rich culture historic art", bgColor: "bg-red-500/10", borderColor: "border-red-500/30", textColor: "text-red-300" },
-  { name: "Food", icon: <Utensils className="w-6 h-6" />, hint: "delicious food local cuisine", bgColor: "bg-yellow-500/10", borderColor: "border-yellow-500/30", textColor: "text-yellow-300" },
+  { name: "Beaches", icon: <Plane className="w-6 h-6" />, hint: "sandy beaches sunny coast" },
+  { name: "Mountains", icon: <Mountain className="w-6 h-6" />, hint: "majestic mountains hiking trails" },
+  { name: "Cities", icon: <Building className="w-6 h-6" />, hint: "vibrant city skyline nightlife" },
+  { name: "Adventure", icon: <FerrisWheel className="w-6 h-6" />, hint: "thrilling adventure outdoor activities" },
+  { name: "Culture", icon: <Palette className="w-6 h-6" />, hint: "rich culture historic art" },
+  { name: "Food", icon: <Utensils className="w-6 h-6" />, hint: "delicious food local cuisine" },
 ];
 
 interface SearchInputPropsExplore {
@@ -728,18 +729,15 @@ export default function ExplorePage() {
                 key={category.name}
                 onClick={() => handleInterestClick(category.name, category.hint)}
                 className={cn(
-                  "p-4 rounded-xl transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2",
-                  glassCardClasses,
-                  category.bgColor,
-                  category.borderColor,
-                  "hover:border-opacity-70 focus:ring-opacity-50",
+                  "p-4 rounded-xl transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary/50",
+                  "shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary",
                   "flex flex-col items-center justify-center aspect-square text-center group"
                 )}
               >
-                <div className={cn("mb-2 transition-transform duration-300 group-hover:scale-110", category.textColor)}>
+                <div className={cn("mb-2 transition-transform duration-300 group-hover:scale-110", "text-primary-foreground/90")}>
                   {React.cloneElement(category.icon, { className: "w-8 h-8 sm:w-10 sm:h-10" })}
                 </div>
-                <span className={cn("text-xs sm:text-sm font-medium transition-colors duration-300", category.textColor, "group-hover:text-opacity-100")}>
+                <span className={cn("text-xs sm:text-sm font-medium", "text-primary-foreground")}>
                   {category.name}
                 </span>
               </button>
@@ -974,8 +972,3 @@ const modernMapStyle = [
     { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
     { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
 ];
-
-
-
-
-
