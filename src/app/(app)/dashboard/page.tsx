@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState("my-trips");
 
   const { data: savedTrips, isLoading: isLoadingTrips } = useSavedTrips();
   const { data: trackedItems, isLoading: isLoadingTrackedItems } = useTrackedItems();
@@ -135,7 +136,7 @@ export default function DashboardPage() {
                 <Button
                   size="sm"
                   className="shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
-                  onClick={() => document.getElementById('my-trips-trigger')?.click()}
+                  onClick={() => setActiveTab('my-trips')}
                 >
                     <ListChecks className="w-4 h-4 mr-2" />
                     View Trips
@@ -143,7 +144,7 @@ export default function DashboardPage() {
                  <Button
                    size="sm"
                    className="shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
-                   onClick={() => document.getElementById('price-tracker-trigger')?.click()}
+                   onClick={() => setActiveTab('price-tracker')}
                  >
                     <TrendingUp className="w-4 h-4 mr-2" />
                     Price Tracker
@@ -192,7 +193,7 @@ export default function DashboardPage() {
       </div>
 
 
-      <Tabs defaultValue="my-trips" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className={cn(
             "grid w-full grid-cols-2 sm:grid-cols-3 md:w-auto md:inline-flex mb-6 p-1.5 rounded-lg shadow-md",
             "glass-pane border-opacity-50", 
