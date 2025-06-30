@@ -4,9 +4,77 @@
 // so it can be imported by both server components and server actions.
 
 import { firestore } from './firebase';
-import { collection, getDocs, doc, getDoc, query, orderBy, limit, Timestamp } from 'firebase/firestore';
-import type { Itinerary, SearchHistoryEntry, UserTravelPersona } from './types';
+import { collection, getDocs, doc, getDoc, query, orderBy, limit, Timestamp, updateDoc } from 'firebase/firestore';
+import type { Itinerary, SearchHistoryEntry, UserTravelPersona, PriceTrackerEntry } from './types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
+
+export async function getUsers(): Promise<{id: string, email: string | null}[]> {
+  console.log(`[FirestoreServer] getUsers called.`);
+  if (!firestore) {
+    console.error("[FirestoreServer] Firestore instance is undefined in getUsers.");
+    return [];
+  }
+  try {
+    const usersCollectionRef = collection(firestore, 'users');
+    const querySnapshot = await getDocs(usersCollectionRef);
+    const users = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        email: data.email || null // Assuming email is stored at the root of the user doc
+      };
+    });
+    console.log(`[FirestoreServer] Found ${users.length} users.`);
+    return users;
+  } catch (error: any) {
+    console.error(`[FirestoreServer] CRITICAL ERROR in getUsers:`, error.message, error);
+    return [];
+  }
+}
+
+export async function getTrackedItemsForUser(userId: string): Promise<PriceTrackerEntry[]> {
+  console.log(`[FirestoreServer] getTrackedItemsForUser called for userId: ${userId}`);
+  if (!userId) {
+    console.error("[FirestoreServer] getTrackedItemsForUser: userId is required.");
+    return [];
+  }
+  if (!firestore) {
+    console.error("[FirestoreServer] Firestore instance is undefined in getTrackedItemsForUser.");
+    return [];
+  }
+  try {
+    const itemsCollectionRef = collection(firestore, 'users', userId, 'trackedItems');
+    const q = query(itemsCollectionRef);
+    const querySnapshot = await getDocs(q);
+    const items = querySnapshot.docs.map(doc => ({ ...doc.data() as Omit<PriceTrackerEntry, 'id'>, id: doc.id }));
+    console.log(`[FirestoreServer] Fetched ${items.length} tracked items for user ${userId}.`);
+    return items;
+  } catch (error: any) {
+    console.error(`[FirestoreServer] CRITICAL ERROR in getTrackedItemsForUser for user ${userId}:`, error.message, error);
+    return [];
+  }
+}
+
+export async function updateTrackedItemInFirestore(userId: string, itemId: string, dataToUpdate: Partial<Omit<PriceTrackerEntry, 'id'>>) {
+    console.log(`[FirestoreServer] updateTrackedItemInFirestore called for userId: ${userId}, itemId: ${itemId}`);
+    if (!userId || !itemId) {
+        console.error("[FirestoreServer] updateTrackedItemInFirestore: userId and itemId are required.");
+        return;
+    }
+    if (!firestore) {
+        console.error("[FirestoreServer] Firestore instance is undefined in updateTrackedItemInFirestore.");
+        return;
+    }
+    try {
+        const itemDocRef = doc(firestore, 'users', userId, 'trackedItems', itemId);
+        await updateDoc(itemDocRef, dataToUpdate);
+        console.log(`[FirestoreServer] Successfully updated tracked item ${itemId} for user ${userId}.`);
+    } catch (error: any) {
+        console.error(`[FirestoreServer] CRITICAL ERROR in updateTrackedItemInFirestore for user ${userId}, item ${itemId}:`, error.message, error);
+        throw error; // Re-throw to be handled by the flow
+    }
+}
+
 
 export async function getRecentUserSearchHistory(userId: string, count: number = 5): Promise<SearchHistoryEntry[]> {
   console.log(`[FirestoreServer] getRecentUserSearchHistory: Called for userId: ${userId}, count: ${count}`);
