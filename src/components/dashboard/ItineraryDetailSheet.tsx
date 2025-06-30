@@ -32,6 +32,7 @@ import {
   AlertDialogClose,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { TripTimelineDialog } from "./TripTimelineDialog";
 
 type ItineraryDetailSheetProps = {
   isOpen: boolean;
@@ -40,7 +41,8 @@ type ItineraryDetailSheetProps = {
   onSaveTrip: (itineraryData: Omit<Itinerary, 'id'>) => void;
   isTripSaved: boolean;
   isSaving?: boolean;
-  onInitiateBooking: (itinerary: Itinerary) => void;
+  isAuthLoading?: boolean;
+  onInitiateBooking: () => void;
 };
 
 const glassPaneClasses = "glass-pane"; 
@@ -55,6 +57,7 @@ export function ItineraryDetailSheet({
   onSaveTrip,
   isTripSaved,
   isSaving,
+  isAuthLoading,
   onInitiateBooking,
 }: ItineraryDetailSheetProps) {
   const [isArVrDialogOpen, setIsArVrDialogOpen] = useState(false);
@@ -62,6 +65,7 @@ export function ItineraryDetailSheet({
   const [arPreviewData, setArPreviewData] = useState<AiArPreviewOutput | null>(null);
   const [localTips, setLocalTips] = useState<LocalInsiderTipsOutput | null>(null);
   const [isLoadingTips, setIsLoadingTips] = useState(false);
+  const [isTimelineDialogOpen, setIsTimelineDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const handleSave = () => {
@@ -71,7 +75,7 @@ export function ItineraryDetailSheet({
   };
 
   const handleBook = () => {
-    onInitiateBooking(itinerary);
+    onInitiateBooking();
   };
 
   const itineraryForCard: Itinerary = 'id' in itinerary && itinerary.id
@@ -180,6 +184,7 @@ export function ItineraryDetailSheet({
                     isSaved={isTripSaved}
                     isSaving={isSaving}
                     isDetailedView={true}
+                    isAuthLoading={isAuthLoading}
                   />
                 </TabsContent>
 
@@ -234,7 +239,7 @@ export function ItineraryDetailSheet({
            <div className={cn("p-4 sm:p-6 border-t border-border/30 grid grid-cols-1 sm:grid-cols-3 gap-3", glassPaneClasses)}>
               <Button
                 onClick={handleSave}
-                disabled={isTripSaved || isSaving}
+                disabled={isTripSaved || isSaving || isAuthLoading}
                 size="lg"
                 className={cn(
                   "w-full",
@@ -242,8 +247,8 @@ export function ItineraryDetailSheet({
                 )}
                 variant={isTripSaved ? "secondary" : "default"} 
               >
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
-                {isSaving ? "Saving..." : isTripSaved ? "Saved" : "Save Trip"}
+                {isSaving || isAuthLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className="mr-2 h-4 w-4" />}
+                {isSaving ? "Saving..." : isAuthLoading ? "Authenticating..." : isTripSaved ? "Saved" : "Save Trip"}
               </Button>
               <Button
                 onClick={handleBook}
@@ -356,6 +361,13 @@ export function ItineraryDetailSheet({
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
+      {itinerary && (
+        <TripTimelineDialog 
+            isOpen={isTimelineDialogOpen}
+            onClose={() => setIsTimelineDialogOpen(false)}
+            trip={itinerary}
+        />
+      )}
     </>
   );
 }
