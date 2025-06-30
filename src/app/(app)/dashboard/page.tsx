@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ListChecks, BellRing, Lightbulb, RefreshCw, Loader2, TrendingUp, Sparkles, Wand2 } from 'lucide-react';
-import { getTravelTip, TravelTipOutput } from "@/ai/flows/travel-tip-flow";
+import { getTravelTip } from "@/app/actions/tripUtils";
+import type { TravelTipOutput } from "@/ai/flows/travel-tip-flow";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedTrips, useTrackedItems } from "@/lib/firestoreHooks";
@@ -131,11 +132,19 @@ export default function DashboardPage() {
                 </p>
             </div>
             <div className="flex items-center gap-2 mt-4 sm:mt-0">
-                <Button variant="outline" size="sm" className="glass-interactive" onClick={() => document.getElementById('my-trips-trigger')?.click()}>
+                <Button
+                  size="sm"
+                  className="shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+                  onClick={() => document.getElementById('my-trips-trigger')?.click()}
+                >
                     <ListChecks className="w-4 h-4 mr-2" />
                     View Trips
                 </Button>
-                 <Button variant="outline" size="sm" className="glass-interactive" onClick={() => document.getElementById('price-tracker-trigger')?.click()}>
+                 <Button
+                   size="sm"
+                   className="shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:from-accent hover:to-primary focus-visible:ring-2 focus-visible:ring-primary/30 transform transition-all duration-300 ease-out hover:scale-[1.02] active:scale-100"
+                   onClick={() => document.getElementById('price-tracker-trigger')?.click()}
+                 >
                     <TrendingUp className="w-4 h-4 mr-2" />
                     Price Tracker
                 </Button>
