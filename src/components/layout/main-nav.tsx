@@ -14,12 +14,12 @@ import {
 
 
 const navItems = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/planner", label: "Planner", icon: Plane },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/explore", label: "Explore", icon: Compass },
   { href: "/tools", label: "Tools", icon: Briefcase },
   { href: "/ai-features", label: "AI Features", icon: Sparkles },
   { href: "/labs", label: "Labs", icon: BrainCircuit },
-  { href: "/explore", label: "Explore", icon: Compass },
   { href: "/quiz", label: "Quiz", icon: Brain },
 ];
 
@@ -39,7 +39,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
                 href={item.href}
                 className={cn(
                   "text-sm font-medium transition-all duration-200 flex items-center gap-1.5 p-2 rounded-lg transform hover:scale-105",
-                  pathname === item.href || (item.href === "/planner" && pathname === "/")
+                  pathname === item.href
                     ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-md shadow-primary/30"
                     : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
                 )}
