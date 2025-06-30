@@ -1,27 +1,47 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { AppLogo } from '@/components/layout/app-logo';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { AppLogo } from '@/components/layout/app-logo';
-import { cn } from '@/lib/utils';
-import { Search, Plane, Hotel, Compass, Briefcase, MapPin, ImageOff, Loader2, AlertTriangle, Sparkles, Building, Route, Info, LocateFixed, ExternalLink, X } from 'lucide-react';
+import { HomePagePackageCard } from '@/components/landing/HomePagePackageCard';
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
+import {
+  Search, Plane, Hotel, Compass, Briefcase, LogIn, UserPlus, User, LogOut, Sparkles, MapPin, Loader2, AlertTriangle, Info, ListChecks, LocateFixed, ExternalLink, X, Building, Route, ArrowRight, Layers, Languages, ShieldCheck, ShieldAlert, BrainCircuit, MessageSquareHeart
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
-import { getPopularDestinations } from '@/app/actions';
+import { getPopularDestinations, generateSmartBundles as generateSmartBundlesAction } from '@/app/actions/suggestions';
+import { LandingMapItemDialog } from "@/components/landing/LandingMapItemDialog";
+import { TrendingDealDetailsDialog } from "@/components/landing/TrendingDealDetailsDialog"; // New Dialog
+import { TrendingFlightDealCard } from "@/components/landing/TrendingFlightDealCard"; // New Card
+import { TrendingHotelDealCard } from "@/components/landing/TrendingHotelDealCard";   // New Card
 import type { PopularDestinationsOutput, AiDestinationSuggestion, PopularDestinationsInput } from '@/ai/types/popular-destinations-types';
+import type { SmartBundleOutput, BundleSuggestion, SmartBundleInput } from '@/ai/types/smart-bundle-types';
 import type { AITripPlannerInput } from '@/ai/types/trip-planner-types';
+import type { SerpApiFlightOption, SerpApiHotelSuggestion } from '@/ai/types/serpapi-flight-search-types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertTitle as ShadcnAlertTitle, AlertDescription as ShadcnAlertDescription} from '@/components/ui/alert';
 import { useRouter } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
-const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 const glassPaneClasses = "bg-background/60 dark:bg-background/50 backdrop-blur-xl";
+const glassCardClasses = "glass-card hover:border-primary/40 bg-card/80 dark:bg-card/50 backdrop-blur-lg";
 
 const exploreCategories = [
   { name: "Flights", icon: <Plane className="w-5 h-5" />, href: "/flights" },
